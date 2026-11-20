@@ -1,0 +1,20 @@
+[
+  {"oz": "01.0010", "short_text": "Zementestrich CT-C25-F4", "quantity": "100", "unit": "m2", "trade_group": "Estrich und Bodenbeläge"},
+  {"oz": "01.0020", "short_text": "Randdämmstreifen", "quantity": "50", "unit": "m", "trade_group": "Estrich und Bodenbeläge"},
+  {"oz": "01.0030", "short_text": "Trittschalldämmung EPS", "quantity": "100", "unit": "m2", "trade_group": "Estrich und Bodenbeläge"},
+  {"oz": "01.0040", "short_text": "Grundierung", "quantity": "100", "unit": "m2", "trade_group": "Estrich und Bodenbeläge"},
+  {"oz": "01.0050", "short_text": "Vinylbodenbelag", "long_text": "Bodenbelag aus PVC Vinyl, homogen", "quantity": "60", "unit": "m2", "trade_group": "Estrich und Bodenbeläge"},
+  {"oz": "02.0010", "short_text": "Bodenplatte aus Ortbeton", "quantity": "20", "unit": "m3", "trade_group": "Betonarbeiten"},
+  {"oz": "02.0020", "short_text": "Randschalung", "quantity": "40", "unit": "m2", "trade_group": "Betonarbeiten"},
+  {"oz": "02.0030", "short_text": "Betonstahl BSt 500", "quantity": "1500", "unit": "kg", "trade_group": "Betonarbeiten"},
+  {"oz": "03.0010", "short_text": "Metallständerwand GKB", "quantity": "80", "unit": "m2", "trade_group": "Trockenbau"},
+  {"oz": "03.0020", "short_text": "Mineralwolle", "quantity": "80", "unit": "m2", "trade_group": "Trockenbau"},
+  {"oz": "03.0030", "short_text": "Fugen Spachtelung", "quantity": "30", "unit": "m2", "trade_group": "Trockenbau"},
+  {"oz": "03.0040", "short_text": "Eckschutzschiene", "quantity": "15", "unit": "m", "trade_group": "Trockenbau"},
+  {"oz": "04.0010", "short_text": "Dispersionsfarbe Anstrich", "quantity": "200", "unit": "m2", "trade_group": "Malerarbeiten"},
+  {"oz": "04.0020", "short_text": "Grundierung", "quantity": "100", "unit": "m2", "trade_group": "Malerarbeiten"},
+  {"oz": "05.0010", "short_text": "Dachabdichtung EPDM", "quantity": "120", "unit": "m2", "trade_group": "Dacharbeiten"},
+  {"oz": "05.0020", "short_text": "Dampfsperre", "quantity": "120", "unit": "m2", "trade_group": "Dacharbeiten"},
+  {"oz": "05.0030", "short_text": "Gefälledämmung PUR", "quantity": "70", "unit": "m2", "trade_group": "Dacharbeiten"}
+]
+

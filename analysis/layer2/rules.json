@@ -1,0 +1,54 @@
+[
+  {
+    "RuleID": "L2.FLOOR.SCREED",
+    "Category": "Floor screed and finishes",
+    "TriggerRegex": "(?i)\\b([a-zäöüß]*estrich[a-zäöüß]*|hohlraumboden|doppelboden)\\b",
+    "Required_Dependencies": [
+      {"DependencyName": "Edge insulation", "Regex": "(?i)\\b(randdämmstreifen)\\b", "CheckType": "Boolean", "SuggestedText": "Randdämmstreifen"},
+      {"DependencyName": "Underlays and insulation", "Regex": "(?i)\\b(?:trittschall)?dämmung\\b|\\b(?:eps|xps)\\b", "CheckType": "Boolean", "SuggestedText": "Trittschalldämmung unter Estrich"},
+      {"DependencyName": "Primer and leveling", "Regex": "(?i)\\b(?:tief|haft)?grund(?:ierung)?\\b|\\b(?:spachtel|nivellier|ausgleichs)masse\\b|\\bnivellierausgleich\\b", "CheckType": "QuantityMatch", "QuantityUnit": "m²", "SuggestedText": "Untergrundvorbereitung / Grundierung / Ausgleichsmasse"},
+      {"DependencyName": "Floor covering", "Regex": "(?i)\\b(?:pvc|vinyl|kautschuk(?:boden)?|laminat(?:böden|bodenbeläge)?|teppich(?:boden)?|kugelgarn|bodenfliesen?|naturstein(?:belag)?)\\b", "CheckType": "QuantityMatch", "QuantityUnit": "m²", "SuggestedText": "Bodenbelag, Ausführung durch Fachplanung festzulegen"},
+      {"DependencyName": "Skirting", "Regex": "(?i)\\b([a-zäöüß]*sockel(?:leiste|fliese)?(?:n|s)?)\\b", "CheckType": "Boolean", "SuggestedText": "Sockelleisten"}
+    ]
+  },
+  {
+    "RuleID": "L2.CONCRETE.STRUCTURE",
+    "Category": "Concrete structures",
+    "TriggerRegex": "(?i)\\b(beton|bodenplatte|stb-wand|stb-decke|ortbeton)\\b",
+    "Required_Dependencies": [
+      {"DependencyName": "Formwork", "Regex": "(?i)\\b(schalung|randschalung|deckenschalung)\\b", "CheckType": "Boolean", "SuggestedText": "Schalung für Ortbetonbauteile"},
+      {"DependencyName": "Reinforcement steel", "Regex": "(?i)\\b(betonstahl|baustahl|bewehrung|matten|bst\\s*500)\\b", "CheckType": "Boolean", "SuggestedText": "Betonstahl / Bewehrung gemäß Statik"},
+      {"DependencyName": "Clean layer", "Regex": "(?i)\\b(sauberkeitsschicht|pe-folie)\\b", "CheckType": "Boolean", "TriggerRegex": "(?i)\\b(bodenplatte|floor\\s+slab)\\b", "SuggestedText": "Sauberkeitsschicht / PE-Folie unter Bodenplatte"}
+    ]
+  },
+  {
+    "RuleID": "L2.DRYWALL.PARTITION",
+    "Category": "Drywall partitions",
+    "TriggerRegex": "(?i)\\b(metallständerwand|gkb|gkf|trockenbauwand|vorsatzschale)\\b",
+    "Required_Dependencies": [
+      {"DependencyName": "Insulation and acoustics", "Regex": "(?i)\\b(mineralwolle|trennwandplatte|dämmung)\\b", "CheckType": "QuantityMatch", "QuantityUnit": "m²", "SuggestedText": "Mineralwolle / Trennwanddämmung"},
+      {"DependencyName": "Joint filling", "Regex": "(?i)\\b(spachtelung|fugen|verspachtelt)\\b", "CheckType": "QuantityMatch", "QuantityUnit": "m²", "SuggestedText": "Fugenverspachtelung der Trockenbauwände"},
+      {"DependencyName": "Edge protection", "Regex": "(?i)\\b(eckschutzschiene|kantenschutz)\\b", "CheckType": "Boolean", "SuggestedText": "Eckschutzschienen / Kantenschutz"}
+    ]
+  },
+  {
+    "RuleID": "L2.PAINT.COATING",
+    "Category": "Painting works",
+    "TriggerRegex": "(?i)\\b(dispersionsfarbe|anstrich|lackierung|silikatfarbe)\\b",
+    "Required_Dependencies": [
+      {"DependencyName": "Masking and protection", "Regex": "(?i)\\b(abdeckarbeiten|abdecken|schutzfolie|abkleben)\\b", "CheckType": "Boolean", "SuggestedText": "Abdeck- und Abklebearbeiten"},
+      {"DependencyName": "Surface preparation and primer", "Regex": "(?i)\\b(tiefengrund|haftgrund|grundierung)\\b", "CheckType": "QuantityMatch", "QuantityUnit": "m²", "SuggestedText": "Grundierung der Anstrichflächen"}
+    ]
+  },
+  {
+    "RuleID": "L2.ROOF.WATERPROOFING",
+    "Category": "Flat roof waterproofing",
+    "TriggerRegex": "(?i)\\b(dachabdichtung|bitumenbahn|dachfolie|fpo|epdm)\\b",
+    "Required_Dependencies": [
+      {"DependencyName": "Vapor barrier", "Regex": "(?i)\\b(dampfsperre|dampfbremse)\\b", "CheckType": "QuantityMatch", "QuantityUnit": "m²", "SuggestedText": "Dampfsperre / Dampfbremse für Flachdach"},
+      {"DependencyName": "Thermal insulation", "Regex": "(?i)\\b(wärmedämmung|gefälledämmung|eps|pur)\\b", "CheckType": "QuantityMatch", "QuantityUnit": "m²", "SuggestedText": "Wärme- / Gefälledämmung für Flachdach"},
+      {"DependencyName": "Roof drainage", "Regex": "(?i)\\b(dachgully|notüberlauf|speier)\\b", "CheckType": "Boolean", "SuggestedText": "Dachentwässerung / Notüberlauf gemäß Planung"}
+    ]
+  }
+]
+

@@ -1,0 +1,15 @@
+{
+  "schema_version": "0.1",
+  "project": {"id": "project-demo", "name": "Room allocation demo", "currency": "EUR", "gaeb_phase": "83"},
+  "bom": {"bom_version_id": "bom-demo-v1", "title": "Trockenbau", "trade": "drywall"},
+  "areas": [
+    {"id": "office-a", "name": "Office A", "kind": "office"},
+    {"id": "office-b", "name": "Office B", "kind": "office"}
+  ],
+  "sections": [{"id": "drywall", "code": "01", "title": "Trockenbau"}],
+  "lines": [
+    {"id": "wall", "code": "01.0010", "section_id": "drywall", "short_text": "Metallständerwand GKB einschließlich Fugen Spachtelung und Kantenschutz", "quantity": "100", "unit": "m²", "distributions": [{"area_id": "office-a", "quantity": "40"}, {"area_id": "office-b", "quantity": "60"}], "source_locator": {"xml_path": "BoQ/Item[1]"}},
+    {"id": "insulation", "code": "01.0020", "section_id": "drywall", "short_text": "Mineralwolle Trennwandplatte", "quantity": "80", "unit": "m²", "distributions": [{"area_id": "office-a", "quantity": "40"}, {"area_id": "office-b", "quantity": "40"}], "source_locator": {"xml_path": "BoQ/Item[2]"}}
+  ]
+}
+

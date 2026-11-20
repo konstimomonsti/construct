@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gaeb-dependency-validator"
+version = "0.1.0"
+description = "Deterministic layer 2 dependency checks for parsed construction bills of quantities"
+requires-python = ">=3.10"
+dependencies = ["pydantic>=2.8,<3"]
+
+[project.scripts]
+gaeb-check = "analysis.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["analysis*"]
+
+[tool.setuptools.package-data]
+"analysis.layer2" = ["rules.json"]
+
