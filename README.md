@@ -13,7 +13,7 @@ Feature List:
 
 Baseline project:
 
-# 🏗️ [Project Name]
+# 🏗️ BillBuild
 
 > **AI-powered risk and error detection for German Bills of Quantities (*Leistungsverzeichnisse*).**  
 > Built in 48 hours for the **TUM.ai Construction Hackathon** — *Beyond the Line Item* challenge (in partnership with the Bayerischer Bauindustrieverband).
