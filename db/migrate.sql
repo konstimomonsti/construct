@@ -71,5 +71,13 @@ SELECT NOT EXISTS (
     INSERT INTO db_migration.applied_version (version) VALUES (8);
 \endif
 
+SELECT NOT EXISTS (
+    SELECT FROM db_migration.applied_version WHERE version = 9
+) AS apply_analysis \gset
+\if :apply_analysis
+    \ir migrations/009_analysis.sql
+    INSERT INTO db_migration.applied_version (version) VALUES (9);
+\endif
+
 \ir runtime_role.sql
 COMMIT;
