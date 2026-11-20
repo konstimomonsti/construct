@@ -131,7 +131,7 @@ def test_registry_builds_findings_and_isolates_crashes():
         analysis_input = AnalysisInput(lines=[Line(id="a", sort_order=1, code="01.0010"), Line(id="b", sort_order=2,
                                                                                             quantity=Decimal(2))])
         errors = []
-        findings = run_layer(1, analysis_input, [], errors)
+        findings = [f for f in run_layer(1, analysis_input, [], errors) if f.rule_id.startswith("L1.TEST.")]
         assert [f.target.line_id for f in findings] == ["a"]
         assert findings[0].scope == "line" and findings[0].evidence == {"q": "1.5"}
         assert errors and "L1.TEST.CRASH" in errors[0]

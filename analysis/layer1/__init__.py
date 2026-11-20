@@ -4,7 +4,7 @@ from ..contracts import AnalysisInput, Finding
 from ..registry import run_layer
 
 # Rule modules register themselves on import. Add new modules here.
-from . import rules  # noqa: F401
+from . import arithmetic, completeness, consistency, pricing  # noqa: F401
 
 LAYER = 1
 

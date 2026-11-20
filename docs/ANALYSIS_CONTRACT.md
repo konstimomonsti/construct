@@ -307,33 +307,73 @@ An unknown unit keeps its raw text and gets dimension `unknown`. That's a layer 
 }
 ```
 
-## 7. Layer 1 rule catalogue (planned)
+## 7. Layer 1 rule catalogue
 
-| rule_id | Severity | Check |
-|---|---|---|
-| `L1.QTY.MISSING` | error | `quantity` is null on an item that is not `lump_sum` |
-| `L1.QTY.NON_POSITIVE` | error | `quantity <= 0` |
-| `L1.QTY.FRACTIONAL_COUNT` | warning | non-integer quantity in a count unit (`2.5 ea`) |
-| `L1.UNIT.MISSING` | error | no unit |
-| `L1.UNIT.UNKNOWN` | warning | unit not in the vocabulary |
-| `L1.UNIT.TEXT_MISMATCH` | warning | unit dimension contradicts keywords in the text (area words + `ea`, pipe + `m²`, ...) |
-| `L1.LUMP.INCONSISTENT` | warning | `lump_sum` with quantity ≠ 1 or unit ≠ `lump_sum`, or the other way round |
-| `L1.TEXT.MISSING` | error | no short or long text |
-| `L1.TEXT.PLACEHOLDER` | warning | unfilled placeholders (`......`, `XXX`, `Fabrikat: ___`, `nach Wahl`) |
-| `L1.CODE.MISSING` / `L1.CODE.DUPLICATE` | error | empty or repeated OZ |
-| `L1.CODE.OUTSIDE_SECTION` | warning | OZ prefix doesn't match its section code |
-| `L1.STRUCT.EMPTY_SECTION` | info | section without items |
-| `L1.STRUCT.ORPHAN_ALTERNATIVE` | warning | alternative item without a base item |
-| `L1.STRUCT.UNIT_PRICE_ONLY_IN_TOTAL` | error | "Nur Einh.-Pr." item counted in the total |
-| `L1.DUP.SUSPECTED` | warning | same normalized text and unit twice in one section |
-| `L1.ARITH.LINE_AMOUNT` | error | `qty × unit_price ≠ line_amount` beyond rounding tolerance (0.01 per line) |
-| `L1.ARITH.SECTION_TOTAL` | error | stated subtotal ≠ sum of included lines |
-| `L1.PRICE.MISSING` | error | no price after the pricing phase |
-| `L1.PRICE.ZERO` | warning | unit price 0 |
-| `L1.PRICE.UNIT_MISMATCH` | error | `price.price_unit` ≠ `line.unit` |
-| `L1.PRICE.OUTLIER` | warning | price outside the reference range by a set factor |
-| `L1.PRICE.LOW_CONFIDENCE` | info | `match_confidence` below a threshold |
-| `L1.DIST.SUM_MISMATCH` | warning | room distributions don't add up to the line quantity |
+Implemented in `analysis/layer1/` (`completeness.py`, `consistency.py`, `arithmetic.py`, `pricing.py`).
+Thresholds are in `analysis/layer1/common.py` (`Thresholds`). `python -m analysis rules` lists them all.
+
+Severity depends on the GAEB phase where it makes sense: in a tender (83) the bidder blanks are
+expected (info), while in a bid or award (84/86) they're a defect (warning).
+
+| rule_id | Severity | Check | Fix proposed |
+|---|---|---|---|
+| `L1.QTY.MISSING` | error | no quantity on an item that is not a lump sum | - |
+| `L1.QTY.NEGATIVE` | error | quantity < 0 | - |
+| `L1.QTY.ZERO` | warning / error | quantity 0 on a counted item; **error** when it has a unit price (adds nothing to the total) | - |
+| `L1.QTY.FRACTIONAL_COUNT` | warning | non-integer quantity in a count unit (`2.5 St`) | - |
+| `L1.UNIT.MISSING` | error | no unit | `unit = lump_sum` when flagged as lump sum (0.9) |
+| `L1.UNIT.UNKNOWN` | warning | unit not in the vocabulary | - |
+| `L1.UNIT.TEXT_MISMATCH` | warning | text states the measurement unit (`Abrechnung nach m2`) and it differs; composite units (`Stück x Stunden`) skipped | `unit = stated` (0.6) |
+| `L1.LUMP.INCONSISTENT` | warning | `psch` with quantity ≠ 1, lump-sum flag with a measured unit, `psch` without quantity (info) | `quantity = 1` for the last case (0.8) |
+| `L1.TEXT.MISSING` | error | no short and no long text. GAEB 84 bids carry no texts: one BOM-level info instead | - |
+| `L1.TEXT.BIDDER_INPUT` | info (83) / warning (84, 86) | blanks for the bidder: `.....`, `____`, `vom Bieter einzutragen` | - |
+| `L1.TEXT.OR_EQUIVALENT` | info | reference product "oder gleichwertig": bidder must name the product, pricing should use the reference | - |
+| `L1.CODE.MISSING` | error | no valid OZ (damaged code) | - |
+| `L1.CODE.DUPLICATE` | error | same OZ twice | - |
+| `L1.CODE.OUTSIDE_SECTION` | warning | OZ prefix ≠ section code | - |
+| `L1.STRUCT.ORPHAN_LINE` | warning | item outside every section (missing from subtotals) | - |
+| `L1.STRUCT.EMPTY_SECTION` | info | section without items | - |
+| `L1.STRUCT.ORPHAN_ALTERNATIVE` | warning | Wahlposition without a Grundposition | - |
+| `L1.STRUCT.PROVISIONAL_ITEM` | info | Bedarfsposition (not in total; VOB/A §7 (1) 4 generally disallows them in public tenders) | - |
+| `L1.STRUCT.UNIT_PRICE_ONLY_IN_TOTAL` | error | "Nur Einheitspreis" item carries a line amount | - |
+| `L1.DUP.SUSPECTED` | warning | same section, text and unit twice | `merge_lines` (0.3) |
+| `L1.DIST.SUM_MISMATCH` | warning | room quantities ≠ line quantity | - |
+| `L1.ARITH.LINE_AMOUNT` | error | qty × unit price ≠ stated amount (> 0.01). Unit price prevails (VOB/A §16c); corrected amount in evidence | - |
+| `L1.ARITH.SECTION_TOTAL` | error / info | stated subtotal ≠ sum of counted items; 0.00 = not filled in (info). Points at an unplaced item whose amount explains the gap | - |
+| `L1.ARITH.NET_TOTAL` | error / info | same for the net total | - |
+| `L1.PRICE.MISSING_IN_FILE` | error | counted item without unit price in a bid/award | - |
+| `L1.PRICE.NOT_FOUND` | error | pricing phase ran and found nothing | - |
+| `L1.PRICE.ZERO` | warning | unit price 0 (file or pricing) | - |
+| `L1.PRICE.UNIT_MISMATCH` | error / warning | price unit ≠ line unit (warning when same dimension: needs conversion) | - |
+| `L1.PRICE.CURRENCY_MISMATCH` | error | price currency ≠ project currency | - |
+| `L1.PRICE.OUTLIER` | warning | price > 3× or < 1/3 of the reference median (n ≥ 3) | - |
+| `L1.PRICE.LOW_CONFIDENCE` | info | match confidence < 0.6 (< 0.8 for AI) | - |
+| `L1.PRICE.SOURCE_DEVIATION` | warning | bid price vs our price differ by > 50% | - |
+| `L1.PRICE.STALE` | info | price older than 3 years | - |
+| `L1.IMPORT.WARNING` | warning | importer could not read part of the file | - |
+
+### What the real files in `Data/` show
+
+| File | Findings |
+|---|---|
+| `[ORT_024] LV24069.D86` | 38 change-order items (section 8, Nachträge) with a unit price but quantity 0 and no unit; net total left at 0.00 |
+| `StBALV23040.D86` | damaged OZ `TEL00009` → item outside every section → section 08 subtotal off by exactly its amount (982.20) |
+| `Angebot AN24-0305.D84` | 20 bidder fields left empty in the bid; bid has no texts (normal for GAEB 84) |
+| `501-24-01_GAEB-XML_sas.x83` | duplicate item 02.03.0005 / 02.03.0007; 24 Bedarfspositionen |
+| tenders (`*.X83`, `*.D83`) | only info: bidder blanks and "oder gleichwertig" products to complete |
+
+### Sources for the checks
+
+- Quantity, unit and description errors are the most common BoQ errors and a main source of claims:
+  [Designing Buildings, common mistakes in BoQ](https://www.designingbuildings.co.uk/wiki/Common_mistakes_in_bill_of_quantities),
+  [University of Moratuwa study](https://dl.lib.uom.lk/server/api/core/bitstreams/a4901c64-4230-467c-a2ce-9f47e4fc79cd/content).
+- Missing/wrong quantities, duplicate items, unclear trade boundaries: [ibau glossary, LV](https://www.ibau.de/akademie/glossar/leistungsverzeichnis-lv/).
+- Arithmetic check of bids, unit price prevails over the line total: [VOB/A §16c](https://lxgesetze.de/vob-a-2019/16c),
+  [Bauprofessor, Prüfungsregeln Angebotspreise](https://www.bauprofessor.de/pruefungsregeln-angebotspreise/).
+- Position types (Bedarfs-, Wahl-, Grundposition) and their rules: [Bauprofessor, Positionsarten](https://www.bauprofessor.de/positionsarten/),
+  [Bauprofessor, Bedarfsposition](https://www.bauprofessor.de/bedarfsposition/).
+- Bidder product fields and "Leitfabrikat oder gleichwertig": [cosinex](https://blog.cosinex.de/2023/09/05/leitfabrikat-oder-gleichwertig/),
+  [Vergabeblog, fehlende Produktangaben](https://vergabeblog.de/2014-08-19/fehlende-produktangaben-und-deren-konsequenzen/).
 
 ## 8. Notes for layer 2
 
