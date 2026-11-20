@@ -1,3 +1,5 @@
+import os
+import sys
 import re
 import pdfplumber
 import pandas as pd
@@ -93,10 +95,24 @@ def parse_lv_positions(full_text: str) -> pd.DataFrame:
 
 
 if __name__ == "__main__":
-    raw_text = extract_clean_text("LV_14a_Betonkernaktivierung.pdf")
+    pdf_path = sys.argv[1] if len(sys.argv) > 1 else "LV_14a_Betonkernaktivierung.pdf"
+    if not os.path.exists(pdf_path):
+        candidates = [
+            os.path.join("..", "Data", pdf_path),
+            os.path.join("Data", pdf_path),
+            os.path.join(os.path.dirname(__file__), "..", "Data", pdf_path),
+        ]
+        for candidate in candidates:
+            if os.path.exists(candidate):
+                pdf_path = candidate
+                break
+
+    print(f"Processing PDF: {pdf_path}")
+    raw_text = extract_clean_text(pdf_path)
     df = parse_lv_positions(raw_text)
 
     # Export to structured formats
     df.to_csv("lv_structured.csv", index=False, encoding="utf-8-sig")
     df.to_json("lv_structured.json", orient="records", force_ascii=False, indent=2)
+    print(f"Extracted {len(df)} positions:")
     print(df[["oz", "position_type", "short_text", "quantity", "unit"]].head(10))
