@@ -1,0 +1,1445 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Explore the planned workflow, build plan, and database schema for construction BOMs.">
+<title>BOM Workspace</title>
+<style>
+:root {
+  color-scheme: light;
+  --ink: #142932;
+  --muted: #536873;
+  --border: #dbe5e8;
+  --surface: #fff;
+  --page: #f5f8f8;
+  --teal: #096852;
+  --mint: #e5f5ed;
+  --mono: ui-monospace, "SFMono-Regular", Consolas, monospace;
+  --sans: "Inter", "Aptos", system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+body { margin: 0; font: 14px/1.5 var(--sans); color: var(--ink); }
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+button:focus-visible, input:focus-visible, [tabindex]:focus-visible {
+  outline: 2px solid #087e64;
+  outline-offset: 3px;
+}
+button:disabled { cursor: default; opacity: .45; }
+code, kbd { font-family: var(--mono); }
+[hidden] { display: none !important; }
+.app { max-width: 1920px; margin: auto; }
+.topbar { background: var(--surface); border-bottom: 1px solid var(--border); }
+.topbar-inner { display: flex; align-items: center; gap: 12px; padding: 14px 26px; }
+.brand-mark, .table-mark { display: inline-grid; place-items: center; flex: none; color: var(--teal); background: var(--mint); border-radius: 8px; }
+.brand-mark { width: 36px; height: 36px; }
+.grid-icon { width: 16px; height: 15px; display: inline-block; border: 1.6px solid currentColor; border-radius: 3px; position: relative; }
+.grid-icon::before { content: ""; position: absolute; inset: 4px 0 auto; border-top: 1.5px solid currentColor; }
+.grid-icon::after { content: ""; position: absolute; inset: 5px 0 0 5px; border-left: 1.5px solid currentColor; }
+.brand { font-weight: 750; font-size: 16px; letter-spacing: -.025em; }
+.topbar-divider { width: 1px; height: 20px; background: var(--border); }
+.topbar-context { color: var(--muted); }
+.section-nav { display: flex; gap: 4px; margin-left: auto; }
+.section-nav button { background: transparent; border: 1px solid transparent; border-radius: 7px; color: var(--muted); padding: 7px 12px; font-weight: 650; white-space: nowrap; }
+.section-nav button:hover { background: var(--page); }
+.section-nav button[aria-pressed="true"] { background: var(--mint); color: var(--teal); border-color: #cbe6dc; }
+.workflow-page { background: var(--page); padding: 30px clamp(16px, 3vw, 42px) 42px; }
+.workflow-inner { max-width: 1320px; margin-inline: auto; }
+.workflow-hero { max-width: 790px; margin-bottom: 23px; }
+.workflow-hero h1 { margin: 0 0 8px; font-size: clamp(30px, 4.1vw, 49px); font-weight: 770; line-height: 1.07; letter-spacing: -.055em; }
+.workflow-hero p { margin: 0; color: var(--muted); font-size: 16px; }
+.workflow-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(260px, 310px); align-items: start; gap: 18px; }
+.flow-board { --wire: #829d99; background: #f8fbfa; padding: clamp(12px, 2vw, 22px); border: 1px solid var(--border); border-radius: 13px; }
+.flow-stages, .flow-paths { display: grid; gap: 28px; }
+.flow-stages { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.flow-paths { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.flow-step { --step-color: #2e6472; --step-tint: #edf5f6; position: relative; display: grid; align-content: start; gap: 6px; width: 100%; min-width: 0; min-height: 112px; padding: 12px 13px; text-align: left; background: var(--surface); border: 1px solid #d6e4e6; border-radius: 9px; box-shadow: 0 2px 4px #183f4208; }
+.flow-step:hover { border-color: var(--step-color); }
+.flow-step[aria-pressed="true"] { border-color: var(--step-color); box-shadow: 0 0 0 1px var(--step-color), 0 3px 9px #183f4215; }
+.flow-step.is-match { --step-color: #17694f; --step-tint: #e5f4ec; }
+.flow-step.is-research { --step-color: #894d20; --step-tint: #fff1e2; }
+.flow-step.is-analytics { --step-color: #325d8a; --step-tint: #eaf2fa; }
+.flow-step.is-human { --step-color: #20645e; --step-tint: #e7f5f1; }
+.flow-step.is-export { --step-color: #4b4f80; --step-tint: #eff0fa; }
+.flow-step.wide { min-height: auto; }
+.flow-step-top { display: flex; gap: 8px; align-items: center; }
+.step-index { display: grid; place-items: center; flex: none; width: 27px; height: 25px; border-radius: 5px; color: var(--step-color); background: var(--step-tint); font: 720 12px var(--mono); }
+.flow-step-title { font-size: 15px; font-weight: 750; line-height: 1.27; letter-spacing: -.014em; overflow-wrap: anywhere; }
+.flow-copy { display: block; color: var(--muted); font-size: 13px; line-height: 1.4; }
+.flow-stages .flow-step:not(:last-child)::after { content: ""; position: absolute; top: calc(50% - 3px); left: calc(100% + 5px); width: 15px; height: 7px; background: var(--wire); clip-path: polygon(0 43%, 70% 43%, 70% 0, 100% 50%, 70% 100%, 70% 57%, 0 57%); }
+.flow-wires { --left: calc(25% - 5px); --right: calc(75% + 5px); --match: calc(83.333% + 9.333px); position: relative; height: 31px; }
+.wire-stem { position: absolute; left: var(--position); height: 50%; top: var(--top); width: 1px; background: var(--wire); }
+.wire-stem.with-arrow::after, .flow-down::after { content: ""; position: absolute; bottom: 0; left: -3px; border: 4px solid transparent; border-top-color: var(--wire); border-bottom: 0; }
+.wire-span { position: absolute; left: var(--left); right: calc(100% - var(--end)); top: 50%; height: 1px; background: var(--wire); }
+.fork .wire-span { --end: var(--match); }
+.flow-down { position: relative; height: 22px; width: 1px; margin-inline: auto; background: var(--wire); }
+.flow-statuses, .export-formats { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 2px; }
+.flow-tag { padding: 2px 7px; border-radius: 5px; background: var(--step-tint); color: var(--step-color); font-size: 11px; font-weight: 700; }
+.flow-tag.pending { color: #8a4c1e; background: #fff0e1; }
+.flow-tag.open { color: #535e68; background: #edf2f3; }
+.workflow-inspector { padding: 17px; }
+.workflow-inspector h2 { font-size: 19px; line-height: 1.2; margin: 7px 0 7px; letter-spacing: -.035em; }
+.workflow-inspector p { margin: 0; color: var(--muted); font-size: 14px; }
+.flow-details { margin: 14px 0 0; }
+.flow-details div { border-top: 1px solid #e7eeef; padding: 9px 0 0; margin-top: 9px; }
+.flow-details dt { font-size: 12px; font-weight: 750; }
+.flow-details dd { margin: 1px 0 0; color: var(--muted); font-size: 13px; }
+.plan-context { border: 1px solid #caddd7; border-left: 4px solid #4b8875; background: #eff7f2; padding: 11px 14px; border-radius: 8px; margin-bottom: 16px; }
+.plan-context p { margin: 0; font-size: 14px; }
+.milestones { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.milestones li { display: grid; grid-template-columns: auto minmax(0, 1fr); align-content: start; gap: 10px; padding: 15px; }
+.milestones .step-index { --step-color: var(--teal); --step-tint: var(--mint); }
+.milestones h2 { font-size: 17px; margin: 1px 0 5px; letter-spacing: -.02em; }
+.milestones p { margin: 0; color: var(--muted); font-size: 14px; }
+.milestones .acceptance { border-top: 1px solid #e7eeef; margin-top: 9px; padding-top: 7px; color: var(--ink); font-size: 13px; }
+.acceptance strong { display: block; color: var(--teal); }
+@media (max-width: 1020px) {
+  .workflow-layout { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 670px) {
+  .topbar-inner { flex-wrap: wrap; row-gap: 8px; }
+  .section-nav { width: 100%; margin-left: 0; }
+  .section-nav button { padding: 6px 10px; }
+  .workflow-page { padding-top: 21px; }
+  .workflow-hero { margin-bottom: 16px; }
+  .milestones { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 560px) {
+  .flow-stages { grid-template-columns: minmax(0, 1fr); gap: 17px; }
+  .flow-step { min-height: 75px; padding: 9px; }
+  .flow-paths { gap: 12px; }
+  .flow-paths .flow-step { min-height: 115px; }
+  .flow-stages .flow-step:not(:last-child)::after { top: calc(100% + 4px); left: calc(50% - 4px); width: 8px; height: 10px; clip-path: polygon(45% 0, 55% 0, 55% 56%, 100% 56%, 50% 100%, 0 56%, 45% 56%); }
+  .flow-wires { --left: calc(25% - 3px); --right: calc(75% + 3px); --match: 50%; height: 24px; }
+  .fork .wire-span { --end: var(--right); }
+  .flow-down { height: 17px; }
+}
+.layout { display: grid; grid-template-columns: 212px minmax(0, 1fr); background: var(--page); }
+.sidebar { background: var(--surface); border-right: 1px solid var(--border); padding: 25px 14px; }
+.sidebar-inner { position: sticky; top: 16px; }
+.eyebrow { color: var(--muted); font-weight: 750; font-size: 11px; letter-spacing: .105em; text-transform: uppercase; }
+.sidebar h2 { margin: 0 8px 10px; }
+.area-list { display: grid; gap: 2px; }
+.area-button, .table-link { display: flex; text-align: left; align-items: center; background: none; border: 1px solid transparent; border-radius: 7px; width: 100%; gap: 9px; min-height: 35px; padding: 5px 8px; }
+.area-button:hover, .table-link:hover { background: #f1f6f6; }
+.area-button[aria-pressed="true"] { background: var(--mint); color: var(--teal); font-weight: 700; }
+.count { margin-left: auto; color: var(--muted); font: 11px var(--mono); }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--domain, #637986); flex: none; }
+.sidebar hr { border: 0; border-top: 1px solid var(--border); margin: 21px 7px 16px; }
+.table-list { max-height: 430px; overflow: auto; padding: 3px 4px; scrollbar-width: thin; }
+.table-link { font: 11px/1.25 var(--mono); overflow-wrap: anywhere; min-height: 29px; padding-left: 5px; }
+.table-link[aria-current="true"] { border-color: #b7dfce; background: var(--mint); color: var(--teal); }
+.table-link .grid-icon { width: 12px; height: 12px; color: var(--domain); border-width: 1px; }
+.table-link .grid-icon::before { inset: 3px 0 auto; border-width: 1px; }
+.table-link .grid-icon::after { inset: 4px 0 0 3px; border-width: 1px; }
+main { padding: 25px 24px 36px; min-width: 0; }
+.hero { display: flex; justify-content: space-between; align-items: end; gap: 20px; margin-bottom: 18px; }
+.hero h1 { font-size: clamp(28px, 3vw, 43px); line-height: 1.08; letter-spacing: -.055em; margin: 0 0 8px; font-weight: 760; }
+.hero p { margin: 0; color: var(--muted); font-size: 14px; }
+.stats { display: flex; gap: 6px; margin: 0; align-items: center; font-size: 12px; white-space: nowrap; }
+.stats div { display: flex; align-items: center; gap: 5px; border: 1px solid var(--border); background: var(--surface); padding: 5px 8px; border-radius: 6px; }
+.stats dt { order: 1; color: var(--muted); }
+.stats dd { margin: 0; font-weight: 750; font-variant-numeric: tabular-nums; }
+.toolbar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 13px; }
+.segment { display: inline-flex; align-items: center; gap: 2px; padding: 3px; border-radius: 8px; background: #eaf0f0; border: 1px solid var(--border); }
+.segment button { border: 1px solid transparent; border-radius: 5px; background: none; color: #455d66; min-height: 30px; padding: 3px 11px; font-weight: 630; white-space: nowrap; }
+.segment button[aria-pressed="true"] { color: var(--ink); background: var(--surface); border-color: #d6e3e5; box-shadow: 0 1px 2px #1429320a; }
+.search { display: flex; align-items: center; min-width: 258px; border: 1px solid var(--border); gap: 9px; background: white; border-radius: 8px; padding: 4px 9px 4px 12px; }
+.search:focus-within { border-color: #58a58d; }
+.search-icon { width: 12px; height: 12px; border: 1.5px solid #627984; border-radius: 50%; position: relative; flex: none; margin-right: 3px; }
+.search-icon::after { content: ""; position: absolute; width: 5px; height: 1.5px; background: #627984; right: -4px; bottom: -2px; rotate: 45deg; }
+.search input { background: transparent; min-width: 0; width: 100%; padding: 5px 0; border: 0; outline: none; }
+.search input:focus-visible { outline: none; }
+.search kbd { background: #f2f5f5; padding: 1px 6px; border-radius: 4px; border: 1px solid var(--border); color: var(--muted); font-size: 12px; }
+.clear { background: #f2f5f5; border: 1px solid var(--border); border-radius: 4px; height: 23px; width: 24px; padding: 0; flex: none; line-height: 1; }
+.workspace { display: grid; grid-template-columns: minmax(0, 1fr) minmax(294px, 32%); gap: 14px; align-items: start; }
+.panel { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 3px 10px #163e4507; min-width: 0; overflow: hidden; }
+.panel-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; padding: 13px 15px; border-bottom: 1px solid var(--border); }
+.panel-header h2 { font-size: 15px; letter-spacing: -.02em; margin: 0; }
+.map-panel .segment button { min-height: 25px; font-size: 12px; padding-inline: 8px; }
+.map-viewport { overflow: auto; position: relative; height: 455px; background: #f7faf9; background-image: radial-gradient(#cbdad9 1px, transparent 1px); background-size: 15px 15px; scrollbar-width: thin; }
+.world-size { position: relative; min-width: 100%; min-height: 100%; }
+.world { position: absolute; transform-origin: 0 0; }
+.world canvas { position: absolute; inset: 0; pointer-events: none; }
+.lane { position: absolute; font-size: 12px; font-weight: 800; letter-spacing: .10em; text-transform: uppercase; color: var(--domain); white-space: nowrap; }
+.node { position: absolute; width: 199px; height: 69px; padding: 0; border-radius: 10px; border: 1.4px solid #cbdadc; background: white; color: var(--ink); text-align: left; box-shadow: 0 2px 5px #17394013; overflow: hidden; }
+.node:hover, .node.is-neighbor { border-color: var(--domain); }
+.node[aria-current="true"] { box-shadow: 0 0 0 2px var(--domain), 0 5px 9px #163b331a; border-color: var(--domain); }
+.node.is-dim { opacity: .40; }
+.node-head { display: flex; align-items: center; gap: 7px; min-height: 34px; padding: 5px 9px; background: var(--tint); border-bottom: 1px solid #dce6e4; font: 700 13px var(--mono); white-space: nowrap; }
+.node-head span:last-child { overflow: hidden; text-overflow: ellipsis; }
+.node-head .grid-icon { color: var(--domain); width: 13px; height: 12px; flex: none; }
+.node-head .grid-icon::before { inset: 3px 0 auto; }
+.node-head .grid-icon::after { inset: 4px 0 0 4px; }
+.node[aria-current="true"] .node-head { color: var(--domain); }
+.node-meta { display: block; padding: 7px 9px; color: var(--muted); font-size: 12px; }
+.map-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; min-height: 48px; padding: 8px 14px; border-top: 1px solid var(--border); color: var(--muted); font-size: 12px; }
+.map-legend, .zoom { display: flex; align-items: center; gap: 6px; }
+.map-hint { font-size: 11px; color: var(--muted); }
+.sample-edge { height: 0; width: 19px; border-top: 2px solid #829e9c; }
+.zoom button { padding: 2px 7px; background: #fff; border: 1px solid var(--border); border-radius: 5px; min-height: 25px; }
+.zoom button:hover { border-color: #8eb6ad; }
+.zoom output { width: 39px; text-align: center; font-variant-numeric: tabular-nums; }
+.index { padding: 12px 15px; min-height: 455px; max-height: 552px; overflow: auto; }
+.index h3 { margin: 13px 0 7px; font-size: 13px; display: flex; gap: 7px; align-items: center; }
+.index h3:first-child { margin-top: 2px; }
+.index-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; width: 100%; text-align: left; padding: 8px 9px; border: 1px solid transparent; border-bottom-color: #e9efef; border-radius: 5px; background: white; }
+.index-row:hover, .index-row[aria-current="true"] { background: var(--tint); border-color: var(--border); }
+.index-row code { overflow-wrap: anywhere; font-weight: 650; }
+.index-row .summary { grid-column: 1 / -1; color: var(--muted); font-size: 13px; }
+.inspector { scroll-margin-block-start: 12px; }
+.inspector-header { padding: 16px 15px 11px; }
+.inspector-title { display: flex; align-items: center; gap: 9px; min-width: 0; }
+.table-mark { width: 30px; height: 30px; background: var(--tint); color: var(--domain); }
+.inspector h2 { font: 750 16px var(--mono); overflow-wrap: anywhere; margin: 0; }
+.inspector-header p { color: var(--muted); margin: 8px 0 0; font-size: 13px; }
+.inspector-tabs { display: flex; padding: 0 15px; gap: 11px; flex-wrap: wrap; border-bottom: 1px solid var(--border); }
+.inspector-tabs button { border: 0; background: none; padding: 8px 2px; border-bottom: 2px solid transparent; font-weight: 650; color: var(--muted); }
+.inspector-tabs button[aria-pressed="true"] { border-bottom-color: var(--teal); color: var(--teal); }
+.inspector-tabs span { margin-left: 3px; border-radius: 4px; background: #eaf1f0; font-size: 11px; padding: 1px 4px; }
+.detail { max-height: 421px; overflow: auto; scrollbar-width: thin; }
+.rules { margin: 0; padding: 9px 17px 14px 32px; font-size: 13px; }
+.rules li { padding: 6px 0; }
+.column-table { border-spacing: 0; width: 100%; font-size: 12px; text-align: left; }
+.column-table th, .column-table td { border-bottom: 1px solid #edf1f2; padding: 8px 8px 8px 0; vertical-align: top; }
+.column-table th:first-child, .column-table td:first-child { padding-left: 15px; }
+.column-table th:last-child, .column-table td:last-child { padding-right: 12px; }
+.column-table thead th { position: sticky; z-index: 1; top: 0; background: #f7faf9; color: var(--muted); font-size: 11px; }
+.column-table td:first-child { font-weight: 640; overflow-wrap: anywhere; width: 48%; }
+.column-table td:nth-child(2) { color: var(--muted); }
+.column-table td:last-child { white-space: nowrap; }
+.column-notes { display: block; color: var(--muted); margin-top: 2px; font: 11px/1.4 var(--sans); }
+.badge { display: inline-block; padding: 1px 3px; border-radius: 4px; font: 700 10px/1.3 var(--mono); margin: 0 2px 2px 0; }
+.badge.pk { background: #eaf1fc; color: #224b82; }
+.badge.fk { background: var(--mint); color: var(--teal); border: 1px solid #cde9dc; }
+.badge.fk:hover { border-color: var(--teal); }
+.nullable { color: var(--muted); font: 12px var(--mono); }
+.relations { padding: 9px 15px 12px; }
+.relations h3 { margin: 5px 0; }
+.relation { padding: 8px 0; border-bottom: 1px solid #edf1f2; display: grid; gap: 3px; }
+.relation button { background: none; color: var(--teal); border: 0; font-weight: 700; text-align: left; padding: 0; overflow-wrap: anywhere; }
+.relation button:hover { text-decoration: underline; }
+.relation-meta { color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+.inspector-footer { display: flex; gap: 11px; flex-wrap: wrap; border-top: 1px solid var(--border); color: var(--muted); padding: 9px 15px; font-size: 11px; }
+.empty-state { padding: 12px 6px; color: var(--muted); }
+@media (max-width: 1240px) {
+  .layout { grid-template-columns: 186px minmax(0, 1fr); }
+  main { padding-inline: 18px; }
+}
+@media (max-width: 1060px) {
+  .layout { grid-template-columns: 152px minmax(0, 1fr); }
+  .sidebar { padding-inline: 8px; }
+  .table-link { font-size: 10px; }
+  .workspace { grid-template-columns: minmax(0, 1fr) 285px; }
+  .hero { align-items: start; flex-direction: column; gap: 10px; }
+}
+@media (max-width: 900px) {
+  .layout { display: block; }
+  .sidebar { display: none; }
+  .workspace { grid-template-columns: minmax(0, 1fr) 278px; }
+  main { padding: 19px 12px 26px; }
+  .topbar-inner { padding-inline: 12px; }
+}
+@media (max-width: 760px) {
+  .workspace { grid-template-columns: minmax(0, 1fr); }
+  .map-viewport { height: 400px; }
+  .detail { max-height: 420px; }
+  .column-table { font-size: 13px; }
+  .column-notes { font-size: 12px; }
+}
+@media (max-width: 450px) {
+  .topbar-context, .topbar-divider { display: none; }
+  .toolbar { align-items: stretch; flex-direction: column; }
+  .toolbar > .segment { align-self: start; }
+  .search { min-width: 0; }
+  .map-viewport { height: 337px; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="topbar-inner">
+      <span class="brand-mark" aria-hidden="true"><span class="grid-icon"></span></span>
+      <span class="brand">BOM Workspace</span>
+      <span class="topbar-divider" aria-hidden="true"></span>
+      <span class="topbar-context">Construction planning</span>
+      <nav class="section-nav" aria-label="Workspace views">
+        <button type="button" data-workspace-view="workflow" aria-controls="workflow-view" aria-pressed="true">Workflow</button>
+        <button type="button" data-workspace-view="schema" aria-controls="schema-view" aria-pressed="false">Schema</button>
+        <button type="button" data-workspace-view="plan" aria-controls="plan-view" aria-pressed="false">Build plan</button>
+      </nav>
+    </div>
+  </header>
+
+  <section class="workflow-page" id="workflow-view" aria-labelledby="workflow-title">
+    <div class="workflow-inner">
+      <header class="workflow-hero">
+        <h1 id="workflow-title">From tender to export</h1>
+        <p>Upload and match a tender, analyze the draft BOM, then review and export the approved version.</p>
+      </header>
+      <div class="workflow-layout">
+        <section class="flow-board" aria-label="Eight-step BOM workflow">
+          <div class="flow-stages">
+            <button type="button" class="flow-step" data-flow-step="1" aria-controls="workflow-detail" aria-pressed="false">
+              <span class="flow-step-top"><span class="step-index">01</span><span class="flow-step-title">Upload tender</span></span>
+              <span class="flow-copy">Choose a project and upload a document or ZIP.</span>
+            </button>
+            <button type="button" class="flow-step" data-flow-step="2" aria-controls="workflow-detail" aria-pressed="false">
+              <span class="flow-step-top"><span class="step-index">02</span><span class="flow-step-title">Parse document</span></span>
+              <span class="flow-copy">Extract BOM lines, quantities, units, and scope.</span>
+            </button>
+            <button type="button" class="flow-step is-match" data-flow-step="3" aria-controls="workflow-detail" aria-pressed="false">
+              <span class="flow-step-top"><span class="step-index">03</span><span class="flow-step-title">Match to catalogue</span></span>
+              <span class="flow-copy">Match materials to products and activities to service entries.</span>
+            </button>
+          </div>
+          <div class="flow-wires fork" aria-hidden="true">
+            <span class="wire-stem" style="--position:var(--match);--top:0"></span>
+            <span class="wire-span"></span>
+            <span class="wire-stem with-arrow" style="--position:var(--left);--top:50%"></span>
+            <span class="wire-stem with-arrow" style="--position:var(--right);--top:50%"></span>
+          </div>
+          <div class="flow-paths">
+            <button type="button" class="flow-step is-match" data-flow-step="4" aria-controls="workflow-detail" aria-pressed="false">
+              <span class="flow-step-top"><span class="step-index">04</span><span class="flow-step-title">Reuse matched entries</span></span>
+              <span class="flow-copy">Pull in the supplier, category, unit, and applicable dated rate.</span>
+            </button>
+            <button type="button" class="flow-step is-research" data-flow-step="5" aria-controls="workflow-detail" aria-pressed="false">
+              <span class="flow-step-top"><span class="step-index">05</span><span class="flow-step-title">Research unmatched items</span></span>
+              <span class="flow-copy">AI searches the web and stages sourced suggestions for approval.</span>
+            </button>
+          </div>
+          <div class="flow-wires" aria-hidden="true">
+            <span class="wire-stem" style="--position:var(--left);--top:0"></span>
+            <span class="wire-stem" style="--position:var(--right);--top:0"></span>
+            <span class="wire-span" style="--end:var(--right)"></span>
+            <span class="wire-stem with-arrow" style="--position:50%;--top:50%"></span>
+          </div>
+          <button type="button" class="flow-step wide is-analytics" data-flow-step="6" aria-controls="workflow-detail" aria-pressed="true">
+            <span class="flow-step-top"><span class="step-index">06</span><span class="flow-step-title">Analytics &amp; grouping</span></span>
+            <span class="flow-copy">Flag risky entries, group related work, and summarize gaps for the engineer.</span>
+            <span class="flow-statuses"><span class="flow-tag pending">Risk flags</span><span class="flow-tag">Groups &amp; subtotals</span></span>
+          </button>
+          <div class="flow-down" aria-hidden="true"></div>
+          <button type="button" class="flow-step wide is-human" data-flow-step="7" aria-controls="workflow-detail" aria-pressed="false">
+            <span class="flow-step-top"><span class="step-index">07</span><span class="flow-step-title">Review the full BOM</span></span>
+            <span class="flow-copy">Review flagged entries and edit, approve, or reject unconfirmed matches and suggestions.</span>
+            <span class="flow-statuses"><span class="flow-tag">Matched</span><span class="flow-tag pending">Suggested</span><span class="flow-tag open">Unresolved</span></span>
+          </button>
+          <div class="flow-down" aria-hidden="true"></div>
+          <button type="button" class="flow-step wide is-export" data-flow-step="8" aria-controls="workflow-detail" aria-pressed="false">
+            <span class="flow-step-top"><span class="step-index">08</span><span class="flow-step-title">Export the reviewed BOM</span></span>
+            <span class="flow-copy">Choose a format, and a version and phase for GAEB.</span>
+            <span class="export-formats"><span class="flow-tag">Word</span><span class="flow-tag">PDF</span><span class="flow-tag">GAEB XML</span><span class="flow-tag">Legacy GAEB</span><span class="flow-tag">ZIP bundle</span></span>
+          </button>
+        </section>
+        <section class="panel workflow-inspector" id="workflow-detail" aria-labelledby="flow-detail-title" aria-live="polite">
+          <span class="eyebrow" id="flow-detail-stage"></span>
+          <h2 id="flow-detail-title"></h2>
+          <p id="flow-detail-summary"></p>
+          <dl class="flow-details" id="flow-detail-fields"></dl>
+        </section>
+      </div>
+    </div>
+  </section>
+
+  <section class="workflow-page" id="plan-view" aria-labelledby="plan-title" hidden>
+    <div class="workflow-inner">
+      <header class="workflow-hero">
+        <h1 id="plan-title">Build plan</h1>
+        <p>Start with the existing importer and catalogue. Test the full workflow on the supplied tender archive.</p>
+      </header>
+      <div class="plan-context">
+        <p><strong>Available today</strong> · PostgreSQL, original-file storage, format parsers, draft BOMs, material products, and dated supplier prices.</p>
+      </div>
+      <ol class="milestones">
+        <li class="panel">
+          <span class="step-index" aria-hidden="true">01</span>
+          <div><h2>Harden upload and parsing</h2>
+            <p>Add a project upload screen and a background import job. Show sources and warnings. Fix the council’s findings on PDF columns, alternative links, source notes, and duplicate projections.</p>
+            <p class="acceptance"><strong>Acceptance check</strong>Reimport the supplied ZIP without duplicate drafts or rates. Compare the 274 AN24-0305 prices and verify that alternatives survive promotion.</p>
+          </div>
+        </li>
+        <li class="panel">
+          <span class="step-index" aria-hidden="true">02</span>
+          <div><h2>Extend the catalogue for activities</h2>
+            <p>Keep material products and activity entries distinct. Add dated activity rates per work unit, with a supplier for subcontracted services and an internal rate source for in-house work.</p>
+            <p class="acceptance"><strong>Acceptance check</strong>“Supply and lay pipe” retains one tender line linked to a pipe product and a separate laying activity.</p>
+          </div>
+        </li>
+        <li class="panel">
+          <span class="step-index" aria-hidden="true">03</span>
+          <div><h2>Match known entries first</h2>
+            <p>Use supplier SKUs and normalized specifications, units, and activity types. Store each match decision with the selected catalogue entry and rate. Queue unresolved items for research, including rate-only proposals for known entries.</p>
+            <p class="acceptance"><strong>Acceptance check</strong>A known pipe resolves to its applicable rate. An incompatible size, ambiguous result, or missing rate stays visible for review.</p>
+          </div>
+        </li>
+        <li class="panel">
+          <span class="step-index" aria-hidden="true">04</span>
+          <div><h2>Research and stage proposals</h2>
+            <p>Use GPT-6 Luna through the connected ChatGPT plan to search for supplier, description, category, currency, unit, price, dates, and source URLs. Store proposals and evidence with the unresolved item.</p>
+            <p class="acceptance"><strong>Acceptance check</strong>The connected account can run Luna with web search. A missing price stays empty. A proposal remains pending until an engineer edits and approves it or selects an existing entry.</p>
+          </div>
+        </li>
+        <li class="panel">
+          <span class="step-index" aria-hidden="true">05</span>
+          <div><h2>Analyze scope, pricing, and coverage</h2>
+            <p>Run checks across matched and proposed entries. Flag missing or outdated rates, unit mismatches, unresolved alternatives, possible duplicate scope, and source clauses that affect cost or delivery. Group by project area, BOM section, material or activity category, and supplier where known.</p>
+            <p class="acceptance"><strong>Acceptance check</strong>Each flag points to the affected line and evidence. Group totals use compatible units and currencies, and show which lines still need prices.</p>
+          </div>
+        </li>
+        <li class="panel">
+          <span class="step-index" aria-hidden="true">06</span>
+          <div><h2>Review and approve the BOM</h2>
+            <p>Show matched, suggested, and unresolved rows with their risk flags and tender evidence. Save approval, catalogue creation or reuse, and the item link in one transaction. Record the selected rate and approval in the reviewed BOM version.</p>
+            <p class="acceptance"><strong>Acceptance check</strong>Approving twice creates one entry. A rejected proposal stays unresolved. Review catches missing required fields and conflicting options before final export.</p>
+          </div>
+        </li>
+        <li class="panel">
+          <span class="step-index" aria-hidden="true">07</span>
+          <div><h2>Export and test round trips</h2>
+            <p>Build Word and PDF templates and extend the readers to re-import them. Add GAEB XML 3.1/3.2 and GAEB 1990 profiles by phase, then add separately validated priced XML and ZIP packaging. Record the BOM version and profile used for each export.</p>
+            <p class="acceptance"><strong>Acceptance check</strong>Export and re-import a reviewed BOM per supported profile. Compare hierarchy, item codes, quantities, units, and permitted prices. Show a report of fields the target format cannot represent.</p>
+          </div>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <div class="layout" id="schema-view" hidden>
+    <aside class="sidebar" aria-label="Schema navigation">
+      <div class="sidebar-inner">
+        <h2 class="eyebrow">Schema areas</h2>
+        <nav class="area-list" id="areas" aria-label="Filter by schema area"></nav>
+        <hr>
+        <h2 class="eyebrow">Tables</h2>
+        <nav class="table-list" id="table-list" aria-label="Browse tables"></nav>
+      </div>
+    </aside>
+
+    <main>
+      <section class="hero" aria-labelledby="page-title">
+        <div>
+          <h1 id="page-title">Database schema</h1>
+          <p>Trace scope by building, floor, or room from the BOM to the customer quote.</p>
+        </div>
+        <dl class="stats" id="stats" aria-label="Schema totals"></dl>
+      </section>
+
+      <div class="toolbar">
+        <div class="segment" aria-label="Schema view">
+          <button id="show-map" aria-pressed="true">Relationship map</button>
+          <button id="show-index" aria-pressed="false">Table index</button>
+        </div>
+        <div class="search">
+          <span class="search-icon" aria-hidden="true"></span>
+          <input id="search" type="search" placeholder="Search tables or columns" aria-label="Search tables or columns" autocomplete="off">
+          <kbd id="shortcut" aria-hidden="true">/</kbd>
+          <button id="clear" class="clear" type="button" aria-label="Clear search" hidden>×</button>
+        </div>
+      </div>
+
+      <div class="workspace">
+        <section class="panel map-panel" aria-labelledby="view-heading">
+          <header class="panel-header">
+            <h2 id="view-heading">Relationship map</h2>
+            <div id="map-modes" class="segment" aria-label="Map scope">
+              <button id="overview" aria-pressed="true">Overview</button>
+              <button id="all-tables" aria-pressed="false">All tables</button>
+            </div>
+          </header>
+          <div id="map">
+            <div class="map-viewport" id="viewport" role="region" aria-label="Scrollable relationship diagram" tabindex="0">
+              <div class="world-size" id="world-size">
+                <div class="world" id="world">
+                  <canvas id="edges" aria-hidden="true"></canvas>
+                  <div id="nodes"></div>
+                </div>
+              </div>
+            </div>
+            <div class="map-footer">
+              <span class="map-legend"><span class="sample-edge" aria-hidden="true"></span><span>Foreign key → referenced table</span></span>
+              <span id="map-hint" class="map-hint" hidden>Scroll to explore</span>
+              <div class="zoom" aria-label="Diagram zoom">
+                <button id="minus" aria-label="Zoom out">−</button>
+                <output id="zoom-value"></output>
+                <button id="plus" aria-label="Zoom in">+</button>
+                <button id="fit">Fit</button>
+              </div>
+            </div>
+          </div>
+          <section id="index" class="index" aria-label="Table index" hidden></section>
+        </section>
+
+        <section class="panel inspector" id="inspector" aria-label="Table details">
+          <header class="inspector-header" id="inspector-header"></header>
+          <div class="inspector-tabs" aria-label="Table detail view">
+            <button id="show-columns" aria-pressed="true">Columns <span id="column-count"></span></button>
+            <button id="show-relations" aria-pressed="false">Relationships <span id="relation-count"></span></button>
+            <button id="show-rules" aria-pressed="false" hidden>Rules</button>
+          </div>
+          <div class="detail" id="detail" role="region" aria-label="Selected table details" tabindex="0"></div>
+          <footer class="inspector-footer"><span><b class="badge pk">PK</b> Primary key</span><span><b class="badge fk">FK</b> Foreign key</span><span><b class="nullable">?</b> Nullable</span></footer>
+        </section>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+const domains = {
+  project: {name: "Project & areas", color: "#15765f", tint: "#e8f5ef"},
+  bom: {name: "BOM scope", color: "#267565", tint: "#e8f5ef"},
+  work: {name: "Materials & activities", color: "#88572d", tint: "#faf1e7"},
+  catalogue: {name: "Product catalogue", color: "#37644b", tint: "#ecf4e9"},
+  sources: {name: "Source documents", color: "#32678b", tint: "#eaf3fa"},
+  commercial: {name: "Reference prices", color: "#625498", tint: "#efedfa"},
+  risk: {name: "Risk assessment", color: "#99571e", tint: "#fcf1e2"},
+  estimate: {name: "Internal estimate", color: "#336e85", tint: "#eaf4f7"},
+  quote: {name: "Customer quote", color: "#7d537d", tint: "#f6edf5"},
+};
+
+const tables = {};
+function define(name, domain, description, specification) {
+  const columns = specification.trim().split("\n").map(line => {
+    const [key, type, metadata, note] = line.split("|").map(part => part.trim());
+    const flags = (metadata || "").split(/\s+/);
+    const target = flags.find(flag => flag.includes("."));
+    return {name: key, type, primary: flags.includes("PK"), nullable: flags.includes("?"), target, note};
+  });
+  tables[name] = {name, domain, description, columns};
+}
+
+define("project", "project", "The construction job that owns project areas, documents, BOMs, risks, and estimates.", `
+id | uuid | PK
+name | text
+reference | text | ?
+default_currency | char(3) | | ISO currency code such as EUR.
+`);
+define("project_area", "project", "A named part of the job that can contain smaller areas. For example, House contains First Floor, which contains Kitchen.", `
+id | uuid | PK
+project_id | uuid | project.id
+parent_area_id | uuid | ? project_area.id | Parent area in this project. Empty for a top-level area.
+name | text
+kind | text | | Examples include building, floor, room, and subproject.
+`);
+define("source_document", "sources", "The original uploaded file and the metadata used to interpret it.", `
+id | uuid | PK
+project_id | uuid | project.id
+filename | text
+storage_key | text
+sha256 | char(64) | | File checksum for repeat-upload detection.
+format | text | | GAEB XML, GAEB 1990, PDF, or Word.
+format_version | text | ?
+exchange_phase | text | ? | For example, 83 for tender, 84 for bid, or 86 for award.
+import_status | text
+import_notes | jsonb | ? | Review findings and any source-declared totals.
+`);
+define("source_file", "sources", "The exact original file bytes, including uploaded ZIP archives and their members.", `
+source_document_id | uuid | PK source_document.id
+content | bytea
+sha256 | char(64) | | Generated from the bytes and checked against the document checksum.
+`);
+define("source_import", "sources", "The result of parsing a file with a particular parser version.", `
+id | uuid | PK
+source_document_id | uuid | source_file.source_document_id
+parser_version | text
+status | text | | Processing, parsed, review, or failed.
+imported_at | timestamptz
+metadata | jsonb | | Document metadata, extracted record counts, and review findings.
+`);
+define("source_extract", "sources", "Ordered source evidence, such as a PDF page, GAEB record, XML tree, or candidate item.", `
+import_id | uuid | PK source_import.id
+ordinal | integer | PK
+kind | text
+locator | jsonb | | Archive entry, PDF page and line, Word paragraph, GAEB record, or XML path.
+payload | jsonb
+`);
+define("bom_version", "bom", "A version of a BOM package. The package code groups versions within one project.", `
+id | uuid | PK
+project_id | uuid | project.id
+package_code | text | | Stable package code across versions of the same BOM.
+version_no | integer | | Unique within the project and package code.
+previous_version_id | uuid | ? bom_version.id | Earlier version of the same package, if one is known.
+title | text
+phase | text | ? | Source stage, such as tender or award.
+review_status | text | | Draft, in review, or approved.
+scope_notes | text | ? | BOM-wide preamble or scope summary.
+`);
+define("bom_source", "sources", "Connects a BOM version to its original schedule, companion printout, or annex.", `
+bom_version_id | uuid | PK bom_version.id
+source_document_id | uuid | PK source_document.id
+role | text | | Primary scope, companion, annex, or extract.
+`);
+define("bom_section", "bom", "An ordered heading or group of work, with optional notes that apply to the items below it.", `
+id | uuid | PK
+bom_version_id | uuid | bom_version.id
+parent_section_id | uuid | ? bom_section.id | Parent in the same BOM version.
+display_code | text | ?
+title | text
+sort_order | integer
+scope_notes | text | ?
+`);
+define("bom_line", "bom", "An original tender line used for scope, quantity, and pricing. A line can supply separate material and activity records.", `
+id | uuid | PK
+bom_version_id | uuid | bom_version.id
+section_id | uuid | ? bom_section.id | Empty for a line at the root of the BOM.
+line_code | text | ? | Original tender item number, including punctuation and zeros.
+sort_order | integer
+short_description | text
+long_description | text | ?
+quantity | numeric | ? | Original BOM quantity. Zero is an explicit value.
+unit_code | text | ? | Normalized unit of measure, such as m².
+raw_unit | text | ? | Unit as shown in the source.
+pricing_basis | text | | Unit rate or lump sum.
+total_rule | text | | Include, conditional, or unit-price-only.
+alternative_for_line_id | uuid | ? bom_line.id | Base line in the same version for a simple alternative.
+classification_status | text | | Pending or reviewed split into material and activity items.
+source_document_id | uuid | ? source_document.id
+source_locator | jsonb | ? | PDF page and region, XML path, legacy record, or Word paragraph.
+`);
+define("bom_line_distribution", "bom", "Records the share of a BOM line assigned to one project area so the work can be split across rooms.", `
+id | uuid | PK
+bom_line_id | uuid | bom_line.id
+area_id | uuid | project_area.id | One allocation per line and area, within the same project.
+quantity | numeric | ? | Allocated quantity in the BOM line’s unit. Empty if the share is unknown.
+`);
+define("material_group", "work", "A reusable project-specific category for physical materials or products, such as Utilities or Furniture.", `
+id | uuid | PK
+project_id | uuid | project.id
+name | text | | Unique within the project’s material groups.
+parent_id | uuid | ? material_group.id | Parent material group in the same project. Null for a root group.
+`);
+define("material_item", "work", "A physical material or product called for by a BOM line, such as a water meter, pipe, cabinet, or flooring.", `
+id | uuid | PK
+bom_line_id | uuid | bom_line.id
+material_group_id | uuid | ? material_group.id | Optional material category from the same project.
+product_id | uuid | ? product.id | Catalogue product chosen for this material requirement.
+name | text
+quantity | numeric | ? | Required material quantity. Capture separately from the tender line quantity.
+unit_code | text | ? | For example, pieces, metres, or square metres.
+`);
+define("activity_group", "work", "A reusable project-specific category for actions, such as Laying, Removing, or Testing.", `
+id | uuid | PK
+project_id | uuid | project.id
+name | text | | Unique within the project’s activity groups.
+parent_id | uuid | ? activity_group.id | Parent activity group in the same project. Null for a root group.
+`);
+define("activity_item", "work", "An action required by a BOM line, such as laying pipe, removing flooring, or testing a connection.", `
+id | uuid | PK
+bom_line_id | uuid | bom_line.id
+activity_group_id | uuid | ? activity_group.id | Optional activity category from the same project.
+name | text
+quantity | numeric | ? | Amount of work, such as 18 m² laid. Labor hours belong in costing.
+unit_code | text | ?
+`);
+define("supplier", "catalogue", "A company that supplies one or more catalogue products.", `
+id | uuid | PK
+name | text | | Unique supplier name.
+`);
+define("product_category", "catalogue", "A shared product classification, such as Pipes, Fittings, or Furniture.", `
+id | uuid | PK
+name | text | | Unique category name.
+`);
+define("product", "catalogue", "A material specification or supplier offering, such as a 20 × 3 cm steel pipe.", `
+id | uuid | PK
+supplier_id | uuid | ? supplier.id | Required for approval.
+category_id | uuid | product_category.id
+supplier_sku | text | ? | Supplier’s item number, unique within that supplier when provided.
+name | text
+description | text | | Product details and specifications.
+unit_code | text | ? | Purchase unit. Required for approval.
+review_status | text | | pending or approved.
+`);
+define("product_price", "catalogue", "A dated supplier quote or historical tender rate for a catalogue product.", `
+id | uuid | PK
+product_id | uuid | product.id
+valid_from | date | | Effective date for a supplier quote, or issue date for a tender rate.
+currency | char(3) | | ISO currency code such as EUR.
+unit_price | numeric | | Amount per product purchase unit.
+price_basis | text | | supplier_quote or tender_offer.
+source_document_id | uuid | ? source_document.id | Required for historical tender rates.
+source_locator | jsonb | ? | Location within the source, such as page and position number.
+`);
+define("catalogue_source_line", "catalogue", "An extracted source position and its catalogue review decision.", `
+source_document_id | uuid | PK source_document.id
+source_kind | text | PK | The parser’s item, item_candidate, or price record.
+source_locator | jsonb | PK | Page and line, XML path, Word paragraph, or GAEB record.
+source_line_code | text | ? | Original tender position code.
+position_key | text | | Identifies corresponding positions in companion files.
+decision | text | | Supply, installed material, activity, heading, or needs review.
+product_id | uuid | ? product.id | Set for supply and installed material positions.
+tender_unit | text | ? | Unit as recorded in the source.
+rate_amount | numeric | ? | Unit rate observed in the tender.
+rate_currency | char(3) | ? | Currency of the observed rate, where known.
+`);
+define("reference_price", "commercial", "A historical bid or award rate for comparison during estimating.", `
+id | uuid | PK
+source_document_id | uuid | source_document.id
+source_line_code | text | ?
+source_locator | jsonb
+bom_line_id | uuid | ? bom_line.id | Empty when the source price has no confirmed BOM line match.
+price_date | date | ?
+currency | char(3)
+quantity | numeric | ?
+unit_code | text | ?
+unit_price | numeric | ?
+reported_line_amount | numeric | ?
+`);
+define("risk_finding", "risk", "A construction risk or clarification at project, area, or tender-line level.", `
+id | uuid | PK
+project_id | uuid | project.id
+area_id | uuid | ? project_area.id
+bom_line_id | uuid | ? bom_line.id
+category | text
+description | text
+severity | text
+status | text
+mitigation | text | ?
+source_document_id | uuid | ? source_document.id
+source_locator | jsonb | ? | Location of the relevant source clause or item.
+`);
+define("estimate", "estimate", "A version of an internal cost scenario. Its lines can use tender scope from multiple BOM packages.", `
+id | uuid | PK
+project_id | uuid | project.id
+scenario_name | text
+version_no | integer
+currency | char(3)
+status | text | | Draft, approved, or locked for an issued quote.
+`);
+define("estimate_line", "estimate", "Prices an entire BOM line or one of its room allocations within an estimate.", `
+id | uuid | PK
+estimate_id | uuid | estimate.id
+bom_line_id | uuid | bom_line.id
+bom_line_distribution_id | uuid | ? bom_line_distribution.id | Empty for whole-line pricing. Otherwise the allocation must belong to this BOM line.
+quantity | numeric | ? | Estimate quantity. Starts from the applicable BOM line or allocation.
+included_in_total | boolean | | Captures the scenario decision for alternatives and provisional work.
+`);
+define("cost_component", "estimate", "A direct cost, project overhead, or risk allowance in the internal estimate.", `
+id | uuid | PK
+estimate_id | uuid | estimate.id
+estimate_line_id | uuid | ? estimate_line.id | Empty for an estimate-level cost such as shared site overhead.
+material_item_id | uuid | ? material_item.id | Set for a material cost tied to a classified record. Use at most one of the two item links.
+activity_item_id | uuid | ? activity_item.id | Set for an activity cost tied to a classified record. The linked item must belong to the estimate line’s BOM line.
+risk_finding_id | uuid | ? risk_finding.id | Identifies the risk covered by an allowance.
+category | text | | Labor, materials, equipment, subcontractor, overhead, risk, or other.
+description | text
+resource_quantity | numeric | ?
+resource_unit | text | ?
+unit_cost | numeric | ?
+amount | numeric
+rate_source | text | ? | Supplier quote, internal rate, or estimator input.
+`);
+define("quote", "quote", "An issued or draft customer-facing quote tied to a specific internal estimate.", `
+id | uuid | PK
+estimate_id | uuid | estimate.id
+quote_number | text
+revision_no | integer
+customer_name | text
+currency | char(3)
+status | text | | Draft, issued, or superseded.
+issued_at | timestamptz | ?
+pricing_policy | jsonb | ? | Applied markup or margin, discount, and rounding assumptions.
+net_total | numeric | ?
+tax_total | numeric | ?
+gross_total | numeric | ?
+`);
+define("quote_line", "quote", "A snapshot of the work, quantity, and selling price shown to the customer.", `
+id | uuid | PK
+quote_id | uuid | quote.id
+bom_line_id | uuid | ? bom_line.id | Trace to all matching rows in the quote’s estimate. Empty for a standalone adjustment or fee.
+display_code | text | ?
+description | text
+quantity | numeric | ? | Use the tender quantity on tender quotes. It may be absent on a unit-price-only line.
+unit_code | text | ?
+sell_unit_price | numeric
+net_amount | numeric | ? | Empty for a unit-price-only line.
+included_in_total | boolean | | Determines whether the line amount contributes to the quote total.
+tax_rate | numeric
+sort_order | integer
+`);
+
+const rulesByTable = {
+  project_area: [
+    "A parent area must belong to the same project. The area hierarchy must be acyclic.",
+  ],
+  bom_version: [
+    "The combination of project, package code, and version number is unique. A predecessor must be an earlier version of the same package in the same project.",
+    "Freeze the scope used by an issued quote, including its lines, distributions, and classified material and activity quantities. Subsequent scope changes create a new BOM version.",
+  ],
+  bom_source: [
+    "A BOM version and all its linked source documents must belong to the same project.",
+  ],
+  bom_section: [
+    "A parent section must belong to the same BOM version. The section hierarchy must be acyclic.",
+  ],
+  bom_line: [
+    "The section and any base line for an alternative must belong to the same BOM version. Source evidence must belong to that version’s linked documents.",
+    "A line can enter review with incomplete classification. Mark it reviewed when its material and activity scope has been checked.",
+  ],
+  bom_line_distribution: [
+    "Use at most one distribution per BOM line and area. The area must belong to the same project as the BOM line.",
+    "Avoid overlapping areas. An allocated area and its descendant cannot both receive a share of the same line.",
+    "Show any unallocated quantity in room reports. Room-level pricing requires known shares that sum to the BOM quantity in the same unit.",
+  ],
+  material_group: [
+    "A parent material group must belong to the same project. The hierarchy must be acyclic.",
+  ],
+  material_item: [
+    "A material item uses a material group from the BOM line’s project. Material quantities may differ from the tender quantity, for example because of waste.",
+    "Link the selected product when known. The material item retains its tender description, quantity, and unit.",
+  ],
+  activity_group: [
+    "A parent activity group must belong to the same project. The hierarchy must be acyclic.",
+  ],
+  activity_item: [
+    "An activity item uses an activity group from the BOM line’s project. Its quantity measures the work. Labor hours are recorded in cost components.",
+  ],
+  product: [
+    "Imported products can be pending with an unknown supplier, purchase unit, or rate.",
+    "Approval requires a supplier, a purchase unit, and at least one dated price.",
+  ],
+  product_price: [
+    "Each product has at most one price per currency, basis, and date. For procurement, select a supplier quote effective on the estimate date.",
+    "Historical tender rates have a source document and locator. The Challenge A seed uses these for reference during review.",
+  ],
+  catalogue_source_line: [
+    "Keep each source position and link companion copies to the same catalogue entry where applicable.",
+    "Keep the original tender unit and any observed tender rate for review.",
+  ],
+  risk_finding: [
+    "Linked areas, BOM lines, and source documents must belong to the finding’s project.",
+  ],
+  estimate: [
+    "The combination of project, scenario name, and version number is unique.",
+    "An estimate uses at most one BOM version per package. Its BOM lines must all belong to the estimate’s project.",
+    "Freeze the estimate and its costs when a quote is issued. Subsequent cost changes create a new estimate version.",
+  ],
+  estimate_line: [
+    "Choose one pricing method per estimate and BOM line. Use a single whole-line row or one row per distribution.",
+    "For room pricing, validate complete, non-overlapping BOM distributions and confirm each distribution belongs to the same BOM line. Price lump sums at the whole-line level for the MVP.",
+    "Include at most one of the base line and its alternatives in the estimate total. Apply that decision to all room rows for the line.",
+  ],
+  cost_component: [
+    "A line-level cost must reference an estimate line from the same estimate. A material or activity link requires an estimate line and must reference an item from its BOM line. Use at most one of those links per cost row.",
+    "Use room-specific resource quantities when costing by room. A link to a material or activity records its classification and does not copy its quantity.",
+    "Count overhead and risk allowances once. Record each cost at estimate level or explicitly allocate it to line-level costs. A linked risk must belong to the estimate’s project.",
+  ],
+  quote: [
+    "The combination of project, quote number, and revision number is unique.",
+    "Issue against a specific estimate and freeze it, its BOM inputs, and the issued quote snapshot. Pricing changes produce a new quote revision.",
+    "Reconcile totals using the recorded pricing and rounding policy and only the included quote lines. Calculate tax on the same included amounts.",
+  ],
+  quote_line: [
+    "Use at most one customer quote line per BOM line. Find all contributing whole-line or room rows by the quote’s frozen estimate and the original BOM line.",
+    "For a tender quote, use the BOM quantity and unit. Reconcile the extended amount against the displayed selling rate and recorded rounding policy.",
+    "Require a quantity and line amount for each included line. Display unit-price-only lines with a rate, an empty line amount, and inclusion turned off. Optional lines can show a price without contributing to the quote total.",
+  ],
+};
+
+const allTables = Object.values(tables);
+const edges = allTables.flatMap(table => table.columns.filter(column => column.target).map(column => {
+  const [to, targetColumn] = column.target.split(".");
+  return {from: table.name, to, column, targetColumn};
+}));
+
+const overviewLanes = [
+  {name: "Project & BOM", domain: "bom", tables: ["project", "project_area", "bom_version", "bom_line"]},
+  {name: "Materials & Activities", domain: "work", tables: ["material_group", "material_item", "activity_item", "activity_group"]},
+  {name: "Risk & Estimate", domain: "estimate", tables: ["risk_finding", "estimate", "estimate_line", "cost_component"]},
+  {name: "Pricing & Quote", domain: "quote", tables: ["reference_price", "quote", "quote_line", "bom_line_distribution"]},
+];
+const overviewNames = new Set(overviewLanes.flatMap(lane => lane.tables));
+const ui = Object.fromEntries(
+  ["stats", "areas", "table-list", "show-map", "show-index", "search", "shortcut", "clear",
+    "view-heading", "map-modes", "overview", "all-tables", "map", "viewport", "world-size", "map-hint",
+    "world", "edges", "nodes", "index", "minus", "plus", "fit", "zoom-value", "inspector",
+    "inspector-header", "show-columns", "column-count", "show-relations", "relation-count", "show-rules", "detail"
+  ].map(id => [id, document.getElementById(id)])
+);
+
+const state = {
+  active: "bom_line",
+  area: "all",
+  view: "map",
+  mapMode: "overview",
+  detailMode: "columns",
+  query: "",
+  zoom: null,
+};
+const card = {width: 199, height: 69};
+let mapLayout;
+
+const escapeHtml = value => String(value).replace(/[&<>"']/g, char => ({
+  "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+})[char]);
+
+function domainStyle(domain) {
+  const {color, tint} = domains[domain];
+  return `--domain:${color};--tint:${tint}`;
+}
+
+function filteredTables() {
+  const terms = state.query.toLowerCase().trim().replace(/[\s-]+/g, " ").split(" ").filter(Boolean);
+  return allTables.filter(table => {
+    if (state.area !== "all" && table.domain !== state.area) return false;
+    const searchable = [table.name, table.description, domains[table.domain].name,
+      ...table.columns.flatMap(column => [column.name, column.type, column.target || ""])]
+      .join(" ").toLowerCase();
+    const words = searchable.replace(/_/g, " ");
+    return terms.every(term => searchable.includes(term) || words.includes(term));
+  });
+}
+
+function renderSidebar() {
+  const areas = [{id: "all", name: "All tables"}, ...Object.entries(domains).map(([id, domain]) => ({id, ...domain}))];
+  ui.areas.innerHTML = areas.map(area => {
+    const count = area.id === "all" ? allTables.length : allTables.filter(table => table.domain === area.id).length;
+    return `<button class="area-button" data-area="${area.id}" aria-pressed="${state.area === area.id}" ${area.color ? `style="${domainStyle(area.id)}"` : ""}>
+      <span class="dot" aria-hidden="true"></span>${area.name}<span class="count">${count}</span></button>`;
+  }).join("");
+  const matches = filteredTables();
+  ui["table-list"].innerHTML = matches.map(table => `<button class="table-link" data-table="${table.name}" ${current(table.name)} style="${domainStyle(table.domain)}">
+    <span class="grid-icon" aria-hidden="true"></span>${table.name}</button>`).join("") ||
+    '<div class="empty-state">No matching tables.</div>';
+}
+
+function renderIndex() {
+  const matches = filteredTables();
+  ui.index.innerHTML = Object.entries(domains).map(([domain, details]) => {
+    const group = matches.filter(table => table.domain === domain);
+    if (!group.length) return "";
+    return `<h3 style="${domainStyle(domain)}"><span class="dot" aria-hidden="true"></span>${details.name}</h3>` +
+      group.map(table => `<button class="index-row" data-table="${table.name}" ${current(table.name)} style="${domainStyle(domain)}">
+        <code>${table.name}</code><span class="count">${table.columns.length} columns</span>
+        <span class="summary">${escapeHtml(table.description)}</span></button>`).join("");
+  }).join("") || '<div class="empty-state">No tables match this search.</div>';
+}
+
+function current(name) {
+  return state.active === name ? 'aria-current="true"' : "";
+}
+
+function getMapLayout() {
+  const group = state.area === "all" ? null : domains[state.area];
+  let lanes = overviewLanes;
+  if (group) {
+    const names = allTables.filter(table => table.domain === state.area).map(table => table.name);
+    const perLane = Math.ceil(names.length / Math.min(3, names.length));
+    lanes = Array.from({length: Math.ceil(names.length / perLane)}, (_, i) => ({
+      domain: state.area,
+      name: i === 0 ? group.name : "",
+      tables: names.slice(i * perLane, (i + 1) * perLane),
+    }));
+  } else if (state.mapMode === "all") {
+    lanes = Object.entries(domains).map(([domain, details]) => ({
+      domain,
+      name: details.name,
+      tables: allTables.filter(table => table.domain === domain).map(table => table.name),
+    }));
+  }
+  const positions = new Map();
+  const columnStep = 242;
+  const rowStep = 96;
+  lanes.forEach((lane, column) => lane.tables.forEach((name, row) => {
+    positions.set(name, {x: 24 + column * columnStep, y: 51 + row * rowStep});
+  }));
+  return {
+    lanes,
+    positions,
+    width: (lanes.length - 1) * columnStep + card.width + 48,
+    height: (Math.max(...lanes.map(lane => lane.tables.length)) - 1) * rowStep + card.height + 82,
+    columnStep,
+  };
+}
+
+function renderMap() {
+  mapLayout = getMapLayout();
+  ui.nodes.innerHTML = mapLayout.lanes.map((lane, index) => `<span class="lane"
+    style="left:${24 + index * mapLayout.columnStep}px;top:18px;${domainStyle(lane.domain)}">${escapeHtml(lane.name)}</span>`).join("") +
+    Array.from(mapLayout.positions, ([name, position]) => {
+      const table = tables[name];
+      const keys = table.columns.filter(column => column.target).length;
+      return `<button class="node" data-table="${name}" ${current(name)} title="${name}"
+        style="left:${position.x}px;top:${position.y}px;${domainStyle(table.domain)}">
+        <span class="node-head"><span class="grid-icon" aria-hidden="true"></span><span>${name}</span></span>
+        <span class="node-meta">${table.columns.length} columns · ${keys} foreign ${keys === 1 ? "key" : "keys"}</span>
+      </button>`;
+    }).join("");
+  updateMapSelection();
+}
+
+function updateMapSelection() {
+  const neighbors = new Set();
+  for (const edge of edges) {
+    if (edge.from === state.active) neighbors.add(edge.to);
+    if (edge.to === state.active) neighbors.add(edge.from);
+  }
+  const matches = new Set(filteredTables().map(table => table.name));
+  ui.nodes.querySelectorAll("[data-table]").forEach(node => {
+    const name = node.dataset.table;
+    if (name === state.active) node.setAttribute("aria-current", "true");
+    else node.removeAttribute("aria-current");
+    node.classList.toggle("is-neighbor", neighbors.has(name) && name !== state.active);
+    node.classList.toggle("is-dim", state.query.trim() !== "" && !matches.has(name) && name !== state.active);
+  });
+  if (state.view === "map") sizeMap();
+}
+
+function sizeMap() {
+  if (!mapLayout || !ui.viewport.clientWidth) return;
+  const {width, height} = mapLayout;
+  const scale = currentZoom();
+  const scaledWidth = Math.ceil(width * scale);
+  const scaledHeight = Math.ceil(height * scale);
+  ui.world.style.width = `${width}px`;
+  ui.world.style.height = `${height}px`;
+  ui.world.style.left = `${Math.max(0, (ui.viewport.clientWidth - scaledWidth) / 2)}px`;
+  ui.world.style.top = `${Math.max(0, (ui.viewport.clientHeight - scaledHeight) / 2)}px`;
+  ui.world.style.transform = `scale(${scale})`;
+  ui["world-size"].style.width = `${scaledWidth}px`;
+  ui["world-size"].style.height = `${scaledHeight}px`;
+  drawEdges(scale);
+  ui["zoom-value"].textContent = `${Math.round(scale * 100)}%`;
+  ui["map-hint"].hidden = scaledWidth <= ui.viewport.clientWidth && scaledHeight <= ui.viewport.clientHeight;
+  ui.minus.disabled = scale <= .24;
+  ui.plus.disabled = scale >= 1.75;
+}
+
+function drawEdges(scale) {
+  const canvas = ui.edges;
+  const {width, height, positions} = mapLayout;
+  const ratio = Math.min(2, (window.devicePixelRatio || 1) * scale);
+  const renderWidth = Math.round(width * ratio);
+  const renderHeight = Math.round(height * ratio);
+  if (canvas.width !== renderWidth || canvas.height !== renderHeight) {
+    canvas.width = renderWidth;
+    canvas.height = renderHeight;
+    canvas.style.width = `${width}px`;
+    canvas.style.height = `${height}px`;
+  }
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+  ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+  ctx.clearRect(0, 0, width, height);
+  const visibleEdges = edges.filter(edge => positions.has(edge.from) && positions.has(edge.to));
+  const connected = edge => edge.from === state.active || edge.to === state.active;
+  visibleEdges.sort((a, b) => Number(connected(a)) - Number(connected(b)));
+
+  const overlap = new Map();
+  for (const edge of visibleEdges) {
+    const from = positions.get(edge.from);
+    const to = positions.get(edge.to);
+    const pair = [edge.from, edge.to].sort().join("/");
+    const spread = overlap.get(pair) || 0;
+    overlap.set(pair, spread + 1);
+    const strong = connected(edge);
+    ctx.strokeStyle = strong ? "#248e72" : "#8ea7af";
+    ctx.fillStyle = ctx.strokeStyle;
+    ctx.lineWidth = strong ? 2.15 : 1.25;
+    ctx.globalAlpha = strong ? .94 : .72;
+    ctx.beginPath();
+    let endX, endY, tangentX, tangentY;
+    if (edge.from === edge.to) {
+      const x = from.x + card.width;
+      const reach = 19 + spread * 4;
+      endX = x;
+      endY = from.y + 46;
+      ctx.moveTo(x, from.y + 19);
+      ctx.bezierCurveTo(x + reach, from.y + 19, x + reach, endY, endX, endY);
+      tangentX = -1;
+      tangentY = 0;
+    } else if (from.x === to.x) {
+      const direction = Math.sign(to.y - from.y);
+      const startX = from.x + card.width / 2 + spread * 7;
+      const startY = direction > 0 ? from.y + card.height : from.y;
+      endX = startX;
+      endY = direction > 0 ? to.y : to.y + card.height;
+      if (Math.abs(to.y - from.y) > 100) {
+        const gutter = from.x + card.width + 15 + spread * 4;
+        const port = 23 + spread * 6;
+        endX = to.x + card.width;
+        endY = to.y + port;
+        ctx.moveTo(from.x + card.width, from.y + port);
+        ctx.lineTo(gutter, from.y + port);
+        ctx.lineTo(gutter, endY);
+        ctx.lineTo(endX, endY);
+        tangentX = -1;
+        tangentY = 0;
+      } else {
+        ctx.moveTo(startX, startY);
+        ctx.lineTo(endX, endY);
+        tangentX = 0;
+        tangentY = direction;
+      }
+    } else {
+      const direction = Math.sign(to.x - from.x);
+      const startX = direction > 0 ? from.x + card.width : from.x;
+      const startY = from.y + 37 + spread * 8;
+      endX = direction > 0 ? to.x : to.x + card.width;
+      endY = to.y + 37 + spread * 8;
+      const curve = Math.max(20, Math.abs(endX - startX) * .43);
+      ctx.moveTo(startX, startY);
+      ctx.bezierCurveTo(startX + direction * curve, startY, endX - direction * curve, endY, endX, endY);
+      tangentX = direction;
+      tangentY = 0;
+    }
+    ctx.stroke();
+    const arrow = strong ? 6 : 4.5;
+    ctx.beginPath();
+    ctx.moveTo(endX, endY);
+    ctx.lineTo(endX - tangentX * arrow - tangentY * arrow * .65, endY - tangentY * arrow + tangentX * arrow * .65);
+    ctx.lineTo(endX - tangentX * arrow + tangentY * arrow * .65, endY - tangentY * arrow - tangentX * arrow * .65);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+
+function renderInspector() {
+  const table = tables[state.active];
+  const rules = rulesByTable[table.name] || [];
+  const outgoing = edges.filter(edge => edge.from === table.name);
+  const incoming = edges.filter(edge => edge.to === table.name && edge.from !== table.name);
+  ui["inspector-header"].innerHTML = `<div class="inspector-title" style="${domainStyle(table.domain)}">
+    <span class="table-mark" aria-hidden="true"><span class="grid-icon"></span></span>
+    <h2 id="active-table" tabindex="-1">${table.name}</h2></div><p>${escapeHtml(table.description)}</p>`;
+  ui["column-count"].textContent = table.columns.length;
+  ui["relation-count"].textContent = outgoing.length + incoming.length;
+  if (state.detailMode === "rules" && !rules.length) state.detailMode = "columns";
+  ui["show-columns"].setAttribute("aria-pressed", state.detailMode === "columns");
+  ui["show-relations"].setAttribute("aria-pressed", state.detailMode === "relations");
+  ui["show-rules"].hidden = !rules.length;
+  ui["show-rules"].setAttribute("aria-pressed", state.detailMode === "rules");
+
+  if (state.detailMode === "rules") {
+    ui.detail.innerHTML = `<ul class="rules">${rules.map(rule => `<li>${escapeHtml(rule)}</li>`).join("")}</ul>`;
+  } else if (state.detailMode === "columns") {
+    const rows = table.columns.map(column => {
+      const [targetTable] = (column.target || "").split(".");
+      const pk = column.primary ? '<span class="badge pk" title="Primary key">PK</span>' : "";
+      const fk = column.target ? `<button class="badge fk" data-table="${targetTable}"
+        title="References ${column.target}" aria-label="Open referenced table ${targetTable}">FK</button>` : "";
+      const nullable = column.nullable ? '<span class="nullable" title="Nullable">?</span>' : "";
+      const note = column.note ? `<span class="column-notes">${escapeHtml(column.note)}</span>` : "";
+      return `<tr><td><code>${column.name}</code>${note}</td><td><code>${escapeHtml(column.type)}</code></td>
+        <td>${pk}${fk}${nullable}</td></tr>`;
+    }).join("");
+    ui.detail.innerHTML = `<table class="column-table"><thead><tr><th scope="col">Column</th><th scope="col">Type</th>
+      <th scope="col">Keys</th></tr></thead><tbody>${rows}</tbody></table>`;
+  } else {
+    const list = (label, items, inbound) => `<h3 class="eyebrow">${label}</h3>` + (items.length ? items.map(edge => {
+      const target = inbound ? edge.from : edge.to;
+      const cardinality = edge.column.primary && tables[edge.from].columns.filter(column => column.primary).length === 1
+        ? "At most one referencing row"
+        : "Many referencing rows allowed";
+      return `<div class="relation">
+        <button data-table="${target}"><code>${target}</code></button>
+        <span class="relation-meta"><code>${edge.from}.${edge.column.name}</code> → <code>${edge.to}.${edge.targetColumn}</code></span>
+        <span class="relation-meta">${cardinality} · ${edge.column.nullable ? "Optional FK" : "Required FK"}</span>
+      </div>`;
+    }).join("") : '<div class="empty-state">None</div>');
+    ui.detail.innerHTML = `<div class="relations">${list("References", outgoing, false)}
+      ${list("Referenced by", incoming, true)}</div>`;
+  }
+  ui.detail.scrollTop = 0;
+}
+
+function renderView() {
+  const map = state.view === "map";
+  ui.map.hidden = !map;
+  ui.index.hidden = map;
+  ui["map-modes"].hidden = !map;
+  ui["show-map"].setAttribute("aria-pressed", map);
+  ui["show-index"].setAttribute("aria-pressed", !map);
+  ui.overview.setAttribute("aria-pressed", state.mapMode === "overview" && state.area === "all");
+  ui["all-tables"].setAttribute("aria-pressed", state.mapMode === "all" && state.area === "all");
+  ui["view-heading"].textContent = state.area === "all"
+    ? (map ? "Relationship map" : "Table index")
+    : domains[state.area].name;
+  if (map) renderMap();
+  else renderIndex();
+}
+
+function showTable(name, source) {
+  const fromInspector = source.closest("#detail");
+  const fromMap = source.closest("#nodes");
+  state.active = name;
+  state.detailMode = "columns";
+  const needsAreaReset = state.area !== "all" && tables[name].domain !== state.area;
+  const needsFullMap = state.view === "map" && state.area === "all" && state.mapMode === "overview" && !overviewNames.has(name);
+  if (needsAreaReset) state.area = "all";
+  if (needsFullMap || needsAreaReset) {
+    state.mapMode = "all";
+    state.zoom = null;
+    renderSidebar();
+    renderView();
+  } else {
+    document.querySelectorAll(".table-link, .index-row").forEach(button => {
+      if (button.dataset.table === name) button.setAttribute("aria-current", "true");
+      else button.removeAttribute("aria-current");
+    });
+    updateMapSelection();
+  }
+  renderInspector();
+  if (fromInspector || matchMedia("(max-width: 760px)").matches) {
+    document.getElementById("active-table").focus({preventScroll: true});
+    ui.inspector.scrollIntoView({block: "nearest"});
+  }
+  if (state.view === "map" && !fromMap) centerTable(name);
+}
+
+function centerTable(name) {
+  const element = ui.nodes.querySelector(`[data-table="${name}"]`);
+  if (!element) return;
+  const node = element.getBoundingClientRect();
+  const viewport = ui.viewport.getBoundingClientRect();
+  if (node.left < viewport.left || node.right > viewport.right) {
+    ui.viewport.scrollLeft += node.left + node.width / 2 - (viewport.left + viewport.width / 2);
+  }
+  if (node.top < viewport.top || node.bottom > viewport.bottom) {
+    ui.viewport.scrollTop += node.top + node.height / 2 - (viewport.top + viewport.height / 2);
+  }
+}
+
+function setMapMode(mode) {
+  state.mapMode = mode;
+  state.area = "all";
+  state.zoom = null;
+  if (mode === "overview" && !overviewNames.has(state.active)) {
+    state.active = "bom_line";
+    renderInspector();
+  }
+  renderSidebar();
+  renderView();
+  ui.viewport.scrollTo(0, 0);
+}
+
+function clearQuery() {
+  ui.search.value = "";
+  setQuery("");
+  ui.search.focus();
+}
+
+function setQuery(value) {
+  state.query = value;
+  ui.clear.hidden = !value;
+  ui.shortcut.hidden = !!value;
+  if (value.trim()) state.view = "index";
+  renderSidebar();
+  renderView();
+}
+
+function currentZoom() {
+  return state.zoom ?? Math.min(1.12, Math.max(.72, ui.viewport.clientWidth / mapLayout.width));
+}
+
+function changeZoom(delta) {
+  const scale = currentZoom();
+  const oldCenterX = (ui.viewport.scrollLeft + ui.viewport.clientWidth / 2 - ui.world.offsetLeft) / scale;
+  const oldCenterY = (ui.viewport.scrollTop + ui.viewport.clientHeight / 2 - ui.world.offsetTop) / scale;
+  state.zoom = Math.max(.24, Math.min(1.75, Math.round((scale + delta) * 100) / 100));
+  sizeMap();
+  ui.viewport.scrollLeft = oldCenterX * state.zoom + ui.world.offsetLeft - ui.viewport.clientWidth / 2;
+  ui.viewport.scrollTop = oldCenterY * state.zoom + ui.world.offsetTop - ui.viewport.clientHeight / 2;
+}
+
+ui.stats.innerHTML = [
+  [allTables.length, "tables"],
+  [allTables.reduce((total, table) => total + table.columns.length, 0), "columns"],
+  [edges.length, "foreign keys"],
+].map(([count, label]) => `<div><dt>${label}</dt><dd>${count}</dd></div>`).join("");
+
+document.addEventListener("click", event => {
+  const item = event.target.closest("button[data-table]");
+  if (item) showTable(item.dataset.table, item);
+  const area = event.target.closest("button[data-area]");
+  if (area) {
+    state.area = area.dataset.area;
+    state.mapMode = state.area === "all" ? "overview" : "all";
+    state.zoom = null;
+    const candidates = filteredTables();
+    if (state.area !== "all" && tables[state.active].domain !== state.area) {
+      state.active = (candidates[0] || allTables.find(table => table.domain === state.area)).name;
+      state.detailMode = "columns";
+      renderInspector();
+    }
+    if (state.area === "all" && !overviewNames.has(state.active)) state.mapMode = "all";
+    renderSidebar();
+    ui.areas.querySelector(`[data-area="${state.area}"]`).focus({preventScroll: true});
+    renderView();
+    ui.viewport.scrollTo(0, 0);
+  }
+});
+
+ui["show-map"].addEventListener("click", () => {
+  state.view = "map";
+  if (state.area === "all" && !overviewNames.has(state.active)) state.mapMode = "all";
+  renderView();
+  centerTable(state.active);
+});
+ui["show-index"].addEventListener("click", () => {
+  state.view = "index";
+  renderView();
+});
+ui.overview.addEventListener("click", () => setMapMode("overview"));
+ui["all-tables"].addEventListener("click", () => setMapMode("all"));
+ui["show-columns"].addEventListener("click", () => {
+  state.detailMode = "columns";
+  renderInspector();
+});
+ui["show-relations"].addEventListener("click", () => {
+  state.detailMode = "relations";
+  renderInspector();
+});
+ui["show-rules"].addEventListener("click", () => {
+  state.detailMode = "rules";
+  renderInspector();
+});
+ui.search.addEventListener("input", event => setQuery(event.target.value));
+ui.clear.addEventListener("click", clearQuery);
+document.addEventListener("keydown", event => {
+  if (document.getElementById("schema-view").hidden) return;
+  const textEntry = event.target.matches?.("input, textarea, [contenteditable]");
+  if (event.key === "/" && !textEntry && !event.metaKey && !event.ctrlKey && !event.altKey) {
+    event.preventDefault();
+    ui.search.focus();
+  }
+  if (event.key === "Escape" && ui.search === document.activeElement && state.query) clearQuery();
+});
+ui.minus.addEventListener("click", () => changeZoom(-.15));
+ui.plus.addEventListener("click", () => changeZoom(.15));
+ui.fit.addEventListener("click", () => {
+  state.zoom = Math.min(1.12, ui.viewport.clientWidth / mapLayout.width, ui.viewport.clientHeight / mapLayout.height);
+  sizeMap();
+  ui.viewport.scrollTo(0, 0);
+});
+new ResizeObserver(() => {
+  if (state.view === "map") sizeMap();
+}).observe(ui.viewport);
+
+renderSidebar();
+renderView();
+renderInspector();
+
+const flowStepDetails = {
+  1: {
+    title: "Upload tender",
+    summary: "The engineer chooses a project and uploads a tender file or a bundle containing several source documents.",
+    fields: [
+      ["Supported input", "Word, PDF, GAEB XML, legacy GAEB, and ZIP bundles."],
+      ["Preserved evidence", "Store the original bytes, checksum, filename, and project link."],
+      ["Next step", "Queue an import and show its status."],
+    ],
+  },
+  2: {
+    title: "Parse document",
+    summary: "Run the parser for the detected format and assemble a reviewable BOM draft.",
+    fields: [
+      ["Extract", "Keep sections, source line codes, descriptions, quantities, units, notes, alternatives, and any prices."],
+      ["Link", "Every extracted row points back to a page, paragraph, XML node, or GAEB record."],
+      ["Classify", "A bundled line such as supply and lay pipe can yield a material item and a laying activity under the same tender line."],
+    ],
+  },
+  3: {
+    title: "Match to catalogue",
+    summary: "Look for compatible catalogue entries before sending anything to web research.",
+    fields: [
+      ["Materials", "Compare supplier SKU, dimensions, material, and purchase unit against existing products."],
+      ["Activities", "Compare the work description and work unit against an activity entry or service rate."],
+      ["Decision", "Send unique, compatible matches with applicable rates to the matched path. Send ambiguous items or missing rates to review or research."],
+    ],
+  },
+  4: {
+    title: "Reuse matched entries",
+    summary: "Carry the confirmed catalogue data into the draft while keeping the original tender quantity, unit, and description visible.",
+    fields: [
+      ["Example", "20 × 3 cm steel pipe uses its Pipes category, supplier, and the price per metre effective on the selected date."],
+      ["Rate snapshot", "Keep the selected price record and date with the reviewed match."],
+      ["Next step", "Show the line as matched in the full BOM."],
+    ],
+  },
+  5: {
+    title: "Research unmatched items",
+    summary: "GPT-6 Luna looks up compatible products or services and saves a proposal for an engineer to review.",
+    fields: [
+      ["Access", "Use the engineer’s eligible ChatGPT plan. Verify that Luna and web search are available on the connected account."],
+      ["Capture", "Description, supplier, category, price, currency, price unit, and date. Leave unsupported fields empty."],
+      ["Evidence", "Keep the source URL, retrieval date, and quoted specification or pricing evidence."],
+      ["Catalogue entry", "An engineer can edit and approve the proposal, link an existing entry, or reject it. Approval of a new item saves the entry and dated rate."],
+    ],
+  },
+  6: {
+    title: "Analytics & grouping",
+    summary: "Analyze the draft after catalogue matching and web research. Group related entries and highlight findings that need an engineer’s judgment.",
+    fields: [
+      ["Risk checks", "Flag missing or outdated prices, weak matches, mismatched units, unresolved alternatives, possible double counting, and cost or schedule risks in the source."],
+      ["Groups", "Summarize work by area, BOM section, material or activity category, and supplier. Keep every group traceable to its source lines."],
+      ["Coverage", "Show subtotals for comparable, priced entries and surface missing prices and pending approvals alongside them."],
+      ["Handoff", "Send the flagged entries and their evidence to the engineer’s BOM review. Refresh the checks as matches and prices change."],
+    ],
+  },
+  7: {
+    title: "Review the full BOM",
+    summary: "The engineer sees the original scope and the status of every material and activity in one place.",
+    fields: [
+      ["Matched", "Inspect the chosen entry and rate. Correct the match if needed."],
+      ["Suggested", "Review the evidence, edit fields, and approve or reject the proposal."],
+      ["Unresolved", "Choose a catalogue entry manually or leave the item open until enough information is available."],
+      ["Flagged", "Open each risk finding, inspect its evidence, and record how it was addressed."],
+      ["Ready for export", "Confirm required quantities, units, rates, alternatives, and the BOM version being released."],
+    ],
+  },
+  8: {
+    title: "Export the reviewed BOM",
+    summary: "Generate an export from the exact BOM version the engineer approved.",
+    fields: [
+      ["Formats", "Word (.docx), PDF, GAEB XML (3.1 and 3.2), legacy GAEB 1990 (.D83, .D84, .D86), and ZIP bundles of exports."],
+      ["GAEB phase", "Choose a tender, bid, or award profile supported by the BOM’s purpose. Price fields follow the selected profile."],
+      ["Validation", "Check the exported hierarchy, item codes, quantities, units, and prices. Report fields the target format cannot carry."],
+    ],
+  },
+};
+
+const workspaceButtons = document.querySelectorAll("[data-workspace-view]");
+for (const button of workspaceButtons) {
+  button.addEventListener("click", () => {
+    for (const other of workspaceButtons) {
+      const active = other === button;
+      other.setAttribute("aria-pressed", active);
+      document.getElementById(other.getAttribute("aria-controls")).hidden = !active;
+    }
+    if (button.dataset.workspaceView === "schema") renderView();
+  });
+}
+
+const flowButtons = document.querySelectorAll("[data-flow-step]");
+const flowDetail = document.getElementById("workflow-detail");
+
+function showFlowStep(number) {
+  const detail = flowStepDetails[number];
+  for (const button of flowButtons) {
+    button.setAttribute("aria-pressed", button.dataset.flowStep === number);
+  }
+  document.getElementById("flow-detail-stage").textContent = `Step ${number} of ${flowButtons.length}`;
+  document.getElementById("flow-detail-title").textContent = detail.title;
+  document.getElementById("flow-detail-summary").textContent = detail.summary;
+  document.getElementById("flow-detail-fields").innerHTML = detail.fields.map(([label, value]) =>
+    `<div><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd></div>`
+  ).join("");
+}
+
+for (const button of flowButtons) {
+  button.addEventListener("click", () => {
+    showFlowStep(button.dataset.flowStep);
+    if (matchMedia("(max-width: 1020px)").matches) flowDetail.scrollIntoView({block: "nearest"});
+  });
+}
+showFlowStep("6");
+</script>
+</body>
+</html>

@@ -11,3 +11,10 @@ __pycache__/
 # Output files
 *.csv
 *.json
+
+# Local database files
+.env
+.env.*
+!.env.example
+backups/
+/db/seed_challenge_catalogue.sql

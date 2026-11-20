@@ -1,0 +1,319 @@
+from base64 import b64encode
+from collections.abc import Mapping
+from io import BytesIO
+from pathlib import Path
+import re
+from subprocess import run
+from tempfile import TemporaryDirectory
+
+from pypdf import PdfReader
+from pypdf.errors import PdfReadError
+from pypdf.generic import ByteStringObject, IndirectObject, NullObject
+
+from .common import Result, german_decimal, local_name, parse_xml, xml_element
+
+_NUMBER = r"[+\-−]?(?:\d{1,3}(?:\.\d{3})+|\d+)(?:,\d+)?"
+_CODE = re.compile(r"^(?P<indent> *)(?P<code>\d+(?:\.\d+)*\.?|\.\d+)[ \t]{2,}(?P<body>\S.*)$")
+_SECTION = re.compile(
+    r"^(?P<indent> *)(?P<code>\d+(?:\.\d+)*)[ \t]+(?:Titel|Bereich|Los|Abschnitt|Gewerk)[ \t]+(?P<label>\S.*)$", re.I
+)
+_HEADER = re.compile(r"^(?P<indent> *)(?P<code>OZ\b|Ordnungszahl\b|Pos-Nr\.|Pos\b|Nr\.).*(?:Menge|Stl-Nr)", re.I)
+_QUANTITY = re.compile(rf"^(?P<quantity>{_NUMBER})\s+(?P<unit>[^\s]+)(?P<tail>(?:[ \t]{{2,}}.*)?)$")
+_JOINED_QUANTITY = re.compile(rf"^(?P<quantity>{_NUMBER})(?P<unit>[^\s\d]\S*)(?P<tail>[ \t]+EP\b.*)$", re.I)
+_UNIT = re.compile(r"^(?:m(?:[²³23])?(?:wo|d)?|cm[²23]?|mm|km[²2]?|kg|t|to|l|kwh|st(?:k|ck)?\.?|stwo|satz|set|pau|psch\.?|h|std\.?|wo\.?|mt\.?|mo\.?|d|j(?:r|ahre?)|lfm)$", re.I)
+_TOTAL = re.compile(rf"^\s*(?P<label>(?:Summe|Gesamt(?:betrag|summe|preis)|Angebotssumme|Übertrag|MwSt|USt|zzgl\. Mehrwertsteuer|Mehrwertsteuer|Nachlass)[^\n]*?)[ \t]{{2,}}(?:EUR\s+)?(?P<amount>{_NUMBER})\s*(?:EUR|€)?\s*$", re.I)
+_PRICE_ONLY = re.compile(r"nur\s+(?:einh[. -]*pr\.?|einheitspreis|EP)\b", re.I)
+_FORM = re.compile(r"^\s*(\d{3}(?:\.[A-Z][A-Za-z]*)?)\s*$")
+_SUMMARY_TITLE = re.compile(r"^\s*(?:LV-Zusammenfassung|(?:Gesamt)?Zusammenstellung|Inhaltsverzeichnis)\s*$", re.I)
+_XML_CONTROLS = re.compile(rb"[\x00-\x08\x0b\x0c\x0e-\x1f]")
+
+
+def poppler(program, *args):
+    completed = run([program, *map(str, args)], capture_output=True, timeout=90, check=False)
+    if completed.returncode:
+        message = completed.stderr.decode("utf-8", errors="replace").strip()
+        raise ValueError(f"{program} failed ({completed.returncode}): {message}")
+    return completed.stdout
+
+
+def pdf_value(value):
+    if isinstance(value, IndirectObject):
+        return {"object_number": value.idnum, "generation": value.generation}
+    if isinstance(value, ByteStringObject) or isinstance(value, bytes):
+        return {"base64": b64encode(value).decode("ascii")}
+    if isinstance(value, Mapping):
+        return {key: pdf_value(val) for key, val in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [pdf_value(element) for element in value]
+    if isinstance(value, NullObject) or value is None:
+        return None
+    if hasattr(value, "value") and isinstance(value.value, bool):
+        return value.value
+    if isinstance(value, (int, float)):
+        return value
+    return str(value)
+
+
+def pdf_structure(data, result) -> list[dict]:
+    reader = PdfReader(BytesIO(data))
+    if reader.is_encrypted:
+        raise ValueError("Password-protected PDF needs to be decrypted before extracting fields")
+    root = reader.root_object
+    result.add("pdf_catalog", {"part": "catalog"}, metadata=pdf_value(reader.metadata),
+               catalog=pdf_value(root), trailer=pdf_value(reader.trailer),
+               attachments=list(reader.attachments))
+    fields = reader.get_fields() or {}
+    for index, (name, field) in enumerate(fields.items(), 1):
+        result.add("pdf_form_field", {"field": name, "index": index}, field=pdf_value(field))
+    pages = []
+    for number, page in enumerate(reader.pages, 1):
+        annots = []
+        annot_refs = page.get("/Annots", [])
+        if isinstance(annot_refs, IndirectObject):
+            annot_refs = annot_refs.get_object()
+        for ref in annot_refs:
+            annotation = ref.get_object()
+            annots.append({"reference": pdf_value(ref), "data": pdf_value(annotation)})
+        # The page dictionary keeps graphics/resource references without expanding their streams.
+        pages.append({"page": number, "dictionary": pdf_value(page), "annotations": annots})
+    return pages
+
+
+def split_layout(raw: bytes) -> list[str]:
+    pages = raw.decode("utf-8", errors="replace").split("\f")
+    if pages[-1] == "":
+        pages.pop()
+    return pages
+
+
+def pdf(data: bytes) -> Result:
+    result = Result("pdf", needs_review=True)
+    with TemporaryDirectory() as directory:
+        source = Path(directory) / "source.pdf"
+        source.write_bytes(data)
+        layout = split_layout(poppler("pdftotext", "-enc", "UTF-8", "-layout", source, "-"))
+        try:
+            bbox_data = poppler("pdftotext", "-enc", "UTF-8", "-bbox-layout", source, "-")
+            controls = [{"offset": match.start(), "byte": match[0].hex()} for match in _XML_CONTROLS.finditer(bbox_data)]
+            if controls:
+                result.add("pdf_box_controls", {"part": "bounding_boxes"}, original_controls=controls)
+                result.warn("pdf_control_glyphs", {"part": "bounding_boxes"},
+                            "Control glyphs were encoded as visible markers in the positional text")
+            xml_data = _XML_CONTROLS.sub(lambda match: f"[U+{ord(match[0]):04X}]".encode("ascii"), bbox_data)
+            boxes = parse_xml(xml_data, generated=True)
+            bbox_pages = [page for page in boxes.iter() if local_name(page) == "page"]
+        except (SyntaxError, ValueError) as exc:
+            bbox_pages = []
+            result.warn("pdf_bounding_boxes_review", {"part": "bounding_boxes"}, str(exc))
+        try:
+            structures = pdf_structure(data, result)
+        except (PdfReadError, ValueError, TypeError, KeyError) as exc:
+            structures = []
+            result.warn("pdf_structure_review", {"part": "catalog"}, str(exc))
+        for program, args, record_kind in [
+            ("pdfinfo", ("-isodates", "-box", source), "pdf_info"),
+            ("pdfinfo", ("-meta", source), "pdf_xmp"),
+            ("pdfimages", ("-list", source), "pdf_image_inventory"),
+            ("pdfdetach", ("-list", source), "pdf_attachment_inventory"),
+        ]:
+            try:
+                content = poppler(program, *args).decode("utf-8", errors="replace")
+                result.add(record_kind, {"part": record_kind}, text=content)
+            except ValueError as exc:
+                result.warn("pdf_inventory_review", {"part": record_kind}, str(exc))
+
+    page_count = max(len(layout), len(bbox_pages), len(structures))
+    result.metadata["pages"] = page_count
+    if len(layout) != len(bbox_pages) or (structures and len(structures) != page_count):
+        result.warn("pdf_page_count_mismatch", {"part": "document"}, "PDF representations returned different page counts")
+    for number in range(1, page_count + 1):
+        raw_page = layout[number - 1] if number <= len(layout) else ""
+        if not raw_page.strip():
+            result.warn("page_has_no_extractable_text", {"page": number}, "Inspect the page image or run OCR")
+        result.add(
+            "pdf_page", {"page": number}, layout=raw_page,
+            word_boxes=xml_element(bbox_pages[number - 1]) if number <= len(bbox_pages) else None,
+            structure=structures[number - 1] if number <= len(structures) else None,
+        )
+    extract_pdf_tables(layout, result)
+    return result
+
+
+def read_quantity(body):
+    stripped = body.strip()
+    match = _QUANTITY.fullmatch(stripped) or _JOINED_QUANTITY.fullmatch(stripped)
+    if not match:
+        return None
+    qty = match["quantity"]
+    cells = re.split(r"[ \t]{2,}", match["tail"].strip()) if match["tail"].strip() else []
+    values = [german_decimal(re.sub(r"^(?:EP|GP)\s*", "", cell, flags=re.I)) for cell in cells]
+    price_only = bool(_PRICE_ONLY.search(match["tail"]))
+    if not _UNIT.fullmatch(match["unit"]) and not (
+        len(cells) >= 2 and all(value is not None or re.fullmatch(r"\.{2,}", cell) for value, cell in zip(values, cells))
+    ):
+        return None
+    # Two right-hand cells preserve the distinction between an actual zero and a blank placeholder.
+    return {
+        "quantity_raw": qty, "quantity": german_decimal(qty), "unit": match["unit"],
+        "unit_price": values[0] if values else None,
+        "line_amount": values[1] if len(values) > 1 else None,
+        "price_cells_raw": cells, "unit_price_only": price_only,
+    }
+
+
+def quantity_rank(amounts):
+    if amounts["price_cells_raw"]:
+        return 2
+    return int("," in amounts["quantity_raw"])
+
+
+def is_item_code(code, header):
+    if code.startswith("."):
+        return True
+    groups = code.rstrip(".").split(".")
+    if len(groups) >= 3:
+        return True
+    if len(groups) == 2 and not code.endswith("."):
+        return header != "pos-nr." or len(groups[1]) >= 3
+    return False
+
+
+def item_flags(description):
+    lowered = description.casefold()
+    return {
+        "unit_price_only": bool(_PRICE_ONLY.search(description)) or "ohne gb" in lowered or "ohne gesamtbetrag" in lowered,
+        "provisional_included": "bedarfsposition mit gb" in lowered,
+        "base_item": "grundposition" in lowered,
+        "alternative_item": "wahlposition" in lowered or "alternativposition" in lowered,
+    }
+
+
+def extract_pdf_tables(pages, result):
+    current = None
+    section_paths = []
+    sections_seen = set()
+
+    def flush():
+        nonlocal current
+        if current is None:
+            return
+        locator = current.pop("locator")
+        body = "\n".join(current.pop("description_lines")).strip()
+        numbers = current.pop("amounts")
+        flags = item_flags(body)
+        if numbers:
+            flags["unit_price_only"] |= numbers["unit_price_only"]
+        else:
+            result.warn("pdf_quantity_review", {**locator, "code": current["code"]},
+                        "Review the source evidence for quantity and unit")
+        result.add("item_candidate", locator, **current, long_description=body or None,
+                   **{key: value for key, value in (numbers or {}).items() if key != "unit_price_only"},
+                   flags=flags, confidence="review")
+        current = None
+
+    def section_row(code, label, locator):
+        depth = len(code.rstrip(".").split("."))
+        del section_paths[depth - 1:]
+        if len(section_paths) < depth - 1:
+            section_paths.extend(_parent_codes(code)[len(section_paths):])
+        section_paths.append(code)
+        key = tuple(section_paths)
+        if key in sections_seen:
+            return
+        sections_seen.add(key)
+        result.add("section_candidate", locator, code=code, label=label, section_path=section_paths[:-1])
+
+    for page_number, page in enumerate(pages, 1):
+        lines = page.splitlines()
+        header_row = next(((i, match) for i, line in enumerate(lines, 1) if (match := _HEADER.match(line))), None)
+        form = next((m[1] for line in lines[:10] if (m := _FORM.fullmatch(line))), None)
+        if form:
+            result.add("form_page", {"page": page_number}, form_code=form, rows=layout_rows(lines))
+            header_row = None
+        page_head = "\n".join(lines[:24])
+        summary_page = any(_SUMMARY_TITLE.fullmatch(line) for line in lines[:16])
+        if header_row is None or summary_page:
+            flush()
+        for line_number, raw in enumerate(lines, 1):
+            locator = {"page": page_number, "line": line_number}
+            total = _TOTAL.fullmatch(raw)
+            if total:
+                result.add("reported_amount", locator, label=total["label"].strip(),
+                           amount_raw=total["amount"], amount=german_decimal(total["amount"]))
+            if header_row is None or line_number <= header_row[0]:
+                continue
+            if summary_page:
+                continue
+            if total or re.match(r"^\s*(?:Übertrag\s*:|Druckdatum:|Seite\s*:)", raw, re.I):
+                continue
+            header = header_row[1]
+            indent = len(header["indent"])
+            heading = _SECTION.fullmatch(raw)
+            if heading and abs(len(heading["indent"]) - indent) <= 3:
+                flush()
+                section_row(heading["code"], heading["label"].strip(), locator)
+                continue
+            match = _CODE.fullmatch(raw)
+            if match and abs(len(match["indent"]) - indent) <= 3:
+                code, body = match["code"], match["body"]
+                amounts = read_quantity(body)
+                if amounts or is_item_code(code, header["code"].casefold()):
+                    if current is not None and current["code"] == code and current["locator"]["page"] < page_number:
+                        current.setdefault("continuation_markers", []).append({"locator": locator, "raw": raw})
+                        if amounts and current["amounts"] is None:
+                            current["amounts"] = amounts
+                            current["quantity_locator"] = locator
+                        elif not amounts and body.strip() != current["short_description"]:
+                            current["description_lines"].append(body.strip())
+                        current["locator"].update(end_page=page_number, end_line=line_number)
+                        continue
+                    flush()
+                    current = {
+                        "locator": {**locator, "end_page": page_number, "end_line": line_number},
+                        "code": code, "section_path": list(section_paths),
+                        "short_description": None if amounts else body.strip(),
+                        "description_lines": [] if amounts else [body.strip()], "amounts": amounts,
+                        "quantity_locator": locator if amounts else None,
+                    }
+                else:
+                    flush()
+                    section_row(code, body.strip(), locator)
+                continue
+            if current is not None and raw.strip():
+                if raw.strip().startswith(("Nr.)", "in EUR", "Alle Einzelbeträge", "Betrag in EUR")):
+                    continue
+                numbers = read_quantity(raw)
+                if numbers and len(raw) - len(raw.lstrip()) >= indent + 5:
+                    previous = current["amounts"]
+                    if previous is None or quantity_rank(numbers) > quantity_rank(previous):
+                        if previous is not None:
+                            current.setdefault("other_amount_candidates", []).append(
+                                {"locator": current["quantity_locator"], **previous}
+                            )
+                        current["amounts"] = numbers
+                        current["quantity_locator"] = locator
+                    else:
+                        current.setdefault("other_amount_candidates", []).append({"locator": locator, **numbers})
+                else:
+                    line = raw.strip()
+                    current["description_lines"].append(line)
+                    if current["short_description"] is None:
+                        current["short_description"] = line
+                current["locator"].update(end_page=page_number, end_line=line_number)
+        if "EUR" in page_head:
+            result.metadata.setdefault("currency", "EUR")
+    flush()
+
+
+def _parent_codes(code):
+    parts = code.rstrip(".").split(".")
+    return [".".join(parts[:depth]) for depth in range(1, len(parts))]
+
+
+def layout_rows(lines):
+    """Preserve flattened form cell order and horizontal offsets without guessing field names."""
+    return [
+        {"line": index, "cells": [{"offset": cell.start(), "text": cell[0]} for cell in
+                                   re.finditer(r"\S+(?:[ \t]\S+)*", line)]}
+        for index, line in enumerate(lines, 1) if line.strip()
+    ]
