@@ -8,10 +8,10 @@ import sys
 
 from pydantic import ValidationError
 
-from .adapter import from_json
+from .layer2.adapter import from_json
 from .contracts import Finding
 from .layer2.schema import load_rules, rule_metadata
-from .runner import analyze
+from .layer2.report import analyze
 
 
 def _tolerance(value: str) -> Decimal:

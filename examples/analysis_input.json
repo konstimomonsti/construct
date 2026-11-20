@@ -6,10 +6,10 @@
     {"id": "office-a", "name": "Office A", "kind": "office"},
     {"id": "office-b", "name": "Office B", "kind": "office"}
   ],
-  "sections": [{"id": "drywall", "code": "01", "title": "Trockenbau"}],
+  "sections": [{"id": "drywall", "code": "01", "title": "Trockenbau", "sort_order": 0}],
   "lines": [
-    {"id": "wall", "code": "01.0010", "section_id": "drywall", "short_text": "Metallständerwand GKB einschließlich Fugen Spachtelung und Kantenschutz", "quantity": "100", "unit": "m²", "distributions": [{"area_id": "office-a", "quantity": "40"}, {"area_id": "office-b", "quantity": "60"}], "source_locator": {"xml_path": "BoQ/Item[1]"}},
-    {"id": "insulation", "code": "01.0020", "section_id": "drywall", "short_text": "Mineralwolle Trennwandplatte", "quantity": "80", "unit": "m²", "distributions": [{"area_id": "office-a", "quantity": "40"}, {"area_id": "office-b", "quantity": "40"}], "source_locator": {"xml_path": "BoQ/Item[2]"}}
+    {"id": "wall", "code": "01.0010", "section_id": "drywall", "sort_order": 0, "short_text": "Metallständerwand GKB einschließlich Fugen Spachtelung und Kantenschutz", "quantity": "100", "unit": "m²", "distributions": [{"area_id": "office-a", "quantity": "40"}, {"area_id": "office-b", "quantity": "60"}], "source_locator": {"xml_path": "BoQ/Item[1]"}},
+    {"id": "insulation", "code": "01.0020", "section_id": "drywall", "sort_order": 1, "short_text": "Mineralwolle Trennwandplatte", "quantity": "80", "unit": "m²", "distributions": [{"area_id": "office-a", "quantity": "40"}, {"area_id": "office-b", "quantity": "40"}], "source_locator": {"xml_path": "BoQ/Item[2]"}}
   ]
 }
 

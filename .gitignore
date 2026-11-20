@@ -1,7 +1,26 @@
+# Virtual Environment
 .venv/
+venv/
+ENV/
+
+# Python cache
 __pycache__/
 *.py[cod]
+*$py.class
+
+# Output files
+*.csv
+*.json
+
+# Local database files
+.env
+.env.*
+!.env.example
+backups/
+/db/seed_challenge_catalogue.sql
+
+# Python packaging output
 *.egg-info/
 build/
 dist/
-
+.pytest_cache/

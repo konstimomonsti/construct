@@ -1,0 +1,126 @@
+"""Missing or unusable values: quantity, unit, text, OZ code."""
+
+from collections import defaultdict
+
+from .. import units
+from ..contracts import Fix, SetField
+from ..registry import rule
+from .common import BID_PHASE, label
+
+
+@rule("L1.QTY.MISSING", layer=1, category="completeness", severity="error", title="Quantity missing",
+      description="An item without quantity cannot be priced or totalled. Lump sums are checked separately.")
+def quantity_missing(ctx):
+    for line in ctx.input.lines:
+        if line.quantity is None and line.pricing_basis != "lump_sum" and line.unit != "lump_sum":
+            raw = f" The source contains {line.quantity_raw!r}, which is not a number." if line.quantity_raw else ""
+            yield ctx.finding(line=line, field="quantity", message=f"{label(line)} has no quantity.{raw}",
+                              evidence={"quantity_raw": line.quantity_raw})
+
+
+@rule("L1.QTY.NEGATIVE", layer=1, category="completeness", severity="error", title="Negative quantity",
+      description="Quantities in a bill of quantities are never negative.")
+def quantity_negative(ctx):
+    for line in ctx.input.lines:
+        if line.quantity is not None and line.quantity < 0:
+            yield ctx.finding(line=line, field="quantity", message=f"{label(line)} has quantity {line.quantity}.",
+                              evidence={"quantity": line.quantity})
+
+
+@rule("L1.QTY.ZERO", layer=1, category="completeness", severity="warning", title="Quantity is zero",
+      description="Quantity 0 on a counted item. With a unit price the line contributes nothing to the total.")
+def quantity_zero(ctx):
+    for line in ctx.input.lines:
+        if line.quantity is None or line.quantity != 0 or line.total_rule == "unit_price_only":
+            continue
+        unit_price = (line.source_amounts.unit_price if line.source_amounts else None) or \
+            (line.price.unit_price if line.price else None)
+        if unit_price:
+            message = (f"{label(line)} has a unit price of {unit_price} but quantity 0, so it adds nothing to the "
+                       f"total. Either the quantity is missing or the item should be unit-price-only.")
+            yield ctx.finding(line=line, field="quantity", severity="error", message=message,
+                              evidence={"quantity": line.quantity, "unit_price": unit_price})
+        else:
+            yield ctx.finding(line=line, field="quantity", message=f"{label(line)} has quantity 0.",
+                              evidence={"quantity": line.quantity})
+
+
+@rule("L1.QTY.FRACTIONAL_COUNT", layer=1, category="completeness", severity="warning",
+      title="Fractional quantity in a count unit", description="Items counted in pieces or sets need whole numbers.")
+def fractional_count(ctx):
+    for line in ctx.input.lines:
+        if line.quantity is None or units.dimension(line.unit) is not units.Dimension.COUNT:
+            continue
+        if line.quantity != line.quantity.to_integral_value():
+            yield ctx.finding(line=line, field="quantity",
+                              message=f"{label(line)} is counted in {line.unit_raw or line.unit} but has quantity "
+                                      f"{line.quantity}.",
+                              evidence={"quantity": line.quantity, "unit": line.unit})
+
+
+@rule("L1.UNIT.MISSING", layer=1, category="completeness", severity="error", title="Unit missing",
+      description="Without a unit the quantity has no meaning and no price can be matched.")
+def unit_missing(ctx):
+    for line in ctx.input.lines:
+        if line.unit is not None:
+            continue
+        fix = None
+        if line.pricing_basis == "lump_sum":
+            fix = Fix(operations=[SetField(line_id=line.id, field="unit", old_value=None, new_value="lump_sum")],
+                      confidence=0.9, rationale="The item is flagged as a lump sum.")
+        yield ctx.finding(line=line, field="unit", message=f"{label(line)} has no unit.", suggested_fix=fix,
+                          evidence={"quantity": line.quantity, "pricing_basis": line.pricing_basis})
+
+
+@rule("L1.UNIT.UNKNOWN", layer=1, category="unit", severity="warning", title="Unknown unit",
+      description="The unit is not in the shared vocabulary, so it cannot be compared or converted.")
+def unit_unknown(ctx):
+    for line in ctx.input.lines:
+        if line.unit is not None and not units.is_known(line.unit):
+            yield ctx.finding(line=line, field="unit", message=f"{label(line)} uses the unknown unit {line.unit_raw!r}.",
+                              evidence={"unit_raw": line.unit_raw})
+
+
+@rule("L1.TEXT.MISSING", layer=1, category="completeness", severity="error", title="Description missing",
+      description="Item without short and long text. Bid files (GAEB 84) carry no texts and are reported once.")
+def text_missing(ctx):
+    missing = [line for line in ctx.input.lines if not line.short_text and not line.long_text]
+    if not missing:
+        return
+    if ctx.input.project.gaeb_phase == BID_PHASE:
+        yield ctx.finding(
+            severity="info", title="Bid file without descriptions",
+            message=f"{len(missing)} of {len(ctx.input.lines)} items have no text. GAEB 84 bids only carry prices; "
+                    f"analyze them together with the tender (GAEB 83) to check the descriptions.",
+            evidence={"lines_without_text": len(missing)}, related_line_ids=[line.id for line in missing][:50],
+        )
+        return
+    for line in missing:
+        yield ctx.finding(line=line, field="short_text", message=f"{label(line)} has no description.")
+
+
+@rule("L1.CODE.MISSING", layer=1, category="structure", severity="error", title="OZ code missing or damaged",
+      description="Every item needs an ordinal number (OZ) to be referenced in bids, awards and invoices.")
+def code_missing(ctx):
+    for line in ctx.input.lines:
+        if not line.code:
+            raw = "".join(line.code_parts) or None
+            yield ctx.finding(line=line, field="code",
+                              message=f"Item '{label(line)}' has no valid OZ code"
+                                      + (f" (source: {raw!r})." if raw else "."),
+                              evidence={"code_parts": line.code_parts})
+
+
+@rule("L1.CODE.DUPLICATE", layer=1, category="structure", severity="error", title="Duplicate OZ code",
+      description="Two items share the same ordinal number.")
+def code_duplicate(ctx):
+    by_code = defaultdict(list)
+    for line in ctx.input.lines:
+        if line.code:
+            by_code[line.code].append(line)
+    for code, lines in by_code.items():
+        first, *repeats = lines
+        for line in repeats:
+            yield ctx.finding(line=line, field="code", related_line_ids=[first.id],
+                              message=f"OZ {code} is used {len(lines)} times.",
+                              evidence={"code": code, "occurrences": len(lines)})

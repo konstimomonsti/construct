@@ -1,71 +1,69 @@
-"""Canonical contract units, with exact conversions inside each dimension."""
+"""Shared canonical unit vocabulary. Used by the adapter and by every analysis layer."""
 
-from decimal import Decimal
+from enum import Enum
 
-# (dimension, multiplier to the base unit for that dimension)
-UNITS = {
-    "ea": ("count", Decimal("1")),
-    "set": ("count", Decimal("1")),
-    "m": ("length", Decimal("1")),
-    "km": ("length", Decimal("1000")),
-    "m²": ("area", Decimal("1")),
-    "cm²": ("area", Decimal("0.0001")),
-    "km²": ("area", Decimal("1000000")),
-    "m³": ("volume", Decimal("1")),
-    "l": ("volume", Decimal("0.001")),
-    "kg": ("mass", Decimal("1")),
-    "t": ("mass", Decimal("1000")),
-    "h": ("time", Decimal("1")),
-    "day": ("time", Decimal("24")),
-    "week": ("time", Decimal("168")),
-    "month": ("time", None),
-    "year": ("time", None),
-    "lump_sum": ("lump", Decimal("1")),
-    "m·week": ("composite", None),
-    "ea·week": ("composite", None),
-    "m²·day": ("composite", None),
-    "m²·week": ("composite", None),
-    "m·day": ("composite", None),
+
+class Dimension(str, Enum):
+    COUNT = "count"
+    LENGTH = "length"
+    AREA = "area"
+    VOLUME = "volume"
+    MASS = "mass"
+    TIME = "time"
+    LUMP = "lump"
+    COMPOSITE = "composite"
+    UNKNOWN = "unknown"
+
+
+# Canonical code -> dimension.
+CANONICAL: dict[str, Dimension] = {
+    "ea": Dimension.COUNT, "set": Dimension.COUNT,
+    "mm": Dimension.LENGTH, "cm": Dimension.LENGTH, "m": Dimension.LENGTH, "km": Dimension.LENGTH,
+    "cm²": Dimension.AREA, "m²": Dimension.AREA, "km²": Dimension.AREA,
+    "l": Dimension.VOLUME, "m³": Dimension.VOLUME,
+    "kg": Dimension.MASS, "t": Dimension.MASS,
+    "min": Dimension.TIME, "h": Dimension.TIME, "day": Dimension.TIME, "week": Dimension.TIME,
+    "month": Dimension.TIME, "year": Dimension.TIME,
+    "lump_sum": Dimension.LUMP,
+    "m·week": Dimension.COMPOSITE, "ea·week": Dimension.COMPOSITE, "m²·day": Dimension.COMPOSITE,
+    "m²·week": Dimension.COMPOSITE, "m·day": Dimension.COMPOSITE, "ea·day": Dimension.COMPOSITE,
 }
 
-ALIASES = {u.casefold(): u for u in UNITS}
-ALIASES.update({
-    "stk": "ea", "stk.": "ea", "st": "ea", "st.": "ea", "stück": "ea",
-    "stueck": "ea", "pcs": "ea", "piece": "ea", "m2": "m²", "m^2": "m²",
-    "qm": "m²", "cm2": "cm²", "cm^2": "cm²", "km2": "km²", "km^2": "km²",
-    "m3": "m³", "m^3": "m³", "cbm": "m³", "lfm": "m", "lfdm": "m",
-    "ltr": "l", "liter": "l", "std": "h", "std.": "h", "tage": "day",
-    "psch": "lump_sum", "psch.": "lump_sum", "pauschal": "lump_sum",
-})
+# Raw spelling (casefolded, whitespace removed) -> canonical code.
+# Superset of importer/tender_import/draft.py::_UNIT_CODES.
+_ALIASES: dict[str, str] = {
+    "st": "ea", "st.": "ea", "stk": "ea", "stk.": "ea", "stck": "ea", "stück": "ea", "stueck": "ea",
+    "pcs": "ea", "pc": "ea", "ea": "ea", "nr": "ea", "nr.": "ea",
+    "satz": "set", "set": "set", "garnitur": "set",
+    "mm": "mm", "cm": "cm", "m": "m", "lfm": "m", "lfdm": "m", "lfd.m": "m", "km": "km",
+    "m2": "m²", "m²": "m²", "qm": "m²", "cm2": "cm²", "cm²": "cm²", "km2": "km²", "km²": "km²",
+    "m3": "m³", "m³": "m³", "cbm": "m³", "l": "l", "ltr": "l", "liter": "l",
+    "kg": "kg", "t": "t", "to": "t", "to.": "t",
+    "min": "min", "std": "h", "std.": "h", "h": "h", "tag": "day", "tage": "day", "d": "day", "td": "day",
+    "wo": "week", "woche": "week", "mt": "month", "mon": "month", "monat": "month",
+    "jahr": "year", "jahre": "year", "jr": "year", "a": "year",
+    "psch": "lump_sum", "psch.": "lump_sum", "pschl": "lump_sum", "pausch": "lump_sum",
+    "pauschal": "lump_sum", "pau": "lump_sum", "ls": "lump_sum",
+    "mwo": "m·week", "stwo": "ea·week", "m2d": "m²·day", "m2wo": "m²·week", "md": "m·day", "sttg": "ea·day",
+}
 
 
-def normalize_unit(value: str | None) -> str | None:
-    if value is None:
+def normalize(raw: str | None) -> str | None:
+    """Return the canonical code, the raw text if unknown, or None if empty."""
+    if raw is None:
         return None
-    if not isinstance(value, str):
-        raise ValueError("A unit must be text or null")
-    if not value.strip():
+    cleaned = raw.strip()
+    if not cleaned:
         return None
-    value = " ".join(value.split())
-    return ALIASES.get(value.casefold(), value)
+    if cleaned in CANONICAL:
+        return cleaned
+    key = "".join(cleaned.casefold().split())
+    return _ALIASES.get(key, cleaned)
 
 
-def dimension(unit: str | None) -> str:
-    return UNITS.get(unit, ("unknown", None))[0]
+def is_known(unit: str | None) -> bool:
+    return unit in CANONICAL
 
 
-def convert(quantity: Decimal, source: str | None, target: str) -> Decimal | None:
-    """Return None when the units cannot be compared safely."""
-    if source not in UNITS or target not in UNITS:
-        return None
-    if source == target:
-        return quantity
-    # A set is not a single item; composite/calendar units need more context.
-    if {source, target} == {"set", "ea"}:
-        return None
-    src_dim, src_factor = UNITS[source]
-    dst_dim, dst_factor = UNITS[target]
-    if src_dim != dst_dim or src_factor is None or dst_factor is None:
-        return None
-    return quantity * src_factor / dst_factor
-
+def dimension(unit: str | None) -> Dimension:
+    return CANONICAL.get(unit, Dimension.UNKNOWN) if unit else Dimension.UNKNOWN

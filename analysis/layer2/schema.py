@@ -9,7 +9,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from ..units import UNITS
+from .quantities import UNITS
 
 
 def compile_regex(pattern: str) -> re.Pattern:

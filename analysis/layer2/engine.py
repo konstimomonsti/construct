@@ -3,14 +3,12 @@
 from collections import defaultdict
 from dataclasses import dataclass
 from decimal import Decimal
-import hashlib
-import json
 from typing import Literal
 
 from ..contracts import (
-    AddLine, AnalysisInput, Distribution, Finding, Fix, Line, ProposedLine, Target,
+    AddLine, AnalysisInput, Distribution, Finding, Fix, Line, NewLine, Target, finding_key,
 )
-from ..units import convert
+from .quantities import convert
 from .schema import DependencySpec, RuleSpec, compile_regex, load_rules
 
 ScopeMode = Literal["auto", "document", "trade", "section", "area"]
@@ -125,10 +123,7 @@ def _quantity(entries: list[Entry], unit: str, blocked: set[str]) -> tuple[Decim
 
 
 def finding_id(rule_id: str, target: Target) -> str:
-    # Persistence carries decisions within the same BOM, as the contract requires.
-    identity = {"rule_id": rule_id, "target": target.model_dump(exclude_none=True)}
-    canonical = json.dumps(identity, sort_keys=True, separators=(",", ":"))
-    return "f_" + hashlib.sha256(canonical.encode("utf-8")).hexdigest()[:32]
+    return finding_key(rule_id, target)
 
 
 def _proposal(dep: DependencySpec, triggers: list[Entry], context: Context,
@@ -142,7 +137,7 @@ def _proposal(dep: DependencySpec, triggers: list[Entry], context: Context,
                    "and quantity before adding it to a new BOM version."),
         operations=[AddLine(
             section_id=first.section_id, after_line_id=first.id,
-            line=ProposedLine(short_text=dep.suggested_text, quantity=quantity,
+            line=NewLine(short_text=dep.suggested_text, quantity=quantity,
                               unit=dep.quantity_unit if quantity is not None else None),
             distributions=([Distribution(area_id=context.target.area_id, quantity=quantity)]
                            if context.target.area_id and quantity is not None else []),

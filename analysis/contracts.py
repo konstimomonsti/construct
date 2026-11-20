@@ -1,93 +1,119 @@
-"""Pydantic implementation of ANALYSIS_CONTRACT.md v0.1.
+"""Shared models for the analysis pipeline. See docs/ANALYSIS_CONTRACT.md.
 
-Rules receive these models; only adapters normalize source values. Unknown
-fields are retained so this layer can coexist with other analysis owners.
+Changes to this file need the agreement of every layer owner. Bump SCHEMA_VERSION on any
+change that breaks existing JSON.
 """
 
-from datetime import date, datetime
+from __future__ import annotations
+
+from datetime import date, datetime, timezone
 from decimal import Decimal
-from typing import Annotated, Any, Literal
+from enum import Enum
+from hashlib import sha256
+import json
+from typing import Annotated, Any, Literal, Union
+from uuid import uuid4
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field
+
+SCHEMA_VERSION = "0.1"
 
 
-class Model(BaseModel):
-    model_config = ConfigDict(extra="allow", allow_inf_nan=False)
+class _Model(BaseModel):
+    model_config = ConfigDict(extra="forbid", use_enum_values=True)
 
 
-class SourceDocument(Model):
+# --------------------------------------------------------------------------- input
+
+
+class SourceDocument(_Model):
     id: str | None = None
     filename: str | None = None
     format: str | None = None
 
 
-class Project(Model):
-    id: str = "import"
-    name: str = "Imported BoQ"
-    currency: str = "EUR"
-    gaeb_phase: Literal["83", "84", "86"] | None = None
-    source_document: SourceDocument | None = None
+class Project(_Model):
+    id: str | None = None
+    name: str | None = None
+    currency: str | None = None
+    gaeb_phase: str | None = None  # "83" tender, "84" bid, "86" award
+    source_document: SourceDocument = Field(default_factory=SourceDocument)
 
 
-class Bom(Model):
-    bom_version_id: str = "import"
+class Bom(_Model):
+    bom_version_id: str | None = None
     package_code: str | None = None
     title: str | None = None
     trade: str | None = None
+    stated_net_total: Decimal | None = None  # total written in the source file, if any
 
 
-class Area(Model):
+class Area(_Model):
     id: str
     parent_id: str | None = None
-    name: str = ""
+    name: str
     kind: str = "unknown"
 
 
-class Section(Model):
+class Section(_Model):
     id: str
     parent_id: str | None = None
     code: str | None = None
-    title: str = ""
-    sort_order: int = 0
+    code_parts: list[str] = Field(default_factory=list)
+    title: str | None = None
+    sort_order: int
+    stated_total: Decimal | None = None  # subtotal written in the source file, if any
 
 
-class ReferenceRange(Model):
-    min: Decimal | None = None
-    median: Decimal | None = None
-    max: Decimal | None = None
-    n: int = 0
+class ReferenceRange(_Model):
+    min: Decimal
+    median: Decimal
+    max: Decimal
+    n: int
 
 
-class PriceInfo(Model):
+class PriceSource(str, Enum):
+    CATALOGUE = "catalogue"
+    REFERENCE = "reference"
+    AI = "ai"
+    CLIENT = "client"
+    NONE = "none"
+
+
+class PriceInfo(_Model):
+    """What the pricing phase hands to the analysis for one line."""
+
     unit_price: Decimal | None = None
-    currency: str = "EUR"
-    price_unit: str | None = None
+    currency: str | None = None
+    price_unit: str | None = None  # canonical unit the price refers to
     line_amount: Decimal | None = None
-    source: Literal["catalogue", "reference", "ai", "client", "none"] = "none"
+    source: PriceSource = PriceSource.NONE
     source_ref: str | None = None
     matched_text: str | None = None
-    match_confidence: float = Field(default=0, ge=0, le=1)
+    match_confidence: float | None = Field(default=None, ge=0, le=1)
     price_date: date | None = None
     reference_range: ReferenceRange | None = None
     citations: list[str] = Field(default_factory=list)
 
 
-class SourceAmounts(Model):
+class SourceAmounts(_Model):
+    """Prices written in the uploaded file itself (GAEB 84/86 bids)."""
+
     unit_price: Decimal | None = None
     line_amount: Decimal | None = None
 
 
-class Distribution(Model):
+class Distribution(_Model):
     area_id: str
     quantity: Decimal | None = None
 
 
-class Line(Model):
+class Line(_Model):
     id: str
     code: str | None = None
     code_parts: list[str] = Field(default_factory=list)
     section_id: str | None = None
-    sort_order: int = 0
+    sort_order: int
     short_text: str | None = None
     long_text: str | None = None
     quantity: Decimal | None = None
@@ -105,43 +131,84 @@ class Line(Model):
     source_locator: dict[str, Any] = Field(default_factory=dict)
 
 
-class AnalysisInput(Model):
-    schema_version: Literal["0.1"] = "0.1"
+class ImportWarning(_Model):
+    code: str
+    message: str | None = None
+    locator: dict[str, Any] = Field(default_factory=dict)
+
+
+class AnalysisInput(_Model):
+    schema_version: str = SCHEMA_VERSION
     input_hash: str = ""
     project: Project = Field(default_factory=Project)
     bom: Bom = Field(default_factory=Bom)
     areas: list[Area] = Field(default_factory=list)
     sections: list[Section] = Field(default_factory=list)
     lines: list[Line] = Field(default_factory=list)
-    import_warnings: list[dict[str, Any]] = Field(default_factory=list)
+    import_warnings: list[ImportWarning] = Field(default_factory=list)
 
-    @field_validator("lines", "areas", "sections")
-    @classmethod
-    def unique_internal_ids(cls, values):
-        ids = [value.id for value in values]
-        if len(ids) != len(set(ids)):
-            raise ValueError("Internal IDs must be unique within each collection")
-        return values
+    def compute_hash(self) -> str:
+        payload = self.model_dump(mode="json", exclude={"input_hash"})
+        canonical = json.dumps(payload, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
+        return sha256(canonical.encode("utf-8")).hexdigest()
+
+    def with_hash(self) -> AnalysisInput:
+        return self.model_copy(update={"input_hash": self.compute_hash()})
+
+    # Convenience lookups for rule authors. Not serialized.
+    def line_by_id(self) -> dict[str, Line]:
+        return {line.id: line for line in self.lines}
+
+    def section_by_id(self) -> dict[str, Section]:
+        return {section.id: section for section in self.sections}
+
+    def lines_in_section(self, section_id: str | None) -> list[Line]:
+        return [line for line in self.lines if line.section_id == section_id]
 
 
-class Target(Model):
-    line_id: str | None = None
-    line_code: str | None = None
-    section_id: str | None = None
-    area_id: str | None = None
-    field: str | None = None
+# --------------------------------------------------------------------------- output
 
 
-class SetField(Model):
+class Severity(str, Enum):
+    ERROR = "error"
+    WARNING = "warning"
+    INFO = "info"
+
+
+class Scope(str, Enum):
+    LINE = "line"
+    SECTION = "section"
+    AREA = "area"
+    BOM = "bom"
+
+
+class Status(str, Enum):
+    OPEN = "open"
+    ACCEPTED = "accepted"
+    REJECTED = "rejected"
+    APPLIED = "applied"
+    STALE = "stale"
+
+
+class Origin(str, Enum):
+    RULE = "rule"
+    LLM = "llm"
+
+
+SettableField = Literal[
+    "quantity", "unit", "short_text", "long_text", "pricing_basis", "total_rule", "alternative_for", "unit_price",
+]
+
+
+class SetField(_Model):
     op: Literal["set_field"] = "set_field"
     line_id: str
-    field: Literal["quantity", "unit", "short_text", "long_text", "pricing_basis",
-                   "total_rule", "alternative_for", "unit_price"]
+    field: SettableField
     old_value: Any = None
-    new_value: Any
+    new_value: Any = None
 
 
-class ProposedLine(Model):
+class NewLine(_Model):
     short_text: str
     long_text: str | None = None
     quantity: Decimal | None = None
@@ -149,70 +216,99 @@ class ProposedLine(Model):
     pricing_basis: Literal["unit_rate", "lump_sum"] = "unit_rate"
 
 
-class AddLine(Model):
+class AddLine(_Model):
     op: Literal["add_line"] = "add_line"
     section_id: str | None = None
     after_line_id: str | None = None
-    line: ProposedLine
+    line: NewLine
     distributions: list[Distribution] = Field(default_factory=list)
 
 
-class RemoveLine(Model):
+class RemoveLine(_Model):
     op: Literal["remove_line"] = "remove_line"
     line_id: str
 
 
-class MergeLines(Model):
+class MergeLines(_Model):
     op: Literal["merge_lines"] = "merge_lines"
     keep_line_id: str
     remove_line_ids: list[str]
-    new_quantity: Decimal
+    new_quantity: Decimal | None = None
 
 
-class LinkAlternative(Model):
+class LinkAlternative(_Model):
     op: Literal["link_alternative"] = "link_alternative"
     line_id: str
     alternative_for: str
 
 
 Operation = Annotated[
-    SetField | AddLine | RemoveLine | MergeLines | LinkAlternative,
-    Field(discriminator="op"),
+    Union[SetField, AddLine, RemoveLine, MergeLines, LinkAlternative], Field(discriminator="op")
 ]
 
 
-class Fix(Model):
+class Fix(_Model):
     operations: list[Operation]
     confidence: float = Field(ge=0, le=1)
     rationale: str
 
 
-class Finding(Model):
+class Target(_Model):
+    line_id: str | None = None
+    line_code: str | None = None
+    section_id: str | None = None
+    area_id: str | None = None
+    field: str | None = None
+
+
+def finding_key(rule_id: str, target: Target, discriminator: str | None = None) -> str:
+    """Stable id: the same problem on the same target gets the same id on every run."""
+    parts = [rule_id, target.line_id or "", target.section_id or "", target.area_id or "", target.field or "",
+             discriminator or ""]
+    return "f_" + sha256("|".join(parts).encode("utf-8")).hexdigest()[:24]
+
+
+class Finding(_Model):
     id: str
     layer: Literal[1, 2, 3]
     rule_id: str
     category: str
-    severity: Literal["error", "warning", "info"]
-    scope: Literal["line", "section", "area", "bom"]
-    target: Target = Field(default_factory=Target)
+    severity: Severity
+    scope: Scope
+    target: Target
     related_line_ids: list[str] = Field(default_factory=list)
     title: str
     message: str
     evidence: dict[str, Any] = Field(default_factory=dict)
     suggested_fix: Fix | None = None
-    origin: Literal["rule", "llm"] = "rule"
+    origin: Origin = Origin.RULE
     model: str | None = None
-    status: Literal["open", "accepted", "rejected", "applied", "stale"] = "open"
+    status: Status = Status.OPEN
     source_locator: dict[str, Any] | None = None
 
+    @classmethod
+    def create(cls, *, rule_id: str, layer: int, target: Target, discriminator: str | None = None,
+               **fields: Any) -> Finding:
+        """Build a finding with its stable id derived from rule, target and an optional discriminator."""
+        return cls(id=finding_key(rule_id, target, discriminator), rule_id=rule_id, layer=layer, target=target,
+                   **fields)
 
-class AnalysisResult(Model):
-    run_id: str
-    schema_version: str = "0.1"
-    bom_version_id: str
+
+class Summary(_Model):
+    total: int = 0
+    by_layer: dict[str, int] = Field(default_factory=dict)
+    by_severity: dict[str, int] = Field(default_factory=dict)
+    by_category: dict[str, int] = Field(default_factory=dict)
+    by_rule: dict[str, int] = Field(default_factory=dict)
+
+
+class AnalysisResult(_Model):
+    run_id: str = Field(default_factory=lambda: str(uuid4()))
+    schema_version: str = SCHEMA_VERSION
+    bom_version_id: str | None = None
     input_hash: str
-    created_at: datetime
-    layers_run: list[int]
-    findings: list[Finding]
-    summary: dict[str, Any]
-
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    layers_run: list[int] = Field(default_factory=list)
+    findings: list[Finding] = Field(default_factory=list)
+    summary: Summary = Field(default_factory=Summary)
+    errors: list[str] = Field(default_factory=list)  # rules that crashed, layers not available

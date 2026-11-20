@@ -7,13 +7,13 @@ import tempfile
 import unittest
 from contextlib import redirect_stdout, redirect_stderr
 
-from analysis.adapter import canonical_hash, from_data, from_json, parse_number
+from analysis.layer2.adapter import canonical_hash, from_data, from_json, parse_number
 from analysis.cli import main
 from analysis.contracts import Finding, Target
 from analysis.layer2 import run
 from analysis.layer2.schema import RuleSpec, compile_regex, load_rules, rule_metadata
-from analysis.runner import analyze
-from analysis.units import convert, dimension, normalize_unit
+from analysis.layer2.report import analyze
+from analysis.layer2.quantities import convert, dimension, normalize_unit
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -61,7 +61,7 @@ class AdapterTests(unittest.TestCase):
     def test_pricing_distribution_and_flags(self):
         flags = {"Provis": "Yes", "AltItem": "0"}
         adapted = input_for(line("a", "Estrich", price={"unit_price": "1,25", "price_unit": "m2",
-                                 "reference_range": {"min": "1,1", "n": 1}}, gaeb_flags=flags,
+                                 "reference_range": {"min": "1,1", "median": "1,2", "max": "1,3", "n": 1}}, gaeb_flags=flags,
                                  distributions=[{"area_id": "a", "quantity": "4,000"}]))
         self.assertEqual(adapted.lines[0].price.unit_price, Decimal("1.25"))
         self.assertEqual(adapted.lines[0].distributions[0].quantity, Decimal("4.000"))
@@ -191,7 +191,7 @@ class RuleTests(unittest.TestCase):
         self.assertEqual([f.id for f in a.findings], [f.id for f in b.findings])
         self.assertNotEqual(a.run_id, b.run_id)
         self.assertTrue(all(f.status == "open" for f in a.findings))
-        self.assertEqual(a.summary["by_layer"], {"2": len(a.findings)})
+        self.assertEqual(a.summary.by_layer, {"2": len(a.findings)})
         self.assertEqual(a.layers_run, [2])
         self.assertEqual(a.input_hash, input.input_hash)
 
@@ -268,6 +268,34 @@ class ScopeTests(unittest.TestCase):
             findings = selected(input, "FLOOR_COVERING")
             self.assertTrue(all(f.severity == "info" for f in findings))
             self.assertTrue(all(f.suggested_fix is None for f in findings))
+
+
+class PipelineIntegrationTests(unittest.TestCase):
+    def test_existing_runner_discovers_registered_layer2(self):
+        from analysis.adapter import from_json as shared_from_json
+        from analysis.runner import analyze as pipeline_analyze
+        from analysis.registry import rules_for
+
+        input = shared_from_json(ROOT / "examples" / "analysis_input.json")
+        result = pipeline_analyze(input, layers=[1, 2])
+        self.assertEqual(result.layers_run, [1, 2])
+        self.assertEqual(result.errors, [])
+        self.assertEqual(len(rules_for(2)), 16)
+        dependency_findings = [finding for finding in result.findings if finding.layer == 2]
+        self.assertEqual(len(dependency_findings), 1)
+        self.assertEqual(dependency_findings[0].target.area_id, "office-b")
+
+    def test_real_layer1_unit_error_downgrades_dependency(self):
+        from analysis.runner import analyze as pipeline_analyze
+
+        input = input_for(line("p", "Dispersionsfarbe", unit=None))
+        result = pipeline_analyze(input, layers=[1, 2])
+        self.assertEqual(result.errors, [])
+        self.assertTrue(any(f.rule_id == "L1.UNIT.MISSING" for f in result.findings))
+        quantity_finding = next(f for f in result.findings
+                                if f.rule_id.endswith("SURFACE_PREPARATION_AND_PRIMER"))
+        self.assertEqual(quantity_finding.severity, "info")
+        self.assertIsNone(quantity_finding.suggested_fix)
 
 
 class CliTests(unittest.TestCase):
