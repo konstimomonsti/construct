@@ -274,6 +274,13 @@ def _evaluate(input: AnalysisInput, rule: RuleSpec, dep: DependencySpec, trigger
     title = (f"Quantity cannot be verified: {dep.name}" if reason.endswith("not_assessable") else
              f"{'Missing' if reason == 'missing' else 'Insufficient'} {dep.name.lower()}")
     related = list(dict.fromkeys([entry.line.id for entry in triggers + matches]))
+    if rule.rule_id.startswith("L2.PRECAST."):
+        codes = ", ".join(dict.fromkeys(entry.line.code or entry.line.id for entry in triggers))
+        evidence["bieterfrage_de"] = (
+            f"Zu Pos. {codes}: Bitte bestätigen Sie den Leistungsumfang für "
+            f"{dep.suggested_text or dep.name} und teilen Sie mit, ob diese Leistung "
+            "in den Positionen enthalten, separat ausgeschrieben oder bauseits vorgesehen ist."
+        )
     return Finding(
         id=finding_id(rule_id, target), layer=2, rule_id=rule_id,
         category="dependency", severity=severity, scope=context.scope, target=target,

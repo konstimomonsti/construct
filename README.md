@@ -1,4 +1,4 @@
-<img src="frontend/public/billbuild-logo.png" width="72" height="72" alt="">
+<img src="frontend/public/billbuild-logo-transparent.png" width="72" height="72" alt="">
 
 # BillBuild
 
