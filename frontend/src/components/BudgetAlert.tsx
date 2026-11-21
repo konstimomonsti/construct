@@ -2,7 +2,7 @@ import { clsx } from 'clsx'
 import { useState } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { Icon } from './ui'
-import { money } from '../lib/format'
+import { money, pct, pct1 } from '../lib/format'
 
 type Level = 'yellow' | 'orange' | 'red'
 type Shown = Level | 'ok'
@@ -68,17 +68,17 @@ export function BudgetAlert({ total, cap, largest, onReview }: BudgetAlertProps)
       chip: 'Threshold 75% Exceeded',
       body: (
         <>
-          This list has used <span className="font-mono font-semibold">{used.toFixed(1)}%</span> of its budget cap ({money(total)} of {money(cap)}).
-          {largest && <> The largest position {name} contributes <span className="font-mono font-semibold">{money(largest.amount)}</span> ({share.toFixed(0)}% of the total).</>}
+          This list has used <span className="font-mono font-semibold">{pct1(used)}</span> of its budget cap ({money(total)} of {money(cap)}).
+          {largest && <> The largest position {name} contributes <span className="font-mono font-semibold">{money(largest.amount)}</span> ({pct(share)} of the total).</>}
         </>
       ),
     },
     orange: {
       title: 'High Risk: Ceiling Threshold Warning',
-      chip: `${used.toFixed(1)}% Capacity`,
+      chip: `${pct1(used)} Capacity`,
       body: (
         <>
-          {largest ? <>The largest position <strong className={clsx('font-semibold', t.strong)}>'{largest.short}' ({money(largest.amount)})</strong> alone makes up {share.toFixed(0)}% of this list. </> : null}
+          {largest ? <>The largest position <strong className={clsx('font-semibold', t.strong)}>'{largest.short}' ({money(largest.amount)})</strong> alone makes up {pct(share)} of this list. </> : null}
           Only <strong className={clsx('font-mono font-semibold', t.strong)}>{money(remaining)}</strong> remain{remaining === 1 ? 's' : ''} before the cap of {money(cap)} is reached.
         </>
       ),
@@ -95,7 +95,7 @@ export function BudgetAlert({ total, cap, largest, onReview }: BudgetAlertProps)
     },
     ok: {
       title: 'Within budget',
-      chip: `${used.toFixed(1)}% of cap`,
+      chip: `${pct1(used)} of cap`,
       body: (
         <>
           {money(total)} of {money(cap)} used, <strong className={clsx('font-mono font-semibold', t.strong)}>{money(remaining)}</strong> remaining. Alerts start at 75%, 90% and when the cap is exceeded.
@@ -112,7 +112,7 @@ export function BudgetAlert({ total, cap, largest, onReview }: BudgetAlertProps)
         <div className="flex flex-wrap items-center gap-3">
           <span role="status" className={clsx('inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold', cur.pill)}>
             <span className={clsx('size-1.5 rounded-full', cur.pulse, current !== 'ok' && 'animate-pulse')} />
-            {pillText} · {used.toFixed(1)}%
+            {pillText} · {pct1(used)}
           </span>
           <div className="flex items-center gap-1.5 rounded-full border border-slate-200/80 bg-white/70 px-2 py-1" role="group" aria-label="Alert levels">
             {LEVELS.map((l, i) => (
@@ -163,7 +163,7 @@ export function BudgetAlert({ total, cap, largest, onReview }: BudgetAlertProps)
                 <div className="flex flex-wrap items-center gap-2">
                   <h4 className={clsx('font-heading text-sm font-bold tracking-tight', t.h)}>{c.title}</h4>
                   <span className={clsx('rounded border px-1.5 py-0.5 font-mono text-[11px]', t.chip)}>{c.chip}</span>
-                  {preview && <span className="rounded bg-white/80 px-1.5 py-0.5 text-[11px] font-medium text-slate-500 ring-1 ring-slate-200">Preview · current {used.toFixed(1)}%</span>}
+                  {preview && <span className="rounded bg-white/80 px-1.5 py-0.5 text-[11px] font-medium text-slate-500 ring-1 ring-slate-200">Preview · current {pct1(used)}</span>}
                 </div>
                 <p className={clsx('mt-1 max-w-3xl text-xs leading-relaxed', t.p)}>{c.body}</p>
               </div>

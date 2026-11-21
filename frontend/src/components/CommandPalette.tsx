@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import { useNavigate } from 'react-router-dom'
 import { Icon } from './ui'
 import { loadList } from '../lib/data'
-import { money } from '../lib/format'
+import { count, money } from '../lib/format'
 import { positionTotal } from '../lib/money'
 import { useModel, useStore } from '../lib/store'
 import { useUi } from '../lib/ui-store'
@@ -207,7 +207,7 @@ export function CommandPalette() {
             <div className="flex items-center gap-3 border-t border-slate-100 bg-slate-50/70 px-3.5 py-2 text-[11px] text-slate-400">
               <span><kbd className="font-mono">↑↓</kbd> navigate</span>
               <span><kbd className="font-mono">↵</kbd> open</span>
-              <span className="ml-auto">{index ? `${index.length.toLocaleString('en-US')} positions indexed` : ''}</span>
+              <span className="ml-auto">{index ? `${count(index.length)} positions indexed` : ''}</span>
             </div>
           </motion.div>
         </div>

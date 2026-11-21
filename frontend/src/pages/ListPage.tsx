@@ -1,5 +1,5 @@
 import { clsx } from 'clsx'
-import { lazy, Suspense, use, useEffect, useId, useMemo, useRef, useState, type FormEvent } from 'react'
+import { lazy, Suspense, use, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import { Button, Dialog, Field, Icon, inputCls, Menu, toast } from '../components/ui'
@@ -17,7 +17,7 @@ import { CatalogueDetails, CatalogueOverview } from '../components/WorkspaceCata
 import { useWorkspaceCatalogue } from '../lib/workspace-catalogue'
 import { CategoryTree, useExpanded, type CheckState } from '../components/split/CategoryTree'
 import { MoveToCategory } from '../components/split/MoveToCategory'
-import { fixedBudget, money, plural } from '../lib/format'
+import { fixedBudget, money, parseNumber, plural } from '../lib/format'
 import { positionTotal } from '../lib/money'
 import { applyMoves, globalStep, indexTree, leafOz, nextChildOz, nextPositionOz, pathOf, resolveList, treeStats, type CatStat } from '../lib/resolve'
 import { statsOf, useModel, useStore } from '../lib/store'
@@ -58,6 +58,8 @@ function TabsBar({ activeId, folderId }: { activeId: string; folderId: string })
   const setPalette = useUi((s) => s.setPalette)
   const byId = useMemo(() => new Map(lists.map((l) => [l.id, l])), [lists])
   const visible = tabs.filter((t) => byId.has(t) && !byId.get(t)!.trashedAt)
+  const strip = useRef<HTMLElement>(null)
+  const [edges, setEdges] = useState({ left: false, right: false })
 
   const close = (id: string) => {
     const i = visible.indexOf(id)
@@ -68,42 +70,128 @@ function TabsBar({ activeId, folderId }: { activeId: string; folderId: string })
     }
   }
 
+  // track whether tabs are hidden past either edge, so fades and arrows only show when needed
+  const visibleKey = visible.join('|')
+  useLayoutEffect(() => {
+    const el = strip.current
+    if (!el) return
+    const measure = () => {
+      const left = el.scrollLeft > 1
+      const right = el.scrollLeft + el.clientWidth < el.scrollWidth - 1
+      setEdges((e) => (e.left === left && e.right === right ? e : { left, right }))
+    }
+    measure()
+    // a mouse wheel scrolls vertically; turn that into sideways movement over the strip
+    const onWheel = (e: WheelEvent) => {
+      if (el.scrollWidth <= el.clientWidth || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return
+      e.preventDefault()
+      el.scrollLeft += e.deltaY
+    }
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
+    el.addEventListener('scroll', measure, { passive: true })
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => {
+      ro.disconnect()
+      el.removeEventListener('scroll', measure)
+      el.removeEventListener('wheel', onWheel)
+    }
+  }, [visibleKey])
+
+  // keep the active tab in view without moving the page; after the edge arrows have rendered
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => {
+      const el = strip.current
+      const tab = el?.querySelector<HTMLElement>('[aria-current="page"]')?.parentElement
+      if (!el || !tab) return
+      const pad = 40
+      const box = el.getBoundingClientRect()
+      const r = tab.getBoundingClientRect()
+      if (r.left < box.left + pad) el.scrollBy({ left: r.left - box.left - pad, behavior: 'smooth' })
+      else if (r.right > box.right - pad) el.scrollBy({ left: r.right - box.right + pad, behavior: 'smooth' })
+    })
+    return () => cancelAnimationFrame(raf)
+  }, [activeId, visibleKey])
+
+  const nudge = (dir: -1 | 1) => {
+    const el = strip.current
+    if (el) el.scrollBy({ left: dir * el.clientWidth * 0.7, behavior: 'smooth' })
+  }
+
+  const fade = 28
+  const mask = `linear-gradient(to right, ${edges.left ? 'transparent' : '#000'} 0, #000 ${edges.left ? fade : 0}px, #000 calc(100% - ${edges.right ? fade : 0}px), ${edges.right ? 'transparent' : '#000'} 100%)`
+  const arrow = 'flex size-7 shrink-0 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-white hover:text-slate-800 hover:shadow-xs'
+
   return (
-    <div className="flex min-w-0 items-center gap-1 rounded-xl border border-slate-200/90 bg-white p-1 shadow-xs">
-      <nav aria-label="Open lists" className="flex min-w-0 items-center gap-1 overflow-x-auto">
+    <div className="flex h-10 min-w-0 items-center gap-0.5 rounded-xl bg-slate-200/60 p-1 ring-1 ring-slate-200/80 ring-inset">
+      {edges.left && (
+        <button type="button" aria-label="Scroll tabs left" tabIndex={-1} onClick={() => nudge(-1)} className={arrow}>
+          <Icon name="chevron_left" size={18} />
+        </button>
+      )}
+      <nav
+        ref={strip}
+        aria-label="Open lists"
+        className="flex h-full min-w-0 items-center gap-0.5 overflow-x-auto overflow-y-hidden overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        style={{ maskImage: mask, WebkitMaskImage: mask }}
+      >
         {visible.map((id) => {
           const l = byId.get(id)!
           const active = id === activeId
           return (
-            <div key={id} className="group relative flex shrink-0 items-center">
-              {active && <motion.span layoutId="tab-pill" className="absolute inset-0 rounded-lg bg-slate-100" transition={{ type: 'spring', stiffness: 500, damping: 40 }} />}
+            <div
+              key={id}
+              className="group relative flex h-full shrink-0 items-center"
+              onAuxClick={(e) => { if (e.button === 1) { e.preventDefault(); close(id) } }}
+            >
+              {active && (
+                <motion.span
+                  layoutId="tab-pill"
+                  className="absolute inset-0 rounded-lg bg-white shadow-[0_1px_2px_rgb(15_23_42/0.08),0_0_0_1px_rgb(15_23_42/0.05)]"
+                  transition={{ type: 'spring', stiffness: 500, damping: 40 }}
+                />
+              )}
               <Link
                 to={`/list/${id}`}
                 aria-current={active ? 'page' : undefined}
                 title={l.title}
                 className={clsx(
-                  'relative flex max-w-[15rem] items-center gap-2 rounded-lg py-1.5 pr-7 pl-3 text-xs transition-colors',
-                  active ? 'font-semibold text-slate-900' : 'font-medium text-slate-500 hover:bg-slate-50 hover:text-slate-800',
+                  'relative flex h-full max-w-[14rem] items-center gap-2 rounded-lg pr-8 pl-2.5 text-[13px] leading-none transition-colors',
+                  active ? 'font-semibold text-slate-900' : 'font-medium text-slate-500 hover:bg-white/60 hover:text-slate-800',
                 )}
               >
-                <Icon name="description" size={15} className={active ? 'text-brand-600' : 'text-slate-400'} />
+                <span className="relative flex shrink-0">
+                  <Icon name="description" size={16} className={active ? 'text-brand-600' : 'text-slate-400'} />
+                  {l.pricedCount > 0 && (
+                    <span className="absolute -right-0.5 -bottom-0.5 size-2 rounded-full bg-emerald-500 ring-2 ring-white" aria-label="has prices" />
+                  )}
+                </span>
                 <span className="truncate">{l.fileName}</span>
-                {l.pricedCount > 0 && <span className="size-1.5 shrink-0 rounded-full bg-emerald-500 transition-opacity group-focus-within:opacity-0 group-hover:opacity-0" aria-label="has prices" />}
               </Link>
               <button
                 type="button"
                 aria-label={`Close ${l.fileName}`}
+                title="Close"
                 onClick={() => close(id)}
-                className="absolute right-1.5 flex size-4 items-center justify-center rounded text-slate-400 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 hover:bg-slate-200 hover:text-slate-700"
+                className={clsx(
+                  'absolute right-1.5 flex size-5 items-center justify-center rounded-md text-slate-400 transition hover:bg-slate-200/80 hover:text-slate-700',
+                  active ? 'opacity-100' : 'opacity-0 group-focus-within:opacity-100 group-hover:opacity-100',
+                )}
               >
-                <Icon name="close" size={13} />
+                <Icon name="close" size={14} />
               </button>
             </div>
           )
         })}
       </nav>
-      <button type="button" title="Open another list" aria-label="Open another list" onClick={() => setPalette(true)} className="shrink-0 rounded-lg px-2 py-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700">
-        <Icon name="add" size={16} />
+      {edges.right && (
+        <button type="button" aria-label="Scroll tabs right" tabIndex={-1} onClick={() => nudge(1)} className={arrow}>
+          <Icon name="chevron_right" size={18} />
+        </button>
+      )}
+      <span className="mx-0.5 h-4 w-px shrink-0 bg-slate-300/70" aria-hidden />
+      <button type="button" title="Open another list" aria-label="Open another list" onClick={() => setPalette(true)} className={arrow}>
+        <Icon name="add" size={18} />
       </button>
     </div>
   )
@@ -205,7 +293,7 @@ function AddItemDialog({ open, onClose, listId, tree, positions }: { open: boole
   const taken = new Set(positions.map((position) => position.oz))
   const nextOz = nextPositionOz(f.cat, positions.filter((position) => leafOz(position) === f.cat).map((position) => position.oz), taken, globalStep(positions))
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setF((s) => ({ ...s, [k]: e.target.value }))
-  const num = (s: string) => Number(s.trim().replace(',', '.'))
+  const num = parseNumber
   const submit = (e: FormEvent) => {
     e.preventDefault()
     if (!f.short.trim()) return

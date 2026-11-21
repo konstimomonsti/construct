@@ -5,6 +5,7 @@ import {
 import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import { create } from 'zustand'
+import { pct } from '../lib/format'
 
 /* ------------------------------------------------------------------ */
 /* Icon                                                                */
@@ -113,11 +114,11 @@ export function Meter({ value, tone, height = 'h-3.5', className, label }: { val
         animate={{ width: value > 0 ? `${Math.max(w, 4)}%` : 0 }}
         transition={{ type: 'spring', stiffness: 260, damping: 32 }}
       >
-        {!tiny && <span className="font-mono text-[10px] font-semibold tracking-tight text-white">{Math.round(value)}%</span>}
+        {!tiny && <span className="font-mono text-[10px] font-semibold tracking-tight text-white">{pct(value)}</span>}
       </motion.div>
       {tiny && (
         <span className={clsx('absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 font-mono text-[10px] font-semibold tracking-tight', tone === 'ok' ? 'text-emerald-600' : 'text-slate-500')}>
-          {Math.round(value)}%
+          {pct(value)}
         </span>
       )}
     </div>

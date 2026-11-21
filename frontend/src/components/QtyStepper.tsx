@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Icon } from './ui'
+import { inputNumber, parseNumber } from '../lib/format'
 
-const fmt = (n: number) => String(Math.round(n * 1000) / 1000)
+const fmt = inputNumber
 const round = (n: number) => Math.round(n * 1000) / 1000
 
 export function QtyStepper({ value, onChange, label }: { value: number; onChange: (n: number) => void; label: string }) {
@@ -9,7 +10,7 @@ export function QtyStepper({ value, onChange, label }: { value: number; onChange
   useEffect(() => setText(fmt(value)), [value])
 
   const commit = () => {
-    const n = Number(text.replace(',', '.'))
+    const n = parseNumber(text)
     if (Number.isFinite(n) && n >= 0) {
       if (n !== value) onChange(round(n))
       setText(fmt(n))

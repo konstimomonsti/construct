@@ -401,7 +401,8 @@ function buildFolders(s: State, lists: ListView[], documents: ReturnType<typeof 
   const byId = new Map(lists.map((l) => [l.id, l]))
   const all = [...(s.base?.folders ?? []), ...s.userFolders]
   const originalTotals = new Map<string, number>()
-  for (const list of s.base?.lists ?? []) {
+  // imported lists set the budget of the folder they arrived in, like the sample lists do
+  for (const list of [...(s.base?.lists ?? []), ...s.userLists]) {
     originalTotals.set(list.folderId, (originalTotals.get(list.folderId) ?? 0) + list.total)
   }
   const documentsByFolder = new Map<string, DocMeta[]>()

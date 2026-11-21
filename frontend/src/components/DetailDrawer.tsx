@@ -2,17 +2,13 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import { Icon, IconButton, inputCls } from './ui'
-import { money } from '../lib/format'
+import { inputNumber, money, parseNumber } from '../lib/format'
 import { positionTotal } from '../lib/money'
 import { unitIcon } from '../lib/actions'
 import type { Position } from '../lib/types'
 
-const numStr = (n: number) => String(Math.round(n * 1000) / 1000)
-const parseNum = (s: string) => {
-  const t = s.trim().replace(/\s/g, '')
-  if (t === '') return NaN
-  return Number(t.includes(',') ? t.replace(/\./g, '').replace(',', '.') : t)
-}
+const numStr = inputNumber
+const parseNum = parseNumber
 
 function Labeled({ label, children, className }: { label: string; children: React.ReactNode; className?: string }) {
   return (
@@ -122,14 +118,14 @@ export function DetailDrawer({
                     aria-label="Einheitspreis"
                     inputMode="decimal"
                     className={`${inputCls} font-mono`}
-                    defaultValue={p.up == null ? '' : String(p.up)}
+                    defaultValue={p.up == null ? '' : numStr(p.up)}
                     placeholder="—"
                     onBlur={(e) => {
                       const t = e.target.value.trim()
                       if (t === '') return p.up !== null ? onUp(null) : undefined
                       const n = parseNum(t)
                       if (Number.isFinite(n) && n >= 0 && n !== p.up) onUp(Math.round(n * 100) / 100)
-                      else e.target.value = p.up == null ? '' : String(p.up)
+                      else e.target.value = p.up == null ? '' : numStr(p.up)
                     }}
                     onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
                   />
