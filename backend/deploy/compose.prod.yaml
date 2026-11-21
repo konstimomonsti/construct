@@ -74,6 +74,7 @@ services:
       ANALYSIS_L3_CACHE: /var/cache/tenderdesk/layer3
       OLLAMA_HOST: ${OLLAMA_HOST:-http://ollama:11434}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      BILLBUILD_CATALOGUE_MODEL: ${BILLBUILD_CATALOGUE_MODEL:-}
     volumes:
       - analysis_cache:/var/cache/tenderdesk/layer3
     networks: [backend, frontend]

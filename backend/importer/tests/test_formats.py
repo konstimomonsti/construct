@@ -109,6 +109,28 @@ class FormatTests(unittest.TestCase):
         self.assertEqual(candidates[0]["other_amount_candidates"][0]["quantity"], "50")
         self.assertEqual(candidates[1]["section_path"], ["01", "01.01"])
 
+    def test_pdf_keeps_detached_specification_after_the_priced_position(self):
+        result = Result("pdf")
+        extract_pdf_tables([dedent("""\
+            OZ        Leistungsbeschreibung        Menge / Einheit
+            01.01.1    Absperrschieber DN 200
+                       Vorbemerkung zur Montage
+                       Bestehenden Schieber versetzen.
+                                           1 St    EP.......    GP.......
+
+                       Spezifikation Absperrklappe PN 16
+                       Neue Armatur mit Handhebel montieren.
+            01.01.2    Absperrklappe PN 16
+                       Gemäß Spezifikation liefern.
+                                           1 St    EP.......    GP.......
+        """)], result)
+        self.assertEqual([record.kind for record in result.records], ["item_candidate", "note", "item_candidate"])
+        first, note, second = (record.payload for record in result.records)
+        self.assertIn("Vorbemerkung zur Montage", first["long_description"])
+        self.assertNotIn("Spezifikation Absperrklappe", first["long_description"])
+        self.assertIn("Neue Armatur mit Handhebel montieren.", note["text"])
+        self.assertIn("Gemäß Spezifikation liefern.", second["long_description"])
+
     def test_docx_preserves_duplicate_references_and_part_metadata(self):
         xml = '''<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
         <w:body><w:p><w:r><w:t>Utilities</w:t></w:r></w:p>

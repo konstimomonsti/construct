@@ -13,6 +13,7 @@ const labels: Record<CataloguePosition['state'], string> = {
   suggested: 'Web suggestion',
   no_evidence: 'No reliable web evidence',
   failed: 'Research failed',
+  research_disabled: 'Web research disabled',
 }
 
 export type ResearchView = 'suggested' | 'matched' | 'unresolved' | null
@@ -39,9 +40,9 @@ export function CatalogueOverview({ report, error, retryFailed, positions, onOpe
   })
   const count = (state: CataloguePosition['state']) => rows.filter(({ item, result }) => result.state === state && !(state === 'matched' && hideMatched?.has(item.id))).length
   const pending = count('queued') + count('researching')
-  const unresolved = count('failed') + count('no_evidence') + count('needs_description')
+  const unresolved = count('failed') + count('no_evidence') + count('needs_description') + count('research_disabled')
   const visible = rows.filter(({ result }) =>
-    show === 'unresolved' ? ['failed', 'no_evidence', 'needs_description'].includes(result.state) : result.state === show,
+    show === 'unresolved' ? ['failed', 'no_evidence', 'needs_description', 'research_disabled'].includes(result.state) : result.state === show,
   )
 
   const ready = report?.state === 'ready' && !pending && !error
@@ -54,7 +55,8 @@ export function CatalogueOverview({ report, error, retryFailed, positions, onOpe
     ].filter(Boolean) : []
     const label = error || (report?.state === 'failed' ? 'Catalogue matching failed' :
       !report || report.state === 'queued' || report.state === 'unstarted' ? 'Matching positions to the catalogue…' :
-        pending ? `Catalogue research: ${pending} positions in progress` : 'Catalogue research')
+        pending ? `Catalogue research: ${pending} positions in progress` :
+          report.web_research === false ? 'Catalogue matching complete' : 'Catalogue research')
     // once results are in, the icon names the group and the counts speak for themselves: the status row stays on one line
     const quiet = ready && links.length > 0
     return (
@@ -100,8 +102,11 @@ export function CatalogueDetails({ result, position, onApply }: {
     <section aria-labelledby="drawer-catalogue-h" className="space-y-1.5 text-sm leading-relaxed text-slate-700">
       <h3 id="drawer-catalogue-h" className="text-[15px] font-semibold text-slate-900">Catalogue research</h3>
       <p>
-        {result.state === 'no_evidence' ? 'No matching product found online.' : <>
-          <span className="font-medium text-slate-800">{labels[result.state]}.</span>
+        {result.state === 'no_evidence' ? (result.model_review ? 'Catalogue match unresolved.' : 'No matching product found online.') : <>
+          <span className="font-medium text-slate-800">{
+            result.model_review && result.state === 'queued' ? 'Catalogue review queued' :
+              result.model_review && result.state === 'researching' ? 'Checking catalogue evidence' : labels[result.state]
+          }.</span>
           {result.state === 'needs_description' && ' The imported row has no description to search for.'}
         </>}
       </p>
