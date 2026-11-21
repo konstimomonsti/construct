@@ -9,6 +9,15 @@ export type CatalogueKind = keyof typeof CATALOGUES
 /** rows per catalogue page; matches PAGE_SIZE in backend/catalogues.py */
 export const CATALOGUE_PAGE_SIZE = 50
 
+/**
+ * how many API pages one listing reads at most. The API pages but never totals, so the screen reads every page of a
+ * result to count it exactly and to filter it by price; past this many rows the count reads "5.000+"
+ */
+export const CATALOGUE_SCAN_PAGES = 100
+
+/** the units products are usually priced in, offered by the editor's unit picker; any other unit can still be typed */
+export const CATALOGUE_UNITS = ['m', 'm²', 'm³', 'Stk', 'St', 'h', 'kg', 't', 'psch', 'lfm'] as const
+
 export type CatalogueEntry = {
   id: string
   name: string
@@ -32,10 +41,15 @@ export type CatalogueEntry = {
   phone?: string | null
 }
 
+export type CatalogueListing = { rows: CatalogueEntry[]; has_more: boolean }
+export type CatalogueFilters = { q: string; supplier: string | null; archived: boolean }
+
 export type ProductOptions = {
   categories: { name: string }[]
   suppliers: { id: string; name: string }[]
 }
+
+export const isPriced = (entry: CatalogueEntry) => entry.unit_price != null && !!entry.currency
 
 export async function requestCatalogue<T>(kind: CatalogueKind, params = '', init?: RequestInit): Promise<T> {
   const response = await fetch(`/api/catalogues/${kind}${params}`, { cache: 'no-store', ...init })
@@ -51,6 +65,59 @@ export const writeCatalogue = (kind: CatalogueKind, fields: Record<string, unkno
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(fields),
   })
 
+/**
+ * every row of a listing, read a few pages at a time; `onRows` sees the rows read so far, so the first page shows
+ * while the rest load. `capped` means there were more rows than CATALOGUE_SCAN_PAGES pages hold.
+ */
+export async function scanCatalogue(
+  kind: CatalogueKind,
+  filters: CatalogueFilters,
+  signal: AbortSignal,
+  onRows?: (rows: CatalogueEntry[]) => void,
+): Promise<{ rows: CatalogueEntry[]; capped: boolean }> {
+  const fetchPage = (page: number) => {
+    const params = new URLSearchParams({ q: filters.q, page: String(page) })
+    if (filters.supplier) params.set('supplier', filters.supplier)
+    if (filters.archived) params.set('view', 'archived')
+    return requestCatalogue<CatalogueListing>(kind, `?${params}`, { signal })
+  }
+  const rows: CatalogueEntry[] = []
+  let next = 1
+  let more = true
+  while (more && next <= CATALOGUE_SCAN_PAGES) {
+    // the first page on its own so it shows quickly, then a few at a time
+    const batch = next === 1 ? [1] : Array.from({ length: Math.min(6, CATALOGUE_SCAN_PAGES - next + 1) }, (_, i) => next + i)
+    const pages = await Promise.all(batch.map(fetchPage))
+    for (const page of pages) {
+      rows.push(...page.rows)
+      more = page.has_more
+      if (!more) break
+    }
+    next += batch.length
+    if (more) onRows?.([...rows])
+  }
+  return { rows, capped: more }
+}
+
+/**
+ * the form field a server validation message is about (the backend words them "Enter the trade.",
+ * "Enter a valid phone of up to 60 characters." and so on), so the message can sit beside that field
+ */
+export function catalogueErrorField(message: string): string | undefined {
+  const text = message.toLowerCase()
+  if (text.includes('unit price') || text.includes('currency')) return 'unit_price'
+  if (text.includes('effective date') || text.includes('valid from')) return 'valid_from'
+  if (text.includes('email')) return 'email'
+  if (text.includes('supplier and unit')) return 'unit'
+  if (text.includes('supplier')) return 'supplier_id'
+  const named = text.match(/^enter (?:the|a valid) ([a-z ]+?)(?: of up to|\.)/)?.[1]
+  const fields: Record<string, string> = {
+    name: 'name', description: 'description', category: 'category', sku: 'sku', unit: 'unit', trade: 'trade',
+    'contact name': 'contact_name', phone: 'phone',
+  }
+  return named ? fields[named] : undefined
+}
+
 export function formatCataloguePrice(entry: CatalogueEntry) {
   if (entry.unit_price == null || !entry.currency) return '—'
   return new Intl.NumberFormat('de-DE', {
@@ -58,8 +125,10 @@ export function formatCataloguePrice(entry: CatalogueEntry) {
   }).format(Number(entry.unit_price))
 }
 
+/** a price date the German way (25.11.2024); the API sends plain ISO dates, read as UTC so they never shift a day */
+export const catalogueDate = (iso: string) => new Intl.DateTimeFormat('de-DE', { timeZone: 'UTC' }).format(new Date(iso))
+
 export function cataloguePriceSource(entry: CatalogueEntry) {
   if (!entry.valid_from) return ''
-  const date = new Intl.DateTimeFormat('de-DE', { timeZone: 'UTC' }).format(new Date(entry.valid_from))
-  return `${date} · ${entry.price_basis === 'tender_offer' ? 'Tender offer' : 'Supplier quote'}`
+  return `${catalogueDate(entry.valid_from)} · ${entry.price_basis === 'tender_offer' ? 'Tender offer' : 'Supplier quote'}`
 }

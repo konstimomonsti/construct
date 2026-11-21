@@ -13,6 +13,8 @@ const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, d
 // THEME=dark captures the dark mode; light is the app default
 if (process.env.THEME === 'dark') await ctx.addInitScript(() => { try { localStorage.setItem('billbuild-theme', 'dark') } catch {} })
 const page = await ctx.newPage()
+// the backend is a shared, real workspace: captures only read. Writes (the empty-project step creates one) stay in the page
+await page.route('**/api/**', (route) => (route.request().method() === 'GET' ? route.continue() : route.fulfill({ status: 200, contentType: 'application/json', body: '{}' })))
 page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`))
 page.on('console', (m) => (m.type() === 'error' && !/Failed to load resource|api\/workspace/.test(m.text()) ? errors.push(`console: ${m.text()}`) : null))
 
@@ -87,7 +89,6 @@ await step('active', async () => {
   await shot('06-active-budgets')
 })
 await step('archived', async () => { await page.goto(base + '/archived'); await settle(900); await shot('07-archived') })
-await step('trash', async () => { await page.goto(base + '/trash'); await settle(900); await shot('08-trash') })
 
 for (const [n, kind] of [['13', 'products'], ['14', 'suppliers'], ['15', 'subcontractors']]) {
   await step(`catalogue ${kind}`, async () => {

@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
-import { clsx } from 'clsx'
-import { Icon, kbdCls, Menu, toast } from './ui'
+import { Icon, Menu, toast } from './ui'
+import { PaletteKey } from './Kit'
 import { useStore } from '../lib/store'
 import { useUi } from '../lib/ui-store'
 import { clearDocuments } from '../lib/documents'
@@ -16,8 +16,8 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-30 bg-white">
-      {/* same column as the page content, so the search lines up with the page title */}
-      <div className="mx-auto flex h-16 w-full max-w-[1120px] items-center justify-between gap-3 px-4 sm:px-8">
+      {/* an app bar across the whole main area: search on the left, account in the corner, whatever the window width */}
+      <div className="flex h-16 w-full items-center justify-between gap-3 border-b border-slate-200 px-4 sm:px-6 lg:px-8">
       <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-4">
         <button
           type="button"
@@ -36,7 +36,7 @@ export function Header() {
         >
           <Icon name="search" size={20} className="text-slate-600" />
           <span className="flex-1 truncate"><span className="sm:hidden">Search</span><span className="max-sm:hidden">Search projects, lists, positions</span></span>
-          <kbd className={clsx(kbdCls, 'max-sm:hidden')}>{MOD_KEY === '⌘' ? '⌘K' : 'Ctrl K'}</kbd>
+          <PaletteKey className="max-sm:hidden" />
         </button>
       </div>
 
@@ -55,7 +55,7 @@ export function Header() {
           width="w-56"
           items={[
             { label: 'Acme Workspace', icon: 'corporate_fare', onSelect: () => navigate('/') },
-            { label: 'Search (Cmd+K)', icon: 'search', onSelect: () => setPalette(true) },
+            { label: `Search (${MOD_KEY === '⌘' ? '⌘K' : 'Ctrl K'})`, icon: 'search', onSelect: () => setPalette(true) },
             'sep',
             {
               label: 'Reload shared workspace',
