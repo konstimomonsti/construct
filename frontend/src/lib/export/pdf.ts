@@ -6,6 +6,7 @@
  * Measurements come from docs/pdf-templates/*.txt (x / baseline-y in pt, y measured from the top edge).
  * Page furniture and the per-position styled lines of PDF sources come from public/data/layout/<id>.json.
  */
+import { documentList, PDF_LIST_ATTACHMENT } from '../list-file'
 import type { PDFFont, PDFPage } from 'pdf-lib'
 import type { ListDoc, Position } from '../types'
 import type { LayoutFile, LayoutLine } from './types'
@@ -847,6 +848,10 @@ export async function generatePdf(opts: PdfOpts): Promise<Uint8Array> {
     if (c.yBottom < 0 && tpl.carryTopOps) for (const op of tpl.carryTopOps(ctx, -c.yBottom, c.value)) draw(pdfPages[c.page - 1], op)
     else if (tpl.carryBottom) for (const op of tpl.carryBottom(ctx, c.yBottom, c.value)) draw(pdfPages[c.page - 1], op)
   }
+  await pdf.attach(new TextEncoder().encode(documentList(opts)), PDF_LIST_ATTACHMENT, {
+    mimeType: 'application/json',
+    description: 'BillBuild item list',
+  })
   return await pdf.save()
 }
 

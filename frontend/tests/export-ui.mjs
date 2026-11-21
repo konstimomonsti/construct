@@ -32,7 +32,7 @@ for (let i = 0; i < cards; i++) {
 }
 // edit then export same format -> "-bearbeitet"
 await p.keyboard.press('Escape')
-const row = p.locator('tbody tr').first()
+const row = p.locator('tbody tr[data-pid]').first()
 await row.getByRole('button', { name: /increase|\+/i }).first().click()
 await open()
 const [dl2] = await Promise.all([p.waitForEvent('download', { timeout: 60000 }), p.getByRole('menuitem', { name: /original format/ }).click()])

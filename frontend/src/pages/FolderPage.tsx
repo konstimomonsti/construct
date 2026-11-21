@@ -91,7 +91,7 @@ export function FolderPage() {
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button size="lg" icon="file_upload" iconClass="text-brand-600" onClick={() => pickAndImport(f.id)}>Upload Files</Button>
+          <Button size="lg" icon="file_upload" iconClass="text-brand-600" onClick={() => pickAndImport(f.id)}>Import</Button>
           <Button size="lg" icon="create_new_folder" onClick={() => openDialog({ kind: 'new-folder', parent: f.id })}>New subfolder</Button>
           <Button size="lg" icon="add_box" iconClass="text-amber-500" onClick={() => openDialog({ kind: 'blank-list', folderId: f.id })}>New List</Button>
           <Button variant="primary" size="lg" icon="tab_group" disabled={!lists.length} onClick={() => openLists(lists.map((l) => l.id))}>
@@ -119,9 +119,7 @@ export function FolderPage() {
         </div>
         <div className="flex min-w-48 flex-1 items-center gap-3">
           {f.cap ? <Meter value={pct} tone={tone} /> : <span className="flex-1 text-xs text-slate-400">No cap set</span>}
-          <button type="button" onClick={() => openDialog({ kind: 'cap', target: 'folder', id: f.id })} className="shrink-0 rounded px-1 font-mono text-xs text-slate-500 hover:bg-slate-100 hover:text-slate-800">
-            {f.cap ? `of ${money(f.cap)}` : 'Set cap'}
-          </button>
+          <span className="shrink-0 font-mono text-xs text-slate-500">of {money(f.cap)}</span>
         </div>
         <div className="text-xs text-slate-500">
           <span className="font-mono font-semibold text-slate-700">{f.positions.toLocaleString('en-US')}</span> positions · <span className="font-mono font-semibold text-slate-700">{f.priced.toLocaleString('en-US')}</span> priced
@@ -167,7 +165,7 @@ function DocCard({ doc, list }: { doc: DocMeta; list?: ListView }) {
   const actions = [
     { label: 'Open document', icon: 'visibility', onSelect: open },
     ...(url && pdf ? [{ label: 'Open in new tab', icon: 'open_in_new', onSelect: () => window.open(url, '_blank', 'noopener') }] : []),
-    { label: 'Move to folder…', icon: 'drive_file_move', onSelect: () => openDialog({ kind: 'folder-target', action: 'move-document', docId: doc.id }) },
+    { label: 'Move…', icon: 'drive_file_move', onSelect: () => openDialog({ kind: 'folder-target', action: 'move-document', docId: doc.id }) },
     ...(!doc.original ? [{ label: 'Change linked list…', icon: 'link', onSelect: () => openDialog({ kind: 'link-document', doc }) }] : []),
   ]
   return (

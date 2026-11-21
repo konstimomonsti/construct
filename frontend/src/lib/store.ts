@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { useShallow } from 'zustand/react/shallow'
 import type { DocMeta, FolderMeta, Library, ListDoc, ListMeta, Position } from './types'
-import { niceCap } from './format'
+import { fixedBudget } from './format'
 import { positionTotal } from './money'
 import { removeDocuments } from './documents'
 import { withoutLegacyImports } from './legacy'
@@ -16,6 +16,7 @@ export const SORT_LABEL: Record<SortKey, string> = {
 }
 
 interface FolderPatch {
+  parentId?: string | null
   name?: string
   description?: string
   archived?: boolean
@@ -74,6 +75,7 @@ interface State {
   toggleSidebar: () => void
   createFolder: (name: string, description?: string, parentId?: string) => string
   patchFolder: (id: string, p: FolderPatch) => void
+  moveFolder: (id: string, parentId: string | null) => boolean
   patchList: (id: string, p: ListPatch) => void
   restoreFolder: (id: string) => void
   purgeFolder: (id: string) => void
@@ -163,6 +165,17 @@ export const useStore = create<State>()(
         return id
       },
       patchFolder: (id, p) => set((s) => ({ folderPatch: { ...s.folderPatch, [id]: { ...s.folderPatch[id], ...p } } })),
+      moveFolder: (id, parentId) => {
+        const { folders } = selectModel(get())
+        const source = folders.find((folder) => folder.id === id && !folder.trashedAt)
+        if (!source || (source.parentId ?? null) === parentId) return false
+        if (parentId !== null) {
+          const path = folderPath(folders, parentId)
+          if (!path.length || path.some((folder) => folder.id === id || folder.trashedAt)) return false
+        }
+        get().patchFolder(id, { parentId })
+        return true
+      },
       patchList: (id, p) => set((s) => ({ listPatch: { ...s.listPatch, [id]: { ...s.listPatch[id], ...p } } })),
       restoreFolder: (id) =>
         set((s) => ({ folderPatch: { ...s.folderPatch, [id]: { ...s.folderPatch[id], trashedAt: undefined, archived: false } } })),
@@ -170,11 +183,15 @@ export const useStore = create<State>()(
         set((s) => {
           const deleted = new Set(s.userLists.filter((l) => (s.listPatch[l.id]?.folderId ?? l.folderId) === id).map((l) => l.id))
           const remaining = deleteLists(s, deleted)
+          const folderPatch = { ...s.folderPatch, [id]: { ...s.folderPatch[id], trashedAt: 'purged' } }
+          for (const folder of selectModel(s).folders) {
+            if (folder.parentId === id) folderPatch[folder.id] = { ...folderPatch[folder.id], parentId: null }
+          }
           return {
             ...remaining,
             documentFolders: Object.fromEntries(Object.entries(remaining.documentFolders).filter(([, folder]) => folder !== id)),
-            userFolders: remaining.userFolders.filter((f) => f.id !== id).map((f) => f.parentId === id ? { ...f, parentId: undefined } : f),
-            folderPatch: { ...s.folderPatch, [id]: { ...s.folderPatch[id], trashedAt: 'purged' } },
+            userFolders: remaining.userFolders.filter((f) => f.id !== id),
+            folderPatch,
           }
         }),
       addList: (doc) =>
@@ -319,16 +336,13 @@ export interface FolderView extends FolderMeta {
   trashedAt?: string
   total: number
   cap: number
-  capIsCustom: boolean
   positions: number
   priced: number
   listMetas: ListView[]
 }
 
 export interface ListView extends ListMeta {
-  baseTotal: number
   cap: number
-  capIsCustom: boolean
   trashedAt?: string
 }
 
@@ -356,7 +370,7 @@ function buildLists(s: State): ListView[] {
     const patch = s.listPatch[m.id] ?? {}
     const st = s.stats[m.id]
     const total = st?.total ?? m.total
-    const cap = patch.cap ?? niceCap(m.total)
+    const cap = patch.cap ?? fixedBudget(m.total)
     return {
       ...m,
       title: patch.title ?? m.title,
@@ -364,9 +378,7 @@ function buildLists(s: State): ListView[] {
       total,
       pricedCount: st?.pricedCount ?? m.pricedCount,
       positionsCount: st?.positionsCount ?? m.positionsCount,
-      baseTotal: m.total,
       cap,
-      capIsCustom: patch.cap != null,
       trashedAt: patch.trashedAt,
     }
   })
@@ -388,6 +400,10 @@ function buildDocuments(s: State): (DocMeta & { originalFolderId?: string })[] {
 function buildFolders(s: State, lists: ListView[], documents: ReturnType<typeof buildDocuments>): FolderView[] {
   const byId = new Map(lists.map((l) => [l.id, l]))
   const all = [...(s.base?.folders ?? []), ...s.userFolders]
+  const originalTotals = new Map<string, number>()
+  for (const list of s.base?.lists ?? []) {
+    originalTotals.set(list.folderId, (originalTotals.get(list.folderId) ?? 0) + list.total)
+  }
   const documentsByFolder = new Map<string, DocMeta[]>()
   for (const doc of documents) {
     const list = doc.listId ? byId.get(doc.listId) : undefined
@@ -407,17 +423,16 @@ function buildFolders(s: State, lists: ListView[], documents: ReturnType<typeof 
         ...listMetas.filter((l) => !f.lists.includes(l.id)),
       ]
       const total = ordered.reduce((a, l) => a + l.total, 0)
-      const baseTotal = ordered.reduce((a, l) => a + l.baseTotal, 0)
       return {
         ...f,
         documents: documentsByFolder.get(f.id) ?? [],
+        parentId: patch.parentId === null ? undefined : patch.parentId ?? f.parentId,
         name: patch.name ?? f.name,
         description: patch.description ?? f.description,
         archived: !!patch.archived,
         trashedAt: patch.trashedAt,
         total,
-        cap: patch.cap ?? (niceCap(baseTotal) || (f.userCreated ? 50_000 : 0)),
-        capIsCustom: patch.cap != null,
+        cap: patch.cap ?? fixedBudget(originalTotals.get(f.id) ?? 0),
         positions: ordered.reduce((a, l) => a + l.positionsCount, 0),
         priced: ordered.reduce((a, l) => a + l.pricedCount, 0),
         listMetas: ordered,

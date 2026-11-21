@@ -29,6 +29,9 @@ export function niceCap(v: number): number {
   return 10 * mag
 }
 
+/** Default for projects and lists that have no pre-priced estimate. */
+export const fixedBudget = (initialTotal: number): number => niceCap(initialTotal) || 50_000
+
 /** budget tone thresholds used by meters + alerts */
 export function usageTone(p: number): 'ok' | 'caution' | 'warn' | 'over' {
   if (p > 100) return 'over'

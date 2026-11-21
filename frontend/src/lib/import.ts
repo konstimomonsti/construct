@@ -1,4 +1,5 @@
 import type { ParsedList } from './gaeb'
+import { loadList } from './data'
 import { positionTotal } from './money'
 import { flatTree, treeFromPaths } from './cat'
 import type { DocMeta, ListDoc, Position } from './types'
@@ -6,7 +7,7 @@ import { selectModel, useStore } from './store'
 import { removeDocuments, saveDocument } from './documents'
 import { toast } from '../components/ui'
 
-export const ACCEPT = '.x81,.x82,.x83,.x84,.x86,.d81,.d83,.d84,.d86,.csv,.tsv,.json,.pdf'
+export const ACCEPT = '.x80,.x81,.x82,.x83,.x84,.x85,.x86,.x87,.x88,.x89,.d80,.d81,.d82,.d83,.d84,.d85,.d86,.d87,.d88,.d89,.csv,.tsv,.xlsx,.json,.docx,.pdf'
 
 const uid = () => crypto.randomUUID()
 const fileStem = (name: string) => name.replace(/\.[^.]+$/, '')
@@ -48,7 +49,7 @@ export function makeListDoc(
 
 function normalizeJson(raw: unknown): Position[] {
   const arr = Array.isArray(raw) ? raw : (raw as { positions?: unknown })?.positions
-  if (!Array.isArray(arr)) throw new Error('JSON enthält kein "positions"-Array')
+  if (!Array.isArray(arr) || arr.some((row) => !row || typeof row !== 'object' || Array.isArray(row))) throw new Error('Expected an array of list positions.')
   return arr.map((r: Record<string, unknown>, i) => ({
     id: String(r.id ?? `p${i}`),
     oz: String(r.oz ?? i + 1),
@@ -60,9 +61,42 @@ function normalizeJson(raw: unknown): Position[] {
     category: String(r.category ?? 'Import'),
     group: r.group ? String(r.group) : undefined,
     lumpSum: r.lumpSum ? true : undefined,
-    path: Array.isArray(r.path) ? (r.path as { oz: string; label: string }[]) : undefined,
+    path: Array.isArray(r.path) && r.path.every((part) => part && typeof part.oz === 'string' && typeof part.label === 'string')
+      ? r.path : undefined,
     srcRef: r.srcRef ? String(r.srcRef) : undefined,
   }))
+}
+
+function isCategoryTree(value: unknown): value is ListDoc['tree'] {
+  if (!Array.isArray(value)) return false
+  return value.every((node) => node && typeof node.oz === 'string' && typeof node.label === 'string'
+    && Number.isInteger(node.depth) && isCategoryTree(node.children))
+}
+
+function parseListJson(text: string, kind: 'json' | 'pdf' | 'docx', format: string): ParsedList {
+  const raw = JSON.parse(text)
+  const positions = normalizeJson(raw)
+  return {
+    format,
+    currency: typeof raw?.currency === 'string' ? raw.currency : 'EUR',
+    title: typeof raw?.title === 'string' ? raw.title : undefined,
+    positions,
+    tree: isCategoryTree(raw?.tree) && positions.every((p) => p.path?.length) ? raw.tree : undefined,
+    source: { kind },
+  }
+}
+
+/** Existing sample exports can be byte-identical to the original document. */
+async function readSampleDocument(file: File): Promise<ParsedList | undefined> {
+  const candidates = useStore.getState().base?.lists.filter((list) => list.file && list.fileName.toLowerCase() === file.name.toLowerCase()) ?? []
+  if (!candidates.length) return
+  const bytes = new Uint8Array(await file.arrayBuffer())
+  for (const candidate of candidates) {
+    const response = await fetch(`${import.meta.env.BASE_URL}${candidate.file}`)
+    if (!response.ok) continue
+    const original = new Uint8Array(await response.arrayBuffer())
+    if (bytes.length === original.length && bytes.every((byte, index) => byte === original[index])) return loadList(candidate.id)
+  }
 }
 
 export interface ImportResult {
@@ -93,27 +127,30 @@ async function addFile(file: File, listId: string, original: boolean, list?: Lis
 export async function importFiles(files: File[], folderId: string, activeListId?: string): Promise<ImportResult> {
   const g = await import('./gaeb')
   const res: ImportResult = { lists: [], positions: 0, docs: 0, failed: [] }
-  const pdfFiles: File[] = []
+  const documents: File[] = []
   for (const f of files) {
     const name = f.name
     const ext = name.split('.').pop()?.toLowerCase() ?? ''
-    if (ext === 'pdf') {
-      pdfFiles.push(f)
-      continue
-    }
     try {
       let parsed: ParsedList
       if (/^x8\d$/.test(ext)) parsed = g.parseGaebXml(await f.text())
       else if (/^d8\d$/.test(ext)) parsed = g.parseGaeb90(g.decodeGaeb90(new Uint8Array(await f.arrayBuffer())))
       else if (ext === 'csv' || ext === 'tsv') parsed = g.parseCsv(await f.text())
-      else if (ext === 'json') {
-        const raw = JSON.parse(await f.text())
-        const positions = normalizeJson(raw)
-        parsed = { format: 'JSON', currency: raw?.currency ?? 'EUR', title: raw?.title, positions, tree: Array.isArray(raw?.tree) && positions.every((p) => p.path?.length) ? raw.tree : undefined, source: { kind: 'json' } }
+      else if (ext === 'json') parsed = parseListJson(await f.text(), 'json', 'JSON')
+      else if (ext === 'xlsx') parsed = await (await import('./import-documents')).readExcel(f)
+      else if (ext === 'pdf' || ext === 'docx') {
+        const { readPdfPayload, readWordPayload } = await import('./import-documents')
+        const payload = ext === 'pdf' ? await readPdfPayload(f) : await readWordPayload(f)
+        const itemList = payload ? parseListJson(payload, ext, ext === 'pdf' ? 'PDF' : 'Word') : await readSampleDocument(f)
+        if (!itemList) {
+          documents.push(f)
+          continue
+        }
+        parsed = itemList
       } else {
         throw new Error('Unsupported file type.')
       }
-      if (!parsed.positions.length) throw new Error('No positions found.')
+      if (!parsed.positions.length && /^([xd])8\d$/.test(ext) && !parsed.tree?.length && !parsed.title) throw new Error('No list found.')
       const list = makeListDoc(folderId, parsed.title || fileStem(name), name, parsed.positions, parsed)
       await addFile(f, list.id, true, list)
       res.lists.push(list.id)
@@ -125,7 +162,7 @@ export async function importFiles(files: File[], folderId: string, activeListId?
   }
 
   const importedListIds = [...res.lists]
-  for (const file of pdfFiles) {
+  for (const file of documents) {
     try {
       const lists = selectModel(useStore.getState()).lists.filter((list) => list.folderId === folderId && !list.trashedAt)
       const name = fileStem(file.name)
@@ -136,8 +173,9 @@ export async function importFiles(files: File[], folderId: string, activeListId?
       if (selected) {
         await addFile(file, selected.id, false)
       } else {
-        const list = makeListDoc(folderId, name, file.name, [])
-        await addFile(file, list.id, false, list)
+        const pdf = /\.pdf$/i.test(file.name)
+        const list = makeListDoc(folderId, name, file.name, [], { format: pdf ? 'PDF' : 'Word', source: { kind: pdf ? 'pdf' : 'docx' } })
+        await addFile(file, list.id, true, list)
         res.lists.push(list.id)
       }
       res.docs++

@@ -9,7 +9,6 @@ import { useActions } from '../lib/actions'
 import { pickAndImport } from '../lib/import'
 import type { FolderView } from '../lib/store'
 import { useStore } from '../lib/store'
-import { useUi } from '../lib/ui-store'
 
 export const toneTile: Record<string, string> = {
   indigo: 'bg-brand-50 text-brand-600',
@@ -33,27 +32,14 @@ export function useFirstRender(key: string) {
 }
 
 /** total · meter · cap row shared by folder and list cards */
-export function BudgetRow({ total, cap, onSetCap, className }: { total: number; cap: number; onSetCap: () => void; className?: string }) {
+export function BudgetRow({ total, cap, className }: { total: number; cap: number; className?: string }) {
   const pct = cap ? (total / cap) * 100 : 0
   const tone = total === 0 ? 'ok' : usageTone(pct)
   return (
     <div className={clsx('flex w-full items-center justify-between gap-3 border-b border-slate-200/70 pb-2.5', className)}>
       <span className={clsx('shrink-0 font-mono text-xs font-semibold', total ? 'text-slate-900' : 'text-slate-500')}>{moneyCompact(total)}</span>
       <Meter value={pct} tone={tone} />
-      {cap ? (
-        <span className="shrink-0 font-mono text-xs text-slate-500">{moneyCompact(cap)}</span>
-      ) : (
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation()
-            onSetCap()
-          }}
-          className="pointer-events-auto relative z-10 shrink-0 font-mono text-xs text-slate-500 transition-colors hover:text-brand-600"
-        >
-          Set cap
-        </button>
-      )}
+      <span className="shrink-0 font-mono text-xs text-slate-500">{moneyCompact(cap)}</span>
     </div>
   )
 }
@@ -100,7 +86,6 @@ interface CardProps {
 
 export function FolderCard({ folder: f, index, selectMode, selected, onToggle }: CardProps) {
   const { navigate, folderMenu } = useActions()
-  const openDialog = useUi((s) => s.openDialog)
   const reduce = useReducedMotion()
   const first = useFirstRender(`folder-${f.id}`)
   const tone = f.total === 0 ? 'ok' : usageTone(f.cap ? (f.total / f.cap) * 100 : 0)
@@ -134,7 +119,7 @@ export function FolderCard({ folder: f, index, selectMode, selected, onToggle }:
         </span>
       )}
       <div className="pointer-events-none relative flex flex-col items-center text-center">
-        <BudgetRow total={f.total} cap={f.cap} onSetCap={() => openDialog({ kind: 'cap', target: 'folder', id: f.id })} className="mb-1" />
+        <BudgetRow total={f.total} cap={f.cap} className="mb-1" />
         <div className={clsx('mt-1 flex size-14 items-center justify-center rounded-xl shadow-xs', toneTile[f.tone] ?? toneTile.slate)}>
           <Icon name={f.icon} size={28} />
         </div>
@@ -190,7 +175,6 @@ export function FolderGrid({
 }) {
   const view = useStore((s) => s.view)
   const { navigate, folderMenu } = useActions()
-  const openDialog = useUi((s) => s.openDialog)
 
   if (view === 'list') {
     return (
@@ -239,9 +223,7 @@ export function FolderGrid({
               <td className="px-3 py-3 text-right font-mono font-semibold text-slate-900">{moneyCompact(f.total)}</td>
               <td className="px-3 py-3">{f.cap ? <Meter value={pct} tone={f.total === 0 ? 'ok' : usageTone(pct)} /> : <span className="text-slate-400">—</span>}</td>
               <td className="px-3 py-3 text-right font-mono text-slate-500">
-                {f.cap ? moneyCompact(f.cap) : (
-                  <button type="button" className="font-medium text-brand-600 hover:underline" onClick={(e) => { e.stopPropagation(); openDialog({ kind: 'cap', target: 'folder', id: f.id }) }}>Set cap</button>
-                )}
+                {moneyCompact(f.cap)}
               </td>
               <td className="px-3 py-3 text-right"><MoreMenu items={folderMenu(f)} label={`Options for ${f.name}`} /></td>
             </tr>
