@@ -12,6 +12,7 @@ from ..provider import LLMRequest
 from ..schema import CONTRADICTION_SCHEMA, ContradictionItem, clamp_confidence, items, normalize, quote_in
 
 RULE_ID = "L3.TEXT.SHORT_LONG_CONTRADICTION"
+L1_VALUE_CONFLICT = "L1.TEXT.VALUE_CONFLICT"  # layer 1 already reported a conflict on the line: don't repeat
 
 # Short texts worth checking carry a value: a number (DN 150, 12,5 mm, C25/30) or a material.
 _MATERIAL = re.compile(
@@ -37,9 +38,10 @@ def is_candidate(line: Line, blocked_fields: set[str]) -> bool:
 def short_long_contradiction(ctx):
     session = current()
     blocked = l1_error_fields(ctx.prior_findings)
+    conflicts = {f.target.line_id for f in ctx.prior_findings if f.rule_id == L1_VALUE_CONFLICT}
     by_section: dict[str | None, list[Line]] = {}
     for line in sorted(ctx.input.lines, key=lambda l: l.sort_order):
-        if is_candidate(line, blocked.get(line.id, set())):
+        if line.id not in conflicts and is_candidate(line, blocked.get(line.id, set())):
             by_section.setdefault(line.section_id, []).append(line)
 
     for section_lines in by_section.values():

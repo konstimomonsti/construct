@@ -7,6 +7,8 @@ opt-in. Configuration comes from environment variables (see `provider_from_env`)
 
     ANALYSIS_L3_PROVIDER   ollama (default) | anthropic | none
     ANALYSIS_L3_MODEL      model id; default qwen2.5:7b-instruct (ollama) or claude-haiku-5-5 (anthropic)
+    ANALYSIS_L3_AUDIT_MODEL model for whole-section audits; default claude-sonnet-5-5 (anthropic),
+                           the ANALYSIS_L3_MODEL provider itself for ollama unless set
     ANALYSIS_L3_TIMEOUT    seconds per request (default 120)
     OLLAMA_HOST            default http://localhost:11434
     ANTHROPIC_API_KEY      or any other credential the anthropic SDK resolves
@@ -29,6 +31,7 @@ import urllib.request
 
 DEFAULT_OLLAMA_MODEL = "qwen2.5:7b-instruct"
 DEFAULT_ANTHROPIC_MODEL = "claude-haiku-5-5"
+DEFAULT_ANTHROPIC_AUDIT_MODEL = "claude-sonnet-5-5"
 DEFAULT_TIMEOUT = 120.0
 DEFAULT_CACHE_DIR = Path(__file__).resolve().parents[2] / ".cache" / "layer3"
 
@@ -136,12 +139,14 @@ class OllamaProvider:
 class AnthropicProvider:
     """Claude through the official SDK, with structured output (`output_config.format`).
 
-    Claude Haiku 5.5 rejects non-default sampling parameters, so determinism comes from the
-    response cache, not from `temperature`. Effort is `low`: the checks are short classifications.
+    Claude Haiku 5.5 and Sonnet 5.5 reject non-default sampling parameters, so determinism comes from
+    the response cache, not from `temperature`. Effort is `low`: the checks are short classifications.
+    The system prompt carries a `cache_control` breakpoint, so batches that share it pay ~0.1x for it.
+    `usage` adds up the tokens of every answer (for cost reports).
     """
 
     def __init__(self, model: str = DEFAULT_ANTHROPIC_MODEL, timeout: float = DEFAULT_TIMEOUT,
-                 max_tokens: int = 8000, effort: str = "low"):
+                 max_tokens: int = 16000, effort: str = "low"):
         try:
             import anthropic
         except ImportError as exc:
@@ -153,6 +158,7 @@ class AnthropicProvider:
         self.timeout = timeout
         self.max_tokens = max_tokens
         self.effort = effort
+        self.usage: dict[str, int] = {}
         try:
             self._client = anthropic.Anthropic(timeout=timeout, max_retries=2)
         except Exception as exc:  # e.g. no credentials could be resolved
@@ -163,7 +169,8 @@ class AnthropicProvider:
         client = self._client.with_options(max_retries=0) if details is not None else self._client
         try:
             response = client.messages.create(
-                model=self.model, max_tokens=self.max_tokens, system=request.system,
+                model=self.model, max_tokens=self.max_tokens,
+                system=[{"type": "text", "text": request.system, "cache_control": {"type": "ephemeral"}}],
                 messages=[{"role": "user", "content": request.prompt}],
                 output_config={"effort": self.effort,
                                "format": {"type": "json_schema", "schema": request.schema}},
@@ -184,6 +191,9 @@ class AnthropicProvider:
         except anthropic.AnthropicError as exc:  # e.g. no credentials at request time
             raise ProviderUnavailable(f"Anthropic client error: {exc}") from exc
         text = next((block.text for block in response.content if block.type == "text"), None)
+        for key in ("input_tokens", "output_tokens", "cache_creation_input_tokens", "cache_read_input_tokens"):
+            self.usage[key] = self.usage.get(key, 0) + (getattr(response.usage, key, None) or 0)
+        self.usage["requests"] = self.usage.get("requests", 0) + 1
         if details is not None:
             details.raw = text
             details.metadata = {"response_id": response.id, "request_id": getattr(response, "_request_id", None),
@@ -288,6 +298,17 @@ def provider_from_env() -> LLMProvider | None:
     if name in ("anthropic", "claude", "api"):
         return AnthropicProvider(model or DEFAULT_ANTHROPIC_MODEL, timeout=timeout)
     raise ProviderUnavailable(f"unknown ANALYSIS_L3_PROVIDER {name!r} (use ollama, anthropic or none)")
+
+
+def audit_provider_from_env(main: LLMProvider) -> LLMProvider:
+    """The provider for whole-section audits (ANALYSIS_L3_AUDIT_MODEL). Falls back to `main`."""
+    model = os.environ.get("ANALYSIS_L3_AUDIT_MODEL", "").strip() or None
+    if isinstance(main, AnthropicProvider):
+        model = model or DEFAULT_ANTHROPIC_AUDIT_MODEL
+        return main if model == main.model else AnthropicProvider(model, timeout=main.timeout)
+    if isinstance(main, OllamaProvider) and model and model != main.model:
+        return OllamaProvider(model, host=main.host, timeout=main.timeout)
+    return main
 
 
 def _parse_json_object(text: str | None, source: str) -> dict[str, Any]:

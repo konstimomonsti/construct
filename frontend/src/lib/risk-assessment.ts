@@ -9,20 +9,114 @@ export const RISK_STYLE = {
   info: { label: 'Info', icon: 'info', chip: 'bg-sky-100 text-sky-800', row: 'bg-sky-50 hover:bg-sky-100/75 max-lg:bg-sky-50' },
 } as const
 
+export type Evidence = {
+  din?: { grade?: string; exposure?: string[]; required_min?: string }
+  extracted?: Record<string, unknown>
+  bieterfrage_de?: string
+  amount_at_stake?: string
+  change_order?: boolean
+  [key: string]: unknown
+}
+
 export type Finding = {
   id: string
   layer: number
   rule_id: string
+  category?: string
   severity: Severity
+  scope?: 'line' | 'section' | 'area' | 'bom'
   title: string
   message: string
-  target: { line_id: string | null; section_id: string | null; field: string | null }
+  target: { line_id: string | null; line_code?: string | null; section_id: string | null; field: string | null }
   related_line_ids: string[]
+  evidence?: Evidence
   suggested_fix: { rationale: string } | null
+  origin?: 'rule' | 'llm'
+  model?: string | null
 }
 
-type Report = { findings: Finding[]; errors: string[]; source_notice: string | null }
+/** contract v0.2 (CLAUDE.md §5.4); decimals are strings */
+export type ChangeOrderSignal = {
+  id: string; kind: string; line_id: string | null; line_code: string | null
+  title: string; message: string; points: number; finding_ids: string[]
+}
+export type TopRisk = {
+  line_id: string; line_code: string; short_text: string; points: number
+  amount: string | null; reasons: string[]; item_ids: string[]
+}
+export type Risk = {
+  version: string
+  score: number
+  level: RiskLevel
+  scale: number
+  priced: boolean
+  currency: string
+  money_at_stake: string | null
+  points: Record<string, number>
+  open_counts: Record<Severity, number>
+  top_risks: TopRisk[]
+  by_section: { section_id: string; code: string; title: string; points: number; open: number }[]
+  by_category: Record<string, number>
+  change_order_signals: ChangeOrderSignal[]
+}
+export type Question = { id: string; topic: string; text_de: string; line_codes: string[]; finding_ids: string[]; rule_id: string | null }
+
+export type Report = {
+  findings: Finding[]
+  errors: string[]
+  source_notice: string | null
+  layers_run?: number[]
+  summary?: Record<string, unknown>
+  risk?: Risk | null
+  questions?: Question[] | null
+}
 type Assessment = { state: 'waiting' | 'failed' | 'unavailable' } | { state: 'ready'; report: Report }
+
+/* ------------------------------------------------------------------ */
+/* Reviewer decisions (CLAUDE.md §5.5)                                 */
+/* ------------------------------------------------------------------ */
+
+export type DecisionReason = 'not_an_error' | 'covered_elsewhere' | 'by_client' | 'will_ask_client' | 'other'
+export type Decision = { status: 'accepted' | 'dismissed'; reason?: DecisionReason; note?: string; at: string }
+export type Decisions = Record<string, Decision>
+export const REASONS: Record<DecisionReason, string> = {
+  not_an_error: 'Not an error',
+  covered_elsewhere: 'Covered elsewhere',
+  by_client: 'Provided by the client',
+  will_ask_client: 'Will ask the client',
+  other: 'Other',
+}
+
+/** decisions of a list, falling back to the legacy "reviewed" ids (read as accepted) */
+export function decisionsOf(patch: { findingDecisions?: Decisions; reviewedFindings?: string[] } | undefined): Decisions {
+  if (patch?.findingDecisions) return patch.findingDecisions
+  return Object.fromEntries((patch?.reviewedFindings ?? []).map((id) => [id, { status: 'accepted', at: '' } satisfies Decision]))
+}
+
+/** sets (or with null, clears) the decision of several items; keeps the legacy reviewedFindings in sync */
+export function applyDecision(current: Decisions, ids: string[], decision: Decision | null) {
+  const findingDecisions = { ...current }
+  for (const id of ids) {
+    if (decision) findingDecisions[id] = decision
+    else delete findingDecisions[id]
+  }
+  return { findingDecisions, reviewedFindings: Object.keys(findingDecisions) }
+}
+
+/* ------------------------------------------------------------------ */
+/* Live score                                                          */
+/* ------------------------------------------------------------------ */
+
+export type RiskLevel = 'low' | 'medium' | 'high' | 'critical'
+export const levelOf = (score: number): RiskLevel => (score < 25 ? 'low' : score < 50 ? 'medium' : score < 75 ? 'high' : 'critical')
+
+/** §5.4: score = round(100 * S / (S + scale)), S = points of items without a decision */
+export function rescore(risk: Pick<Risk, 'points' | 'scale'>, decisions: Decisions) {
+  let open = 0
+  for (const [id, points] of Object.entries(risk.points)) if (!decisions[id]) open += points
+  const score = open > 0 ? Math.round((100 * open) / (open + risk.scale)) : 0
+  return { score, level: levelOf(score), openPoints: open }
+}
 
 export function indexFindings(findings: Finding[], positions: Position[]) {
   const byRow = new Map<string, Finding[]>()

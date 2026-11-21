@@ -248,3 +248,19 @@ h1, h2, h3 { text-wrap: balance; }
   .ledger tr[data-group] { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: none; padding: 0.25rem 0.5rem; }
   .ledger tr[data-group] > * { display: block; padding: 0; }
 }
+
+/* Risk review print / save as PDF: only the print copy (components/risk/RiskPrint.tsx) is shown */
+.risk-print { display: none; }
+@media print {
+  body:has(> .risk-print) > :not(.risk-print) { display: none !important; }
+  body:has(> .risk-print) { background: #fff; }
+  .risk-print { display: block; color: #000; font: 10.5pt/1.45 system-ui, sans-serif; }
+  .risk-print h1 { font-size: 16pt; font-weight: 700; margin: 0 0 4pt; }
+  .risk-print h2 { font-size: 12.5pt; font-weight: 700; margin: 14pt 0 4pt; break-after: avoid; }
+  .risk-print h3 { font-size: 11pt; font-weight: 600; margin: 8pt 0 3pt; break-after: avoid; }
+  .risk-print ol { list-style: decimal; padding-left: 18pt; }
+  .risk-print li { margin: 2pt 0; break-inside: avoid; }
+  .risk-print table { width: 100%; border-collapse: collapse; }
+  .risk-print th, .risk-print td { border: 0.5pt solid #999; padding: 2pt 4pt; text-align: left; vertical-align: top; }
+  .risk-print tr { break-inside: avoid; }
+}

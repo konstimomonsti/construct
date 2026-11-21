@@ -10,7 +10,13 @@ import { phaseLabel } from '../components/ListCard'
 import { ErrorBoundary } from '../components/ErrorBoundary'
 import { LedgerTable } from '../components/LedgerTable'
 import { FindingFilter, FindingText } from '../components/RiskAssessment'
-import { indexFindings, matchesFindingFilter, SEVERITIES, useUploadAssessment } from '../lib/risk-assessment'
+import { decisionsOf, indexFindings, matchesFindingFilter, SEVERITIES, useUploadAssessment, type Decision, type Report } from '../lib/risk-assessment'
+import { riskXlsx, downloadBytes } from '../lib/risk-export'
+import type { RowRisk } from '../components/LedgerTable'
+import { DecisionControls } from '../components/risk/DecisionControls'
+import { RiskSummary } from '../components/risk/RiskSummary'
+import { BidderQuestions, openQuestions } from '../components/risk/BidderQuestions'
+import { RiskPrint } from '../components/risk/RiskPrint'
 import { AddSectionDialog, PricingLegend, PricingMeter, pricingSections } from '../components/PricingBudget'
 import { useActions } from '../lib/actions'
 import { DetailDrawer } from '../components/DetailDrawer'
@@ -248,8 +254,17 @@ function AddItemDialog({ open, onClose, listId, tree, positions }: { open: boole
 /* Detail                                                              */
 /* ------------------------------------------------------------------ */
 
+/** `?risk=fixture` shows the contract v0.2 sample report (LV 11) until the backend serves risk reports */
+function useFixtureReport(on: boolean) {
+  const [report, setReport] = useState<Report | null>(null)
+  useEffect(() => {
+    if (on) void import('../../tests/fixtures/risk-report').then((m) => setReport(m.riskReport))
+  }, [on])
+  return on ? report : null
+}
+
 function ListDetail({ doc: imported }: { doc: ListDoc }) {
-  const [params] = useSearchParams()
+  const [params, setParams] = useSearchParams()
   const { lists, folders, documents } = useModel()
   const attached = documents.filter((document) => document.listId === imported.id)
   const original = attached.find((document) => document.original && document.name === imported.fileName)
@@ -281,9 +296,16 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   const st = useMemo(() => statsOf(positions), [positions])
   // findings from the automatic check that runs once on upload
   const assessment = useUploadAssessment(catalogueEnabled && original ? imported.id : null)
-  const uploadReport = assessment?.state === 'ready' ? assessment.report : null
+  const fixtureReport = useFixtureReport(params.get('risk') === 'fixture')
+  const uploadReport = fixtureReport ?? (assessment?.state === 'ready' ? assessment.report : null)
+  const risk = uploadReport?.risk ?? null
   const reviewedIds = useStore((s) => s.listPatch[doc.id]?.reviewedFindings)
-  const reviewed = useMemo(() => new Set(reviewedIds), [reviewedIds])
+  const decisionMap = useStore((s) => s.listPatch[doc.id]?.findingDecisions)
+  const decisions = useMemo(() => decisionsOf({ findingDecisions: decisionMap, reviewedFindings: reviewedIds }), [decisionMap, reviewedIds])
+  const reviewed = useMemo(() => new Set(Object.keys(decisions)), [decisions])
+  const [questionTexts, setQuestionTexts] = useState<Record<string, string>>({})
+  const questions = useMemo(() => openQuestions(uploadReport?.questions ?? [], decisions), [uploadReport, decisions])
+  const codes = useMemo(() => new Map(imported.positions.map((p) => [p.id, p.oz])), [imported.positions])
   const { byRow: findingsByRow, listWide } = useMemo(
     () => indexFindings(uploadReport?.findings ?? [], imported.positions), [uploadReport, imported.positions],
   )
@@ -310,13 +332,23 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
     return out
   }, [uploadReport, edits])
   const settled = useMemo(() => new Set([...reviewed, ...changedFindings]), [reviewed, changedFindings])
+  // rows are memoized: reuse the previous risk object when nothing changed, so a decision re-renders one row only
+  const riskCacheRef = useRef(new Map<string, RowRisk>())
   const risks = useMemo(() => {
-    return new Map([...findingsByRow].flatMap(([id, findings]) => {
+    const prev = riskCacheRef.current
+    const next = new Map([...findingsByRow].flatMap(([id, findings]) => {
       const open = findings.filter((finding) => !reviewed.has(finding.id) && !changedFindings.has(finding.id))
       const severity = SEVERITIES.find((level) => open.some((finding) => finding.severity === level))
-      return severity ? [[id, { severity, count: open.length, label: open.map((finding) => finding.title).join(', ') }] as const] : []
+      if (!severity) return []
+      const risk: RowRisk = { severity, count: open.length, label: open.map((finding) => finding.title).join(', ') }
+      const old = prev.get(id)
+      return [[id, old && old.severity === risk.severity && old.count === risk.count && old.label === risk.label ? old : risk] as const]
     }))
+    return next
   }, [findingsByRow, reviewed, changedFindings])
+  useEffect(() => {
+    riskCacheRef.current = risks
+  }, [risks])
   const filterFindings = useMemo(
     () => positions.flatMap(({ id }) => {
       const findings = findingsByRow.get(id)
@@ -426,17 +458,32 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
 
   // screen readers hear the outcome, since the button they pressed changes its own label
   const [reviewNote, setReviewNote] = useState('')
-  const toggleReviewed = (findingId: string, title: string) => {
-    const store = useStore.getState()
-    const next = new Set(store.listPatch[doc.id]?.reviewedFindings)
-    const reopened = next.delete(findingId)
-    if (!reopened) next.add(findingId)
-    store.patchList(doc.id, { reviewedFindings: [...next] })
-    setReviewNote(`${title}: ${reopened ? 'reopened' : 'marked reviewed'}`)
-    // after a review, carry on with the next open finding in the drawer
-    // when none is left on this row, the cursor waits on the way to the next flagged row
-    if (!reopened) requestAnimationFrame(() => (document.querySelector<HTMLElement>('[data-review="open"]') ?? document.querySelector<HTMLElement>('[data-next-finding]') ?? document.getElementById('drawer-findings-h'))?.focus())
+  const decide = (ids: string[], decision: Decision | null, title?: string) => {
+    useStore.getState().decideFindings(doc.id, ids, decision)
+    const what = !decision ? 'reopened' : decision.status === 'accepted' ? 'accepted' : 'dismissed'
+    setReviewNote(`${title ?? plural(ids.length, 'item', 'items')}: ${what}`)
+    if (ids.length > 1) toast(`${plural(ids.length, 'finding', 'findings')} ${what}`, 'ok', { label: 'Undo', run: () => useStore.getState().decideFindings(doc.id, ids, null) })
   }
+  const decideInDrawer = (findingId: string, title: string, decision: Decision | null) => {
+    decide([findingId], decision, title)
+    // after a decision, carry on with the next open finding in the drawer
+    // when none is left on this row, the cursor waits on the way to the next flagged row
+    if (decision) requestAnimationFrame(() => (document.querySelector<HTMLElement>('[data-review="open"]') ?? document.querySelector<HTMLElement>('[data-next-finding]') ?? document.getElementById('drawer-findings-h'))?.focus())
+  }
+  const jumpTo = (lineId: string) => {
+    setParams((prev) => {
+      const next = new URLSearchParams(prev)
+      next.set('pos', lineId)
+      return next
+    }, { replace: true })
+    openDetail(lineId, 'findings')
+  }
+  const exportExcel = async () => {
+    if (!uploadReport) return
+    const data = await riskXlsx({ title, report: uploadReport, decisions, codes, questionTexts })
+    downloadBytes(`Risikomatrix-${doc.fileName.replace(/\.[^.]+$/, '')}.xlsx`, data, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+  }
+  const printSections = useMemo(() => new Map(imported.positions.map((p) => [p.id, { oz: p.oz, section: p.path?.map((part) => `${part.oz} ${part.label}`).at(-1) ?? 'Without section' }])), [imported.positions])
 
   // the note is gone once a suggestion is settled: the cursor moves to the EP it filled (or left empty)
   const focusDrawerPrice = () => requestAnimationFrame(() => document.querySelector<HTMLElement>('[role=dialog] [data-risk-field="unit_price"]')?.focus())
@@ -671,6 +718,11 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
         }
       />
 
+      {uploadReport && risk && (
+        <RiskSummary report={uploadReport} risk={risk} decisions={decisions} codes={codes} onDecide={decide} onOpen={jumpTo}
+          onExcel={() => void exportExcel()} onPrint={() => window.print()} />
+      )}
+
       {catalogueEnabled && researchShow && (
         <div className="mb-6">
           <CatalogueOverview part="list" show={researchShow} setShow={setResearchShow} report={report} error={error} retryFailed={retryFailed} positions={positions} onOpen={openDetail} />
@@ -829,6 +881,13 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
         </section>
       )}
 
+      {uploadReport?.questions && (
+        <BidderQuestions title={title} questions={questions} texts={questionTexts} onEdit={(id, text) => setQuestionTexts((prev) => ({ ...prev, [id]: text }))} />
+      )}
+      {uploadReport && risk && (
+        <RiskPrint title={title} report={uploadReport} risk={risk} decisions={decisions} sections={printSections} questions={questions} texts={questionTexts} />
+      )}
+
       {doc.notes && (
         <section className="mt-8 rounded-lg bg-slate-50">
           <button
@@ -890,19 +949,13 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
               </details>
             )}
             <ul className="mt-3 space-y-5">
-              {detailFindings.map((finding) => {
-                const done = reviewed.has(finding.id)
-                return (
-                  <li key={finding.id} className="space-y-3">
-                    <FindingText finding={finding} reviewed={done} changed={changedFindings.has(finding.id)} hideRationale={!!sharedRationale} />
-                    <Button className="ml-[15px]" icon={done ? 'undo' : 'check'} onClick={() => toggleReviewed(finding.id, finding.title)}
-                      data-review={done ? 'done' : 'open'}
-                      aria-label={`${done ? 'Reopen' : 'Mark reviewed'}: ${finding.title}`}>
-                      {done ? 'Reopen' : 'Mark reviewed'}
-                    </Button>
-                  </li>
-                )
-              })}
+              {detailFindings.map((finding) => (
+                <li key={finding.id} className="space-y-3">
+                  <FindingText finding={finding} decision={decisions[finding.id]} changed={changedFindings.has(finding.id)} hideRationale={!!sharedRationale} details />
+                  <DecisionControls className="ml-[15px]" title={finding.title} decision={decisions[finding.id]}
+                    onDecide={(decision) => decideInDrawer(finding.id, finding.title, decision)} />
+                </li>
+              ))}
             </ul>
             <p className="sr-only" aria-live="polite">{reviewNote}</p>
             {nextFlagged && (
