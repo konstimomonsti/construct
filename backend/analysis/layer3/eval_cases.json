@@ -1,5 +1,5 @@
 {
-  "_about": "Labelled cases for measuring layer 3 precision with a real model: python -m analysis.layer3.eval. 'expect' is the contradiction verdict per line (true = contradiction). Real excerpts from data/tenders/ are marked source.",
+  "_about": "Labelled cases for measuring layer 3 precision with a real model: python -m analysis.layer3.eval. 'expect' is the contradiction verdict per line (true = contradiction). Real excerpts from data/tenders/ are marked source. 'task02' cases label the precast, scope, underspecified and quantity checks per (rule_id, OZ): 'expect' must be found, 'acceptable' is neither a hit nor a false positive, anything else is a false positive.",
   "contradiction": [
     {"id": "dn", "expect": true, "short_text": "PVC-KG-Rohr DN 150 verlegen", "long_text": "Kanalgrundrohr aus PVC-U nach DIN EN 1401, DN 200, SN 8, mit Steckmuffe, in vorhandenem Graben verlegen."},
     {"id": "concrete", "expect": true, "short_text": "Fundamentbeton C25/30", "long_text": "Streifenfundamente aus Ortbeton, Betonfestigkeitsklasse C30/37, Expositionsklasse XC2, herstellen."},
@@ -24,5 +24,28 @@
     {"id": "covering_included", "dependency": "Floor covering", "expect": "included",
      "lines": [{"code": "01.0010", "short_text": "Zementestrich 50 mm", "long_text": "Zementestrich auf Trennlage herstellen.", "quantity": "120", "unit": "m²"},
                {"code": "01.0020", "short_text": "Nutzschicht", "long_text": "Elastischen Belag aus Kautschuk, 3 mm, vollflächig verkleben.", "quantity": "120", "unit": "m²"}]}
+  ],
+  "task02": [
+    {"id": "lv11_reference", "fixture": "tests/fixtures/lv11_precast.json", "source": "data/tenders/LV_11_Stahlbetonfertigeile_Sandwichsockel.pdf, spec §6.1", "expect": [["L3.PRECAST.MISSING_SPEC", "3.2.20"], ["L3.PRECAST.MISSING_SPEC", "3.2.30"], ["L3.PRECAST.MISSING_SPEC", "3.2.40"], ["L3.PRECAST.MISSING_SPEC", "3.2.50"], ["L3.PRECAST.MISSING_SPEC", "3.2.60"], ["L3.SCOPE.REBAR_AMBIGUOUS", "3.2.70"]], "acceptable": [["L3.SCOPE.SHOP_DRAWINGS_OVERLAP", "3.2.10"], ["L3.SCOPE.EMBEDDED_UNALLOCATED", "3.2.90"], ["L3.TEXT.UNDERSPECIFIED", "3.2.80"], ["L3.TEXT.UNDERSPECIFIED", "3.2.90"], ["L3.QTY.IMPLAUSIBLE", "3.2.90"]]},
+    {"id": "precast_complete", "expect": [], "acceptable": [],
+     "sections": [{"id": "s-4.1", "code": "4.1", "title": "Stahlbetonfertigteile", "sort_order": 0}],
+     "lines": [
+       {"id": "4.1.10", "code": "4.1.10", "section_id": "s-4.1", "short_text": "FW 01: Fertigteilwand, l=4,20m", "long_text": "Stahlbeton-Fertigteilwand, Höhe: 3,00 m, Länge: 4,20 m, Dicke 20 cm, Beton C30/37, XC1, Sichtbeton SB3, einschl. Transport und Montage.", "quantity": "1", "unit": "St"},
+       {"id": "4.1.20", "code": "4.1.20", "section_id": "s-4.1", "short_text": "FS 01: FT-Sockel, Sandwichelement, l=5,00m", "long_text": "FT-Sockel als Sandwichelement, d=30cm gesamt (Vorsatzschale 7 cm, Dämmung XPS 8 cm, Tragschale 15 cm). Außenfläche durchgefärbt, Farbton RAL 7016 anthrazit. Beton: C35/45, XC4, XF1. Höhe: 0,90 m. Länge: 5,00 m.", "quantity": "1", "unit": "St"},
+       {"id": "4.1.30", "code": "4.1.30", "section_id": "s-4.1", "short_text": "Betonstahl B500 für Fertigteile", "long_text": "Betonstahl B500 als werkseitige Bewehrung der Fertigteile Pos. 4.1.10 und 4.1.20, liefern, biegen, einbauen.", "quantity": "1.2", "unit": "t"},
+       {"id": "4.1.40", "code": "4.1.40", "section_id": "s-4.1", "short_text": "Ankerschiene HTA 38/17, L=300", "long_text": "Ankerschienen HTA 38/17, L = 300 mm, werkseitig in Element FS 01 einbetonieren.", "quantity": "6", "unit": "St"}]},
+    {"id": "precast_site_steel", "expect": [], "acceptable": [],
+     "sections": [{"id": "s-5.2", "code": "5.2", "title": "Betonfertigteile", "sort_order": 0}],
+     "lines": [
+       {"id": "5.2.10", "code": "5.2.10", "section_id": "s-5.2", "short_text": "FT-Stütze 40/40, h=3,50m", "long_text": "Stahlbeton-Fertigteilstütze 40/40 cm, Höhe 3,50 m, Beton C40/50, XC1, inkl. werkseitiger Bewehrung, Transport und Montage.", "quantity": "8", "unit": "St"},
+       {"id": "5.2.20", "code": "5.2.20", "section_id": "s-5.2", "short_text": "Anschlussbewehrung Ortbeton", "long_text": "Betonstahl B500 als Anschlussbewehrung der Fertigteilstützen an die Ortbetonfundamente, auf der Baustelle liefern und verlegen.", "quantity": "0.4", "unit": "t"},
+       {"id": "5.2.30", "code": "5.2.30", "section_id": "s-5.2", "short_text": "Montagepläne", "long_text": "Montagepläne für die Fertigteilstützen auf Grundlage der Ausführungsplanung des AG erstellen.", "quantity": "1", "unit": "psch"}]},
+    {"id": "general_quantities_and_texts", "expect": [["L3.QTY.IMPLAUSIBLE", "1.10"], ["L3.TEXT.UNDERSPECIFIED", "1.30"]], "acceptable": [["L3.TEXT.UNDERSPECIFIED", "1.20"]],
+     "sections": [{"id": "s-1", "code": "1", "title": "Rohbau", "sort_order": 0}],
+     "lines": [
+       {"id": "1.10", "code": "1.10", "section_id": "s-1", "short_text": "Baustelleneinrichtung", "long_text": "Baustelle einrichten, vorhalten und räumen.", "quantity": "50", "unit": "psch"},
+       {"id": "1.20", "code": "1.20", "section_id": "s-1", "short_text": "Stahlbetonbodenplatte C30/37, d=25 cm", "long_text": "Bodenplatte aus Stahlbeton C30/37, XC2, d = 25 cm, einschließlich Schalung der Ränder, herstellen.", "quantity": "420", "unit": "m²"},
+       {"id": "1.30", "code": "1.30", "section_id": "s-1", "short_text": "Dämmung", "long_text": "Dämmung liefern und verlegen.", "quantity": "420", "unit": "m²"},
+       {"id": "1.40", "code": "1.40", "section_id": "s-1", "short_text": "Betonstahl BSt 500 S", "long_text": "Betonstahl BSt 500 S liefern, schneiden, biegen und verlegen.", "quantity": "18", "unit": "t"}]}
   ]
 }
