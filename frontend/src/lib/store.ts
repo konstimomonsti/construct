@@ -28,6 +28,7 @@ interface ListPatch {
   trashedAt?: string
   cap?: number | null
   folderId?: string
+  reviewedFindings?: string[]
 }
 export interface ListEdits {
   qty: Record<string, number>

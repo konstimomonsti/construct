@@ -67,4 +67,44 @@ echo "exports ok"
 
 curl -fsS -o "$work/original" "$base/api/mvp/original?id=$document"
 cmp -s "$work/original" "$file" || fail "original download differs from the upload"
+
+# BillBuild starts assessment when an imported list reaches the shared workspace.
+list_id="smoke-$(python3 -c 'from uuid import uuid4; print(uuid4())')"
+file_id="d-$list_id"
+upload_change=$(cat <<EOF
+{"changes":{"userLists":{"set":{"$list_id":{
+  "id":"$list_id","title":"Upload assessment smoke","fileName":"example.csv","currency":"EUR",
+  "source":{"kind":"csv"},
+  "positions":[
+    {"id":"missing-unit","oz":"01.01","short":"Kabelrinne montieren","qty":8,"unit":"","up":22},
+    {"id":"concrete","oz":"01.02","short":"Stahlbetonwand C30/37","qty":12,"unit":"m³","up":360}
+  ]
+}}}}}
+EOF
+)
+post /api/workspace/state "$upload_change" >/dev/null
+before_upload=$(curl -sS -o /dev/null -w '%{http_code}' "$base/api/workspace/analysis?id=$list_id")
+[ "$before_upload" = 404 ] || fail "a list with no upload started an assessment"
+post /api/workspace/state "{\"changes\":{\"userDocuments\":{\"set\":{\"$file_id\":{
+    \"name\":\"example.csv\",\"listId\":\"$list_id\",\"original\":true
+}}}}}" >/dev/null
+for _ in $(seq 1 15); do
+    get "/api/workspace/analysis?id=$list_id" >"$work/workspace-assessment.json"
+    [ "$(json 'd["state"]' <"$work/workspace-assessment.json")" = queued ] || break
+    sleep 1
+done
+[ "$(json 'd["state"]' <"$work/workspace-assessment.json")" = ready ] || fail "upload did not produce a risk assessment"
+[ "$(json 'any(f["rule_id"] == "L2.CONCRETE.STRUCTURE_NEEDS_FORMWORK" for f in d["report"]["findings"])' <"$work/workspace-assessment.json")" = True ] || fail "missing construction warning"
+key=$(json 'next(f["id"] for f in d["report"]["findings"] if f["rule_id"] == "L1.UNIT.MISSING")' <"$work/workspace-assessment.json")
+post /api/workspace/state "{\"changes\":{
+    \"edits\":{\"set\":{\"$list_id\":{\"patch\":{\"missing-unit\":{\"unit\":\"m\"}}}}},
+    \"listPatch\":{\"set\":{\"$list_id\":{\"reviewedFindings\":[\"$key\"]}}}
+}}" >/dev/null
+get "/api/workspace/analysis?id=$list_id" >"$work/workspace-after-edit.json"
+cmp -s "$work/workspace-assessment.json" "$work/workspace-after-edit.json" || fail "editing replaced the upload assessment"
+post /api/workspace/state "{\"changes\":{
+    \"userLists\":{\"delete\":[\"$list_id\"]},\"userDocuments\":{\"delete\":[\"$file_id\"]},
+    \"edits\":{\"delete\":[\"$list_id\"]},\"listPatch\":{\"delete\":[\"$list_id\"]}
+}}" >/dev/null
+
 echo "API smoke test passed"

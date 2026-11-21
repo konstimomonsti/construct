@@ -9,6 +9,7 @@ import re
 
 from psycopg.types.json import Jsonb
 
+import workspace_analysis
 import workspace_catalogue
 
 WORKSPACE = "default"
@@ -91,6 +92,7 @@ def apply(connection, payload):
                          for collection, key, value in writes],
                     )
             workspace_catalogue.workspace_changed(connection, WORKSPACE, writes)
+            workspace_analysis.enqueue(connection, WORKSPACE, writes)
         return state(connection)
 
 

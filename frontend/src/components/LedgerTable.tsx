@@ -74,6 +74,8 @@ function PriceCell({ value, onSave, label }: { value: number | null; onSave: (v:
   )
 }
 
+type RowRisk = { severity: Severity; count: number; label: string }
+
 interface RowProps {
   listId: string
   depth: number
@@ -84,8 +86,8 @@ interface RowProps {
   flash: boolean
   onToggle: (id: string) => void
   edited: boolean
-  risk?: { severity: Severity; count: number }
-  onOpen: (p: Position) => void
+  risk?: RowRisk
+  onOpen: (p: Position, fromFinding?: boolean) => void
   onMove: (pid: string) => void
 }
 
@@ -115,7 +117,8 @@ const Row = memo(function Row({ listId, depth, showCategory, p, selected, hot, f
             </button>
             <div className="truncate font-mono text-[11px] text-slate-400">OZ: {p.oz}</div>
             {risk && (
-              <button type="button" className="mt-1 rounded-md hover:underline" aria-label={`Review findings for ${p.oz}`} onClick={() => onOpen(p)}>
+              <button type="button" className="mt-1 rounded-md hover:underline" title={risk.label}
+                aria-label={`Review findings for ${p.oz}: ${risk.label}`} onClick={() => onOpen(p, true)}>
                 <FindingBadge severity={risk.severity}>{RISK_STYLE[risk.severity].label}{risk.count > 1 ? ` · ${risk.count} findings` : ''}</FindingBadge>
               </button>
             )}
@@ -181,10 +184,10 @@ export function LedgerTable({
   setSelected: (s: Set<string>) => void
   over75: boolean
   focusId?: string | null
-  onOpen: (p: Position) => void
+  onOpen: RowProps['onOpen']
   onMove: (pid: string) => void
   editedIds: Set<string>
-  risks?: Map<string, { severity: Severity; count: number }>
+  risks?: Map<string, RowRisk>
   sortActive: boolean
   onResetSort: () => void
   resetKey: string

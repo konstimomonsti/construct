@@ -7,8 +7,8 @@ import { Page, TableSkeleton } from '../components/Page'
 import { ErrorBoundary } from '../components/ErrorBoundary'
 import { LedgerTable } from '../components/LedgerTable'
 import { BudgetAlert } from '../components/BudgetAlert'
-import { FindingText, RiskAssessment } from '../components/RiskAssessment'
-import { buildAssessment, findingRows, SEVERITIES, useRiskAssessment, type Finding } from '../lib/risk-assessment'
+import { FindingFilter, FindingText } from '../components/RiskAssessment'
+import { indexFindings, matchesFindingFilter, SEVERITIES, useUploadAssessment } from '../lib/risk-assessment'
 import { PricingBudget } from '../components/PricingBudget'
 import { MoreMenu } from '../components/FolderCard'
 import { useActions } from '../lib/actions'
@@ -403,25 +403,30 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   const tree = resolved.tree
   const catStats = useMemo(() => treeStats(positions), [positions])
   const st = useMemo(() => statsOf(positions), [positions])
-  const assessment = useRiskAssessment(useMemo(() => buildAssessment(doc, positions, tree), [doc, positions, tree]),
-    doc, original?.stored ? original.id : undefined)
-  const { affected, findingsByRow, risks } = useMemo(() => {
-    const affected = new Map<string, Set<string>>()
-    const findingsByRow = new Map<string, Finding[]>()
-    for (const finding of assessment.report?.findings ?? []) {
-      const ids = findingRows(finding, positions)
-      affected.set(finding.id, ids)
-      for (const id of ids) {
-        const current = findingsByRow.get(id)
-        if (current) current.push(finding)
-        else findingsByRow.set(id, [finding])
-      }
-    }
-    const risks = new Map([...findingsByRow].map(([id, findings]) => [
-      id, { severity: SEVERITIES.find((severity) => findings.some((finding) => finding.severity === severity)) ?? 'info', count: findings.length },
-    ]))
-    return { affected, findingsByRow, risks }
-  }, [assessment.report, positions])
+  const hasUpload = useStore((s) => s.userDocuments.some(
+    (document) => document.listId === imported.id && document.original && document.name === imported.fileName,
+  ))
+  const assessment = useUploadAssessment(catalogueEnabled && hasUpload ? imported.id : null)
+  const uploadReport = assessment?.state === 'ready' ? assessment.report : null
+  const reviewedIds = useStore((s) => s.listPatch[doc.id]?.reviewedFindings)
+  const reviewed = useMemo(() => new Set(reviewedIds), [reviewedIds])
+  const { byRow: findingsByRow, listWide } = useMemo(
+    () => indexFindings(uploadReport?.findings ?? [], imported.positions), [uploadReport, imported.positions],
+  )
+  const risks = useMemo(() => {
+    return new Map([...findingsByRow].flatMap(([id, findings]) => {
+      const open = findings.filter((finding) => !reviewed.has(finding.id))
+      const severity = SEVERITIES.find((level) => open.some((finding) => finding.severity === level))
+      return severity ? [[id, { severity, count: open.length, label: open.map((finding) => finding.title).join(', ') }] as const] : []
+    }))
+  }, [findingsByRow, reviewed])
+  const filterFindings = useMemo(
+    () => positions.flatMap(({ id }) => {
+      const findings = findingsByRow.get(id)
+      return findings ? [findings] : []
+    }),
+    [positions, findingsByRow],
+  )
 
   const [q, setQ] = useState('')
   const [cats, setCats] = useState<Set<string> | null>(null)
@@ -429,8 +434,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [detailId, setDetailId] = useState<string | null>(null)
   const [detailField, setDetailField] = useState<string | null>(null)
-  const [onlyFlagged, setOnlyFlagged] = useState(false)
-  const filterFlagged = onlyFlagged && risks.size > 0
+  const [findingFilter, setFindingFilter] = useState('all')
   const openDetail = useCallback((id: string, field: string | null = null) => {
     setDetailField(field)
     setDetailId(id)
@@ -460,12 +464,12 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   const rows = useMemo(() => {
     const t = q.trim().toLowerCase()
     let r = positions.filter(
-      (p) => (!filterFlagged || risks.has(p.id)) && (!cats || cats.has(leafOz(p))) &&
+      (p) => matchesFindingFilter(findingFilter, findingsByRow.get(p.id) ?? [], reviewed) && (!cats || cats.has(leafOz(p))) &&
         (!t || p.oz.toLowerCase().includes(t) || p.short.toLowerCase().includes(t) || p.path?.some((part) => part.label.toLowerCase().includes(t))),
     )
     if (sortTotal) r = [...r].sort((a, b) => positionTotal(b) - positionTotal(a))
     return r
-  }, [positions, q, cats, sortTotal, filterFlagged, risks])
+  }, [positions, q, cats, sortTotal, findingFilter, findingsByRow, reviewed])
 
   const largest = useMemo(() => {
     let best: Position | null = null
@@ -476,6 +480,19 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   const detail = detailId ? positions.find((p) => p.id === detailId) ?? null : null
   const detailFindings = detail ? findingsByRow.get(detail.id) : undefined
   const detailCatalogue = detail && report?.positions[detail.id]
+
+  const toggleReviewed = (findingId: string) => {
+    const store = useStore.getState()
+    const next = new Set(store.listPatch[doc.id]?.reviewedFindings)
+    if (!next.delete(findingId)) next.add(findingId)
+    store.patchList(doc.id, { reviewedFindings: [...next] })
+  }
+
+  const openRow = (position: Position, fromFinding?: boolean) => {
+    const findings = fromFinding ? findingsByRow.get(position.id)?.filter((finding) => !reviewed.has(finding.id)) : undefined
+    const relevant = findings?.find((finding) => matchesFindingFilter(findingFilter, [finding], reviewed)) ?? findings?.[0]
+    openDetail(position.id, relevant?.target.field)
+  }
 
   const removeSelected = () => {
     const ids = [...selected]
@@ -514,7 +531,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
     setSortTotal(true)
     setQ('')
     setCats(null)
-    setOnlyFlagged(false)
+    setFindingFilter('all')
     setTimeout(() => tableRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 40)
   }
 
@@ -573,9 +590,6 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
         <CatalogueOverview report={report} error={error} retryFailed={retryFailed} positions={positions} onOpen={openDetail} />
       )}
 
-      <RiskAssessment assessment={assessment} positions={positions} affected={affected} onEdit={openDetail}
-        onlyFlagged={filterFlagged} onToggleFlagged={() => setOnlyFlagged((value) => !value)} />
-
       <PricingBudget tree={tree} stats={catStats} total={st.total} cap={cap} onAdd={(name) => {
         addCategory(null, name)
         setQ('')
@@ -597,6 +611,10 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
             />
           </div>
           <CategoryFilter tree={tree} stats={catStats} value={cats} onChange={setCats} />
+          <FindingFilter rows={filterFindings} reviewed={reviewed} value={findingFilter} onChange={setFindingFilter} />
+          {assessment?.state === 'waiting' && <span role="status" className="text-xs text-slate-500">Checking uploaded list…</span>}
+          {(assessment?.state === 'failed' || assessment?.state === 'unavailable') &&
+            <span role="status" className="text-xs text-amber-800">Upload findings unavailable</span>}
         </div>
         <div className="flex items-center gap-2">
           <Button size="lg" className="h-9" icon="call_split" iconClass="text-slate-500" onClick={split}>Split List</Button>
@@ -636,13 +654,13 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
           listId={doc.id}
           rows={rows}
           tree={tree}
-          showEmpty={!q.trim() && !cats && !filterFlagged}
+          showEmpty={!q.trim() && !cats && findingFilter === 'all'}
           allPositions={positions}
           selected={selected}
           setSelected={setSelected}
           over75={cap > 0 && used >= 75}
           focusId={focusId}
-          onOpen={(p) => openDetail(p.id)}
+          onOpen={openRow}
           onMove={(pid) => setMovePids([pid])}
           editedIds={editedIds}
           risks={risks}
@@ -654,9 +672,19 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
               <span>Total <strong className="font-mono text-slate-700">{money(st.total)}</strong></span>
             </div>
           }
-          resetKey={`${q}|${cats ? [...cats].join(',') : '*'}|${sortTotal}|${filterFlagged}`}
+          resetKey={`${q}|${cats ? [...cats].join(',') : '*'}|${sortTotal}|${findingFilter}`}
         />
       </div>
+
+      {listWide.length > 0 && (
+        <details className="mt-2 text-xs text-slate-600">
+          <summary className="w-fit cursor-pointer font-medium">List-wide findings ({listWide.length})</summary>
+          <div className="mt-2 space-y-3">{listWide.map((finding) => <FindingText key={finding.id} finding={finding} />)}</div>
+        </details>
+      )}
+      {(uploadReport?.source_notice || !!uploadReport?.errors.length) && (
+        <p className="mt-2 text-xs text-amber-800">{uploadReport.source_notice || 'Some checks could not complete during upload.'}</p>
+      )}
 
       <BudgetAlert
         total={st.total}
@@ -694,9 +722,16 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
             onApply={(long) => useStore.getState().patchPosition(doc.id, detail.id, { long })} />
         ) : undefined}
         findings={detailFindings?.length ? <section aria-label="Risk findings for this position" className="space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs">
-          <h3 className="font-semibold text-slate-900">Risk findings</h3>
-          {assessment.stale && <p className="text-amber-800">Previous assessment. Run it again after editing.</p>}
-          {detailFindings.map((finding) => <FindingText key={finding.id} finding={finding} />)}
+          <h3 className="font-semibold text-slate-900">Findings from upload</h3>
+          {detailFindings.map((finding) => (
+            <div key={finding.id} className="space-y-2 border-t border-slate-200 pt-3">
+              <FindingText finding={finding} />
+              <Button size="sm" icon={reviewed.has(finding.id) ? 'undo' : 'check'} onClick={() => toggleReviewed(finding.id)}
+                aria-label={`${reviewed.has(finding.id) ? 'Reopen' : 'Mark reviewed'}: ${finding.title}`}>
+                {reviewed.has(finding.id) ? 'Reopen finding' : 'Mark reviewed'}
+              </Button>
+            </div>
+          ))}
         </section> : undefined}
         focusField={detailField}
         onClose={closeDetail}

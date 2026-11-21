@@ -499,7 +499,7 @@ class BrowserHandler(BaseHTTPRequestHandler):
                 payload = json.loads(content)
                 if not isinstance(payload, dict):
                     raise ValueError("Invalid request body.")
-            if path == "analysis" and (not write or "original" not in params):
+            if path == "analysis" and ((write and "original" not in params) or (not write and "id" not in params)):
                 response = workspace_analysis.run(payload) if write else workspace_analysis.options()
                 self.json(HTTPStatus.OK, response)
                 return
@@ -520,6 +520,8 @@ class BrowserHandler(BaseHTTPRequestHandler):
                     response = workspace_catalogue.status(connection, workspace.WORKSPACE,
                                                           workspace.record_id(params.get("id")), start=write,
                                                           retry=write and payload.get("retry") is True)
+                elif path == "analysis" and not write:
+                    response = workspace_analysis.status(connection, workspace.WORKSPACE, workspace.record_id(params.get("id")))
                 elif path == "analysis":
                     response = workspace_analysis.run(
                         payload, connection, workspace.WORKSPACE, workspace.record_id(params.get("id")),
@@ -621,5 +623,6 @@ class BrowserHandler(BaseHTTPRequestHandler):
 
 if __name__ == "__main__":
     workspace_catalogue.start_workers()
+    workspace_analysis.start_worker()
     ThreadingHTTPServer.daemon_threads = True
     ThreadingHTTPServer(("0.0.0.0", PORT), BrowserHandler).serve_forever()
