@@ -1,0 +1,1106 @@
+00        83L                                                 1122PPPPI90 000001
+01MLV Sicherungs-u. bauaff. DL, Einzelauss29.07.21                        000002
+02DB Netz                                                                 000003
+03                                                                        000004
+064              GerÑte        Stoffe        GerÑte        Sonstiges      000005
+08EUR   Euro                                                              000006
+1101       N                                                              000007
+12Sicherungsaufsicht und                                                  000008
+12Sicherungspersonal                                                      000009
+110101     N                                                              000010
+12Sicherungsaufsicht                                                      000011
+2101010010 NNN         00000001000h                                       000012
+25Einsatz Sicherungsaufsicht MLV-SLE_01010010                             000013
+26   Stundenverrechnungssatz je Arbeitsstunde,                            000014
+26   Sicherungsaufsicht.                                                  000015
+26                                                                        000016
+2101010020 NNN         00000001000ZSS                                     000017
+25Zul. Sicherungsaufsicht, Nebenkosten MLV-SLE_01010020                   000018
+26   Verrechnungssatz als Zulage fÅr Nebenkosten,                         000019
+26   Sicherungsaufsicht,                                                  000020
+26   (Abrechnung: Summe von Anzahl Mitarbeiter X Anzahl                   000021
+26   Schichten, Schichten bis 10 Stunden).                                000022
+26                                                                        000023
+2101010030 NNN         00000001000h                                       000024
+25Zul. Sicherungsaufsicht, Nachtarbeit MLV-SLE_01010030                   000025
+26   Verrechnungssatz als Zulage bei Nachtarbeit,                         000026
+26   Sicherungsaufsicht.                                                  000027
+26                                                                        000028
+2101010040 NNN         00000001000h                                       000029
+25Zul. Sicherungsaufsicht, Sonntag MLV-SLE_01010040                       000030
+26   Verrechnungssatz als Zulage bei Arbeiten an Sonntagen                000031
+26   Sicherungsaufsicht.                                                  000032
+26                                                                        000033
+2101010050 NNN         00000001000h                                       000034
+25Zul. Sicherungsaufsicht, gesetzlicher Feiertag MLV-SLE_01010050         000035
+26   Verrechnungssatz als Zulage bei Arbeiten an                          000036
+26   gesetzlichen Feiertagen,                                             000037
+26   Sicherungsaufsicht.                                                  000038
+26                                                                        000039
+310101                                                                    000040
+110102     N                                                              000041
+12Sicherungspersonale                                                     000042
+20                                                                        000043
+26   Zu dem  weiteren Sicherungspersonal sind die Funktionen              000044
+26                                                                        000045
+26   Sicherungs-, Absperr-, öberwachungsposten zugeordnet.                000046
+26                                                                        000047
+26   Der Einsatz Sicherungsposten erfolgt auch zur                        000048
+26   öberwachung des SeitenlÑufers im Mittelkern an einer                 000049
+26   Gleisbau-Gro·maschine entsprechend der Vorbemerkungen.               000050
+26                                                                        000051
+2101020010 NNN         00000001000h                                       000052
+25Einsatz Sicherungspersonal MLV-SLE_01020010                             000053
+26   Stundenverrechnungssatz je Arbeitsstunde,                            000054
+26   Sicherungs-, Absperr- und öberwachungsposten.                        000055
+26                                                                        000056
+2101020020 NNN         00000001000ZSS                                     000057
+25Zulage Sicherungspersonal, Nebenkost. MLV-SLE_01020020                  000058
+26   Verrechnungssatz als Zulage fÅr Nebenkosten,                         000059
+26   Sicherungs-, Absperr- und öberwachungsposten.                        000060
+26   (Abrechnung: Summe von Anzahl Mitarbeiter X Anzahl                   000061
+26   Schichten, Schichten bis 10 Stunden).                                000062
+26                                                                        000063
+2101020030 NNN         00000001000h                                       000064
+25Zulage Sicherungspersonal,  Nachtarb. MLV-SLE_01020030                  000065
+26   Verrechnungssatz als Zulage bei Nachtarbeit,                         000066
+26   Sicherungs-, Absperr- und öberwachungsposten.                        000067
+26                                                                        000068
+2101020040 NNN         00000001000h                                       000069
+25Zulage Sicherungspersonal, Sonntag MLV-SLE_01020040                     000070
+26   Verrechnungssatz als Zulage bei Arbeiten an Sonntagen                000071
+26   Sicherungs-, Absperr- und öberwachungsposten.                        000072
+26                                                                        000073
+2101020050 NNN         00000001000h                                       000074
+25Zulage Sicherungspersonal, Feiertag MLV-SLE_01020050                    000075
+26   Verrechnungssatz als Zulage bei Arbeiten an                          000076
+26   gesetzlichen Feiertagen,                                             000077
+26   Sicherungs-, Absperr- und öberwachungsposten.                        000078
+26                                                                        000079
+310102                                                                    000080
+110103     N                                                              000081
+12Akustischer Warnsignalgeber                                             000082
+2101030010 NNN         00000001000d                                       000083
+25fernbedienbarer akustischer Warnsignalgeber MLV-SLE_01030010            000084
+26   Handbetriebene, fernbedienbare akustische                            000085
+26   Warnsignalgeber mit 126 dB (A), bei konventioneller                  000086
+26   Sicherung, einschlie·lich erforderlicher                             000087
+26   Energiebevorratung und An- und Abtransport, vorhalten                000088
+26   und betreiben,                                                       000089
+26   (Abrechnung: Summe Warngeber StÅck x  Anzahl Tage =                  000090
+26   (d)).                                                                000091
+26                                                                        000092
+310103                                                                    000093
+110104     N                                                              000094
+12Sonstiges                                                               000095
+2101040010 NNN         00000001000m                                       000096
+25Sichtbare Abgrenzung auf-/abbauen, betreiben MLV-SLE_01040010           000097
+26   Sichtbare Abgrenzung gem. DGUV Regel 101-024,                        000098
+26   auf Anordnung der fÅr den Bahnbetrieb zustÑndigen                    000099
+26   Stelle (BzS) auf-/abbauen, vorhalten, betreiben.                     000100
+26   Ausschlie·lich zur Kennzeichnung des Gefahrenbereiches               000101
+26   durch eine Kette aus nicht leitendem Material in der                 000102
+26   Farbe rot-wei·, inkl. geeigneter Befestigungsmittel,                 000103
+26   Befestigung in einer Hîhe von 76 cm bis 110 cm Å.                    000104
+26   GelÑnde.                                                             000105
+26                                                                        000106
+310104                                                                    000107
+3101                                                                      000108
+1102       N                                                              000109
+12technische Sicherung                                                    000110
+110201     N                                                              000111
+12Feste Absperrung (FA)                                                   000112
+20                                                                        000113
+26   Das Umsetzen der FA Åber 500m Baustellentransport wird               000114
+26   als erneuter auf-/abbauen beauftrtagt.                               000115
+26                                                                        000116
+2102010010 NNN         00000001000m                                       000117
+25FA, auf-/abbauen MLV-SLE_02010010                                       000118
+26   Feste Absperrung auf- und abbauen,                                   000119
+26   zugelassenes System bis 160 km/h, einschlie·lich                     000120
+26   An- und Abtransport.                                                 000121
+26   (Abrechnung: AufbaulÑnge FA (m)).                                    000122
+26                                                                        000123
+2102010020 NNN         00000001000md     X                                000124
+25FA, vorhalten u. betreiben MLV-SLE_02010020                             000125
+26   Feste Absperrung                                                     000126
+2661Ader Pos. ' '                                                         000127
+26   vorhalten und betreiben,                                             000128
+26   (Abrechnung:                                                         000129
+26   je Meter AufbaulÑnge FA (m) X Anzahl Tag (d) = (md)).                000130
+26                                                                        000131
+2102010030 NNN         00000001000m                                       000132
+25FA, vollstÑndig isoliert, auf-/abbauen MLV-SLE_02010030                 000133
+26   Feste Absperrung, vollstÑndig isoliert (S-Bahn Hamburg,              000134
+26   Berlin),                                                             000135
+26   auf- und abbauen, zugelassenes System bis 160 km/h,                  000136
+26   einschlie·lich An- und Abtransport,                                  000137
+26   (Abrechnung: AufbaulÑnge FA (m)).                                    000138
+26                                                                        000139
+2102010040 NNN         00000001000md     X                                000140
+25FA, vollstÑndig isoliert, vorhalten u. betreiben MLV-SLE_02010040       000141
+26   Feste Absperrung, vollstÑndig isoliert (S-Bahn Hamburg,              000142
+26   Berlin),                                                             000143
+2661Ader Pos. ' ' vorhalten und betreiben,                                000144
+26   (Abrechnung:                                                         000145
+26   je Meter AufbaulÑnge FA (m) X Anzahl Tag (d) = (md)).                000146
+26                                                                        000147
+2102010050 NNN         00000001000m      X                                000148
+25FA, im Bauablauf ab- und aufbauen MLV-SLE_02010050                      000149
+26   Aufgebaute Feste Absperrung                                          000150
+2661Ader Pos. ' '                                                         000151
+26   im Bauablauf ab- und aufbauen, au·erhalb des                         000152
+26   Lichtraumprofils vor Ort ablegen.                                    000153
+26   (Abrechnung: LÑnge der ab-/aufzubauende FA (m)).                     000154
+26                                                                        000155
+26                                                                        000156
+2102010060 NNN         00000001000m      X                                000157
+25FA, umsetzen bis 500m Baustellentransport  MLV-SLE_02010060             000158
+26   Feste Absperrung                                                     000159
+2661Ader Pos. ' ' umsetzen,                                               000160
+26   Baustellentransport bis 500 m,                                       000161
+26   (Abrechnung: AufbaulÑnge FA (m)).                                    000162
+26                                                                        000163
+2102010070 NNN         00000001000St     X                                000164
+25FA, WeichenfÅ·e auf-/abbauen MLV-SLE_02010070                           000165
+26   WeichenfÅ·e bei durchgehender Festen Absperrung im                   000166
+26   Weichenbereich auf- und abbauen,                                     000167
+2663AEinsatz bis Weichenradius R ' ',                                     000168
+2664AWeichenbauformen ' ',                                                000169
+26   (Abrechnung: Summe von Anzahl Weichen (StÅck)).                      000170
+26                                                                        000171
+2102010080 NNN         00000001000d      X                                000172
+25FA, WeichenfÅ·e vorhalten u. betreiben MLV-SLE_02010080                 000173
+26   WeichenfÅ·e bei durchgehender Festen Absperrung im                   000174
+26   Weichenbereich vorhalten und betreiben,                              000175
+2663AEinsatz bis Weichenradius R ' ',                                     000176
+2664AWeichenbauformen ' ',                                                000177
+26   (Abrechnung: Summe von Weichen StÅck x Anzahl Tage =                 000178
+26   (d)).                                                                000179
+26                                                                        000180
+2102010090 NNN         00000001000m                                       000181
+25FA, öberhîhungsmodule auf-/abbauen MLV-SLE_02010090                     000182
+26   öberhîhungsmodule fÅr Feste Absperrung auf- und                      000183
+26   abbauen,                                                             000184
+26   zur Sicherstellung der Wirksamen Hîhe von mindestens                 000185
+26   90cm                                                                 000186
+26   Åber der angrenzenden StandflÑche,                                   000187
+26   (Abrechnung: LÑnge der FA mit öberhîhungsmodul (m)).                 000188
+26                                                                        000189
+2102010100 NNN         00000001000md                                      000190
+25FA, öberhîhungsmodule vorhalten u. betreiben MLV-SLE_02010100           000191
+26   öberhîhungsmodule fÅr Feste Absperrung vorhalten und                 000192
+26   betreiben, zur Sicherstellung der Wirksamen Hîhe,                    000193
+26   (Abrechnung: LÑnge der FA mit öberhîhungsmodul (m) x                 000194
+26   Anzahl Tage (d) = (md)).                                             000195
+26                                                                        000196
+310201                                                                    000197
+110202     N                                                              000198
+12Automatisches Warnsystem (ATWS),                                        000199
+12LÑngenstaffelung                                                        000200
+20                                                                        000201
+26   Die Umsetzung einer ATWS (in der Regel ein mobiles                   000202
+26   Funkwarnsystem) innerhalb einer Schicht (wandernde                   000203
+26   Baustelle) ist in dem durchgehenden Betreiben                        000204
+26   enthalten.                                                           000205
+26   Dies gilt fÅr Anlagen bis zu einer zu sichernden LÑnge               000206
+26   von 150m bei Unterbrechung der Sicherungsma·nahme.                   000207
+26                                                                        000208
+2102020010 NNN         00000001000St     X                                000209
+25ATWS, b. 30m, auf-/abbauen MLV-SLE_02020010                             000210
+26   Automatisches Warnsystem (ATWS) auf- und abbauen,                    000211
+26   fÅr eine zu sichernde LÑnge bis 30m,                                 000212
+26   Anzahl der wandernden Gro·baumaschine(n)                             000213
+2662Aohne Maschinenwarnung ' ' StÅck                                      000214
+2663Amit SpitzenstîrlÑrm: ' ' dB(A),                                      000215
+26   Abzudeckende LÑrmintensitÑt:                                         000216
+2664AGrundstîrschall ' ' dB(A),                                           000217
+26   Anzahl einzelner, gleichzeitiger LÑrmspitzen der                     000218
+2665ABaustelle: ' ' StÅck,                                                000219
+26   LÑrmintensitÑt einzelner LÑrmspitzen der Baustelle:                  000220
+2666A' ' dB(A).                                                           000221
+26   (Abrechnung: Anzahl der Anlagen (StÅck)).                            000222
+26                                                                        000223
+2102020020 NNN         00000001000d      X                                000224
+25ATWS, b. 30m, vorhalten MLV-SLE_02020020                                000225
+26   Automatisches Warnsystem (ATWS)                                      000226
+26   fÅr eine zu sichernde LÑnge bis 30m vorhalten,                       000227
+2661AATWS der Pos. ' ',                                                   000228
+26   (Abrechnung:                                                         000229
+26   Summe von ATWS-Anlage StÅck x Anzahl Tage = (d)).                    000230
+26                                                                        000231
+2102020030 NNN         00000001000St     X                                000232
+25ATWS, Å. 30 b. 60m, auf-/abbauen MLV-SLE_02020030                       000233
+26   Automatisches Warnsystem (ATWS) auf- und abbauen,                    000234
+26   fÅr eine zu sichernde LÑnge Åber 30 bis 60m,                         000235
+26   Anzahl der wandernden Gro·baumaschine(n)                             000236
+2662Aohne Maschinenwarnung ' ' StÅck                                      000237
+2663Amit SpitzenstîrlÑrm: ' ' dB(A),                                      000238
+26   Abzudeckende LÑrmintensitÑt:                                         000239
+2664AGrundstîrschall ' ' dB(A),                                           000240
+26   Anzahl einzelner, gleichzeitiger LÑrmspitzen der                     000241
+2665ABaustelle: ' ' StÅck,                                                000242
+26   LÑrmintensitÑt einzelner LÑrmspitzen der Baustelle:                  000243
+2666A' ' dB(A).                                                           000244
+26   (Abrechnung: Anzahl der Anlagen (StÅck)).                            000245
+26                                                                        000246
+2102020040 NNN         00000001000d      X                                000247
+25ATWS, Å. 30 b. 60m, vorhalten MLV-SLE_02020040                          000248
+26   Automatisches Warnsystem (ATWS)                                      000249
+26   fÅr eine zu sichernde LÑnge Åber 30 bis 60m vorhalten,               000250
+2661AATWS der Pos. ' ',                                                   000251
+26   (Abrechnung:                                                         000252
+26   Summe von ATWS-Anlage StÅck x Anzahl Tage = (d)).                    000253
+26                                                                        000254
+2102020050 NNN         00000001000St     X                                000255
+25ATWS, Å. 60 b.150m, auf-/abbauen MLV-SLE_02020050                       000256
+26   Automatisches Warnsystem (ATWS) auf- und abbauen,                    000257
+26   fÅr eine zu sichernde LÑnge Åber 60 bis 150m,                        000258
+26   Anzahl der wandernden Gro·baumaschine(n)                             000259
+2662Aohne Maschinenwarnung ' ' StÅck                                      000260
+2663Amit SpitzenstîrlÑrm: ' ' dB(A),                                      000261
+26   Abzudeckende LÑrmintensitÑt:                                         000262
+2664AGrundstîrschall ' ' dB(A),                                           000263
+26   Anzahl einzelner, gleichzeitiger LÑrmspitzen der                     000264
+2665ABaustelle: ' ' StÅck,                                                000265
+26   LÑrmintensitÑt einzelner LÑrmspitzen der Baustelle:                  000266
+2666A' ' dB(A).                                                           000267
+26   (Abrechnung: Anzahl der Anlagen (StÅck)).                            000268
+26                                                                        000269
+2102020060 NNN         00000001000d      X                                000270
+25ATWS, Å. 60 b.150m, vorhalten MLV-SLE_02020060                          000271
+26   Automatisches Warnsystem (ATWS)                                      000272
+26   fÅr eine zu sichernde LÑnge Åber 60 bis 150m vorhalten,              000273
+2661AATWS der Pos. ' ',                                                   000274
+26   (Abrechnung:                                                         000275
+26   Summe von ATWS-Anlage StÅck x Anzahl Tage = (d)).                    000276
+26                                                                        000277
+2102020070 NNN         00000001000St     X                                000278
+25ATWS, Å.150 b. 250m, auf-/abbauen MLV-SLE_02020070                      000279
+26   Automatisches Warnsystem (ATWS) auf- und abbauen,                    000280
+26   fÅr eine zu sichernde LÑnge Åber 150 bis 250m,                       000281
+26   Anzahl der wandernden Gro·baumaschine(n)                             000282
+2662Aohne Maschinenwarnung ' ' StÅck                                      000283
+2663Amit SpitzenstîrlÑrm: ' ' dB(A),                                      000284
+26   Abzudeckende LÑrmintensitÑt:                                         000285
+2664AGrundstîrschall ' ' dB(A),                                           000286
+26   Anzahl einzelner, gleichzeitiger LÑrmspitzen der                     000287
+2665ABaustelle: ' ' StÅck,                                                000288
+26   LÑrmintensitÑt einzelner LÑrmspitzen der Baustelle:                  000289
+2666A' ' dB(A).                                                           000290
+26   (Abrechnung: Anzahl der Anlagen (StÅck)).                            000291
+26                                                                        000292
+2102020080 NNN         00000001000d      X                                000293
+25ATWS, Å. 150 b. 250m, vorhalten MLV-SLE_02020080                        000294
+26   Automatisches Warnsystem (ATWS)                                      000295
+26   fÅr eine zu sichernde LÑnge Åber 150 bis 250m                        000296
+26   vorhalten,                                                           000297
+2661AATWS der Pos. ' ',                                                   000298
+26   (Abrechnung:                                                         000299
+26   Summe von ATWS-Anlage StÅck x Anzahl Tage = (d)).                    000300
+26                                                                        000301
+2102020090 NNN         00000001000St     X                                000302
+25ATWS, Å.250 b. 400m, auf-/abbauen MLV-SLE_02020090                      000303
+26   Automatisches Warnsystem (ATWS) auf- und abbauen,                    000304
+26   fÅr eine zu sichernde LÑnge Åber 250 bis 400m,                       000305
+26   Anzahl der wandernden Gro·baumaschine(n)                             000306
+2662Aohne Maschinenwarnung ' ' StÅck                                      000307
+2663Amit SpitzenstîrlÑrm: ' ' dB(A),                                      000308
+26   Abzudeckende LÑrmintensitÑt:                                         000309
+2664AGrundstîrschall ' ' dB(A),                                           000310
+26   Anzahl einzelner, gleichzeitiger LÑrmspitzen der                     000311
+2665ABaustelle: ' ' StÅck,                                                000312
+26   LÑrmintensitÑt einzelner LÑrmspitzen der Baustelle:                  000313
+2666A' ' dB(A).                                                           000314
+26   (Abrechnung: Anzahl der Anlagen (StÅck)).                            000315
+26                                                                        000316
+2102020100 NNN         00000001000d      X                                000317
+25ATWS, Å. 250 b. 400m, vorhalten MLV-SLE_02020100                        000318
+26   Automatisches Warnsystem (ATWS)                                      000319
+26   fÅr eine zu sichernde LÑnge Åber 250 bis 400m                        000320
+26   vorhalten,                                                           000321
+2661AATWS der Pos. ' ',                                                   000322
+26   (Abrechnung:                                                         000323
+26   Summe von ATWS-Anlage StÅck x Anzahl Tage = (d)).                    000324
+26                                                                        000325
+2102020110 NNN         00000001000h      X                                000326
+25ATWS, betreiben in StaffellÑngen MLV-SLE_02020110                       000327
+26   Automatisches Warnsystem (ATWS) betreiben,                           000328
+26   ATWS                                                                 000329
+2661Ader Position' '                                                      000330
+26   einschlie·lich Energieversorgung und notwendiger                     000331
+26   Entstîrung.                                                          000332
+26   (NICHT ENTHALTEN: ATWS-Bediener und/oder                             000333
+26   ATWS-Handeinschaltung bedienen).                                     000334
+26                                                                        000335
+2102020120 NNN         00000001000St     X                                000336
+25ATWS, umsetzen, zu sichernde LÑnge Å. 150  MLV-SLE_02020120             000337
+26   Automatisches Warnsystem (ATWS)                                      000338
+26   fÅr eine zu sichernde LÑnge Åber 150m umsetzen,                      000339
+2661AATWS der Pos. ' ' umsetzen                                           000340
+2662Avon' '                                                               000341
+2663Anach' ',                                                             000342
+2664ABaustellenlÑngstransport bis ' ' m,                                  000343
+26   (Abrechnung: Anzahl der Umsetzungen (StÅck)).                        000344
+26                                                                        000345
+2102020130 NNN         00000001000h                                       000346
+25Einsatz ATWS Bediener (betreiben) MLV-SLE_02020130                      000347
+26   Stundenverrechnungssatz fÅr Automatisches Warnsystem                 000348
+26   (ATWS) betreiben,                                                    000349
+26   ATWS-Bediener                                                        000350
+26   (Abrechnung: je Arbeitsstunde (h)).                                  000351
+26                                                                        000352
+2102020140 NNN         00000001000ZSS                                     000353
+25Zulage ATWS Bediener, Nebenkosten MLV-SLE_02020140                      000354
+26   Verrechnungssatz als Zulage fÅr Nebenkosten,                         000355
+26   ATWS-Bediener,                                                       000356
+26   (Abrechnung: Anzahl Mitarbeiter X Anzahl Schichten,                  000357
+26   Schichten bis 10 Stunden).                                           000358
+26                                                                        000359
+2102020150 NNN         00000001000h                                       000360
+25Zulage ATWS Bediener, Nachtarbeit MLV-SLE_02020150                      000361
+26   Verrechnungssatz als Zulage bei Nachtarbeit,                         000362
+26   ATWS-Bediener.                                                       000363
+26   (Abrechnung: je Arbeitsstunde (h)).                                  000364
+26                                                                        000365
+2102020160 NNN         00000001000h                                       000366
+25Zulage ATWS Bediener, Sonntag MLV-SLE_02020160                          000367
+26   Verrechnungssatz als Zulage bei Arbeiten an Sonntagen,               000368
+26   ATWS-Bediener.                                                       000369
+26   (Abrechnung: je Arbeitsstunde (h)).                                  000370
+26                                                                        000371
+2102020170 NNN         00000001000h                                       000372
+25Zulage ATWS Bediener, gesetzlicher Feiertag MLV-SLE_02020170            000373
+26   Verrechnungssatz als Zulage bei Arbeiten an                          000374
+26   gesetzlichen Feiertagen,                                             000375
+26   ATWS-Bediener.                                                       000376
+26   (Abrechnung: je Arbeitsstunde (h)).                                  000377
+26                                                                        000378
+2102020180 NNN         00000001000d                                       000379
+25ATWS, Handschaltung einsetzen, vorhalten MLV-SLE_02020180               000380
+26   Notwendige Handschalter zur Ein- bzw. Ausschaltung,                  000381
+26   gemÑ· ATWS-Plan, ein- und ausbauen, vorhalten,                       000382
+26   In dem Einheitspreis sind enthalten:                                 000383
+26   An- und Abtransport, technische Funktionsabnahme,                    000384
+26   Energieversorgung.                                                   000385
+26   (NICHT ENTHALTEN: ATWS-Handeinschaltung bedienen.                    000386
+26   Abrechnung:                                                          000387
+26   Summe von Handeinschaltung StÅck X Tage = (d)).                      000388
+26                                                                        000389
+2102020190 NNN         00000001000h                                       000390
+25Einsatz ATWS-Handeinschaltung bedienen MLV-SLE_02020190                 000391
+26   Stundenverrechnungssatz fÅr ATWS-Handeinschaltung                    000392
+26   bedienen,                                                            000393
+26   ATWS-Handeinschaltung bedienen,                                      000394
+26   (Abrechnung: je Arbeitsstunde (h)).                                  000395
+26                                                                        000396
+2102020200 NNN         00000001000ZSS                                     000397
+25Zulage ATWS-Handeinschaltung bedienen, Nebenkosten MLV-SLE_02020200     000398
+26   Verrechnungssatz als Zulage fÅr Nebenkosten,                         000399
+26   ATWS-Handeinschaltung bedienen,                                      000400
+26   (Abrechnung: Anzahl Mitarbeiter X Anzahl Schichten,                  000401
+26   Schichten bis 10 Stunden).                                           000402
+26                                                                        000403
+2102020210 NNN         00000001000h                                       000404
+25Zulage ATWS-Handeinschaltung bedienen, Nachtarbeit MLV-SLE_02020210     000405
+26   Verrechnungssatz als Zulage bei Nachtarbeit,                         000406
+26   ATWS-Handeinschaltung bedienen,                                      000407
+26   (Abrechnung: je Arbeitsstunde (h)).                                  000408
+26                                                                        000409
+2102020220 NNN         00000001000h                                       000410
+25Zulage ATWS-Handeinschaltung bedienen, Sonntag MLV-SLE_02020220         000411
+26   Verrechnungssatz als Zulage bei Arbeiten an Sonntagen,               000412
+26   ATWS-Handeinschaltung bedienen,                                      000413
+26   (Abrechnung: je Arbeitsstunde (h)).                                  000414
+26                                                                        000415
+2102020230 NNN         00000001000h                                       000416
+25Zulage ATWS-Handeinschaltung bedienen, gesetzl. Feiertag                000417
+25MLV-SLE_02020230                                                        000418
+26   Verrechnungssatz als Zulage bei Arbeiten an                          000419
+26   gesetzlichen Feiertagen,                                             000420
+26   ATWS-Handeinschaltung bedienen,                                      000421
+26   (Abrechnung: je Arbeitsstunde (h)).                                  000422
+26                                                                        000423
+2102020240 NNN         00000001000St                                      000424
+25ATWS, techn. Detektion ein- u. ausbauen MLV-SLE_02020240                000425
+26   ATWS, Notwendige technische Detektion ein- und                       000426
+26   ausbauen,                                                            000427
+26   zur Ein- oder Ausschaltung gemÑ· ATWS-Plan,                          000428
+26   In dem Einheitspreis sind enthalten:                                 000429
+26   An- und Abtransport, technische Funktionsabnahme fÅr                 000430
+26   jeweils eine Ein- oder Ausschaltung.                                 000431
+26                                                                        000432
+2102020250 NNN         00000001000d                                       000433
+25ATWS, techn. Detektion vorhalten MLV-SLE_02020250                       000434
+26   ATWS, Technische Detektion vorhalten,                                000435
+26   (Abrechnung:                                                         000436
+26   Summe von techn. Detekt. StÅck X Anzahl Tage = (d)).                 000437
+26                                                                        000438
+310202                                                                    000439
+110203     N                                                              000440
+12Automatisches Warnsystem (ATWS), freie                                  000441
+12LÑnge                                                                   000442
+20                                                                        000443
+26   Die Abrechnung ATWS mit freier LÑngenangabe erfolgt in               000444
+26   Meter. Wird durch den AG nichts anderes festgelegt, ist              000445
+26   dem AN die Wahl der ATWS-Technik (funk- oder                         000446
+26   kabelbasiert) freigestellt.                                          000447
+26                                                                        000448
+2102030010 NNN         00000001000m      X                                000449
+25ATWS auf- u. abbauen, LÑnge nach AG Vorgabe MLV-SLE_02030010            000450
+26   Automatisches Warnsystem (ATWS) auf- und abbauen,,                   000451
+26   dazu erforderlich:                                                   000452
+26   fÅr die zu sichernde LÑnge entsprechende Anzahl von                  000453
+26   Anlagen, An- und Abtransport,                                        000454
+26   Anzahl der wandernden Gro·baumaschine(n)                             000455
+2661Aohne Maschinenwarnung ' ' StÅck                                      000456
+2662Amit SpitzenstîrlÑrm: ' ' dB(A),                                      000457
+26   Abzudeckende LÑrmintensitÑt:                                         000458
+2663AGrundstîrschall ' ' dB(A),                                           000459
+26   Anzahl einzelner, gleichzeitiger LÑrmspitzen der                     000460
+2664ABaustelle: ' ' StÅck,                                                000461
+26   LÑrmintensitÑt einzelner LÑrmspitzen der Baustelle:                  000462
+2665A' ' dB(A).                                                           000463
+26   (Abrechnung: in Summe AufbaulÑnge ATWS (m)).                         000464
+26                                                                        000465
+2102030020 NNN         00000001000h      X                                000466
+25ATWS betreiben MLV-SLE_02030020                                         000467
+26   Automatisches Warnsystem (ATWS) betreiben,                           000468
+2661AATWS der Pos. ' ',                                                   000469
+26   einschlie·lich Energieversorgung, ggf.                               000470
+26   einschlie·lich Warnbereichsumschaltung bei Einsatz                   000471
+26   Maschinenwarnung.                                                    000472
+26   (NICHT ENTHALTEN: ATWS-Bediener und/oder                             000473
+26   ATWS-Handeinschaltung bedienen.                                      000474
+26   Abrechnung: je Stunde (h)).                                          000475
+26                                                                        000476
+2102030030 NNN         00000001000m      X                                000477
+25ATWS umsetzen MLV-SLE_02030030                                          000478
+26   Automatisches Warnsystem (ATWS) umsetzen,                            000479
+2661AATWS der Pos. ' '                                                    000480
+2662Aumsetzen von' '                                                      000481
+2663Anach' ',                                                             000482
+26   (Abrechnung: LÑnge der umzusetzenden Anlage(n-Teile)                 000483
+26   (m)).                                                                000484
+26                                                                        000485
+2102030040 NNN         00000001000md     X                                000486
+25ATWS vorhalten MLV-SLE_02030040                                         000487
+26   Automatisches Warnsystem (ATWS) vorhalten,                           000488
+2661AATWS der Pos. ' ',                                                   000489
+26   (Abrechnung:                                                         000490
+26   LÑnge der ATWS (m) x Anzahl Tage (d) = (md)).                        000491
+26                                                                        000492
+2102030050 NNN         00000001000h                                       000493
+25Einsatz ATWS Bediener (betreiben) MLV-SLE_02030050                      000494
+26   Stundenverrechnungssatz fÅr Automatisches Warnsystem                 000495
+26   (ATWS) betreiben,                                                    000496
+26   ATWS-Bediener                                                        000497
+26   (Abrechnung: je Arbeitsstunde (h)).                                  000498
+26                                                                        000499
+2102030060 NNN         00000001000ZSS                                     000500
+25Zulage ATWS Bediener, Nebenkosten MLV-SLE_02030060                      000501
+26   Verrechnungssatz als Zulage fÅr Nebenkosten,                         000502
+26   ATWS-Bediener,                                                       000503
+26   (Abrechnung: Anzahl Mitarbeiter X Anzahl Schichten,                  000504
+26   Schichten bis 10 Stunden).                                           000505
+26                                                                        000506
+2102030070 NNN         00000001000h                                       000507
+25Zulage ATWS Bediener, Nachtarbeit MLV-SLE_02030070                      000508
+26   Verrechnungssatz als Zulage bei Nachtarbeit,                         000509
+26   ATWS-Bediener.                                                       000510
+26   (Abrechnung: je Arbeitsstunde (h)).                                  000511
+26                                                                        000512
+2102030080 NNN         00000001000h                                       000513
+25Zulage ATWS Bediener, Sonntag MLV-SLE_02030080                          000514
+26   Verrechnungssatz als Zulage bei Arbeiten an Sonntagen,               000515
+26   ATWS-Bediener.                                                       000516
+26   (Abrechnung: je Arbeitsstunde (h)).                                  000517
+26                                                                        000518
+2102030090 NNN         00000001000h                                       000519
+25Zulage ATWS Bediener, gesetzlicher Feiertag MLV-SLE_02030090            000520
+26   Verrechnungssatz als Zulage bei Arbeiten an                          000521
+26   gesetzlichen Feiertagen,                                             000522
+26   ATWS-Bediener.                                                       000523
+26   (Abrechnung: je Arbeitsstunde (h)).                                  000524
+26                                                                        000525
+2102030100 NNN         00000001000d                                       000526
+25ATWS, Handschaltung einsetzen, vorhalten MLV-SLE_02030100               000527
+26   Notwendige Handschalter zur Ein- bzw. Ausschaltung,                  000528
+26   gemÑ· ATWS-Plan, ein- und ausbauen, vorhalten,                       000529
+26   In dem Einheitspreis sind enthalten:                                 000530
+26   An- und Abtransport, technische Funktionsabnahme,                    000531
+26   Energieversorgung.                                                   000532
+26   (NICHT ENTHALTEN: ATWS-Handeinschaltung bedienen.                    000533
+26   Abrechnung:                                                          000534
+26   Summe von Handeinschaltung StÅck X Tage = (d)).                      000535
+26                                                                        000536
+2102030110 NNN         00000001000h                                       000537
+25Einsatz ATWS-Handeinschaltung bedienen MLV-SLE_02030110                 000538
+26   Stundenverrechnungssatz fÅr ATWS-Handeinschaltung                    000539
+26   bedienen,                                                            000540
+26   ATWS-Handeinschaltung bedienen,                                      000541
+26   (Abrechnung: je Arbeitsstunde (h)).                                  000542
+26                                                                        000543
+26                                                                        000544
+2102030120 NNN         00000001000ZSS                                     000545
+25Zulage ATWS-Handeinschaltung bedienen, Nebenkosten MLV-SLE_02030120     000546
+26   Verrechnungssatz als Zulage fÅr Nebenkosten,                         000547
+26   ATWS-Handeinschaltung bedienen,                                      000548
+26   (Abrechnung: Anzahl Mitarbeiter X Anzahl Schichten,                  000549
+26   Schichten bis 10 Stunden).                                           000550
+26                                                                        000551
+2102030130 NNN         00000001000h                                       000552
+25Zulage ATWS-Handeinschaltung bedienen, Nachtarbeit MLV-SLE_02030130     000553
+26   Verrechnungssatz als Zulage bei Nachtarbeit,                         000554
+26   ATWS-Handeinschaltung bedienen,                                      000555
+26   (Abrechnung: je Arbeitsstunde (h)).                                  000556
+26                                                                        000557
+2102030140 NNN         00000001000h                                       000558
+25Zulage ATWS-Handeinschaltung bedienen, Sonntag MLV-SLE_02030140         000559
+26   Verrechnungssatz als Zulage bei Arbeiten an Sonntagen,               000560
+26   ATWS-Handeinschaltung bedienen,                                      000561
+26   (Abrechnung: je Arbeitsstunde (h)).                                  000562
+26                                                                        000563
+2102030150 NNN         00000001000h                                       000564
+25Zulage ATWS-Handeinschaltung bedienen, gesetzl. Feiertag                000565
+25MLV-SLE_02030150                                                        000566
+26   Verrechnungssatz als Zulage bei Arbeiten an                          000567
+26   gesetzlichen Feiertagen,                                             000568
+26   ATWS-Handeinschaltung bedienen,                                      000569
+26   (Abrechnung: je Arbeitsstunde (h)).                                  000570
+26                                                                        000571
+2102030160 NNN         00000001000St                                      000572
+25ATWS, techn. Detektion ein- u. ausbauen MLV-SLE_02030160                000573
+26   ATWS, Notwendige technische Detektion ein- und                       000574
+26   ausbauen,                                                            000575
+26   zur Ein- oder Ausschaltung gemÑ· ATWS-Plan,                          000576
+26   In dem Einheitspreis sind enthalten:                                 000577
+26   An- und Abtransport, technische Funktionsabnahme fÅr                 000578
+26   jeweils eine Ein- oder Ausschaltung.                                 000579
+26                                                                        000580
+2102030170 NNN         00000001000d                                       000581
+25ATWS, techn. Detektion vorhalten MLV-SLE_02030170                       000582
+26   ATWS, Technische Detektion vorhalten,                                000583
+26   (Abrechnung:                                                         000584
+26   Summe von techn.Detekt. StÅck X Anzahl Tage = (d)).                  000585
+26                                                                        000586
+310203                                                                    000587
+110204     N                                                              000588
+12Automatisches Warnsystem mit                                            000589
+12Maschinenwarnung                                                        000590
+2102040010 NNN         00000001000St     X                                000591
+25Maschinenwarnung fÅr ATWS auf-/anbauen, installieren MLV-SLE_02040010   000592
+26   Maschinenwarnung fÅr Automatisches Warnsystem (ATWS)                 000593
+26   aufbauen, anbauen, installieren und abbauen,                         000594
+26   fÅr die Ansteuerung fest installierter maschineneigener              000595
+26   Warnsysteme einschlie·lich Warnbereichsumschaltung,                  000596
+26   dazu erforderlich:                                                   000597
+26   fÅr die zu sichernde(n) Gro·maschine(n) Anzahl von                   000598
+26   Anlagen, einschl. Funksender/-empfÑnger,                             000599
+26   ERRI-Schnittstelle (inkl. PrÅfbox einschl. Zubehîr),                 000600
+26   Funkkomponente zur manuellen Auslîsung der                           000601
+26   Maschinenwarnung, erforderlicher Energiebevorratung                  000602
+26   sowie An- und Abtransport,                                           000603
+26   Anzahl der wandernden Gro·baumaschine(n) mit                         000604
+2662AMaschinenwarnung ' ' StÅck,                                          000605
+26   (Abrechnung: Anzahl (StÅck) der ERRI-Schnittstellen).                000606
+26                                                                        000607
+2102040020 NNN         00000001000d                                       000608
+25Maschinenwarnung fÅr ATWS vorhalten MLV-SLE_02040020                    000609
+26   Maschinenwarnung fÅr ATWS vorhalten,                                 000610
+26   fÅr die zu sichernde(n) Gro·maschine(n) Anzahl von                   000611
+26   Anlagen,                                                             000612
+26   (Abrechnung:                                                         000613
+26   Summe von ERRI-Schnittstellen StÅck x  Anzahl Tage =                 000614
+26   (d)).                                                                000615
+26                                                                        000616
+310204                                                                    000617
+110205     N                                                              000618
+12AnkÅndigungsanlage AKA L90                                              000619
+2102050010 NNN         00000001000km     X                                000620
+25AnkÅndigungsanlage transportieren, AKA L90 MLV-SLE_02050010             000621
+26   An-/Abtransport der AnkÅndigungsanlage AKA L90 vom                   000622
+2661AStandort DB Netz ' '  zur Einsatzstelle.                             000623
+26                                                                        000624
+2102050020 NNN         00000001000St                                      000625
+25AnkÅndigungsanlage auf- u. abbauen, AKA L90 MLV-SLE_02050020            000626
+26   AnkÅndigungsanlage AKA L90 aufbauen und abbauen.                     000627
+26                                                                        000628
+2102050030 NNN         00000001000h                                       000629
+25AnkÅndigungsanlage bedienen, AKA L90 MLV-SLE_02050030                   000630
+26   AnkÅndigungsanlage AKA L90 bedienen.                                 000631
+26                                                                        000632
+310205                                                                    000633
+110206     N                                                              000634
+12ATWS PlanprÅfung                                                        000635
+2102060010 NNN         00000001000St     X                                000636
+25ATWS PlanprÅfung durchfÅhren, gesonderte Anordnung MLV-SLE_02060010     000637
+26   PrÅfung der ATWS-Planung auf gesonderte schriftliche                 000638
+26   Anordnung der fÅr den Bahnbetrieb zustÑndige Stelle                  000639
+26   (BzS) durchfÅhren,                                                   000640
+2661AATWS der Pos.' ',                                                    000641
+26   (Abrechnung: Anzahl (StÅck) PlanprÅfungen).                          000642
+26                                                                        000643
+310206                                                                    000644
+3102                                                                      000645
+1103       N                                                              000646
+12Bauaffine Dienstleistungen                                              000647
+110301     N                                                              000648
+12Signalisierung                                                          000649
+2103010010 NNN         00000001000St                                      000650
+25Schutzhaltsignal (Sh2), auf-/abbauen MLV-SLE_03010010                   000651
+26   Schutzhaltsignal (Sh 2) als Tages- oder Nachtzeichen,                000652
+26   auf- und abbauen, im Zusammenhang mit der                            000653
+26   dazugehîrenden Sicherungsma·nahme/bauaffienen                        000654
+26   Dienstleistung,                                                      000655
+26   als Tages- oder Nachtzeichen, einschlie·lich An- und                 000656
+26   Abtransport.                                                         000657
+26                                                                        000658
+26                                                                        000659
+2103010020 NNN         00000001000d                                       000660
+25Schutzhaltsignal (Sh 2), vorhalten und betreiben MLV-SLE_03010020       000661
+26   Schutzhaltsignal (Sh 2) vorhalten und betreiben, als                 000662
+26   Tages- oder Nachtzeichen, einschlie·lich                             000663
+26   Betriebsstoffe/Energieversorgung,                                    000664
+26   (Abrechnung:                                                         000665
+26   Summe von StÅck Sh 2-Sig. x Anzahl Tage = (d)).                      000666
+26                                                                        000667
+2103010030 NNN         00000001000St     X                                000668
+25Schutzhaltsignal (Sh 2), umsetzen MLV-SLE_03010030                      000669
+26   Schutzhaltsignal (Sh 2) umsetzen, im Zusammenhang mit                000670
+26   der Sicherungsma·nahme,                                              000671
+2661ABaustellentransport bis ' ' m.                                       000672
+26                                                                        000673
+2103010040 NNN         00000001000St                                      000674
+25Schutzhaltsignal (Sh 2), au·er/in Betrieb setzen MLV-SLE_03010040       000675
+26   Schutzhaltsignal (Sh 2) als Tages- oder Nachtzeichen,                000676
+26   bei nicht stÑndiger îrtlicher Anwesenheit,                           000677
+26   au·er/wieder in Betrieb setzen/nehmen.                               000678
+26                                                                        000679
+2103010050 NNN         00000001000St                                      000680
+25Langsamfahrsignale (Satz) auf-/abbauen MLV-SLE_03010050                 000681
+26   Einen Satz Langsamfahrsignale bestehend aus :                        000682
+26   Lf 1 (ggf. mit Richtungspfeil/Zuordnungstafel),                      000683
+26   Lf 2 (ggf. mit Richtungspfeil/Zuordnungstafel)                       000684
+26   und Lf 3, rÅckstrahlend, als Tages- oder Nachtzeichen,               000685
+26   auf- und abbauen, einschlie·lich An- und Abtransport.                000686
+26                                                                        000687
+2103010060 NNN         00000001000d                                       000688
+25Langsamfahrsignale (Satz), vorhalten und betreiben MLV-SLE_03010060     000689
+26   Einen Satz Langsamfahrsignale bestehend aus :                        000690
+26   Lf 1 (ggf. mit Richtungspfeil/Zuordnungstafel),                      000691
+26   Lf 2 (ggf. mit Richtungspfeil/Zuordnungstafel)                       000692
+26   und Lf 3, rÅckstrahlend, als Tages- oder Nachtzeichen,               000693
+26   vorhalten und betreiben,                                             000694
+26   (Abrechnung:                                                         000695
+26   Summe von Satz Lf-Sig. StÅck X Anzahl Tage = (d)).                   000696
+26                                                                        000697
+2103010070 NNN         00000001000St     X                                000698
+25Langsamfahrsignale (Satz), umsetzen MLV-SLE_03010070                    000699
+26   Einen Satz Langsamfahrsignale umsetzen,                              000700
+26   bestehend aus :                                                      000701
+26   Lf 1 (ggf. mit Richtungspfeil/Zuordnungstafel),                      000702
+26   Lf 2 (ggf. mit Richtungspfeil/Zuordnungstafel)                       000703
+26   und Lf 3, rÅckstrahlend, als Tages- oder Nachtzeichen,               000704
+2661ABaustellentransport bis ' ' m.                                       000705
+26                                                                        000706
+2103010080 NNN         00000001000St                                      000707
+25Signal Lf 1, ungÅltig machen MLV-SLE_03010080                           000708
+26   Signal Lf 1, auch als Wiederholungssignal,                           000709
+26   (ggf. mit Richtungspfeil/Zuordnungstafel),                           000710
+26   nach Ril 301 ungÅltig machen.                                        000711
+26                                                                        000712
+2103010090 NNN         00000001000St                                      000713
+25ZusÑtzliches Signal Lf 1, auf-/abbauen MLV-SLE_03010090                 000714
+26   ZusÑtzliches Signal Lf 1, auch als Wiederholungssignal,              000715
+26   (ggf. mit Richtungspfeil/Zuordnungstafel),                           000716
+26   rÅckstrahlend, als Tages- oder Nachtzeichen, auf- und                000717
+26   abbauen, einschlie·lich An- und Abtransport.                         000718
+26                                                                        000719
+2103010100 NNN         00000001000d                                       000720
+25ZusÑtzliches Signal Lf 1, vorhalten u. betreiben MLV-SLE_03010100       000721
+26   ZusÑtzliches Signal Lf 1, auch als Wiederholungssignal,              000722
+26   (ggf. mit Richtungspfeil/Zuordnungstafel),                           000723
+26   rÅckstrahlend, als Tages- oder Nachtzeichen, vorhalten               000724
+26   und betreiben,                                                       000725
+26   (Abrechnung:                                                         000726
+26   Summe von Lf-Sig. StÅck X Anzahl Tage = (d)).                        000727
+26                                                                        000728
+2103010110 NNN         00000001000St     X                                000729
+25ZusÑtzliches Signal Lf 1, umsetzen MLV-SLE_03010110                     000730
+26   ZusÑtzliches Signal Lf 1, auch als Wiederholungssignal,              000731
+26   (ggf. mit Richtungspfeilen/Zuordnungstafel) umsetzen,                000732
+2661ABaustellentransport bis ' ' m.                                       000733
+26                                                                        000734
+2103010120 NNN         00000001000St                                      000735
+25ZusÑtzliches Signal Lf 2 oder Lf3, auf-/abbauen MLV-SLE_03010120        000736
+26   ZusÑtzliches Signal Lf 2 (ggf. mit                                   000737
+26   Richtungspfeil/Zuordnungstafel) oder Lf 3,                           000738
+26   rÅckstrahlend, als Tages- oder Nachtzeichen,                         000739
+26   auf- und abbauen, einschlie·lich An- und Abtransport.                000740
+26                                                                        000741
+2103010130 NNN         00000001000d                                       000742
+25ZusÑtzliches Signal Lf 2 o. Lf 3, vorhalten u. betreiben                000743
+25MLV-SLE_03010130                                                        000744
+26   ZusÑtzliches Signal Lf 2 (ggf. mit                                   000745
+26   Richtungspfeil/Zuordnungstafel)                                      000746
+26   oder Lf 3, rÅckstrahlend, als Tages- oder Nachtzeichen,              000747
+26   vorhalten und betreiben,                                             000748
+26   (Abrechnung:                                                         000749
+26   Summe von Lf-Sig. StÅck X Anzahl Tage = (d)).                        000750
+26                                                                        000751
+2103010140 NNN         00000001000St     X                                000752
+25ZusÑtzliches Signal Lf 2 oder Lf 3, umsetzen MLV-SLE_03010140           000753
+26   ZusÑtzliches Signal Lf 2 (ggf. mit                                   000754
+26   Richtungspfeil/Zuordnungstafel)                                      000755
+26   oder Lf 3 umsetzen,                                                  000756
+2661ABaustellentransport bis ' ' m.                                       000757
+26                                                                        000758
+2103010150 NNN         00000001000St                                      000759
+25Signal Lf 2 o. Lf 3, au·er/in Betrieb setzen MLV-SLE_03010150           000760
+26   Signal Lf 2 (ggf. mit Richtungspfeil/Zuordnungstafel)                000761
+26   oder Lf 3, nach Ril 301 bei vorzeitigem Ende der                     000762
+26   Langsamfahrstelle au·er/wieder in Betrieb setzen/nehmen              000763
+26   (bedecken/Bedeckung entfernen).                                      000764
+26                                                                        000765
+2103010160 NNN         00000001000St                                      000766
+25Gleismagnet ein- und ausbauen MLV-SLE_03010160                          000767
+26   Baugleismagnet 500 Hz oder 1000 Hz, fÅr vorÅbergehende               000768
+26   Langsamfahrstelle entsprechend Ril 892.9107A02 einbauen              000769
+26   und in Betrieb nehmen,                                               000770
+26   bei Aufhebung der vorÅbergehenden Langsamfahrstelle                  000771
+26   ausbauen und au·er Betrieb nehmen.                                   000772
+26                                                                        000773
+2103010170 NNN         00000001000St                                      000774
+25Gleismagnet des AN, bereitstellen MLV-SLE_03010170                      000775
+26   Baugleismagnet des AN, 500 Hz oder 1000 Hz fÅr                       000776
+26   vorÅbergehende Langsamfahrstelle der                                 000777
+26   Kennziffer 0,5 bis 7 (Ril 819.1310A01),                              000778
+26   geprÅft entsprechend Ril 892.9307A01 in Verbinung                    000779
+26   mit Ril 892.9107A02,                                                 000780
+26   am Einbauort bereitstellen und nach dem Ausbauen vom                 000781
+26   Einbauort entfernen.                                                 000782
+26                                                                        000783
+2103010180 NNN         00000001000d                                       000784
+25Gleismagnet des AN, vorhalten MLV-SLE_03010180                          000785
+26   Durch den AN bereitgestellter Baugleismagnet 500 Hz                  000786
+26   oder 1000 Hz fÅr vorÅbergehende Langsamfahrstelle                    000787
+26   vorhalten,                                                           000788
+26   (Abrechnung:                                                         000789
+26   Summe von Gleismagnete StÅck X Anzahl Tage = (d)).                   000790
+26                                                                        000791
+2103010190 NNN         00000001000St                                      000792
+25WÑrtervorsignal (Vr 0), auf- und abbauen MLV-SLE_03010190               000793
+26   WÑrtervorsignal / WÑrtervorsignalwiederholer (Vr 0)                  000794
+26   gem. RZ S 504.03.01 als nicht ortsfestes Tages-                      000795
+26   oder Nachtzeichen fÅr die AnkÅndigung des                            000796
+26   Schutzhaltsignals (Sh 2), neben dem Gleis gem.                       000797
+26   RZ S504.5.1 auf- und abbauen,                                        000798
+26   einschlie·lich An- und Abtransport.                                  000799
+26                                                                        000800
+2103010200 NNN         00000001000d                                       000801
+25WÑrtervorsignal (Vr 0), vorhalten und betreiben MLV-SLE_03010200        000802
+26   WÑrtervorsignal / WÑrtervorsignalwiederholer (Vr 0)                  000803
+26   als nicht ortsfestes Tages- oder Nachtzeichen fÅr                    000804
+26   die AnkÅndigung des Schutzhaltsignals (Sh 2),                        000805
+26   vorhalten und betreiben,                                             000806
+26   einschlie·lich Betriebsstoffe/Energieversorgung,                     000807
+26   (Abrechnung:                                                         000808
+26   Summe von Vr 0-Sig. StÅck X Anzahl Tage = (d)).                      000809
+26                                                                        000810
+2103010210 NNN         00000001000St     X                                000811
+25WÑrtervorsignal (Vr 0), umsetzen MLV-SLE_03010210                       000812
+26   WÑrtervorsignal (Vr 0)/WÑrtervorsignal-                              000813
+26   wiederholer (Vr 0) umsetzen,                                         000814
+26   fÅr AnkÅndigung des Schutzhaltsignals (Sh 2),                        000815
+2661ABaustellentransport bis ' ' m.                                       000816
+26                                                                        000817
+2103010220 NNN         00000001000St                                      000818
+25Signal El 6, auf- und abbauen MLV-SLE_03010220                          000819
+26   Signal EL 6 "Halt fÅr Fahrzeuge mit gehobenem                        000820
+26   Stromabnehmer", rÅckstrahlend, neben dem Gleis                       000821
+26   au·erhalb des Bereiches von Fahrleitungen auf- und                   000822
+26   abbauen, einschlie·lich An- und Abtransport.                         000823
+26                                                                        000824
+2103010230 NNN         00000001000d                                       000825
+25Signal El 6, vorhalten MLV-SLE_03010230                                 000826
+26   Signal EL 6 "Halt fÅr Fahrzeuge mit gehobenem                        000827
+26   Stromabnehmer", reflektierend, vorhalten,                            000828
+26   (Abrechnung:                                                         000829
+26   Summe von EL 6-Sig. StÅck X Anzahl Tage= (d)).                       000830
+26                                                                        000831
+310301                                                                    000832
+110302     N                                                              000833
+12Bahnerdungsberechtigter                                                 000834
+2103020010 NNN         00000001000ZSS                                     000835
+25Zulage Bahnerdungsberechtigter MLV-SLE_03020010                         000836
+26   Zulage zum Stundenverrechnungssatz des durch den AN                  000837
+26   eingesetzten Mitarbeiters fÅr die TÑtigkeit als                      000838
+26   Bahnerdungsberechtigter,                                             000839
+26   (Abrechnung:                                                         000840
+26   Anzahl Mitarbeiter X Anzahl Schichten, Schichten bis 10              000841
+26   Stunden).                                                            000842
+26                                                                        000843
+2103020020 NNN         00000001000d                                       000844
+25Erdungsvorrichtung MLV-SLE_03020020                                     000845
+26   Erdungsvorrichtung bestehend aus zwei Erdungsstangen                 000846
+26   zur profilfreien Erdung, inkl. Erdungsseile und                      000847
+26   SpannungsprÅfer PHE gemÑ· VDE 0681 einsetzen,                        000848
+26   (Abrechnung:                                                         000849
+26   Summe vonl Erdungsvorrichtung                                        000850
+26   StÅck X Anzahl Tage = (d)).                                          000851
+26                                                                        000852
+2103020030 NNN         00000001000d                                       000853
+25zusÑtzliche Erdungsseil einsetzen MLV-SLE_03020030                      000854
+26   ZusÑtzliche Erdungsseil zur profilfreien Erdung                      000855
+26   einsetzen,                                                           000856
+26   (Abrechnung:                                                         000857
+26   Summe von zusÑtzl. Erdungsseil                                       000858
+26   StÅck X Anzahl Tage = (d)).                                          000859
+26                                                                        000860
+2103020040 NNN         00000001000d                                       000861
+25Kurzschlie·vorrichtung MLV-SLE_03020040                                 000862
+26   Kurzschlie·vorrichtung bestehend aus zwei                            000863
+26   Kurzschlie·ern fÅr die Bahnerdung der Stromschiene                   000864
+26   (S-Bahn Hamburg, Berlin), einsetzen,                                 000865
+26   (Abrechnung:                                                         000866
+26   Summe von Kurzschlie·vorrichtung                                     000867
+26   StÅck X Anzahl Tage =  (d)).                                         000868
+26                                                                        000869
+310302                                                                    000870
+110303     N                                                              000871
+12Schaltantragsteller                                                     000872
+2103030010 NNN         00000001000ZSS                                     000873
+25Zulage Schaltantragsteller MLV-SLE_03030010                             000874
+26   Zulage zum Stundenverrechnungssatz des durch den AN                  000875
+26   eingesetzten Mitarbeiters fÅr die TÑtigkeit als                      000876
+26   Schaltantragsteller,                                                 000877
+26   (Abrechnung: Anzahl Mitarbeiter X Anzahl Schichten,                  000878
+26   Schichten bis 10 Stunden).                                           000879
+26                                                                        000880
+310303                                                                    000881
+110304     N                                                              000882
+12BahnÅbergangsposten                                                     000883
+2103040010 NNN         00000001000h                                       000884
+25Einsatz BahnÅbergangsposten MLV-SLE_03040010                            000885
+26   Stundenverrechnungssatz je Arbeitsstunde,                            000886
+26   BahnÅbergangsposten (BöP).                                           000887
+26                                                                        000888
+2103040020 NNN         00000001000ZSS                                     000889
+25Zulage BahnÅbergangsposten, Nebenkosten MLV-SLE_03040020                000890
+26   Verrechnungssatz als Zulage fÅr Nebenkosten,                         000891
+26   BahnÅbergangsposten,                                                 000892
+26   (Abrechnung: Anzahl Mitarbeiter X Anzahl Schichten,                  000893
+26   Schichten bis 10 Stunden).                                           000894
+26                                                                        000895
+2103040030 NNN         00000001000h                                       000896
+25Zulage BahnÅbergangsposten, Nachtarbeit MLV-SLE_03040030                000897
+26   Verrechnungssatz als Zulage bei Nachtarbeit,                         000898
+26   BahnÅbergangsposten.                                                 000899
+26                                                                        000900
+2103040040 NNN         00000001000h                                       000901
+25Zulage BahnÅbergangsposten, Sonntag MLV-SLE_03040040                    000902
+26   Verrechnungssatz als Zulage bei Arbeiten an Sonntagen                000903
+26   BahnÅbergansposten.                                                  000904
+26                                                                        000905
+2103040050 NNN         00000001000h                                       000906
+25Zulage BahnÅbergangsposten, Feiertag MLV-SLE_03040050                   000907
+26   Verrechnungssatz als Zulage bei Arbeiten an                          000908
+26   gesetzlichen Feiertagen, BahnÅbergangsposten.                        000909
+26                                                                        000910
+310304                                                                    000911
+110305     N                                                              000912
+12BahnÅbergangshilfsposten, Mobsi,                                        000913
+12Nachwarnung                                                             000914
+2103050010 NNN         00000001000h                                       000915
+25Einsatz BahnÅbergangshilfsposten MLV-SLE_03050010                       000916
+26   Stundenverrechnungssatz je Arbeitsstunde,                            000917
+26   BahnÅbergangshilfsposten (HP).                                       000918
+26                                                                        000919
+2103050020 NNN         00000001000ZSS                                     000920
+25Zulage BahnÅbergangshilfsposten, Nebenkosten MLV-SLE_03050020           000921
+26   Verrechnungssatz als Zulage fÅr Nebenkosten,                         000922
+26   BahnÅbergangshilfsposten.                                            000923
+26   (Abrechnung: Anzahl Mitarbeiter X Anzahl Schichten,                  000924
+26   Schichten bis 10 Stunden).                                           000925
+26                                                                        000926
+2103050030 NNN         00000001000h                                       000927
+25Zulage BahnÅbergangshilfsposten, Nachtarbeit MLV-SLE_03050030           000928
+26   Verrechnungssatz als Zulage bei Nachtarbeit,                         000929
+26   BahnÅbergangshilfsposten.                                            000930
+26                                                                        000931
+2103050040 NNN         00000001000h                                       000932
+25Zulage BahnÅbergangshilfsposten, Sonntag MLV-SLE_03050040               000933
+26   Verrechnungssatz als Zulage bei Arbeiten an Sonntagen,               000934
+26   BahnÅbergangshilfsposten.                                            000935
+26                                                                        000936
+2103050050 NNN         00000001000h                                       000937
+25Zulage BahnÅbergangshilfsposten, Feiertag MLV-SLE_03050050              000938
+26   Verrechnungssatz als Zulage bei Arbeiten an                          000939
+26   gesetzlichen Feiertagen, BahnÅbergangshilfsposten.                   000940
+26                                                                        000941
+2103050060 NNN         00000001000St                                      000942
+25MobSi Grundposition, auf-u. abbauen MLV-SLE_03050060                    000943
+26   Grundposition fÅr freigegebene mobile Sicherungsanlage               000944
+26   (MobSi) auf- und abbauen, als technisches Hilfsmittel                000945
+26   zur UnterstÅtzung fÅr BahnÅbergangsposten zur Sicherung              000946
+26   von BahnÅbergÑngen,                                                  000947
+26   bestehend aus 2 Schrankenantrieben mit Halbschranke                  000948
+26   bis 5,5 m, dazu je Schrankenantrieb 2 Andreaskreuze                  000949
+26   und 2 Lichtsignale (Lichtzeichen gelb/rot),                          000950
+26   einschl. Ortsbegehung, Planung, Inbetriebnahme.                      000951
+26                                                                        000952
+2103050070 NNN         00000001000d                                       000953
+25MobSi Grundposition, vorhalten MLV-SLE_03050070                         000954
+26   Grundposition fÅr mobile Sicherungsanlage (MobSi)                    000955
+26   vorhalten, als technisches Hilfsmittel zur                           000956
+26   UnterstÅtzung fÅr BahnÅbergangsposten zur Sicherung von              000957
+26   BahnÅbergÑngen, bestehend aus 2 Schrankenantrieben mit               000958
+26   Halbschranke bis 5,5 m, dazu je 2 Andreaskreuze und 2                000959
+26   Lichtsignale (Lichtzeichen gelb/rot),                                000960
+26   (Abrechnung:                                                         000961
+26   Summe von MobSi StÅck X Anzahl Tage = (d)).                          000962
+26                                                                        000963
+2103050080 NNN         00000001000St                                      000964
+25MobSi zusÑtzl. Schrankenantrieb, auf- u. abbauen MLV-SLE_03050080       000965
+26   Zulage auf Grundposition mobile Sicherungsanlage                     000966
+26   (MobSi) auf- und abbauen, zusÑtzlicher Schrankenantrieb              000967
+26   bestehend aus 1 Schrankenantrieb mit Halbschranke bis                000968
+26   5,5 m.                                                               000969
+26                                                                        000970
+2103050090 NNN         00000001000d                                       000971
+25MobSi zusÑtzlicher Schrankenantrieb, vorhalten MLV-SLE_03050090         000972
+26   Zulage auf Grundposition mobile Sicherungsanlage                     000973
+26   (MobSi) vorhalten, fÅr zusÑtzlicher Schrankenantrieb,                000974
+26   bestehend aus: 1 Schrankenantrieb mit Halbschranke bis               000975
+26   5,5 m,                                                               000976
+26   (Abrechnung:                                                         000977
+26   Summe von Schrankenantrieb StÅck X Anzahl Tage = (d)).               000978
+26                                                                        000979
+2103050100 NNN         00000001000St                                      000980
+25MobSi zusÑtzliches Lichtzeichen, auf- u. abbauen MLV-SLE_03050100       000981
+26   Zulage auf Grundposition mobile Sicherungsanlage                     000982
+26   (MobSi) auf- und abbauen, zusÑtzliches Lichtzeichen                  000983
+26   bestehend aus 1 Andreaskreuz und 1 Lichtsignal                       000984
+26   (Lichtzeichen gelb/rot).                                             000985
+26                                                                        000986
+2103050110 NNN         00000001000d                                       000987
+25MobSi zusÑtzliches Lichtzeichen, vorhalten MLV-SLE_03050110             000988
+26   Zulage auf Grundposition mobile Sicherungsanlage                     000989
+26   (MobSi) vorhalten, fÅr zusÑtzliches Lichtzeichen,                    000990
+26   bestehend aus:                                                       000991
+26   1 Andreaskreuz u. 1 Lichtsignal (Lichtzeichen                        000992
+26   gelb/rot),                                                           000993
+26   (Abrechnung:                                                         000994
+26   Summe von Lichtzeichen StÅck X Anzahl Tage = (d)).                   000995
+26                                                                        000996
+2103050120 NNN         00000001000St                                      000997
+25MobSi zusÑtzliche Steuereinheit, auf- u. abbauen MLV-SLE_03050120       000998
+26   Zulage auf Grundposition mobile Sicherungsanlage                     000999
+26   (MobSi) auf- und abbauen, zusÑtzliche Steuereinheit                  001000
+26   gem. Herstellerangaben, bestehend aus 1 Steuereinheit                001001
+26   bei Erweiterung der Anlage.                                          001002
+26                                                                        001003
+2103050130 NNN         00000001000d                                       001004
+25MobSi zusÑtzliche Steuereinheit, vorhalten MLV-SLE_03050130             001005
+26   Zulage auf Grundposition mobile Sicherungsanlage                     001006
+26   (MobSi) vorhalten, fÅr zusÑtzliche Steuereinheit,                    001007
+26   bestehend aus:                                                       001008
+26   1 Steuereinheit bei Erweiterung der Anlage,                          001009
+26   (Abrechnung:                                                         001010
+26   Summe von Steuereinheit StÅck X Anzahl Tage = (d)).                  001011
+26                                                                        001012
+2103050140 NNN         00000001000d                                       001013
+25MobSi Betriebsstoffe MLV-SLE_03050140                                   001014
+26   Verrechnungssatz fÅr die zur Betreibung der mobilen                  001015
+26   Sicherungsanlage (MobSi) erforderlichen Betriebsstoffe.              001016
+26   (Abrechnung: Einsatztage MobSi (d)).                                 001017
+26                                                                        001018
+2103050150 NNN         00000001000St                                      001019
+25NWS BöP auf- u. abbauen MLV-SLE_03050150                                001020
+26   Nachwarnsystem fÅr BahnÅbergangsposten (NWS BöP) zur                 001021
+26   technischen UnterstÅtzung der ersatzweisen Sicherung                 001022
+26   von BahnÅbergÑngen durch BöP auf- und abbauen, einschl.              001023
+26   Ortsbegehung, Planung, Inbetriebnahme eines von der DB               001024
+26   Netz AG freigegebene Nachwarnsystem.                                 001025
+26                                                                        001026
+2103050160 NNN         00000001000d                                       001027
+25NWS BöP vorhalten u. einsetzen MLV-SLE_03050160                         001028
+26   Nachwarnsystem fÅr BahnÅbergangsposten (NWS BöP)                     001029
+26   vorhalten und mittels Energieversorgung betreiben                    001030
+26   (Abrechnung:                                                         001031
+26   Summe von Nachwarnsystem StÅck X Anzahl Tage = (d)).                 001032
+26                                                                        001033
+26   Hinweis: Das Betreiben des Nachwarnsystem erfolgt Åber               001034
+26   das BöP-Personal.                                                    001035
+26                                                                        001036
+2103050170 NNN         00000001000St                                      001037
+25NWS BöP, techn. Detektion ein- u. ausbauen MLV-SLE_03050170             001038
+26   Nachwarnsystem BöP (NWS BöP), techn. Detektion ein- u.               001039
+26   ausbauen, Notwendige technische Detektion zur Ein- oder              001040
+26   Ausschaltung, gemÑ· der Nachwarnsystem-Planung,                      001041
+26   technische Funktionsabnahme fÅr jeweils eine Ein- oder               001042
+26   Ausschaltung.                                                        001043
+26                                                                        001044
+2103050180 NNN         00000001000d                                       001045
+25NWS BöP, techn. Detektion vorhalten MLV-SLE_03050180                    001046
+26   Nachwarnsystem BöP (NWS BöP), technische Detektion                   001047
+26   vorhalten,                                                           001048
+26   (Abrechnung:                                                         001049
+26   Summe von NWS-techn.Detekt. StÅck X Anzahl Tage = (d)).              001050
+26                                                                        001051
+310305                                                                    001052
+110306     N                                                              001053
+12Helfer im Bahnbetrieb                                                   001054
+2103060010 NNN         00000001000h                                       001055
+25Einsatz Helfer im Bahnbetrieb MLV-SLE_03060010                          001056
+26   Stundenverrechnungssatz je Arbeitsstunde,                            001057
+26   Helfer im Bahnbetrieb.                                               001058
+26                                                                        001059
+2103060020 NNN         00000001000ZSS                                     001060
+25Zulage Helfer im Bahnbetrieb, Nebenkosten MLV-SLE_03060020              001061
+26   Verrechnungssatz als Zulage fÅr Nebenkosten,                         001062
+26   Helfer im Bahnbetrieb.                                               001063
+26   (Abrechnung: Anzahl Mitarbeiter X Anzahl Schichten,                  001064
+26   Schichten bis 10 Stunden).                                           001065
+26                                                                        001066
+2103060030 NNN         00000001000h                                       001067
+25Zulage Helfer im Bahnbetrieb, Nachtarbeit MLV-SLE_03060030              001068
+26   Verrechnungssatz als Zulage bei Nachtarbeit,                         001069
+26   Helfer im Bahnbetrieb.                                               001070
+26                                                                        001071
+2103060040 NNN         00000001000h                                       001072
+25Zulage Helfer im Bahnbetrieb, Sonntag MLV-SLE_03060040                  001073
+26   Verrechnungssatz als Zulage bei Arbeiten an Sonntagen                001074
+26   Helfer im Bahnbetrieb.                                               001075
+26                                                                        001076
+2103060050 NNN         00000001000h                                       001077
+25Zulage Helfer im Bahnbetrieb, Feiertag MLV-SLE_03060050                 001078
+26   Verrechnungssatz als Zulage bei Arbeiten an                          001079
+26   gesetzlichen Feiertagen,                                             001080
+26   Helfer im Bahnbetrieb.                                               001081
+26                                                                        001082
+310306                                                                    001083
+3103                                                                      001084
+1104       N                                                              001085
+12Mobile LÑrmschutzwand                                                   001086
+110401     N                                                              001087
+12Mobile LÑrmschutzwand                                                   001088
+2104010010 NNN         00000001000m       X                               001089
+25Mobile LÑrmschutzwand auf-/abbauen MLV-SLE_04010010                     001090
+26   Mobile LÑrmschutzwand mit DB-Zulassung auf- und                      001091
+26   abbauen,                                                             001092
+2661BSystem:'...............................',                            001093
+2662BLÑrmreduktion:'...............................',                     001094
+26   (Abrechnung: LÑnge mobile LÑrmschutzwand (m)).                       001095
+26                                                                        001096
+2104010020 NNN         00000001000md                                      001097
+25Mobile LÑrmschutzwand vorhalten u. betreiben MLV-SLE_04010020           001098
+26   Mobile LÑrmschutzwand mit DB-Zulassung vorhalten und                 001099
+26   betreiben,                                                           001100
+26   (Abrechnung:                                                         001101
+26   LÑnge mobile LÑrmschutzwand (m) x Anzahl Tage = (md)).               001102
+26                                                                        001103
+310401                                                                    001104
+3104                                                                      001105
+99                   0000                                            00128001106

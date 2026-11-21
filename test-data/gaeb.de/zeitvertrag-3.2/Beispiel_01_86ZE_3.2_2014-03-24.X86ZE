@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- GXML Toolbox V3.2 R20130614;  http://www.gaeb-toolbox.de/  -->
+<GAEB xmlns="http://www.gaeb.de/GAEB_DA_XML/DA86ZE/3.2">
+	<GAEBInfo>
+		<Version>3.2</Version>
+		<VersDate>2014-03</VersDate>
+		<Date>2013-08-29</Date>
+		<Time>14:22:39</Time>
+		<ProgSystem>nextbau/ GXML Toolbox V3.2 R20130614</ProgSystem>
+		<ProgName>nextbau</ProgName>
+	</GAEBInfo>
+	<Award>
+		<DP>86ZE</DP>
+		<AwardInfo>
+			<CnstStart>2013-09-01</CnstStart>
+			<CnstEnd>2014-09-01</CnstEnd>
+			<ContrNo>2013-02-Z</ContrNo>
+			<ContrDate>2013-08-31</ContrDate>
+		</AwardInfo>
+		<IndivAgrInfo/>
+		<OWN>
+			<AwardNo>2013_2_Z</AwardNo>
+		</OWN>
+		<CnstSite>
+			<Address>
+				<Name1>Muster-Bauunternehmen GmbH</Name1>
+				<Street>Schillerplatz 1</Street>
+				<PCode>99423</PCode>
+				<City>Weimar</City>
+				<Phone>03643 - 12 34 56</Phone>
+				<Email>musterfirma@weimar.de</Email>
+				<Bank>
+					<LblBank>Sparkasse Mittelthüringen</LblBank>
+					<BRNo>654321</BRNo>
+					<AcctNo>123456</AcctNo>
+				</Bank>
+			</Address>
+		</CnstSite>
+		<BoQ ID="X87ce180a-d3bc-4ce6-91d6-38540c5fe7c5">
+			<BoQInfo>
+				<Name>2013_2_Z</Name>
+				<LblBoQ>nextbau - Test Zeitverträge GAEB DA XML 3.2 Beta</LblBoQ>
+				<Date>2013-08-30</Date>
+				<BoQBkdn>
+					<Type>Item</Type>
+					<LblBoQBkdn>Position</LblBoQBkdn>
+					<Length>4</Length>
+					<Num>Yes</Num>
+				</BoQBkdn>
+			</BoQInfo>
+			<BoQBody>
+				<Itemlist>
+					<Item ID="X3904d236-fda8-41a6-af03-1a075a14b7d0" RNoPart="0010">
+						<Qty>25</Qty>
+						<Description>
+							<WICNo>10.0010</WICNo>
+						</Description>
+					</Item>
+					<Item ID="Xe3ed6d16-cca0-43c6-aeaa-7ab219a1090e" RNoPart="0020">
+						<Qty>1.250</Qty>
+						<Description>
+							<WICNo>10.0020</WICNo>
+						</Description>
+					</Item>
+					<Item ID="Xf3237935-3aed-4155-8713-ef3b20ac1032" RNoPart="0030">
+						<Qty>1</Qty>
+						<Description>
+							<WICNo>10.0030</WICNo>
+						</Description>
+					</Item>
+					<Item ID="Xab99e3cb-705c-4f4f-98ac-0d8970ac842a" RNoPart="0040">
+						<Qty>532</Qty>
+						<Description>
+							<WICNo>20.0010</WICNo>
+						</Description>
+					</Item>
+					<Item ID="Xbfedb04f-97d8-4ab3-b041-04a555ecef8b" RNoPart="0050">
+						<Qty>15</Qty>
+						<Description>
+							<WICNo>20.0020</WICNo>
+						</Description>
+					</Item>
+					<Item ID="X141265f6-4af8-4c2a-99be-fd82c2cec340" RNoPart="0060">
+						<Qty>750</Qty>
+						<Description>
+							<WICNo>30.0010</WICNo>
+						</Description>
+					</Item>
+					<MastAgrItems>
+						<MaterialItem ID="Xbe8a1f58-e578-436a-8b72-87e9ff2a475b" RNoPart="0070">
+							<PredIT>5000.00</PredIT>
+							<Description>
+								<WICNo>40.0010</WICNo>
+							</Description>
+						</MaterialItem>
+						<MaterialItem ID="X3e297178-40c6-4383-aece-ee520f8e82c7" RNoPart="0080">
+							<PredIT>5000.00</PredIT>
+							<Description>
+								<WICNo>40.0020</WICNo>
+							</Description>
+						</MaterialItem>
+						<HourItem ID="X8b66f327-7009-4b8b-a379-dfbb091d1fe2" RNoPart="0090">
+							<Qty>3.000</Qty>
+							<Description>
+								<WICNo>50.0010</WICNo>
+							</Description>
+						</HourItem>
+						<HourItem ID="X79fa2cd6-3c90-4a4d-a9d8-1390f3eac697" RNoPart="0100">
+							<Qty>3.000</Qty>
+							<Description>
+								<WICNo>50.0020</WICNo>
+							</Description>
+						</HourItem>
+						<HourItem ID="Xa609f2b5-14b4-4921-a50f-9d5942cfdb5a" RNoPart="0110">
+							<Qty>2.000</Qty>
+							<Description>
+								<WICNo>50.0030</WICNo>
+							</Description>
+						</HourItem>
+						<MarkupItemOWN ID="Xce71c870-8781-424e-a39b-66cbf6a4a8d1" RNoPart="0120">
+							<RefItem IDRef="X141265f6-4af8-4c2a-99be-fd82c2cec340"/>
+							<Description>
+								<WICNo>60.0010</WICNo>
+							</Description>
+						</MarkupItemOWN>
+						<MarkupItemCTR ID="X1ed161d9-e7c2-4152-b26d-68bd5a94d6ce" RNoPart="0130">
+							<RefItem IDRef="Xab99e3cb-705c-4f4f-98ac-0d8970ac842a"/>
+							<Description>
+								<WICNo>70.0010</WICNo>
+							</Description>
+						</MarkupItemCTR>
+						<MarkupItemCTR ID="X1ed161d9-e7c2-4152-b26d-68bd5a94d6cf" RNoPart="0140">
+							<RefItem IDRef="Xbfedb04f-97d8-4ab3-b041-04a555ecef8b"/>
+							<Description>
+								<WICNo>70.0010</WICNo>
+							</Description>
+						</MarkupItemCTR>
+						<MarkupItemCTR ID="X2cb4155a-1fb5-47cf-8381-69f0012bbbb4" RNoPart="0150">
+							<RefItem IDRef="X3904d236-fda8-41a6-af03-1a075a14b7d0"/>
+							<Description>
+								<WICNo>70.0020</WICNo>
+							</Description>
+						</MarkupItemCTR>
+					</MastAgrItems>
+				</Itemlist>
+			</BoQBody>
+		</BoQ>
+	</Award>
+</GAEB>

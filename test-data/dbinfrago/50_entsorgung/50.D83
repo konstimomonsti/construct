@@ -1,0 +1,1484 @@
+00        83L                                                 1122PPPPI90 000001
+01MLV Entsorg. v. Bau-/Abbruchabf.,2024-0727.09.24                        000002
+02DB Netz                                                                 000003
+03                                                                        000004
+064              Ger„te        Stoffe        Ger„te        Sonstiges      000005
+08EUR   Euro                                                              000006
+1101       N    LV-Gruppe 1                                               000007
+12Vorbereitung der Entsorgung von                                         000008
+12Bauabf„llen                                                             000009
+110101     N    LV-Gruppe 2                                               000010
+12Abfallverantwortlicher der Baustelle                                    000011
+2101010010 NNN         00000001000psch                                    000012
+25Abfallverantwortlicher, MLV-ENT_01010010                                000013
+26   Gestellung eines Abfallverantwortlichen auf der                      000014
+26   Baustelle mit folgenden Qualifikationen:                             000015
+26   - Abfallbeauftragter nach õ 59 KrWG mit mind. 1 Jahr                 000016
+26   Praxiserfahrung                                                      000017
+26   - Sachkundenachweis fr  Probenahme fester Abf„lle                   000018
+26   gem„á LAGA PN98                                                      000019
+26   und folgenden Aufgaben:                                              000020
+26   - Ansprechpartner fr den AG zu allen Fragen des                     000021
+26   Abfallmanagement und der ErsatzbaustoffVO                            000022
+26   - Steuerung des Abfallmanagements des AN auf der                     000023
+26   Baustelle (inkl. bedarfsweiser Teilnahme an                          000024
+26   Baubesprechungen, Begehungen, Abkl„ren von                           000025
+26   Entsorgungswegen) gem„á Baubeschreibung                              000026
+26   - Koordinierung der Umsetzung des vom AG frei gegebenen              000027
+26   Entsorgungskonzeptes des AN                                          000028
+26   - Koordinierung von Aushub, Rckbau, Getrennthaltung,                000029
+26   Aufhaldung und Beprobung von Bodenaushub und                         000030
+26   Bauabf„llen                                                          000031
+26   - Mitwirkung bei der Deklaration der anfallenden                     000032
+26   Abf„lle                                                              000033
+26   - Koordinierung des Einbaus von Material (Wiedereinbau               000034
+26   oder Fremdlieferung) nach BBodSchV und ErsatzbaustoffVO              000035
+26   einschlieálich Dokumentation                                         000036
+26   - Mitwirken bei der bauvertraglich geschuldeten                      000037
+26   Nachweisfhrung und Dokumentation vor Ort                            000038
+26   - eigener Zugang zum eANV-System ZEDAL                               000039
+26                                                                        000040
+310101                                                                    000041
+110102     N    LV-Gruppe 2                                               000042
+12Entsorgungskonzept AN                                                   000043
+2101020010 NNN         00000001000psch                                    000044
+25Entsorgungskonzept AN, MLV-ENT_01020010                                 000045
+26   Entsorgungskonzept des Auftragnehmers Bau (AN) gem„á                 000046
+26   Vorbemerkungen und gem„á der Anlage 8 "Mustergliederung              000047
+26   Entsorgungskonzept AN" zum DB InfraGO AG -                           000048
+26   Abfallprozess  M.01.02.15.03 erarbeiten, regelm„áige                 000049
+26   Fortschreibung / Erg„nzung gem„á Baufortschritt,                     000050
+26   inklusive der beauftragten Rckbau- und Abbrucharbeiten              000051
+26   und der Vorbereitung / Mitwirkung bei der                            000052
+26   Nachweisfhrung gem„á Vorbemerkungen.                                000053
+26                                                                        000054
+26   Der Entwurf des Entsorgungskonzeptes ist sp„testens 4                000055
+26   Wochen nach Zuschlagserteilung, die erste Vollversion                000056
+26   mindestens 6 Wochen vor dem technischen Baubeginn beim               000057
+26   AG zur Best„tigung vorzulegen. Das Vorliegen eines vom               000058
+26   AG best„tigten Entsorgungskonzeptes ist Voraussetzung                000059
+26   fr den Beginn von Aushub- oder Rckbaumaánahmen mit                 000060
+26   der Entstehung von Abfall.                                           000061
+26                                                                        000062
+26   Die vom AG freigegebene Version ist digital vorzulegen.              000063
+310102                                                                    000064
+110103     N    LV-Gruppe 2                                               000065
+12Elektronische Nachweisfhrung ber die                                  000066
+12Entsorgung aller Bauabf„lle                                             000067
+2101030010 NNN         00000001000psch                                    000068
+25Elektronische Nachweisfhrung, MLV-ENT_01030010                         000069
+26   Die Nachweisfhrung ber die Entsorgung aller                        000070
+26   gef„hrlichen und nicht gef„hrlichen Bauabf„lle hat                   000071
+26   mittels des elektronischen Abfallnachweisverfahrens                  000072
+26   (eANV) zu erfolgen. Der AN und die von ihm beauftragten              000073
+26   Abfallentsorger und Abfallbef”rderer haben                           000074
+26   grunds„tzlich aktiv bei der Vorbereitung und Erstellung              000075
+26   der erforderlichen Nachweisunterlagen fr die Vorab-                 000076
+26   und Verbleibskontrolle im eANV mitzuwirken.                          000077
+2101030011 NNN         00000001000psch                                    000078
+25Zulage Erstellung elektronischer Entsorgungsnachweise,                  000079
+25MLV-ENT_01030011                                                        000080
+26   Zulage fr das Erstellen der elektronischen Akten und                000081
+26   der Entsorgungsnachweise  (EN/VN) im eANV-System ZEDAL               000082
+26   fr alle im Bauvorhaben anfallenden Bauabf„lle durch                 000083
+26   den Auftragnehmer. Die Dokumente sind soweit wie                     000084
+26   m”glich vorauszufllen und durch die Aktenfreigabe                   000085
+26   (inklus. Besitzbergang) dem AG in ZEDAL elektronisch                000086
+26   vorzulegen.                                                          000087
+2101030020 NNN         00000001000psch                                    000088
+25Zulage Ersatzweise Signatur von Registerbelegen, MLV-ENT_01030020       000089
+26   Fr den Fall, dass die vom AN beauftragten Bef”rderer                000090
+26   oder Entsorger nicht am eANV fr nicht gef„hrliche                   000091
+26   Abf„lle (ngA) teilnehmen, hat der AN ersatzweise fr                 000092
+26   Bef”rderer und Entsorger die elektronischen                          000093
+26   Registerbelege zu signieren. Der genaue Ablauf ist                   000094
+26   gem„á Leitfaden eANV ngA DB Netz / Anlage 12a zum                    000095
+26   Abfallprozess M.01.02.15.03 auszugestalten und mit dem               000096
+26   Entsorgungskonzept des AN detailliert zu beschreiben                 000097
+26   und vom AG freizugeben.                                              000098
+26                                                                        000099
+2101030030 NNN         00000001000psch                                    000100
+25Technische Ausstattung, MLV-ENT_01030030                                000101
+26   Zur Abwicklung der elektronischen Nachweisfhrung sind               000102
+26   folgende Zug„nge und anwendungsbereite                               000103
+26   Ger„teausstattungen fr den Abfallbeauftragten /                     000104
+26   Bevollm„chtigten des AN und die Bef”rderer auf der                   000105
+26   Baustelle zur Verfgung zu stellen. Die Ausstattung                  000106
+26   und die Zug„nge sind im Entsorgungskonzept des AN zu                 000107
+26   dokumentieren:                                                       000108
+26   - Gebr„uchliche Computerhardware inkl.                               000109
+26   DSL-Verbindung (Internet) oder gleichwertig                          000110
+26   - Abfallerfassungssoftware inklusive eigenst„ndigem                  000111
+26   Zugang, kompatibel zur Zentralen Koordinierungsstelle                000112
+26   der L„nder (ZKS), Empfehlung: Anmeldung bei der                      000113
+26   ZEDAL-Provider-L”sung, einschl. Signaturarbeitsplatz                 000114
+26   - optional: Kartenleseger„te incl. Treibersoftware mit               000115
+26   Zulassung der Bundesnetzagentur zur qualifizierten                   000116
+26   Signatur abfallrechtlicher Dokumente durch                           000117
+26   Bauberwachung und Bef”rderer.                                       000118
+2101030040 NNN         00000001000psch                                    000119
+25Technische Ausstattung, MLV-ENT_01030040                                000120
+26   Zur Abwicklung der elektronischen Nachweisfhrung sind               000121
+26   folgende Zug„nge und anwendungsbereite                               000122
+26   Ger„teausstattungen fr den Abfallverantwortlichen des               000123
+26   AN und die Bef”rderer auf der Baustelle zur Verfgung                000124
+26   zu stellen. Die Ausstattung und die Zug„nge sind im                  000125
+26   Entsorgungskonzept des AN zu dokumentieren:                          000126
+26   - Gebr„uchliche Computerhardware inkl. DSL-Verbindung                000127
+26   (Internet) oder gleichwertig                                         000128
+26   - Abfallerfassungssoftware inklusive eigenst„ndigem                  000129
+26   Zugang, kompatibel zur Zentralen Koordinierungsstelle                000130
+26   der L„nder (ZKS), Empfehlung: Anmeldung bei der                      000131
+26   ZEDAL-Provider-L”sung, einschl. Signaturarbeitsplatz                 000132
+26   - optional: Kartenleseger„te incl. Treibersoftware mit               000133
+26   Zulassung der Bundesnetzagentur zur qualifizierten                   000134
+26   Signatur abfallrechtlicher Dokumente durch                           000135
+26   Bauberwachung und Bef”rderer.                                       000136
+2101030041 NNN         00000001000psch                                    000137
+25Erstellung_Einbaudokumentation_gem„á_EBV, MLV-ENT_01030041              000138
+26   Erstellen einer Einbaudokumentation gem. õ 22+25 EBV                 000139
+26                                                                        000140
+26   Der Auftragnehmer wird vom AG als Verwender der                      000141
+26   mineralischen Ersatzbaustoffe (MEB) festgelegt, die er               000142
+26   im Auftrag des AG in technische Bauwerke / Bauweisen                 000143
+26   gem. Anlage 2 + 3 EBV einbaut. Der AN hat daher eine                 000144
+26   vollst„ndige elektronische Einbaudokumentation fr alle              000145
+26   von ihm in technische Bauwerke eingebauten MEB im                    000146
+26   System ZEDAL zu erstellen, unabh„ngig davon, ob die MEB              000147
+26   von ihm geliefert oder vom AG beigestellt wurden.                    000148
+26                                                                        000149
+26   Nach der vom AG gem. Ziff. 0.2.13.1 der Baubeschreibung              000150
+26   erteilten Freigabe des AG zum MEB-Einbau legt der AG                 000151
+26   eine elektronische Akte in ZEDAL an und gibt die Akte                000152
+26   dem AN frei. Der AN erstellt in der vom AG angelegten                000153
+26   und frei gegebenen elektronischen Akte eigenst„ndig das              000154
+26   elektronische Deckblatt bzw. die elektronische                       000155
+26   Voranzeige im ZEDAL. Im Dokumentenkopf ist das Krzel                000156
+26   der als Bauherr bzw. AG fungierenden DB-Organisation                 000157
+26   sowie die Bezeichnung des Bauvorhabens einzutragen. Aus              000158
+26   dem Deckblatt / Voranzeige erstellt der AN ein                       000159
+26   Lieferscheinmuster, aus dem er die ben”tigte Anzahl an               000160
+26   Lieferscheinen generiert, diese Abfolge ist zwingend.                000161
+26                                                                        000162
+26   Fr jeden per LKW angelieferten MEB ist dabei ein                    000163
+26   elektronischer Lieferschein zu erstellen, alle                       000164
+26   Lieferscheine eines unter gleichbleibenden Bedingungen               000165
+26   eingebauten MEB sind ber die o.g. Erstellung dabei                  000166
+26   einem elektronischen Deckblatt oder einer Voranzeige                 000167
+26   zuzuordnen. Bei jedem Wechsel des MEB, der technischen               000168
+26   Bauweise, der Beschaffenheit der                                     000169
+26   Grundwasserdeckschicht, des Grundwasserflurabstandes                 000170
+26   oder der Kategorie des wasserrechtlichen Schutzgebietes              000171
+26   ist ein neues Deckblatt (bzw. Voranzeige) zu erstellen.              000172
+26                                                                        000173
+26   In folgenden F„llen ist durch den AN anstelle des                    000174
+26   Deckblatts eine elektronische Vor- und Abschlussanzeige              000175
+26   gem„á Anlage 8 EBV im System ZEDAL zu erstellen:                     000176
+26   1. Es soll Bodenmaterial mindestens BM-F0*, Baggergut                000177
+26   mind. BG-F0*, aufbereiteter Gleisschotter mind. GS-1                 000178
+26   oder aufbereitete RC-Baustoffe mind. RC-1 oder jeweils               000179
+26   h”herer Materialklassen in Wasser- oder                              000180
+26   Heilquellenschutzgebiete der Zone III oder h”herer                   000181
+26   Zonen eingebaut werden oder                                          000182
+26   2. Es soll Bodenmaterial, Baggergut oder RC-Baustoffe                000183
+26   der Klasse 3 (BM-F3, BG-F3 oder RC-3) mit einer                      000184
+26   geplanten Einbaumenge = 250 mü eingebaut werden. In                  000185
+26   diesen F„llen hat der AN den Einbau 4 Wochen vor Beginn              000186
+26   mittels der šbermittlung der elektronischen Voranzeige               000187
+26   als Mail/pdf-Export aus dem ZEDAL bei der zust„ndigen                000188
+26   Bodenschutzbeh”rde elektronisch anzuzeigen, und                      000189
+26   sp„testens 2 Wochen nach Einbauende die                              000190
+26   Abschlussanzeige nebst aller Lieferscheine auf gleichem              000191
+26   Wege zu bermitteln.                                                 000192
+26                                                                        000193
+26   Der AN erstellt anschlieáend aus den Deckbl„ttern die                000194
+26   jew. Muster-Lieferscheine, generiert daraus die                      000195
+26   ben”tigten Lieferscheine und vervollst„ndigt und                     000196
+26   signiert diese elektronisch. Bei Notwendigkeit einer                 000197
+26   Voranzeige ist der Ablauf identisch, zus„tzlich ist                  000198
+26   nach Abschluss der Baumaánahme eine elektronische                    000199
+26   Abschlussanzeige zu erstellen.                                       000200
+26                                                                        000201
+26   Nach Abschluss des Einbaus ist die vollst„ndige                      000202
+26   Dokumentation dem von AG benannten                                   000203
+26   Anlagenverantwortlichen zu bergeben.                                000204
+26                                                                        000205
+310103                                                                    000206
+3101                                                                      000207
+1102       N    LV-Gruppe 1                                               000208
+12Beprobung und Deklarationsanalytik                                      000209
+20X                                                                       000210
+26   Die anfallenden Aushub- und Abbruchmassen sind ber                  000211
+26   Haufwerksbeprobungen in Anlehnung an die LAGA PN 98                  000212
+26   sowie entsprechend den landesrechtlichen Anforderungen               000213
+26   zu beproben und zu untersuchen. Ausfhrung von                       000214
+26   Probenahme, Untersuchung und Bewertung nur durch ein                 000215
+26   fr diese T„tigkeiten nach DIN EN ISO / IEC 17025                    000216
+26   akkreditiertes Labor. Die Probenahmen sind vom AN 5                  000217
+26   Werktage vor Ausfhrung bei der abfalltechnischen                    000218
+26   Bauberwachung anzumelden.                                           000219
+26                                                                        000220
+26   Fr jede Analytik bzw. jedes Haufwerk ist ein                        000221
+26   Umwelttechnischer Bericht (UTB) mit folgenden Inhalten               000222
+26   zu erstellen:                                                        000223
+26   - aussagef„higes Probenahmeprotokoll mit                             000224
+26   Herkunftsangabe, Lageskizze und Fotodokumentation der                000225
+26   Haufwerke sowie bei Bodenaushub Angabe der                           000226
+26   Bodenarten-Hauptgruppen                                              000227
+26   - Prfbericht bzw. Untersuchungsergebnisse der                       000228
+26   chemischen Analytik                                                  000229
+26   - Bewertung der Untersuchungsergebnisse (d.h. Zuweisung              000230
+26   jedes einzelnen Untersuchungswertes wie auch der                     000231
+26   Gesamtprobe zu einem Zuordnungswert nach LAGA bzw.                   000232
+26   landesrechtlich vorgegebenen Grenzwert);                             000233
+26   - abfallrechtlicher Einstufung gem„á AVV bzw.                        000234
+26   landesrechtlichen Vorgaben                                           000235
+26                                                                        000236
+26   Notwendige Anzahl an Probenahmen und Analysen zur                    000237
+2665ADeklaration von '(> x<)' mü Aushubmaterial  (2 Analysen              000238
+26   je 500 mü) gem„á der am Anfallort geltenden                          000239
+26   beh”rdlichen Vorgaben.                                               000240
+26                                                                        000241
+26   šberschlagsrechnung zur Ermittlung der Analysenanzahl:               000242
+26   Gesamtabfallmenge dividiert durch 500 mü;  1                         000243
+26   Deklarationsanalytik (DA) je 500 mü umfasst 9                        000244
+26   Laborproben insgesamt, jede Laborproben besteht aus je               000245
+26   4 Einzelproben, d.h. es sind max. 36 Einzelproben je                 000246
+26   500 mü zu nehmen. Von den 9 Laborproben sind 2                       000247
+26   Laborproben zu analysierende, die brigen 7 Laborproben              000248
+26   werden nicht analysiert und als Rckstellproben                      000249
+26   aufbewahrt.                                                          000250
+26                                                                        000251
+26   Fr Altschotter sind die Regelungen der                              000252
+26   Altschotter-Richtlinie (Ril. 880.4010) zu beachten.                  000253
+26   Untersuchungsumfang und Bewertungsgrundlagen sind mit                000254
+26   dem AG abzustimmen.                                                  000255
+110201     N    LV-Gruppe 2                                               000256
+12Beprobung/Dekl.analytik - Bodenaushub                                   000257
+2102010010 NNN         00000000000St                                      000258
+25DA Boden Mindestunters.progr. gem. LAGA, MLV-ENT_02010010               000259
+26   Beprobung und Analytik zur Deklaration von Bodenaushub               000260
+26   ber Haufwerke mit einer Kubatur von 500 mü, je                      000261
+26   Haufwerk sind 9 Misch- und Laborproben aus je 4                      000262
+26   Einzelproben zu erstellen (insgesamt max. 36 EP je                   000263
+26   Haufwerk), davon sind 2 Laborproben zu analysieren, 7                000264
+26   LP sind Rckstellproben und werden i.d.R. nicht                      000265
+26   analysiert.                                                          000266
+26   Probenahme in Anlehnung an LAGA PN 98;                               000267
+26   Analytikumfang gem„á LAGA M20 (2004): Festoff- und                   000268
+26   Eluatparameter Tabelle II.1.2-1                                      000269
+26   (Mindesuntersuchungsprogramm).                                       000270
+26                                                                        000271
+2102010020 NNN         00000000000St                                      000272
+25DA Boden vollst. Programm gem. LAGA, MLV-ENT_02010020                   000273
+26   Beprobung und Analytik zur Deklaration von Bodenaushub               000274
+26   ber Haufwerke mit einer Kubatur von 500 mü, je                      000275
+26   Haufwerk sind 9 Misch- und Laborproben aus je 4                      000276
+26   Einzelproben zu erstellen (insgesamt max. 36 EP je                   000277
+26   Haufwerk), davon sind 2 Laborproben zu analysieren, 7                000278
+26   LP sind Rckstellproben und werden i.d.R. nicht                      000279
+26   analysiert.                                                          000280
+26   Probenahme in Anlehnung an LAGA PN 98; Analytikumfang                000281
+26   nach LAGA M20 (2004): Festoffparameter gem„á Tabelle                 000282
+26   II.1.2-4; Eluatparameter gem„á Tabelle II.1.2-5                      000283
+26   zuzglich MKW und PAK15 .                                            000284
+2102010030 NNN         00000000000St     X                                000285
+25DA Boden zus„tzl. Verdachtsparam. gem. LAGA, MLV-ENT_02010030           000286
+26   Erg„nzende Analytik von Boden auf folgend zus„tzliche                000287
+2662ASchadstoffe '(>xy<) ' im Feststoff und Eluat.                        000288
+2102010040 NNN         00000000000St     X                                000289
+25DA Boden zus„tzl. Parameter gem. DepV, MLV-ENT_02010040                 000290
+26   Erg„nzende Analytik von Bodenaushub gem„á DepV, Anhang               000291
+26   3, Tabelle 2, auf folgende zus„tzliche Parameter:                    000292
+2663AErg„nzen der Parameter '(>...<) '.                                   000293
+2102010050 NNN         00000000000St                                      000294
+25DA Boden TOC Konzentrationen, MLV-ENT_02010050                          000295
+26   Erg„nzende Analytik zur Bewertung der                                000296
+26   TOC-Konzentration ber AT4, GB21 und Brennwert (H0)                  000297
+26   gem„á DepV, Anhang 3, Kap. 4, bei šberschreitung                     000298
+26   des Z2-Wertes nach LAGA (2004).                                      000299
+2102010060 NNN         00000000000St                                      000300
+25DA_gleisnaher_Boden_Herbizide_MLV-ENT_02010060                          000301
+26   Analytik von gleisnahem Boden (Boden aus Gleisunterbau               000302
+26   oder Randweg) auf folgende Herbizide bzw. Metaboliten                000303
+26   im Eluat :                                                           000304
+26   Atrazin, Bromacil, Simazin, Flumioxazin, Dimefuron,                  000305
+26   Diuron, Hexazinon, Glyphosat, AMPA, Flazasulfuron                    000306
+26   differenziert nach Bundesl„ndern zus„tzlich folgende                 000307
+26   Herbizide im Eluat:                                                  000308
+26   -Niedersachsen + Bremen: Desethylatrazin,                            000309
+26   2,6-Dichlorbenzamid, Ethidimuron, Terbuthylazin                      000310
+26   -Bayern: Desethylatrazin, 2,6-Dichlorbenzamid,                       000311
+26   Ethidimuron, Terbuthylazin                                           000312
+26   -Baden-Wrttemberg: Desethylatrazin, Ethidimuron                     000313
+26   -Berlin, Brandenburg, Mecklbg.-Vorp, Sachsen,                        000314
+26   Thringen, Sachsen-Anhalt: Thiazafluron                              000315
+26   -Hessen, NRW, Rheinl.-Pfalz, Saarland,                               000316
+26   Schleswig-Holstein: Ethidimuron                                      000317
+2102010061 NNN         00000000000St                                      000318
+25Zulage_Eluatanalytik_W:F_2:1_MLV-ENT_02010061                           000319
+26   Zulage zu Pos. Nr. 02.01.0010, -0020, -0030, -0040,                  000320
+26   0060 (jeweils) fr Eluatanalytik im Schttelversuch                  000321
+26   gem„á DIN 19529 bei einem Wasser-Feststoffverh„ltnis                 000322
+26   (W:F) 2:1 (anstelle 10:1 nach LAGA) .                                000323
+2102010070 NNN         00000000000St                                      000324
+25DA_Boden_EBV_Anl1Tab3_MLV_ENT_02010070                                  000325
+26   Beprobung und Analytik zur Deklaration von Bodenaushub               000326
+26   ber Haufwerke mit einer Kubatur von 500 mü, je                      000327
+26   Haufwerk sind 9 Misch- und Laborproben aus je 4                      000328
+26   Einzelproben zu erstellen (insgesamt max. 36 EP je                   000329
+26   Haufwerk), davon sind 2 Laborproben zu analysieren, 7                000330
+26   LP sind Rckstellproben und werden i.d.R. nicht                      000331
+26   analysiert. Probenahme in Anlehnung an LAGA PN 98;                   000332
+26   Analytikumfang gem„á Anlage 1 Tab. 3                                 000333
+26   Ersatzbaustoffverordnung (EBV). Alle Eluatwerte sind im              000334
+26   Schttelversuch gem„á DIN 19529 bei einem                            000335
+26   Wasser-Feststoffverh„ltnis (W:F) 2:1  zu ermitteln.                  000336
+26                                                                        000337
+2102010072 NNN         00000000000St                                      000338
+25DA_Boden_EBV_Anl1Tab4_sonstMw_MLV_ENT_02010072                          000339
+26   Beprobung und Analytik zur Deklaration von Bodenaushub               000340
+26   und sonstigen mineralischen Abf„llen ber Haufwerke mit              000341
+26   einer Kubatur von 500 mü. Probenahme in Anlehnung an                 000342
+26   LAGA PN 98. Je Haufwerk sind 9 Misch- und Laborproben                000343
+26   aus je 4 Einzelproben zu erstellen - insgesamt max. 36               000344
+26   EP je Haufwerk. Von 9 Laborproben sind 2 Laborproben zu              000345
+26   analysieren, 7 LP sind Rckstellproben und werden                    000346
+26   i.d.R. nicht analysiert.                                             000347
+26   Analytikumfang: Sonstige Materialwerte Anlage 1 Tab. 4               000348
+26   EBV ohne Herbizide und AMPA.                                         000349
+26   Alle Eluatwerte sind im Schttelversuch gem„á DIN 19529              000350
+26   bei einem Wasser-Feststoffverh„ltnis (W:F) 2:1  zu                   000351
+26   ermitteln.                                                           000352
+2102010074 NNN         00000000000St                                      000353
+25DA_Boden_EBV_Anl1Tab4_Herbzd_MLV_ENT_02010074                           000354
+26   Beprobung und Analytik zur Deklaration von Bodenaushub               000355
+26   und sonstigen mineralischen Abf„llen ber Haufwerke mit              000356
+26   einer Kubatur von 500 mü. Probenahme in Anlehnung an                 000357
+26   LAGA PN 98. Je Haufwerk sind 9 Misch- und Laborproben                000358
+26   aus je 4 Einzelproben zu erstellen - insgesamt max. 36               000359
+26   EP je Haufwerk. Von 9 Laborproben sind 2 Laborproben zu              000360
+26   analysieren, 7 LP sind Rckstellproben und werden                    000361
+26   i.d.R. nicht analysiert.                                             000362
+26   Analytikumfang: Herbizide und AMPA gem„á Anlage 1 Tab.               000363
+26   4 EBV.                                                               000364
+26   Alle Eluatwerte sind im Schttelversuch gem„á DIN 19529              000365
+26   bei einem Wasser-Feststoffverh„ltnis (W:F) 2:1  zu                   000366
+26   ermitteln.                                                           000367
+310201                                                                    000368
+110202     N    LV-Gruppe 2                                               000369
+12Beprobung/Dekl.analytik - Altschotter                                   000370
+20                                                                        000371
+26   HINWEIS FšR DEN LV-ERSTELLER:                                        000372
+26   ggf. weitere Herbizide n. Landesrecht erg„nzen:                      000373
+26                                                                        000374
+2102020021 NNN         00000000000St                                      000375
+25DA_Altschotter_HW_MLV-ENT_02020021                                      000376
+26   Beprobung und Analytik zur Deklaration von Altschotter               000377
+26   aus Haufwerken mit einer Kubatur von 500 mü                          000378
+26   entsprechend der aktuellen Fassung der                               000379
+26   Altschotterrichtlinie Ril 880.4010.                                  000380
+26                                                                        000381
+26   Altschotter aus Gleisbereichen und Weichenbereichen ist              000382
+26   getrennt aufzuhalden, jedes HW ist separat zu beproben.              000383
+26   Die Beprobung erfolgt in Anlehnung an DIN 19698-1 bzw.               000384
+26   DIN 19698-2.                                                         000385
+26                                                                        000386
+26   Alle Eluatwerte sind im Schttelversuch gem„á DIN 19529              000387
+26   bei einem Wasser-Feststoff-Verh„ltnis (W:F) 2:1 zu                   000388
+26   ermitteln.                                                           000389
+26   Untersuchungsumfang und Bewertungsgrundlagen sind mit                000390
+26   dem AG abzustimmen. Analyse und gutachterlicher Bericht              000391
+26   / abfallrechtliche Einstufung sind in das Angebot                    000392
+26   einzurechnen.                                                        000393
+26                                                                        000394
+2102020022 NNN         00000000000St                                      000395
+25DA_Altschotter_insitu_MLV_ENT_02020022                                  000396
+26   Beprobung und Analytik zur Deklaration von Altschotter               000397
+26   im Gleis (in Situ) mit i.d.R. 6 Schrfungen je 1000 m                000398
+26   Gleisl„nge einschl. Umsetzung zwischen den                           000399
+26   Entnahmepunkten gem„á aktueller Altschotterrichtlinie                000400
+26   Ril 880.4010 und in Anlehnung an DIN 19698-6.                        000401
+26   Untersuchung d. Gesamtfraktion 0-63 mm (vollst„ndige                 000402
+26   Bettungserneuerung vorgesehen).                                      000403
+26   Entnahme von 2 Laborproben KG 0-63 mm.                               000404
+26                                                                        000405
+26   Alle Eluatwerte sind im Schttelversuch gem„á DIN 19529              000406
+26   bei einem Wasser-Feststoff-Verh„ltnis (W:F) 2:1  zu                  000407
+26   ermitteln. Untersuchungsumfang und Bewertungsgrundlagen              000408
+26   sind mit dem AG abzustimmen. Analyse und                             000409
+26   gutachterlicher Bericht / abfallrechtliche Einstufung                000410
+26   sind in das Angebot einzurechnen.                                    000411
+26                                                                        000412
+2102020023 NNN         00000000000St                                      000413
+25Zulage_DA_Altschotter_insitu_MLV_ENT_02020023                           000414
+26   Zulage zu Pos. 02.02.0022 - Herstellung und Analytik                 000415
+26   von 2 zus„tzlichen Laborproben aus Rckstellproben zur               000416
+26   Untersuchung  der Feinfraktion 0-31,5 mm gem„á                       000417
+26   aktueller Altschotterrichtlinie Ril 880.4010 und in                  000418
+26   Anlehnung an DIN 19698-6.                                            000419
+26                                                                        000420
+26   Alle Eluatwerte sind im Schttelversuch gem„á DIN 19529              000421
+26   bei einem Wasser-Feststoff-Verh„ltnis (W:F) 2:1  zu                  000422
+26   ermitteln. Untersuchungsumfang und Bewertungsgrundlagen              000423
+26   sind mit dem AG abzustimmen. Analyse und                             000424
+26   gutachterlicher Bericht / abfallrechtliche Einstufung                000425
+26   sind in das Angebot einzurechnen.                                    000426
+26                                                                        000427
+310202                                                                    000428
+110203     N    LV-Gruppe 2                                               000429
+12Beprobung/Dekl.analytik - Betonbruch,                                   000430
+12Bauschutt                                                               000431
+2102030010 NNN         00000000000St                                      000432
+25DA_Betonbruch_Bauschutt_LAGA_MLV-ENT_02030010                           000433
+26   Beprobung und Deklarationsanalytik - Betonbruch und                  000434
+26   Bauschutt gem„á landesrechtlichen Vorschriften, LAGA                 000435
+26   1997, Tab. II. 1.4-5 und 1.4-6)                                      000436
+26   Beprobung und Analytik zur Deklaration von von                       000437
+26   Betonbruch und Bauschutt ber Haufwerke mit einer                    000438
+26   Kubatur von 500 mü, je Haufwerk sind 9 Misch- und                    000439
+26   Laborproben aus je 4 Einzelproben zu erstellen                       000440
+26   (insgesamt max. 36 EP je Haufwerk), davon sind 2                     000441
+26   Laborproben zu analysieren, 7 LP sind Rckstellproben.               000442
+26                                                                        000443
+26   Analyseumfang gem„á LAGA M20 (1997),                                 000444
+26   Tabelle II. 1.4-5. Bei einstufungsbestimmender                       000445
+26   šberschreitung der elektrischen Leitf„higkeit hat die                000446
+26   Analytik von pH-Wert und Leitf„higkeit zus„tzlich unter              000447
+26   Begasung mit einem CO2-Luftgemisch zu erfolgen.                      000448
+26   Probenahme und Dokumentation entsprechend                            000449
+26   Vorbemerkungen zu Analytik-Positionen.                               000450
+2102030011 NNN         00000000000St                                      000451
+25Zulage_Eluatanalytik_W:F_2:1_MLV-ENT_02030011                           000452
+26   Zulage zu Pos. Nr. 02.03.0010 fr Eluatanalytik im                   000453
+26   Schttelversuch gem„á DIN 19529 bei einem                            000454
+26   Wasser-Feststoffverh„ltnis (W:F) 2:1 (anstelle 10:1                  000455
+26   nach LAGA).                                                          000456
+2102030012 NNN         00000000000St                                      000457
+25DA_Betonbruch_Bauschutt_EBV_MLV-ENT_02030012                            000458
+26   Beprobung und Analytik zur Deklaration von                           000459
+26   Beton(-bruch), Bauschutt und sonstigem                               000460
+26   RC-Ausgangsmaterial ber Haufwerke mit einer Kubatur                 000461
+26   von 500 mü, je Haufwerk sind 9 Misch- und Laborproben                000462
+26   aus je 4 Einzelproben zu erstellen (max. 36 EP je                    000463
+26   Haufwerk), davon sind 2 Laborproben zu analysieren, 7                000464
+26   LP sind Rckstellproben.                                             000465
+26                                                                        000466
+26   Analytikumfang gem„á Ersatzbaustoffverordnung -                      000467
+26   Materialwerte Anlage 1 Tab. 1 EBV, Anlage 4 Tab. 2.2                 000468
+26   EBV, zus„tzlich folgende Eluatparameter der Anlage 1                 000469
+26   Tab. 3 +  4 EBV: As, Pb, Cd, Ni, Hg, Zn, Phenole.                    000470
+26   Alle Eluatwerte sind im Schttelversuch gem„á DIN 19529              000471
+26   bei einem Wasser-Feststoffverh„ltnis 2:1  zu ermitteln.              000472
+310203                                                                    000473
+110204     N    LV-Gruppe 2                                               000474
+12Beprobung/Dekl.analytik -                                               000475
+12Asphalt/Straáenaufbruch                                                 000476
+2102040010 NNN         00000000000St                                      000477
+25Asphalt, Straáenaufbruch, MLV-ENT_02040010                              000478
+26   Beprobung und Analysen zur Deklaration von Asphalt und               000479
+26   Straáenaufbruch mit einer Kubatur von 500 mü, je                     000480
+26   Haufwerk sind 9 Misch- und Laborproben aus je 4                      000481
+26   Einzelproben zu erstellen (max. 36 EP je Haufwerk),                  000482
+26   davon sind 2 Laborproben zu analysieren, 7 LP sind                   000483
+26   Rckstellproben.                                                     000484
+26   Analyseumfang gem„á landesrechtlichen Vorgaben und                   000485
+26   RuVA-StB 01-2005.                                                    000486
+310204                                                                    000487
+3102                                                                      000488
+1103       N    LV-Gruppe 1                                               000489
+12Bereitstellungsfl„chen                                                  000490
+110301     N    LV-Gruppe 2                                               000491
+12Bereitstellungsfl„chen                                                  000492
+2103010012 NNN         00000000000m2                                      000493
+25Herstellung Bereitstellungsfl„chen, MLV-ENT_03010012                    000494
+26   Ber„umen der zuknftigen Bereitstellungsfl„chen von                  000495
+26   Bewuchs und auflagernden Abf„llen Inklusive Sammeln,                 000496
+26   Verladen und Abtransport zu einer zertifizierten                     000497
+26   Entsorgungsanlage, Nachweisfhrung gem„á vom AG                      000498
+26   best„tigten Entsorgungskonzept AN.                                   000499
+26                                                                        000500
+26   Bei Nutzung nicht versiegelter Fl„chen: Abschieben des               000501
+26   Oberbodens, seitliches Aufsetzen in Mieten mit max. 2m               000502
+26   H”he. Ansaat von Mischsaaten (ohne Lollium perenne) bei              000503
+26   Liegedauer > 1 Monat.                                                000504
+26                                                                        000505
+26   Technischer Aufbau des Fl„chenuntergrundes und                       000506
+26   Haufwerkssicherung entsprechend den Anforderungen des                000507
+26   allgemeinen Boden- und Gew„sserschutzes gem„á                        000508
+26   Vorbemerkungen.                                                      000509
+26                                                                        000510
+26   Vorhandene Grundwassermessstellen, Sickersch„chte,                   000511
+26   Kanalanlagen etc. sind zu sichern und betriebsbereit zu              000512
+26   halten.                                                              000513
+26                                                                        000514
+26   Durch Anlage geeigneter Einrichtungen wie Randgr„ben,                000515
+26   Rckhaltebecken, Staustufen und Steinpackungen hat der               000516
+26   AN Maánahmen gegen Verunreinigung z.B. von Vorflutern                000517
+26   und Straáengr„ben durch Sedimente zu treffen.                        000518
+26                                                                        000519
+2103010021 NNN         00000000000m2     X                                000520
+25Betrieb und Rckbau Bereitstellungsfl„chen, MLV-ENT_03010021            000521
+26   Betreiben der Bereitstellungsfl„chen ber die gesamte                000522
+2661ABauzeit inklusive separiertem Aufhalden bis max.                     000523
+2661A'(>xx<)' mü je Haufwerk einschl. Reparaturarbeiten,                  000524
+26   Sichern der Haufwerke, ggf. Umsetzen der Haufwerke                   000525
+26   usw., Gestellung geeigneten Ger„ts inkl. Personal.                   000526
+26                                                                        000527
+26   Haufwerke mit Verdacht oder Nachweis von                             000528
+26   Kontaminationen LAGA Z 1.2 / EBV X-1 oder h”her sind                 000529
+26   gegen                                                                000530
+26   Niederschlagswasser mit mind. 0,4 mm starker HDPE-Folie              000531
+26   vollst„ndig abzudecken.                                              000532
+26   Erfolgt der untersuchungsm„áige Nachweis einer                       000533
+26   Belastung kleiner LAGA Z 1.2 / EBV X-1 kann die                      000534
+26   Abdeckung                                                            000535
+26   entfernt werden.                                                     000536
+26                                                                        000537
+26   Das ggf. notwendige mehrfache Abdecken (auf Weisung der              000538
+26   Bw) der Haufwerke und die Entsorgung                                000539
+26   unbrauchbarer/gebrauchter Baufolien sind                             000540
+26   einzukalkulieren.                                                    000541
+26                                                                        000542
+26   Einrichtungen zur Rckhaltung / Reinigung von Abw„ssern              000543
+26   sind w„hrend der Nutzungszeit der                                    000544
+26   Bereitstellungsfl„chen instand zu halten und                         000545
+26   erforderlichenfalls zu reparieren.                                   000546
+26                                                                        000547
+26   Ber„umung der Bereitstellungsfl„chen und                             000548
+26   Wiederherstellung des ursprnglichen Fl„chenzustandes                000549
+26   inkl. Andeckung des abgeschobenen Oberbodens.                        000550
+2103010031 NNN         00000000000m2                                      000551
+25Zulage zu Pos.03010020, MLV-ENT_03010031                                000552
+26   Betreiben der BE-Fl„chen und Bereitstellungsfl„chen fr              000553
+26   Abf„lle als AwSV - Anlage (Verordnung ber Anlagen zum               000554
+26   Umgang mit wassergef„hrdenden Stoffe) inklusive                      000555
+26   šbernahme der Betreiberverantwortung.                                000556
+26   Bei Kapazit„t > 1000 to: Prfung durch einen                         000557
+26   Sachverst„ndigen nach AwSV vor Inbetriebnahme und                    000558
+26   wiederkehrend alle 5 Jahre                                           000559
+26   Erstellen einer Betriebsanweisung, Durchfhren von                   000560
+26   Eigenberwachungen, Veranlassen von Fremdberwachungen               000561
+26   / Gestellung von pers”nlicher Schutzausrstung / Fhren              000562
+26   eines Betriebstagebuches.                                            000563
+310301                                                                    000564
+3103                                                                      000565
+1104       N    LV-Gruppe 1                                               000566
+12Entsorgung und Transport Bauabf„lle                                     000567
+110400     N    LV-Gruppe 2                                               000568
+12Text nicht vorhanden !                                                  000569
+310400                                                                    000570
+20                                                                        000571
+26   Alle in den Bestandteilen des Bauvertrages                           000572
+26   beschriebenen Regelungen zum ordnungsgem„áen Umgang und              000573
+26   zur Entsorgung von Abf„llen sind einzuhalten.                        000574
+26                                                                        000575
+26   Vom AN sind die jeweils gltigen beh”rdlichen                        000576
+26   Genehmigungen und Zertifizierungen der                               000577
+26   Entsorgungsanlagen zusammen mit dem Entsorgungskonzept               000578
+26   bzw. bei Beantragung von Entsorgungsnachweisen                       000579
+26   vorzulegen.                                                          000580
+26                                                                        000581
+26   Aushub und Abbruchmaterialien sind sortenrein auf den                000582
+26   Bereitstellungsfl„chen zwischenzulagern.                             000583
+26   Quertransporte sowie alle fr den Transport                          000584
+26   erforderlichen Aufwendungen sind in den Einheitspreis                000585
+26   einzurechnen.                                                        000586
+26                                                                        000587
+26   Abrechnungsgrundlage der Entsorgungs- und                            000588
+26   Transportleistungen sind die Originale der                           000589
+26   Lieferscheine/ Wiegenoten der Entsorgungsanlage, oder -              000590
+26   nach Vereinbarung mit dem AG - die Aufmaáe.                          000591
+26                                                                        000592
+26   Die Kosten fr die Verwiegung auf geeichten Waagen und               000593
+26   die Erstellung der o.g. Unterlagen sind in den                       000594
+26   Einheitspreis einzurechnen.                                          000595
+26                                                                        000596
+110401     N    LV-Gruppe 2                                               000597
+12Entsorg. u. Transp. v. Boden (AVV-170504                                000598
+12oder 170503*)                                                           000599
+2104010001 NNN         00000000000t                                       000600
+25Verwertung_Oberboden, MLV-ENT_04010001                                  000601
+26   Hochwertige Verwertung von Oberboden zur Herstellung                 000602
+26   einer durchwurzelbaren Bodenschicht oder zur                         000603
+26   Einbringung auf/in eine durchwurzelbar Bodenschicht.                 000604
+26   Der Boden h„lt die Vorsorgewerte der                                 000605
+26   BundesbodenschutzVO Anlage 1 Tab. 1+2 ein, der                       000606
+26   Gesamtkohlenstoffgehalt (TOC) betr„gt max. 9 %. Eine                 000607
+26   Genehmigung der zust„ndigen Bodenschutzbeh”rde zum                   000608
+26   vorgesehenen Einbauort ist beim AG vorzulegen.                       000609
+26                                                                        000610
+2104010002 NNN         00000000000t                                       000611
+25Transport_Oberboden, MLV-ENT_04010002                                   000612
+26   Laden und Transport des Oberbodens, schonendes Laden                 000613
+26   und Transportieren zum Einbauort. Kein Andrcken oder                000614
+26   Befahren des Oberbodenmaterials. Die DIN 18915 (nur                  000615
+26   Landschaftsbau) und DIN 19731 sind zu beachten,                      000616
+26   maximale Ladeh”he 2,0 m                                              000617
+26                                                                        000618
+2104010010 NNN         00000000000t                                       000619
+25Entsorgung Boden LAGA Z0, MLV-ENT_04010010                              000620
+26   Entsorgung Boden Z0 LAGA 2004, AVV 170504, mit                       000621
+26   mineralischen Fremdbestandteilen aus Bauschutt oder                  000622
+26   sonstigen mineralischen Stoffen, inklusive Verwiegung.               000623
+2104010020 NNN         00000000000t                                       000624
+25Entsorgung Boden LAGA Z1.1, MLV-ENT_04010020                            000625
+26   Entsorgung Boden Z 1.1 LAGA 2004 (Eluatwerte Z1.1 gem.               000626
+26   LAGA), AVV 170504, mit mineralischen Fremdbestandteilen              000627
+26   aus Bauschutt oder sonstigen mineralischen Stoffen,                  000628
+26   inklusive Verwiegung.                                                000629
+2104010030 NNN         00000000000t                                       000630
+25Entsorgung Boden LAGA Z1.2, MLV-ENT_04010030                            000631
+26   Entsorgung Boden Z 1.2  LAGA 2004 (Eluatwerte Z1.2 gem.              000632
+26   LAGA 2004), AVV 170504, mit mineralischen                            000633
+26   Fremdbestandteilen aus Bauschutt oder sonstigen                      000634
+26   mineralischen Stoffen, inklusive Verwiegung.                         000635
+2104010040 NNN         00000000000t                                       000636
+25Entsorgung Boden LAGA Z2, MLV-ENT_04010040                              000637
+26   Entsorgung Boden Z2 LAGA 2004, AVV 170504, mit                       000638
+26   mineralischen Fremdbestandteilen aus Bauschutt oder                  000639
+26   sonstigen mineralischen Stoffen, inklusive Verwiegung.               000640
+2104010050 NNN         00000000000t                                       000641
+25Entsorgung Boden_LAGA_>Z2, MLV-ENT_04010050                             000642
+26   Entsorgung Boden gr”áer Z2 LAGA 2004 aufgrund der                    000643
+26   Parameter TOC und/oder Sulfat, Chlorid, pH-Wert                      000644
+26   Leitf„higkeit; die brigen Schadstoffparameter halten                000645
+26   die Zuordnungswerte Z2 LAGA 2004 ein, AVV 170504, mit                000646
+26   mineralischen Fremdbestandteilen aus Bauschutt oder                  000647
+26   sonstigen mineralischen Stoffen, inklusive Verwiegung.               000648
+20                                                                        000649
+26   HINWEIS FšR DEN LV-ERSTELLER:                                        000650
+26   Die Einstufung als nicht gef„hrlicher Boden (AVV                     000651
+26   170504) oder gef„hrlicher Boden (AVV 170503*) erfolgt                000652
+26   nach  den Rechtsvorschriften des jew. Bundeslandes bzw.              000653
+26   nach Abstimmung mit den zust„ndigen Abfallbeh”rden.                  000654
+26                                                                        000655
+2104010054 NNN         00000000000t      X                                000656
+25Zulage_Entsorgung_biogen_belasteter_Boden, MLV-ENT_04010054             000657
+26   Zulage Entsorgung Boden LAGA Z0 bis Z2, mit biogener                 000658
+2661ABelastung mit '(>Japanischem Staudenkn”terich /                      000659
+2661AHerkulesstaude / ...<)', AVV 170504, zur fachgerechten               000660
+26   Behandlung  bzw. Entsorgung des Bodenmaterials mit                   000661
+26   mineralischen Fremdbestandteilen aus Bauschutt oder                  000662
+26   sonstigen mineralischen Stoffen, inklusive Verwiegung.               000663
+2104010055 NNN         00000000000t                                       000664
+25ZULAGE_A_Entsorgung_herbizidhaltiger_Boden, MLV-ENT_04010055            000665
+26   Zulage A Entsorgung Boden LAGA Z0 bis Z2 mit                         000666
+26   Herbizidgehalt entspr. BM-0* Anlage 1 Tab. 4 EBV.                    000667
+2104010056 NNN         00000000000t                                       000668
+25ZULAGE_B_Entsorgung_herbizidhaltiger_Boden, MLV-ENT_04010056            000669
+26   Zulage B Entsorgung Boden LAGA Z0 bis Z2 mit                         000670
+26   Herbizidgehalt entspr. BM-F1 Anlage 1 Tab. 4 EBV.                    000671
+2104010057 NNN         00000000000t                                       000672
+25ZULAGE_C_Entsorgung_herbizidhaltiger_Boden, MLV-ENT_04010057            000673
+26   Zulage C Entsorgung Boden LAGA Z0 bis Z2 mit                         000674
+26   Herbizidgehalt entspr. BM-F2 Anlage 1 Tab. 4 EBV.                    000675
+2104010058 NNN         00000000000t                                       000676
+25ZULAGE_D_Entsorgung_herbizidhaltiger_Boden, MLV-ENT_04010058            000677
+26   Zulage D Entsorgung Boden LAGA Z0 bis Z2 mit                         000678
+26   Herbizidgehalt entspr. BM-F3 Anlage 1 Tab. 4 EBV.                    000679
+2104010060 NNN         00000000000t                                       000680
+25Entsorgung Boden DK0, MLV-ENT_04010060                                  000681
+26   Entsorgung Bodenmaterial Deponieklasse 0 DepV, AVV 17                000682
+26   05 04, mit mineralischen Fremdbestandteilen aus                      000683
+26   Bauschutt oder sonstigen mineralischen Stoffen,                      000684
+26   inklusive Verwiegung.                                                000685
+2104010070 NNN         00000000000t                                       000686
+25Entsorgung Boden DKI, MLV-ENT_04010070                                  000687
+26   Entsorgung Bodenmaterial Deponieklasse I DepV, AVV 17                000688
+26   05 04,  mit mineralischen Fremdbestandteilen aus                     000689
+26   Bauschutt oder sonstigen mineralischen Stoffen,                      000690
+26   inklusive Verwiegung.                                                000691
+2104010080 NNN         00000000000t      X                                000692
+25Entsorgung Boden DKII, MLV-ENT_04010080                                 000693
+26   Entsorgung Bodenmaterial Deponieklasse II DepV, AVV                  000694
+2661A'(>17 05 04 / 17 05 03*<)', mit mineralischen                        000695
+26   Fremdbestandteilen aus Bauschutt oder sonstigen                      000696
+26   mineralischen Stoffen, inklusive Verwiegung.                         000697
+2104010090 NNN         00000000000t      X                                000698
+25Entsorgung Boden DKIII, MLV-ENT_04010090                                000699
+26   Entsorgung Bodenmaterial Deponieklasse III DepV, AVV                 000700
+2661A'(>17 05 04 / 17 05 03*<)', mit mineralischen                        000701
+26   Fremdbestandteilen aus Bauschutt oder sonstigen                      000702
+26   mineralischen Stoffen, inklusive Verwiegung.                         000703
+26                                                                        000704
+20                                                                        000705
+26   HINWEIS FšR DEN LV-ERSTELLER:                                        000706
+26   Abh„ngig von den Rechtsvorschriften des jeweiligen                   000707
+26   Bundeslandes bzw. nach Abstimmung mit den zust„ndigen                000708
+26   Abfallbeh”rden kann fr Boden ab DK II alternativ zu                 000709
+26   nicht gef„hrlich, AVV 170504, die Einstufung als                     000710
+26   gef„hrlicher Boden, AVV 17 05 03* erforderlich sein.                 000711
+20                                                                        000712
+26   HINWEIS ZU DEN ZULAGE HERBIZIDE  FšR POSITIONEN                      000713
+26   04010060 BIS 04010090                                                000714
+26   Ausgehend von den Ergebnissen der Voruntersuchungen von              000715
+26   gleisnahen B”den auf Herbizide sind in den                           000716
+26   nachfolgenden Positionen die in Bezug auf die                        000717
+26   Herbizidgehalte ermittelte Mengenverteilung                          000718
+26   einzutragen. Ist aus den Voruntersuchungen keine                     000719
+26   Mengenverteilung ableitbar, wird die Aufteilung der                  000720
+26   Gesamtmenge gleisnaher B”den wie folgt empfohlen:                    000721
+26   Pos. 04.01.0091+ 04.01.0092+ 04.01.0093  jeweils 20,33%              000722
+26   der Gesamtmenge des gleisnahen  Bodens; Pos. 04.01.0094              000723
+26   + 04.01.0095  jeweils 2,5 % der Gesamtmenge des                      000724
+26   gleisnahen Bodens.                                                   000725
+2104010091 NNN         00000000000t                                       000726
+25ZULAGE_herbizidhaltiger_Boden_KatA_MLV-ENT_04010091                     000727
+26   Zulageposition herbizidhaltiger Boden mit folgenden                  000728
+26   Herbizidgehalten im Eluat oberhalb der                               000729
+26   Bestimmungsgrenze:                                                   000730
+26   Einzelsubstanz bis 0,1 æg/l,                                         000731
+26   Summe Herbizide u. Abbauprodukte ohne Glyphosat + AMPA               000732
+26   bis 0,5 æg/l,                                                        000733
+26   Glyphosat bis 0,1æg/l und AMPA bis 1 æg/l.                           000734
+2104010092 NNN         00000000000t                                       000735
+25ZULAGE_herbizidhaltiger_Boden_KatB_MLV-ENT_04010092                     000736
+26   Zulageposition herbizidhaltiger Boden mit folgenden                  000737
+26   Herbizidgehalten im Eluat:                                           000738
+26   Einzelsubstanz > 0,1 bis 0,2 æg/l,                                   000739
+26   Summe Herbizide u. Abbauprodukte ohne Glyphosat+AMPA >               000740
+26   0,5 bis 1,0 æg/l,                                                    000741
+26   Glyphosat >  0,1 bis 0,2 æg/l und AMPA > 1,0 bis 2,0                 000742
+26   æg/l.                                                                000743
+2104010093 NNN         00000000000t                                       000744
+25ZULAGE_herbizidhaltiger_Boden_KatC_MLV-ENT_04010093                     000745
+26   Zulageposition herbizidhaltiger Boden mit folgenden                  000746
+26   Herbizidgehalten im Eluat:                                           000747
+26   Einzelsubstanz > 0,2 bis 1,0 æg/l,                                   000748
+26   Summe Herbizide ohne Glyphosat+AMPA > 1,0 bis 5,0 æg/l,              000749
+26                                                                        000750
+26   Glyphosat > 0,2 bis 10 æg/l und AMPA > 2,0 bis 10,0                  000751
+26   æg/l.                                                                000752
+2104010094 NNN         00000000000t                                       000753
+25ZULAGE_herbizidhaltiger Boden_KatD_MLV-ENT_04010094                     000754
+26   Zulageposition herbizidhaltiger Boden mit folgenden                  000755
+26   Herbizidgehalten im Eluat:                                           000756
+26   Einzelsubstanz > 1,0 bis 5,0 æg/l,                                   000757
+26   Summe Herbizide u. Abbauprodukte ohne Glyphosat+AMPA >               000758
+26   5,0 bis 25,0 æg/l,                                                   000759
+26   Glyphosat > 10 bis 50 æg/l und AMPA > 10 bis 50 æg/l.                000760
+2104010095 NNN         00000000000t                                       000761
+25ZULAGE_herbizidhaltiger Boden_KatE_MLV-ENT_04010095                     000762
+26   Zulageposition herbizidhaltiger Boden mit folgenden                  000763
+26   Herbizidgehalten im Eluat:                                           000764
+26   Einzelsubstanz  > 5,0 bis 10 æg/l,                                   000765
+26   Summe Herbizide u. Abbauprodukte ohne Glyphosat + AMPA               000766
+26   > 25 bis 50 æg/l,                                                    000767
+26   Glyphosat  > 50 bis 100 æg/l und AMPA > 50 bis 100                   000768
+26   æg/l.                                                                000769
+2104010100 NNN         00000000000t                                       000770
+25Transport nicht gef„hrlicher Boden, MLV-ENT_04010100                    000771
+26   Laden und Transport von nicht gef„hrlichem Boden, AVV                000772
+26   17 05 04, von der Anfallstelle / Bereitstellungsfl„che               000773
+26   zur Entsorgungsanlage einschlieálich fachgerechter                   000774
+26   Sicherung der Abf„lle.                                               000775
+2104010110 NNN         00000000000t                                       000776
+25Transport gef„hrlicher Boden, MLV-ENT_04010110                          000777
+26   Laden und Transport von gef„hrlichem Boden, AVV 17 05                000778
+26   03*, von der Anfallstelle / Bereitstellungsfl„che zur                000779
+26   Entsorgungsanlage einschlieálich fachgerechter                       000780
+26   Sicherung der Abf„lle.                                               000781
+310401                                                                    000782
+110402     N    LV-Gruppe 2                                               000783
+12Entsorgung und Transport von                                            000784
+12Beton/Betonbruch                                                        000785
+2104020010 NNN         00000000000t                                       000786
+25Entsorgung Beton LAGA Z0, MLV-ENT_04020010                              000787
+26   Entsorgung Beton Z0 LAGA Bauschutt, AVV 170101,                      000788
+26   inklusive Verwiegung.                                                000789
+2104020020 NNN         00000000000t                                       000790
+25Entsorgung Beton LA-GA Z1.1, MLV-ENT_04020020                           000791
+26   Entsorgung Beton Z1 LAGA Bauschutt mit Eluatwerten bis               000792
+26   Zuordnungswert Z1.1 gem„á LAGA 2004, AVV 170101;                     000793
+26   inklusive Verwiegung.                                                000794
+2104020030 NNN         00000000000t                                       000795
+25Entsorgung Beton LAGA Z1.2, MLV-ENT_04020030                            000796
+26   Entsorgung Beton Z1 LAGA Bauschutt mit Eluatwerten bis               000797
+26   Zuordnungswert Z1.2 gem„á LAGA 2004; AVV 170101,                     000798
+26   inklusive Verwiegung.                                                000799
+2104020040 NNN         00000000000t                                       000800
+25Entsorgung Beton LAGA Z2, MLV-ENT_04020040                              000801
+26   Entsorgung Beton Z2 LAGA Bauschutt, AVV 170101,                      000802
+26   inklusive Verwiegung.                                                000803
+2104020050 NNN         00000000000t                                       000804
+25Entsorgung_Beton DKI, MLV-ENT_04020050                                  000805
+26   Entsorgung Beton Deponieklasse I DepV, AVV 170101,                   000806
+26   inklusive Verwiegung.                                                000807
+2104020060 NNN         00000000000t      X                                000808
+25Entsorgung Beton DKII, MLV-ENT_04020060                                 000809
+26   Entsorgung Beton Deponieklasse II DepV,                              000810
+2661A'(>170101/170106*<)', inklusive Verwiegung.                          000811
+2104020070 NNN         00000000000t      X                                000812
+25Entsorgung Beton_DKIII, MLV-ENT_04020070                                000813
+26   Entsorgung Beton Deponieklasse III DepV, AVV                         000814
+2661A'(>170101/170106*<)',  inklusive Verwiegung.                         000815
+20                                                                        000816
+26   HINWEIS FšR DEN LV-ERSTELLER:                                        000817
+26   Abh„ngig von den Rechtsvorschriften des jeweiligen                   000818
+26   Bundeslandes bzw. nach Abstimmung mit den zust„ndigen                000819
+26   Abfallbeh”rden kann ab DK II auch die Einstufung als                 000820
+26   gef„hrlicher Bauschutt (AVV 170106*) erforderlich                    000821
+26   werden.                                                              000822
+26                                                                        000823
+26   Gef„hrlicher Bauschutt aus getrennten Fraktionen oder                000824
+26   Gemischen von gef„hrlichen Beton, und/oder Ziegeln,                  000825
+26   Fliesen, Keramik, ist immer als AVV 170106* zu                       000826
+26   deklarieren.                                                         000827
+26   Erreicht der Anteil nicht mineralischer Stoffe in                    000828
+26   diesem Abfall mehr als 5%, ist das Gemisch dagegen als               000829
+26   AVV 170903* "sonstige Bau- und Abbruchabf„lle, die                   000830
+26   gef„hrliche Stoffe enthalten" zu deklarieren.                        000831
+20                                                                        000832
+26   HINWEIS FšR DEN LV-ERSTELLER:                                        000833
+26   Bitte bei Bedarf zus„tzliche LV-Positionen fr AVV                   000834
+26   170107 - gemischter Bauschutt"/ 170102 "Ziegel"  oder                000835
+26   AVV 170103 "Fliesen, Ziegel und Keramik" analog zu den               000836
+26   LV-Pos fr Beton aufzunehmen. Der jeweilige Anteil von               000837
+26   mineralischen Zweitfraktionen darf 5% nicht                          000838
+26   bersteigen, ansonsten ist das Material als gemischter               000839
+26   Bauschutt AVV 170107 zu deklarieren.                                 000840
+26   Liegt der Anteil nicht mineralischer Stoffe ber 5%,                 000841
+26   ist der Abfall als AVV 170904 "gemischte Bau- und                    000842
+26   Abbruchabf„lle" zu deklarieren.                                      000843
+2104020080 NNN         00000000000t                                       000844
+25Transport nicht gef„hrlicher Beton, MLV-ENT_04020080                    000845
+26   Laden und Transport von Beton AVV 170101 von der                     000846
+26   Anfallstelle / Bereitstellungsfl„che zur                             000847
+26   Entsorgungsanlage einschlieálich fachgerechter                       000848
+26   Sicherung der Abf„lle.                                               000849
+2104020090 NNN         00000000000t                                       000850
+25Transport gef„hrlicher Beton, MLV-ENT_04020090                          000851
+26   Laden und Transport von Gemischen oder getrennte                     000852
+26   Fraktionen von gef„hrlichem Beton, Ziegeln, Fliesen und              000853
+26   Keramik, AVV 170106*, von der Anfallstelle /                         000854
+26   Bereitstellungsfl„che zur Entsorgungsanlage                          000855
+26   einschlieálich fachgerechter Sicherung der Abf„lle.                  000856
+310402                                                                    000857
+110403     N    LV-Gruppe 2                                               000858
+12Entsorgung und Transport von  Bauschutt                                 000859
+2104030010 NNN         00000000000t                                       000860
+25Entsorgung_Bauschutt_LAGA_Z1.1, MLV-ENT_04030010                        000861
+26   Entsorgung Bauschutt Z0 bis Z 1.1 LAGA Bauschutt, AVV                000862
+26   170107, inklusive Verwiegung.                                        000863
+2104030020 NNN         00000000000t                                       000864
+25Entsorgung Bauschutt LAGA Z1.2, MLV-ENT_04030020                        000865
+26   Entsorgung Bauschutt Z1.2 LAGA Bauschutt, AVV 170107,                000866
+26   inklusive Verwiegung.                                                000867
+2104030030 NNN         00000000000t                                       000868
+25Entsorgung Bauschutt LAGA Z2, MLV-ENT_04030030                          000869
+26   Entsorgung Bauschutt Z2 LAGA Bauschutt, AVV 170107,                  000870
+26   inklusive Verwiegung.                                                000871
+2104030040 NNN         00000000000t                                       000872
+25Entsorgung Bauschutt DKI, MLV-ENT_04030040                              000873
+26   Entsorgung Bauschutt Deponieklasse I DepV, AVV 170107,               000874
+26   inklusive Verwiegung.                                                000875
+2104030050 NNN         00000000000t      X                                000876
+25Entsorgung Bauschutt DKII, MLV-ENT_04030050                             000877
+26   Entsorgung Bauschutt Deponieklasse II DepV, AVV                      000878
+2661A'(>170107/170106*<)', inklusive Verwiegung.                          000879
+20                                                                        000880
+26   HINWEIS FšR DEN LV-ERSTELLER:                                        000881
+26   Abh„ngig von den Vorschriften des jeweiligen                         000882
+26   Bundeslandes bzw. nach Abstimmung mit den zust„ndigen                000883
+26   Abfallbeh”rden kann in Bezug auf einzelne Schadstoffe                000884
+26   auch die Einstufung als gef„hrlicher Bauschutt (AVV-Nr.              000885
+26   170106*) erforderlich sein. Erreicht der Anteil nicht                000886
+26   mineralischer Stoffe in diesem Abfall mehr als 5%, ist               000887
+26   dieser als AVV-Nr. 170903* "sonstige Bau- und                        000888
+26   Abbruchabf„lle, die gef„hrliche Stoffe enthalten" zu                 000889
+26   deklarieren.                                                         000890
+2104030060 NNN         00000000000t      X                                000891
+25Entsorgung gef„hrlicher Bauschutt DKIII, MLV-ENT_04030060               000892
+26   Entsorgung Bauschutt Deponieklasse III DepV, AVV                     000893
+2661A'(>170107 / 170106*<)', inklusive Verwiegung.                        000894
+20                                                                        000895
+26   HINWEIS FšR DEN LV-ERSTELLER:                                        000896
+26   Abh„ngig von den Rechtsvorschriften des jeweiligen                   000897
+26   Bundeslandes bzw. nach Abstimmung mit den zust„ndigen                000898
+26   Abfallbeh”rden kann ab DK II auch die Einstufung als                 000899
+26   gef„hrlicher Bauschutt (AVV 17 01 06*) erforderlich                  000900
+26   sein.                                                                000901
+26   Erreicht der Anteil nicht mineralischer Stoffe in                    000902
+26   diesem Abfall mehr als 5%, ist dieser als AVV 17 09 03*              000903
+26   "sonstige Bau- und Abbruchabf„lle, die gef„hrliche                   000904
+26   Stoffe enthalten" zu deklarieren.                                    000905
+20                                                                        000906
+26   HINWEIS FšR DEN LV-ERSTELLER:                                        000907
+26   Bitte bei Bedarf sind zus„tzliche LV-Positionen fr                  000908
+26   Entsorgung / Transport AVV Nr. 170102 "nicht                         000909
+26   gef„hrliche Ziegel" oder AVV-Nr. 170103 "nicht                       000910
+26   gef„hrliche Fliesen, Ziegel und Keramik" analog zu den               000911
+26   LV-Pos fr Bauschutt aufzunehmen. Der jeweilige Anteil               000912
+26   von mineralischen Zweitfraktionen darf 5% nicht                      000913
+26   bersteigen, ansonsten ist das Material als nicht                    000914
+26   gef„hrlicher gemischter Bauschutt, AVV-Nr. 170107, zu                000915
+26   deklarieren.                                                         000916
+26                                                                        000917
+26   Liegt der Anteil nicht mineralischer Stoffe ber 5%,                 000918
+26   ist der Abfall als AVV-Nr. 170904 "gemischte Bau- und                000919
+26   Abbruchabf„lle" zu deklarieren.                                      000920
+2104030070 NNN         00000000000t                                       000921
+25Transport_nicht gef„hrlicher Bauschutt, MLV-ENT_04030070                000922
+26   Laden und Transport von gemischtem Bauschutt, AVV                    000923
+26   170107, von der Anfallstelle / Be-reitstellungsfl„che                000924
+26   zur Entsorgungsanlage, einschlieálich fachgerechter                  000925
+26   Sicherung der Abf„lle.                                               000926
+2104030080 NNN         00000000000t                                       000927
+25Transport gef„hrlicher Bauschutt, MLV-ENT_04030080                      000928
+26   Laden und Transport von Gemischen oder getrennte                     000929
+26   Fraktionen von gef„hrlichem Beton, Ziegeln, Fliesen und              000930
+26   Keramik (AVV 170106*) von der Anfallstelle /                         000931
+26   Bereitstellungsfl„che zur Entsorgungsanlage                          000932
+26   einschlieálich fachgerechter Sicherung der Abf„lle.                  000933
+20                                                                        000934
+26   HINWEIS FšR DEN LV-ERSTELLER:                                        000935
+26   Bitte m”gliche Mengenberschneidung mit der                          000936
+26   Transportposition fr gef„hrlichen Betonbruch beachten.              000937
+310403                                                                    000938
+110404     N    LV-Gruppe 2                                               000939
+12Entsorgung und Transport von                                            000940
+12Gleisschotter                                                           000941
+2104040001 NNN         00000000000t                                       000942
+25Entsorgung_Gleisschotter_GS-0, MLV-ENT_04040001                         000943
+26   Entsorgung Gleisschotter GS-0 gem„á Anlage 1 Tab 2 EBV,              000944
+26   Feststoffwerte max. BM-F0* gem„á Anl. 1 Tab. 3 EBV, AVV              000945
+26   170508, inklusive Verwiegung.                                        000946
+2104040002 NNN         00000000000t                                       000947
+25Entsorgung_Gleisschotter_GS-1, MLV-ENT_04040002                         000948
+26   Entsorgung Gleisschotter GS-1 gem„á Anlage 1 Tab 2 EBV,              000949
+26   Feststoffwerte max. BM-F1 gem„á Anl. 1 Tab. 3 EBV), AVV              000950
+26   170508, inklusive Verwiegung.                                        000951
+2104040003 NNN         00000000000t                                       000952
+25Entsorgung_Gleisschotter_GS-2, MLV-ENT_04040003                         000953
+26   Entsorgung Gleisschotter GS-2 gem„á Anlage 1 Tab 2 EBV,              000954
+26   Feststoffwerte max. BM-F2 gem„á Anl. 1 Tab. 3 EBV), AVV              000955
+26   170508, inklusive Verwiegung.                                        000956
+2104040004 NNN         00000000000t                                       000957
+25Entsorgung_Gleisschotter_GS-3, MLV-ENT_04040004                         000958
+26   Entsorgung Gleisschotter GS-3 Egem„á Anlage 1 Tab 2                  000959
+26   EBV, Feststoffwerte max. BM-F3 gem„á Anl. 1 Tab. 3                   000960
+26   EBV), AVV 170508, inklusive Verwiegung.                              000961
+2104040045 NNN         00000000000t                                       000962
+25Entsorgung_Gleisschotter_DK0, MLV-ENT_04040045                          000963
+26   Entsorgung Gleisschotter Deponieklasse 0 DepV, AVV                   000964
+26   170508, inklusive Verwiegung.                                        000965
+2104040050 NNN         00000000000t                                       000966
+25Entsorgung Gleisschotter DKI, MLV-ENT_04040050                          000967
+26   Entsorgung Gleisschotter Deponieklasse I DepV, AVV                   000968
+26   170508, inklusive Verwiegung.                                        000969
+2104040060 NNN         00000000000t      X                                000970
+25Entsorgung Gleisschotter DKII, MLV-ENT_04040060                         000971
+26   Entsorgung Gleisschotter Deponieklasse II DepV, AVV                  000972
+2661A'(>170508/170507*<)', inklusive Verwiegung.                          000973
+20                                                                        000974
+26   HINWEIS FšR DEN LV-ERSTELLER:                                        000975
+26   Abh„ngig von den Rechtsvorschriften des jeweiligen                   000976
+26   Bundeslandes bzw. nach Abstimmung mit den zust„ndigen                000977
+26   Abfallbeh”rden kann ab DK II  die Einstufung als                     000978
+26   gef„hrlicher Gleisschotter (AVV 17 01 07*) erforderlich              000979
+26   sein.                                                                000980
+2104040070 NNN         00000000000t      X                                000981
+25Entsorgung Gleisschotter DKIII, MLV-ENT_04040070                        000982
+26   Entsorgung Gleisschotter Deponieklasse III DepV, AVV                 000983
+2661A'(>170508/170507*<)', inklusive Verwiegung.                          000984
+2104040080 NNN         00000000000t                                       000985
+25Transport nicht gef„hrlicher Gleisschotter, MLV-ENT_04040080            000986
+26   Laden und Transport von Gleisschotter, AVV 170508, von               000987
+26   der Anfallstelle / Bereitstellungsfl„che zur                         000988
+26   Entsorgungsanlage einschlieálich fachgerechter                       000989
+26   Sicherung der Abf„lle.                                               000990
+2104040090 NNN         00000000000t                                       000991
+25Transport gef„hrlicher Gleisschotter, MLV-ENT_04040090                  000992
+26   Laden und Transport von Gleisschotter, der gef„hrliche               000993
+26   Stoffe enth„lt, AVV 170507*, von der Anfallstelle/                   000994
+26   Bereitstellungsfl„che zur Entsorgungsanlage                          000995
+26   einschlieálich fachgerechter Sicherung der Abf„lle.                  000996
+310404                                                                    000997
+3104                                                                      000998
+1105       N    LV-Gruppe 1                                               000999
+12Entsorgung Straáenaufbruch                                              001000
+110501     N    LV-Gruppe 2                                               001001
+12Text nicht vorhanden !                                                  001002
+2105010010 NNN         00000000000t                                       001003
+25Entsorgung_Ausbauasphalt_PAK = 10 mg/kg, MLV-ENT_05010010               001004
+26   Entsorgung Ausbauasphalt PAK  10 mg/kg, Ausbauasphalt,               001005
+26   AVV 170302                                                           001006
+26   Bitumengemische, inklus. Verwiegung.                                 001007
+2105010020 NNN         00000000000t                                       001008
+25Entsorgung_Ausbauasphalt_PAK > 10 mg/kg_und_BaP = 25 mg/kg,             001009
+25MLV-ENT_05010020                                                        001010
+26   Entsorgung Ausbauasphalt PAK > 10 mg/kg und  25 mg/kg                001011
+26   Ausbauasphalt, AVV 170302                                            001012
+26   Bitumengemische, inklus. Verwiegung.                                 001013
+2105010030 NNN         00000000000t                                       001014
+25Entsorgung_teerhaltiger_Straáenaufbruch_PAK > 25 mg/kg und < 1.000      001015
+25mg/kg und/oder < 50 mg/kg Benzo(a)pyren, MLV-ENT_05010030               001016
+26   Entsorgung teerhaltiger Straáenaufbruch PAK > 25 mg/kg               001017
+26   und < 1.000 mg/kg und/oder <50mg/kg Benzo(a)pyren, AVV               001018
+26   170302 Bitumengemische, inklus. Verwiegung.                          001019
+2105010040 NNN         00000000000t                                       001020
+25Entsorgung_teerhaltiger_Straáenaufbruch_PAK = 1.000 mg/kg oder = 50     001021
+25mg/kg_BaP, MLV-ENT_05.01.0040                                           001022
+26   Entsorgung teerhaltiger Straáenaufbruch PAK = 1.000                  001023
+26   mg/kg oder = 50 mg/kg Benzo(a)pyren,  AVV 17 03 01*                  001024
+26   kohlenteerhaltige Bitumengemische, gef„hrlicher Abfall,              001025
+26   inklus. Verwiegung.                                                  001026
+2105010050 NNN         00000000000t                                       001027
+25Transport_nicht_gef„hrlicher_Straáenaufbruch, MLV-ENT_05.01.0050        001028
+26   Laden und Transport von nicht gef„hrlichen                           001029
+26   Straáenaufbruch, AVV 170302, von der Anfallstelle /                  001030
+26   Bereitstellungsfl„che zur Entsorgungsanlage, inklus.                 001031
+26   fachgerechter Sicherung der Abf„lle.                                 001032
+2105010060 NNN         00000000000t                                       001033
+25Transport_gef„hrlicher_Straáenaufbruch, MLV-ENT_05.01.0060              001034
+26   Laden und Transport von gef„hrlichem Straáenaufbruch,                001035
+26   AVV 17 03 01*, von der Anfallstelle /                                001036
+26   Bereitstellungsfl„che zur Entsorgungsanlage, inklus.                 001037
+26   fachgerechter Sicherung der Abf„lle.                                 001038
+310501                                                                    001039
+3105                                                                      001040
+1106       N    LV-Gruppe 1                                               001041
+12Entsorgung von sonstigen Bauabf„llen                                    001042
+110601     N    LV-Gruppe 2                                               001043
+12Entsorgung und Transport von                                            001044
+12Holzschwellen (AVV 17 02 04*)                                           001045
+20                                                                        001046
+26   Neuer LV-Teil der die ehemaligen Positionen 04.05.0010               001047
+26   bis 04.06.0020 enth„lt.                                              001048
+2106010010 NNN         00000000000t                                       001049
+25Entsorgung_Holzschwellen, MLV-ENT_06010010                              001050
+26   Entsorgung von Holzschwellen, teer”limpr„gniert,                     001051
+26   gef„hrlicher Abfall - AVV 17 02 04*, Altholz Kategorie               001052
+26   A IV, laden zum Abtransport, verwiegen und                           001053
+26   ordnungsgem„á entsorgen.                                             001054
+2106010020 NNN         00000000000t                                       001055
+25Transport_Holzschwellen, MLV-ENT_06010020                               001056
+26   Laden und Transport von Holzschwellen gef„hrlicher                   001057
+26   Abfall - AVV 17 02 04*, Altholz Kategorie A IV, von der              001058
+26   Anfallstelle/  Bereitstellungsfl„che zur                             001059
+26   Entsorgungsanlage einschlieálich fachgerechter                       001060
+26   Sicherung der Abf„lle.                                               001061
+310601                                                                    001062
+110602     N    LV-Gruppe 2                                               001063
+12Entsorgung und Transport von Altholz                                    001064
+12(AVV 17 02 04*)                                                         001065
+2106020010 NNN         00000000000t                                       001066
+25Entsorgung_Altholz_A, MLV-ENT_06020010                                  001067
+26   Entsorgung Altholz Kategorie A IV, AVV 17 02 04*,                    001068
+26   inklusive Verwiegung.                                                001069
+2106020020 NNN         00000000000t                                       001070
+25Transport_Altholz_A, MLV-ENT_06020020                                   001071
+26   Laden und Transport von Altholz, gef„hrlicher Abfall,                001072
+26   AVV 17 02 04*, Altholz Kategorie A IV, von der                       001073
+26   Anfallstelle/  Bereitstellungsfl„che zur                             001074
+26   Entsorgungsanlage einschlieálich fachgerechter                       001075
+26   Sicherung der Abf„lle.                                               001076
+310602                                                                    001077
+110603     N    LV-Gruppe 2                                               001078
+12Entsorgung Rckschnitt- und                                             001079
+12Rodungsabf„lle sowie Unrat                                              001080
+20                                                                        001081
+26   Die unter Pos. 06.03. aufgefhrten Mengen beziehen sich              001082
+26   in Teilen oder in G„nze auf die Abf„lle, die beim                    001083
+26   Abr„umen des Baugel„ndes - wie in Pos. 01.03.040 des                 001084
+26   Muster-LV "Allgemeine Leistungen Infrastruktur"                      001085
+26   aufgefhrt - anfallen k”nnen.                                        001086
+2106030010 NNN         00000000000t                                       001087
+25Entsorgung_Wurzeln, MLV-ENT_06030010                                    001088
+26   Entsorgung von Wurzeln, Baumstmpfen und Astwerk, AVV                001089
+26   20 02 01 biologisch abbaubare Abf„lle, inklusive                     001090
+26   Verwiegung.                                                          001091
+2106030020 NNN         00000000000t                                       001092
+25Transport_Wurzeln, MLV-ENT_06030020                                     001093
+26   Laden und Transport von Wurzeln, Baumstmpfen und                    001094
+26   Astwerk, AVV 20 02 01 biologisch abbaubare Abf„lle, von              001095
+26   der Anfallstelle / Bereitstellungsfl„che zur                         001096
+26   Entsorgungsanlage, inklus. fachgerechter Sicherung der               001097
+26   Abf„lle.                                                             001098
+2106030030 NNN         00000000000t                                       001099
+25Entsorgung_Unrat, MLV-ENT_06030030                                      001100
+26   Entsorgung von Unrat/ wildem Mll, AVV 20 03 01                      001101
+26   gemischte Siedlungsabf„lle, inklusive Verwiegung.                    001102
+2106030040 NNN         00000000000t                                       001103
+25Transport_Unrat, MLV-ENT_06030040                                       001104
+26   Laden und Transport von Unrat/ wildem Mll, AVV 20 03                001105
+26   01 gemischte Siedlungsabf„lle, von der Anfallstelle /                001106
+26   Bereitstellungsfl„che zur Entsorgungsanlage, inklus.                 001107
+26   fachgerechter Sicherung der Abf„lle.                                 001108
+310603                                                                    001109
+110604     N    LV-Gruppe 2                                               001110
+12Entsorgung Abdichtungsmaterial                                          001111
+2106040010 NNN         00000000000t                                       001112
+25Entsorgung_Abdichtungsmaterial_nicht_gef„hrlich, MLV-ENT_06040010       001113
+26   Entsorgung Abdichtungsmaterial, gering verunreinigt,                 001114
+26   PAK < 1.000 mg/kg und/oder < 50 mg/kg Benzo(a)pyren,                 001115
+26   AVV 17 03 02  Bitumengemische, inklusive Verwiegung.                 001116
+2106040020 NNN         00000000000t                                       001117
+25Entsorgung_Abdichtungsmaterial_gef„hrlich, MLV-ENT_06040020             001118
+26   Entsorgung Abdichtungsmaterial, teerhaltig, PAK = 1.000              001119
+26   mg/kg, AVV 17 03 01* kohlenteerhaltige Bitumengemische,              001120
+26   gef„hrlicher Abfall, inklus. Verwiegung.                             001121
+2106040030 NNN         00000000000t                                       001122
+25Transport_Abdichtungsmaterial_nicht_gef„hrlich, MLV-ENT_06040030        001123
+26   Laden und Transport Abdichtungsmaterial, nicht                       001124
+26   gef„hrlich, AVV 17 03 02, von der Anfallstelle /                     001125
+26   Bereitstellungsfl„che zur Entsorgungsanlage, inklus.                 001126
+26   fachgerechter Sicherung der Abf„lle.                                 001127
+2106040040 NNN         00000000000t                                       001128
+25Transport_Abdichtungsmaterial_gef„hrlich, MLV-ENT_06040040              001129
+26   Laden und Transport Abdichtungsmaterial, teerhaltig /                001130
+26   gef„hrlich, AVV 170301*, gef„hrlicher Abfall, von der                001131
+26   Anfallstelle / Bereitstellungsfl„che zur                             001132
+26   Entsorgungsanlage, inklus. fachgerechter Sicherung der               001133
+26   Abf„lle.                                                             001134
+310604                                                                    001135
+110605     N    LV-Gruppe 2                                               001136
+12Entsorgung von asbesthaltigen Baustoffen                                001137
+2106050010 NNN         00000000000t                                       001138
+25Entsorgung von asbesthaltigen Baustoffen, MLV-ENT_06050010              001139
+26   Entsorgung asbesthaltiger Baustoffe, AVV 17 06 05*,                  001140
+26   gef„hrlicher Abfall, inklusive Verwiegung.                           001141
+2106050020 NNN         00000000000t                                       001142
+25Transport von asbesthaltigen Baustoffen, MLV-ENT_06050020               001143
+26   Laden und Transport asbesthaltiger Baustoffe, AVV 17 06              001144
+26   05*, gef„hrlicher Abfall,                                            001145
+26   Verladung und Bef”rderung von asbesthaltigen Baustoffen              001146
+26   von der Anfallstelle / Bereitstellungsfl„che zur                     001147
+26   Entsorgungsanlage, inklus. fachgerechter Sicherung der               001148
+26   Abf„lle.                                                             001149
+310605                                                                    001150
+3106                                                                      001151
+1107       N    LV-Gruppe 1                                               001152
+12Entsorgung und Transport von Bauabf„llen                                001153
+12(Grundlage der LV- Struktur:                                            001154
+12ErsatzbaustoffVO)                                                       001155
+20                                                                        001156
+26   Alle in den Bestandteilen des Bauvertrages                           001157
+26   beschriebenen Regelungen zum ordnungsgem„áen Umgang und              001158
+26   zur Entsorgung von Abf„llen sind einzuhalten. Vom AN                 001159
+26   sind die jeweils gltigen beh”rdlichen Genehmigungen                 001160
+26   und Zertifizierungen der Entsorgungsanlagen zusammen                 001161
+26   mit dem Entsorgungskonzept bzw. bei Beantragung von                  001162
+26   Entsorgungsnachweisen vorzulegen.                                    001163
+26   Aushub und Abbruchmaterialien sind sortenrein auf den                001164
+26   Bereitstellungsfl„chen zwischenzulagern. Quertransporte              001165
+26   sowie alle fr Laden und Transport erforderlichen                    001166
+26   Aufwendungen sind in den Einheitspreis einzurechnen.                 001167
+26   Abrechnungsgrundlage der Entsorgungs- und                            001168
+26   Transportleistungen sind die Originale der                           001169
+26   Lieferscheine/ Wiegenoten der Entsorgungsanlage, oder -              001170
+26   nach Vereinbarung mit dem AG - die Aufmaáe.                          001171
+26   Die Kosten fr die Verwiegung auf geeichten Waagen und               001172
+26   die Erstellung der o.g. Unterlagen sind in den                       001173
+26   Einheitspreis einzurechnen.                                          001174
+110701     N    LV-Gruppe 2                                               001175
+12Entsorgung und Transport von Boden und                                  001176
+12Steinen (AVV 170504 / 170503*)                                          001177
+2107010010 NNN         00000000000t                                       001178
+25Verwertung_Oberboden, MLV-ENT_07010010                                  001179
+26   Hochwertige Verwertung von Oberboden zur Herstellung                 001180
+26   einer durchwurzelbaren Bodenschicht oder zur                         001181
+26   Einbringung auf/in eine durchwurzelbar Bodenschicht.                 001182
+26   Der Boden h„lt die Vorsorgewerte der                                 001183
+26   BundesbodenschutzVO Anlage 1 Tab. 1+2 fr Bodenart                   001184
+26   Lehm/Schluff ein, der Gesamtkohlenstoffgehalt (TOC)                  001185
+26   betr„gt max. 9 %. Eine Genehmigung der zust„ndigen                   001186
+26   Bodenschutzbeh”rde zum vorgesehenen Einbauort ist beim               001187
+26   AG vorzulegen.                                                       001188
+2107010020 NNN         00000000000t                                       001189
+25Transport_Oberboden, MLV-ENT_7010020                                    001190
+26   Laden und Transport des Oberbodens, schonendes Laden                 001191
+26   und Transportieren zum Einbauort. Kein Andrcken oder                001192
+26   Befahren des Oberbodenmaterials. Die DIN 18915 (nur                  001193
+26   Landschaftsbau) und DIN 19731 sind zu beachten.                      001194
+26   Maximale Ladeh”he: 2,0 m                                             001195
+2107010030 NNN         00000000000t                                       001196
+25Entsorgung_Boden_BM-0*, MLV-ENT_07010030                                001197
+26   Entsorgung Bodenmaterial BM-0* Anlage 1 Tab 3 EBV                    001198
+26   inklusive Klammerwerte fr TOC-Gehalt > 0,5%, AVV 17 05              001199
+26   04, mineral. Fremdbestandteile bis 10 Vol-%, inklusive               001200
+26   Verwiegung.                                                          001201
+2107010040 NNN         00000000000t                                       001202
+25Entsorgung_Boden_BM-F0*, MLV-ENT_07010040                               001203
+26   Entsorgung Bodenmaterial BM-F0* Anlage 1 Tab 3 EBV, AVV              001204
+26   170504, mineral. Fremdbestandteile bis 50 Vol-%,                     001205
+26   inklusive Verwiegung.                                                001206
+2107010050 NNN         00000000000t                                       001207
+25Entsorgung_Boden_BM-F1, MLV-ENT_07010050                                001208
+26   Entsorgung Bodenmaterial BM-F1 Anlage 1 Tab 3 EBV, AVV               001209
+26   170504, mineral. Fremdbestandteile bis 50 Vol-%,                     001210
+26   inklusive Verwiegung.                                                001211
+2107010060 NNN         00000000000t                                       001212
+25Entsorgung_Boden_BM-F2, MLV-ENT_07010060                                001213
+26   Entsorgung Bodenmaterial BM-F2 Anlage 1 Tab 3 EBV, AVV               001214
+26   170504, mineral. Fremdbestandteile bis 50 Vol-%,                     001215
+26   inklusive Verwiegung.                                                001216
+2107010070 NNN         00000000000t                                       001217
+25Entsorgung_Boden_BM-F3, MLV-ENT_07010070                                001218
+26   Entsorgung Bodenmaterial BM-F3 Anlage 1 Tab 3 EBV, AVV               001219
+26   170504, mineral. Fremdbestandteile bis 50 Vol-%,                     001220
+26   inklusive Verwiegung.                                                001221
+2107010071 NNN         00000000000t                                       001222
+25Entsorgung Boden_>BM-F3, MLV-ENT_07010071                               001223
+26   Entsorgung Boden gr”áer BM-F3 nur aufgrund der                       001224
+26   Parameter TOC und/oder Sulfat, Chlorid, pH-Wert,                     001225
+26   Leitf„higkeit; alle brigen Schadstoffparameter Tab.                 001226
+26   3+4 EBV halten die Materialwerte BM-F3 ein, AVV 170504,              001227
+26   mineral. Fremdbestandteile bis 50 Vol-%, inklusive                   001228
+26   Verwiegung.                                                          001229
+2107010080 NNN         00000000000t      X                                001230
+25Zulage_Entsorgung_biogen_belasteter_Boden, MLV-ENT_07010080             001231
+26   Zulage Entsorgung Boden BM-0* bis BM-F3, mit biogener                001232
+2661ABelastung mit '(>Japanischem Staudenkn”terich /                      001233
+2661AHerkulesstaude / .....<)', AVV 17 05 04, zur                         001234
+26   fachgerechten Behandlung  bzw. Entsorgung des                        001235
+26   Bodenmaterials mit mineralischen Fremdbestandteilen bis              001236
+26   50 Vol-%, aus Bauschutt oder sonstigen mineralischen                 001237
+26   Stoffen, inklusive Verwiegung.                                       001238
+2107010081 NNN         00000000000t                                       001239
+25Zulage_Entsorgung_Boden_Anl1Tab4_sonstSt_MLV-ENT_07010081               001240
+26   Zulage zu Pos. 07.01.0040 - Bodenmaterial BM-F0* mit                 001241
+26   zus„tzlichen Materialwerten aus Anlage 1 Tab 4 EBV                   001242
+26   gem„á Analytikprogramm in Pos. 02.01.0072.                           001243
+2107010082 NNN         00000000000t                                       001244
+25Zulage_Entsorgung_Boden_Anl1Tab4_sonstSt_MLV-ENT_07010082               001245
+26   Zulage zu Pos. 07.01.0050 - Bodenmaterial BM-F1 mit                  001246
+26   zus„tzlichen Materialwerten aus Anlage 1 Tab 4 EBV                   001247
+26   gem„á Analytikprogramm in Pos. 02.01.0072.                           001248
+2107010083 NNN         00000000000t                                       001249
+25Zulage_Entsorgung_Boden_Anl1Tab4_sonstSt_MLV-ENT_07010083               001250
+26   Zulage zu Pos. 07.01.0060 - Bodenmaterial BM-F2 mit                  001251
+26   zus„tzlichen Materialwerten aus Anlage 1 Tab 4 EBV                   001252
+26   gem„á Analytikprogramm in Pos. 02.01.0072.                           001253
+2107010084 NNN         00000000000t                                       001254
+25Zulage_Entsorgung_Boden_Anl1Tab4_sonstSt_MLV-ENT_07010084               001255
+26   Zulage zu den Pos. 07.01.0070 - Bodenmaterial BM-F3 mit              001256
+26   zus„tzlichen Materialwerten aus Anlage 1 Tab 4 EBV                   001257
+26   gem„á Analytikprogramm in Pos. 02.01.0072.                           001258
+2107010085 NNN         00000000000t                                       001259
+25Zulage_Entsorgung_Boden_Anl1Tab4_Herbzd_MLV-ENT_07010085                001260
+26   Zulage zu Pos. 07.01.0040 - Bodenmaterial BM-F0* mit                 001261
+26   Herbiziden und AMPA aus Anlage 1 Tab 4 EBV gem„á                     001262
+26   Analytikprogramm in Pos. 02.01.0074.                                 001263
+2107010086 NNN         00000000000t                                       001264
+25Zulage_Entsorgung_Boden_Anl1Tab4_Herbzd_MLV-ENT_07010086                001265
+26   Zulage zu Pos. 07.01.0050 - Bodenmaterial BM-F1 mit                  001266
+26   Herbiziden und AMPA aus Anlage 1 Tab 4 EBV  gem„á                    001267
+26   Analytikprogramm in Pos. 02.01.0074.                                 001268
+2107010087 NNN         00000000000t                                       001269
+25Zulage_Entsorgung_Boden_Anl1Tab4_Herbzd_MLV-ENT_07010087                001270
+26   Zulage zu Pos. 07.01.0060 - Bodenmaterial BM-F2 mit                  001271
+26   Herbiziden und AMPA aus Anlage 1 Tab 4 EBV gem„á                     001272
+26   Analytikprogramm in Pos. 02.01.0074.                                 001273
+2107010088 NNN         00000000000t                                       001274
+25Zulage_Entsorgung_Boden_Anl1Tab4_Herbzd_MLV-ENT_07010088                001275
+26   Zulage zu Pos. 07.01.0070 - Bodenmaterial BM-F3 mit                  001276
+26   Herbiziden und AMPA aus Anlage 1 Tab 4 EBV gem„á                     001277
+26   Analytikprogramm in Pos. 02.01.0074.                                 001278
+2107010090 NNN         00000000000t                                       001279
+25Entsorgung Boden_DK0, MLV-ENT_07010090                                  001280
+26   Entsorgung Bodenmaterial Deponieklasse 0 DepV, AVV 17                001281
+26   05 04, mit mineralischen Fremdbestandteilen aus                      001282
+26   Bauschutt oder sonstigen mineralischen Stoffen,                      001283
+26   inklusive Verwiegung.                                                001284
+2107010100 NNN         00000000000t                                       001285
+25Entsorgung Boden_DKI, MLV-ENT_07010100                                  001286
+26   Entsorgung Bodenmaterial Deponieklasse I DepV, AVV 17                001287
+26   05 04, mit mineralischen Fremdbestandteilen aus                      001288
+26   Bauschutt oder sonstigen mineralischen Stoffen,                      001289
+26   inklusive Verwiegung.                                                001290
+2107010110 NNN         00000000000t      X                                001291
+25Entsorgung Boden_DKII, MLV-ENT_07010110                                 001292
+26   Entsorgung Bodenmaterial Deponieklasse II DepV, AVV                  001293
+2661A'(>17 05 04 nicht gef„hrlicher / 17 05 03* gef„hrlicher              001294
+2661ABoden<)',  mit mineralischen Fremdbestandteilen aus                  001295
+26   Bauschutt oder sonstigen mineralischen Stoffen,                      001296
+26   inklusive Verwiegung.                                                001297
+2107010120 NNN         00000000000t      X                                001298
+25Entsorgung Boden_DKIII, MLV-ENT_07010120                                001299
+26   Entsorgung Bodenmaterial Deponieklasse III DepV, AVV                 001300
+2661A'(>17 05 04 nicht gef„hrlicher / 17 05 03* gef„hrlicher              001301
+2661ABoden<)',  mit mineralischen Fremdbestandteilen aus                  001302
+26   Bauschutt oder sonstigen mineralischen Stoffen,                      001303
+26   inklusive Verwiegung.                                                001304
+2107010130 NNN         00000000000t                                       001305
+25Transport_nicht_gef„hrlicher Boden, MLV-ENT_07010130                    001306
+26   Laden und Transport von nicht gef„hrlichem                           001307
+26   Bodenmaterial, AVV 17 05 04, von der Anfallstelle /                  001308
+26   Bereitstellungsfl„che zur Entsorgungsanlage                          001309
+26   einschlieálich fachgerechter Sicherung der Abf„lle.                  001310
+2107010140 NNN         00000000000t                                       001311
+25Transport_gef„hrlicher Boden, MLV-ENT_07010140                          001312
+26   Laden und Transport von gef„hrlichem Bodenmaterial, AVV              001313
+26   17 05 03*, von der Anfallstelle / Bereitstellungsfl„che              001314
+26   zur Entsorgungsanlage einschlieálich fachgerechter                   001315
+26   Sicherung der Abf„lle.                                               001316
+310701                                                                    001317
+110702     N    LV-Gruppe 2                                               001318
+12Entsorgung und Transport von Beton /                                    001319
+12Betonbruch                                                              001320
+20                                                                        001321
+26   Der in den Pos. 07.02.001 - 003 aufgefhrte Beton/                   001322
+26   Betonbruch kann neben den Materialwerten RC-x gem.                   001323
+26   Anlage 1 Tab. 1 EBV folgende weitere                                 001324
+26   Belastungsparameter  enthalten:                                      001325
+26    Die Feststoffwerte fr As, Pb, Cr, Cd, Cu, Hg, Ni, Zn              001326
+26   gem„á Anlage 1 Tab. 3 EBV und                                        001327
+26    Die Eluatwerte fr As, Pb, Cr, Cd, Cu, Hg, Ni, Zn und              001328
+26   Phenole gem„á Anlage 1 Tab. 3 + 4 EBV                                001329
+26                                                                        001330
+26   Die o.g. zus„tzlichen Belastungsparameter erreichen                  001331
+26   maximal die H”he der korrespondierenden Materialwerte                001332
+26   fr Bodenmaterial, d.h. RC-1 enth„lt max. die                        001333
+26   Materialwerte BM-F1 / RC-2 max. die Materialwerte BM-F2              001334
+26   usw.  Dies ist bei der abfallrechtlichen und                         001335
+26   kaufm„nnischen Bewertung zu bercksichtigen.                         001336
+26                                                                        001337
+2107020010 NNN         00000000000t                                       001338
+25Entsorgung_Beton_RC-1, MLV-ENT_07020010                                 001339
+26   Entsorgung Beton/ Betonbruch RC-1, das Material kann                 001340
+26   zus„tzlich o.g. Belastungsparameter enthalten, AVV                   001341
+26   170101, inklusive Verwiegung.                                        001342
+2107020020 NNN         00000000000t                                       001343
+25Entsorgung_Beton_RC-2, MLV-ENT_07020020                                 001344
+26   Entsorgung Beton/ Betonbruch RC-2, das Material kann                 001345
+26   zus„tzlich o.g. Belastungsparameter enthalten, AVV                   001346
+26   170101, inklusive Verwiegung.                                        001347
+2107020030 NNN         00000000000t                                       001348
+25Entsorgung_Beton_RC-3, MLV-ENT_07020030                                 001349
+26   Entsorgung Beton/ Betonbruch RC-3, das Material kann                 001350
+26   zus„tzlich o.g. Belastungsparameter enthalten, AVV                   001351
+26   170101, inklusive Verwiegung.                                        001352
+2107020040 NNN         00000000000t                                       001353
+25Entsorgung_Beton_DK0, MLV-ENT_07020040                                  001354
+26   Entsorgung Beton/ Betonbruch Deponieklasse 0 DepV, AVV               001355
+26   170101, inklusive Verwiegung.                                        001356
+2107020050 NNN         00000000000t                                       001357
+25Entsorgung_Beton_DKI, MLV-ENT_07020050                                  001358
+26   Entsorgung Beton/ Betonbruch Deponieklasse I DepV, AVV               001359
+26   170101, inklusive Verwiegung.                                        001360
+2107020060 NNN         00000000000t      X                                001361
+25Entsorgung_Beton_DKII, MLV-ENT_07020060                                 001362
+26   Entsorgung Beton/ Betonbruch Deponieklasse II DepV, AVV              001363
+2661A'(>170101 nicht gef„hrlich / 170106* gef„hrlicher                    001364
+2661ABeton<)', inklusive Verwiegung.                                      001365
+2107020070 NNN         00000000000t      X                                001366
+25Entsorgung Beton_DKIII, MLV-ENT_07020070                                001367
+26   Entsorgung Beton/ Betonbruch Deponieklasse III DepV,                 001368
+2661AAVV '(>170101 nicht gef„hrlich / 170106* gef„hrlicher                001369
+2661ABeton<)', inklusive Verwiegung.                                      001370
+20                                                                        001371
+26   Abh„ngig von den Rechtsvorschriften des jeweiligen                   001372
+26   Bundeslandes bzw. nach Abstimmung mit den zust„ndigen                001373
+26   Abfallbeh”rden kann ab Beton DK II auch die Einstufung               001374
+26   als gef„hrlicher Bauschutt (AVV 170106* anstelle                     001375
+26   170101) erforderlich werden.                                         001376
+26                                                                        001377
+26   Gef„hrlicher Bauschutt aus getrennten Fraktionen oder                001378
+26   Gemischen von gef„hrlichen Beton und/oder Ziegeln/                   001379
+26   Fliesen/ Keramik ist immer als AVV 17 01 06* zu                      001380
+26   deklarieren.                                                         001381
+26   Erreicht der Anteil nicht mineralischer Stoffe (z.B.                 001382
+26   Kunstoff u. Holz) in diesem Abfall mehr als 5%, ist das              001383
+26   Gemisch dagegen als AVV 170903* "sonstige Bau- und                   001384
+26   Abbruchabf„lle, die gef„hrliche Stoffe enthalten" zu                 001385
+26   deklarieren.                                                         001386
+20                                                                        001387
+26   Bitte bei Bedarf  zus„tzliche LV-Positionen fr AVV 17               001388
+26   01 07 - gemischter Bauschutt (ngA) / 17 01 02 "Ziegel"               001389
+26   (ngA) oder AVV 17 01 03 "Fliesen, Ziegel und                         001390
+26   Keramik(ngA)" analog zu den LV-Pos fr Beton                         001391
+26   aufzunehmen. Der jeweilige Anteil an mineralischen                   001392
+26   Zweitfraktionen darf 5% nicht bersteigen, ansonsten                 001393
+26   ist das Material als AVV 17 01 07, gemischter                        001394
+26   Bauschutt, zu deklarieren.                                           001395
+26                                                                        001396
+26   Liegt der Anteil nicht mineralischer Stoffe ber 5%,                 001397
+26   ist der Abfall als AVV 17 09 04 "gemischte Bau- und                  001398
+26   Abbruchabf„lle bzw. ggf. als gef„hrliche "sonstige Bau-              001399
+26   und Abbruchabf„lle", AVV 17 09 03* zu deklarieren.                   001400
+2107020080 NNN         00000000000t                                       001401
+25Transport_nicht gef„hrlicher Beton, MLV-ENT_07020080                    001402
+26   Laden und Transport von nicht gef„hrlichem Beton/                    001403
+26   Betonbruch, AVV 17 01 01, von der Anfallstelle/                      001404
+26   Bereitstellungsfl„che zur Entsorgungsanlage, inklus.                 001405
+26   fachgerechter Sicherung der Abf„lle.                                 001406
+2107020090 NNN         00000000000t                                       001407
+25Transport_gef„hrlicher Beton, MLV-ENT_07020090                          001408
+26   Laden und Transport gef„hrlichem Beton/ Betonbruch, AVV              001409
+26   170106*, von der Anfallstelle/ Bereitstellungsfl„che                 001410
+26   zur Entsorgungsanlage inklus. fachgerechter Sicherung                001411
+26   der Abf„lle.                                                         001412
+310702                                                                    001413
+110703     N    LV-Gruppe 2                                               001414
+12Entsorgung und Transport von Bauschutt                                  001415
+20                                                                        001416
+26   Der in den Pos. 07.03.001-003 aufgefhrte Bauschutt                  001417
+26   kann neben den Materialwerten RC-x gem. Anlage 1 Tab. 1              001418
+26   EBV folgende weitere Belastungsparameter  enthalten:                 001419
+26    Die Feststoffwerte fr As, Pb, Cr, Cd, Cu, Hg, Ni, Zn              001420
+26   gem„á Anlage 1 Tab. 3 EBV und                                        001421
+26    Die Eluatwerte fr As, Pb, Cr, Cd, Cu, Hg, Ni, Zn und              001422
+26   Phenole gem„á Anlage 1 Tab. 3 + 4 EBV                                001423
+26                                                                        001424
+26   Die o.g. zus„tzlichen Belastungsparameter erreichen                  001425
+26   maximal die H”he der korrespondierenden Materialwerte                001426
+26   fr Bodenmaterial, d.h. RC-1 enth„lt max. die                        001427
+26   Materialwerte BM-F1, RC-2 max. die Materialwerte BM-F2               001428
+26   usw.  Dies ist bei der abfallrechtlichen und                         001429
+26   kaufm„nnischen Bewertung zu bercksichtigen.                         001430
+2107030010 NNN         00000000000t                                       001431
+25Entsorgung_Bauschutt_RC-1, MLV-ENT_07030010                             001432
+26   Entsorgung Bauschutt RC-1 Anlage 1 Tab. 1 EBV, das                   001433
+26   Material kann zus„tzlich o.g.  Belastungsparameter                   001434
+26   enthalten, AVV 170107, inklusive Verwiegung.                         001435
+2107030020 NNN         00000000000t                                       001436
+25Entsorgung_Bauschutt_RC-2, MLV-ENT_07030020                             001437
+26   Entsorgung Bauschutt RC-2 Anlage 1 Tab. 1 EBV, das                   001438
+26   Material kann zus„tzlich o.g.  Belastungsparameter                   001439
+26   enthalten, AVV 170107, inklusive Verwiegung.                         001440
+2107030030 NNN         00000000000t                                       001441
+25Entsorgung_Bauschutt_RC-3, MLV-ENT_07030030                             001442
+26   Entsorgung Bauschutt RC-3 Anlage 1 Tab. 1 EBV, das                   001443
+26   Material kann zus„tzlich o.g.  Belastungsparameter                   001444
+26   enthalten, AVV 170107, inklusive Verwiegung.                         001445
+2107030040 NNN         00000000000t                                       001446
+25Entsorgung_Bauschutt_DK0, MLV-ENT_07030040                              001447
+26   Entsorgung Bauschutt Deponieklasse 0 DepV, AVV 170101,               001448
+26   inklusive Verwiegung.                                                001449
+26                                                                        001450
+2107030050 NNN         00000000000t                                       001451
+25Entsorgung_Bauschutt_DKI, MLV-ENT_07030050                              001452
+26   Entsorgung Bauschutt Deponieklasse I DepV, AVV 170101,               001453
+26   inklusive Verwiegung.                                                001454
+2107030060 NNN         00000000000t      X                                001455
+25Entsorgung_Bauschutt_DKII, MLV-ENT_0703060                              001456
+2661AEntsorgung Bauschutt Deponieklasse II DepV, '(>170101                001457
+2661Anicht gef„hrlicher / 170106* gef„hrlicher Bauschutt<)',              001458
+26   inklusive Verwiegung.                                                001459
+2107030070 NNN         00000000000t      X                                001460
+25Entsorgung_Bauschutt_DKIII, MLV-ENT_07020070                            001461
+26   Entsorgung Bauschutt Deponieklasse III gem. DepV, AVV                001462
+2661A'(>170101 nicht gef„hrlicher / 170106* gef„hrlicher                  001463
+2661ABauschutt<)', inklusive Verwiegung.                                  001464
+26                                                                        001465
+20                                                                        001466
+26   Abh„ngig von den Rechtsvorschriften des jeweiligen                   001467
+26   Bundeslandes bzw. nach Abstimmung mit den zust„ndigen                001468
+26   Abfallbeh”rden kann ab DK II auch die Einstufung als                 001469
+26   gef„hrlicher Bauschutt (AVV 17 01 06* anstelle 17 01                 001470
+26   07) erforderlich werden.                                             001471
+26                                                                        001472
+26   Gef„hrlicher Bauschutt aus getrennten Fraktionen oder                001473
+26   Gemischen von gef„hrlichen Beton und/oder                            001474
+26   Ziegeln/Fliesen/Keramik, ist immer als AVV 170106* zu                001475
+26   deklarieren.                                                         001476
+26   Erreicht der Anteil nicht mineralischer Stoffe (z.B.                 001477
+26   Kunstoff, Holz sonst) in diesem Abfall mehr als 5%, ist              001478
+26   das Gemisch dagegen als AVV 170903* "sonstige Bau- und               001479
+26   Abbruchabf„lle, die gef„hrliche Stoffe enthalten" zu                 001480
+26   deklarieren.                                                         001481
+310703                                                                    001482
+3107                                                                      001483
+99                   0000                                            00137001484

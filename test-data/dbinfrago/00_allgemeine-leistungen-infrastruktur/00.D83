@@ -1,0 +1,1972 @@
+00        83L                                                 1122PPPPI90 000001
+01MLV Allgem. Leistungen Infrastruktur_05/26.06.26                        000002
+02DB Netz                                                                 000003
+03                                                                        000004
+060                                                                       000005
+08EUR   Euro                                                              000006
+1101       N    LV-Gruppe 1                                               000007
+12Muster-LV Allgemeine Leistungen                                         000008
+12Infrastruktur                                                           000009
+20                                                                        000010
+26   Hinweistext fr das Arbeiten mit diesem Muster-LV:                   000011
+26   (diesen gesamten Hinweistext bitte nach Fertigstellung               000012
+26   des LV l”schen)                                                      000013
+26                                                                        000014
+26   1.      Allgemeine Hinweise                                          000015
+26   Muster-LV fr Infrastrukturleistungen der  Deutschen                 000016
+26   Bahn                                                                 000017
+26   Dieses Leistungsverzeichnis stellt fr den Aufsteller,               000018
+26   den Bieter/AN und die projektleitenden Stellen ein                   000019
+26   einheitliches Muster fr Bauleistungen dar.                          000020
+26   DIE VERANTWORTUNG FšR DIE RICHTIGKEIT DES ZU                         000021
+26   ERSTELLENDEN LV BLEIBT TROTZ DER VORGABETEXTE ZU 100%                000022
+26   BEIM JEWEILIGEN ERSTELLER!                                           000023
+26   Die Leistungstexte der LV-Positionen werden fr alle                 000024
+26   oben bezeichneten Bauleistungen der DB AG                            000025
+26   vereinheitlicht, wodurch die Arbeit in allen                         000026
+26   Projektphasen fr die am Bau Beteiligten besser                      000027
+26   strukturiert und vereinfacht wird.                                   000028
+26   1.1  Das vorliegende Leistungsverzeichnis soll bei                   000029
+26   allen Infrastrukturleistungen der DB verwendet werden.               000030
+26   1.2  Bei den Positionsbeschreibungen handelt es sich um              000031
+26   Freitexte, die in der vorgegebenen Beschreibung zur                  000032
+26   Anwendung kommen sollen.                                             000033
+26   Projektspezifische Anpassungen sind jedoch im                        000034
+26   Einzelfall m”glich / erforderlich.                                   000035
+26   1.3  Die Positionskennung "MLV-XXX" im Kurztext steht                000036
+26   fr die inhaltlich unver„nderte Musterposition.                      000037
+26   Werden die Positionen ber die Platzhalter (>XXX<) bzw.              000038
+26   (><) hinaus ge„ndert, ist die Kennung zu l”schen,                    000039
+26   ansonsten ist sie unver„ndert beizubehalten. Dadurch                 000040
+26   wird die LV-Prfung und Preisbildung erleichtert und                 000041
+26   eine Datenverarbeitung erm”glicht.                                   000042
+26   1.4  Nicht ben”tigte Positionen sind zu l”schen,                     000043
+26   fehlende hinzuzufgen.                                               000044
+26   1.5  Positionen, die mehrfach erforderlich sind (z. B.               000045
+26   bei unterschiedlichen Homogenbereichen, Verbaupos                    000046
+26   itionen, Korrosionsschutz) sind zu duplizieren.                      000047
+26   1.6  Projektspezifische Erg„nzungen sind grunds„tzlich               000048
+26   mit "(><)" gekennzeichnet.                                           000049
+26   Dadurch wird die Suche fr den Planer erleichtert. Die               000050
+26   Sonderzeichen sind bei der LV-Erstellung auch bei                    000051
+26   Bearbeitung der projektspezifischen Angaben zu                       000052
+26   belassen, da sie so die LV-Prfung erleichtern.                      000053
+26   1.7  Erforderliche Maáangaben sind durch "(>XXX<)"                   000054
+26   gekennzeichnet. Dadurch wird die Suche fr den Planer                000055
+26   erleichtert. Bei Positionen mit einer durch einen                    000056
+26   Schr„gstrich getrennten, vorgegebenen Auswahl von                    000057
+26   alternativen Eingabem”glichen in den Klammervermerken                000058
+26   "(>XXX / XXX<)" ist vom Planer eine Auswahl zu treffen,              000059
+26   nichtzutreffende Texte sind zu l”schen.                              000060
+26   1.8  Mengenvorgaben sind grunds„tzlich mit "0"                       000061
+26   vorgegeben. Dadurch wird die Suche fr den Planer nach               000062
+26   nicht aktualisierten Mengen erleichtert.                             000063
+26   1.9  Die Titelnummerierung ist m”glichst beizubehalten,              000064
+26   auch wenn einzelne Titel nicht anfallen.                             000065
+26   1.10  Die Positionsnummerierung ist nach Fertigstellung              000066
+26   des LV titelweise zu erneuern.                                       000067
+26   1.11  Erforderliche Leistungen, die im Muster-LV nicht               000068
+26   enthalten sind, sind durch den Planer zu erg„nzen.                   000069
+26   Diese sind z.B.:                                                     000070
+26   - Straáenbauarbeiten,                                                000071
+26   - Rckbau und Wiederherstellung von Streckenausrstung,              000072
+26   - Streckenentw„sserung,                                              000073
+26   - etc                                                                000074
+26   Die einschl„gigen Fach-Muster-LV sind erg„nzend zu                   000075
+26   verwenden.                                                           000076
+26                                                                        000077
+26   2.      Hinweise zu Beweissicherungsverfahren                        000078
+26   2.1  Im Normalfall sind Beweissicherungen in geringem                000079
+26   Umfang ber die Anlage 2.1 zum Bauvertrag abgedeckt und              000080
+26   brauchen nicht gesondert im LV aufgefhrt zu werden.                 000081
+26   2.2  Die Pos. fr Beweissicherungen sind fr den Fall                000082
+26   vorgesehen, wenn die bliche Dokumentation durch den AN              000083
+26   nicht ausreichend erscheint und durch einen                          000084
+26   zertifizierten Sachverst„ndigen erfolgen soll.                       000085
+26   Hierbei kann ENTWEDER eine Pauschale ODER eine                       000086
+26   detaillierte Beweissicherung nach Einzelpositionen                   000087
+26   ausgeschrieben werden.                                               000088
+26                                                                        000089
+26   3.   Bzgl. der Positionen 01.02.0070 bis 01.02.0128                  000090
+26   (Aufstellen und Vorhalten von Containern):                           000091
+26                                                                        000092
+26   Zur Vermeidung des Entstehens von Scheinselbst„ndigkeit              000093
+26   und illegaler Arbeitnehmerberlassung ist die                        000094
+26   šberlassung von u.a. R„umlichkeiten durch den AG an                  000095
+26   Externe im Rahmen von Dienst-/Werkvertr„gen                          000096
+26   grunds„tzlich nicht zul„ssig. Sofern es in einem                     000097
+26   begrndeten Einzelfall Ausnahmen nach dem geltenden                  000098
+26   internen Regelwerk geben sollte, ist dies mit der                    000099
+26   Projektleitung/Projektverantwortlichen abzustimmen,                  000100
+26   schriftlich zu dokumentieren und entsprechend                        000101
+26   abzulegen.                                                           000102
+26                                                                        000103
+26   4.      Sonstiges                                                    000104
+26   Das Muster-Leistungsverzeichnis wird laufend                         000105
+26   aktualisiert und erweitert. Erkenntnisse aus                         000106
+26   Ausschreibungen, Vergaben und anfallenden Nachtr„gen                 000107
+26   werden - soweit m”glich - in die Textgestaltung                      000108
+26   einflieáen.                                                          000109
+26   Hierfr bitten wir um Rckmeldung von nderungswnschen              000110
+26   ber das Kontaktformular auf                                         000111
+26   https://www.deutschebahn.com/de/geschaefte/infrastruktu              000112
+26   r/muster-lvs-6892086.                                                000113
+26                                                                        000114
+110101     N    LV-Gruppe 2                                               000115
+12Technische Bearbeitung                                                  000116
+20                                                                        000117
+26   Vom AG werden nur die der Ausschreibung beiliegenden                 000118
+26   bzw. ggf die in Anlage 2.1 unter "Datenaustausch,                    000119
+26   Vermessung und Planung" genannten Unterlagen zur                     000120
+26   Verfgung gestellt.                                                  000121
+26   Alle weiteren zur Ausfhrung der ausgeschriebenen                    000122
+26   Leistungen notwendigen Planungsleistungen sind vom AN                000123
+26   zu bernehmen und in die nachfolgenden Positionen                    000124
+26   einzurechnen.                                                        000125
+26                                                                        000126
+2101010010 NNN         00000001000psch   X                                000127
+25Standsicherheitsnachweise Bauwerke                                      000128
+25MLV-ALI_01010010                                                        000129
+26   Standsicherheitsnachweise fr die Bauwerke / alle                    000130
+26   sonstigen Gewerke aufstellen soweit nicht in anderen                 000131
+26   Titeln gesondert aufgefhrt. Lastannahmen nach                       000132
+26   Unterlagen des AG. Unterlagen 1 * digital,                           000133
+2661A'(>3<)' * in Papierform zur Prfung liefern.                         000134
+26   Ggf. mehrfaches Einarbeiten von Prfanmerkungen                      000135
+26   Freigegebene und zur Bauausfhrung genehmigte                        000136
+2662AUnterlagen 1 * digital, 1 * Original und '(>2<)' * als               000137
+26   Kopie an AG liefern.                                                 000138
+26   Prflauf und Verteiler nach Vorgaben des AG.                         000139
+26   Digitale Unterlagen im Format PDF, Papierformate gem„á               000140
+26   DIN-Norm 476 bzw. EN ISO 216.                                        000141
+26                                                                        000142
+26                                                                        000143
+2101010020 NNN         00000001000psch   X                                000144
+25Standsicherheitsnachweis Baubehelfe                                     000145
+25MLV-ALI_01010020                                                        000146
+26   Standsicherheitsnachweise fr alle Baubehelfe                        000147
+26   aufstellen soweit nicht in anderen Titeln gesondert                  000148
+26   aufgefhrt. Lastannahmen nach Unterlagen des AG.                     000149
+2662AUnterlagen 1 * digital, '(>3<)' * in Papierform zur                  000150
+26   Prfung liefern.                                                     000151
+26   Ggf. mehrfaches Einarbeiten von Prfanmerkungen.                     000152
+26   Freigegebene und zur Bauausfhrung genehmigte                        000153
+2663AUnterlagen 1 * digital, 1 * Original und '(>2<)' * als               000154
+26   Kopie an AG liefern.                                                 000155
+26   Prflauf und Verteiler nach Vorgaben des AG.                         000156
+26   Digitale Unterlagen im Format PDF, Papierformate gem„á               000157
+26   DIN-Norm 476 bzw. EN ISO 216.                                        000158
+26                                                                        000159
+2101010030 NNN         00000001000psch   X                                000160
+25Ausfhrungsunterlagen Bauwerk                                           000161
+25MLV-ALI_01010030                                                        000162
+26   Alle fr die ausgeschriebenen Arbeiten notwendigen                   000163
+26   Ausfhrungszeichnungen u. -unterlagen einschl.                       000164
+26   Werkstattzeichnungen fr die Bauwerke / alle                         000165
+26   sonstigen Gewerke erstellen soweit nicht in anderen                  000166
+26   Titeln gesondert aufgefhrt. Unterlagen 1 * digital,                 000167
+2661A'(>4<)' * in Papierform zur Prfung liefern.                         000168
+26   Ggf. mehrfaches Einarbeiten von Prfanmerkungen.                     000169
+26   Freigegebene und zur Bauausfhrung genehmigte                        000170
+2662AUnterlagen 1 * digital, 1 * Original und '(>4<)' * als               000171
+26   Kopie an AG liefern.                                                 000172
+26   Prflauf und Verteiler nach Vorgaben des AG.                         000173
+26   Digitale Unterlagen im Format PDF/A-1b (Level B)                     000174
+26   gem„á ISO 19005-1, Papierformate gem„á DIN-Norm 476                  000175
+26   bzw. EN ISO 216.                                                     000176
+26                                                                        000177
+2101010040 NNN         00000001000psch   X                                000178
+25Ausfhrungsunterlagen Baubehelfe                                        000179
+25MLV-ALI_01010040                                                        000180
+26   Ausfhrungszeichnungen und -unterlagen einschl.                      000181
+26   Werkstattzeichnungen fr alle Baubehelfe erstellen                   000182
+26   soweit nicht in anderen Titeln gesondert aufgefhrt.                 000183
+2661AUnterlagen 1* digital, '(>4<)' * in Papierform zur                   000184
+26   Prfung liefern.                                                     000185
+26   Ggf. mehrfaches Einarbeiten von Prfanmerkungen.                     000186
+26   Freigegebene und zur Bauausfhrung genehmigte                        000187
+2662AUnterlagen 1 * digital, 1 * Original und '(>4<)' * als               000188
+26   Kopie an AG liefern.                                                 000189
+26   Prflauf und Verteiler nach Vorgaben des AG.                         000190
+26   Digitale Unterlagen im Format PDF/ A - 1 b (Level B)                 000191
+26   gem„á ISO 19005-1, Papierformate gem„á                               000192
+26   DIN-Norm 476 bzw. EN ISO 216.                                        000193
+26                                                                        000194
+26                                                                        000195
+2101010050 NNN         00000001000psch   X                                000196
+25Vermessungsleistungen                                                   000197
+25MLV-ALI_01010050                                                        000198
+26   Alle Vermessungsleistungen, die zur technischen                      000199
+26   Bearbeitung, Ausfhrung und Erstellung der                           000200
+26   Bestandsunterlagen der beschriebenen Leistungen                      000201
+26   erforderlich sind. Eingeschlossen sind alle                          000202
+26   erforderlichen Vermarkungen, ”rtliche Aufmaáe und                    000203
+26   Nebenleistungen sowie die Auswertungen der                           000204
+2662AVermessungsergebnisse. Bezugssystem: '(>DB_REF2016<)'.               000205
+26                                                                        000206
+26                                                                        000207
+20                                                                        000208
+26   HINWEIS FšR DEN LV-ERSTELLER, NICHT ZUR                              000209
+26   VER™FFENTLICHUNG:                                                    000210
+26   Nachfolgende Position ist nur fr KOMPLEXE                           000211
+26   Rckbau-Gewerke gedacht (z. B. bestehende Brcken),                  000212
+26   NICHT zur Standard-Verwendung in jeder Baumaánahme!                  000213
+26                                                                        000214
+2101010060 NNN         00000001000psch   X                                000215
+25Technische Bearbeitung Rckbau                                          000216
+25MLV-ALI_01010060                                                        000217
+26   Alle notwendigen Ausfhrungsunterlagen, Werkpl„ne,                   000218
+26   Abbruchanweisungen und zugeh”rigen statischen                        000219
+26   Berechnungen sowie sonstige Unterlagen fr den Rckbau               000220
+2661A'(>des vorhandenenen Bauwerks / der vorhandenen                      000221
+2661Abaulichen Anlagen<)' einschlieálich der notwendigen                  000222
+26   Positionspl„ne prff„hig aufstellen.                                 000223
+2662A'(>Demontage- /Abbruchprojekt und zugeh”rige statische               000224
+2662ABerechnungen unter Beachtung der abschnittsweisen                    000225
+2662AAufrechterhaltung des Eisenbahnverkehres. Die                        000226
+2662AStandsicherheit der in Betrieb befindlichen Bauwerke                 000227
+2662Amuss erhalten bleiben.<)' Unterlagen 1 * digital,                    000228
+2663A'(>3<)' * in Papierform zur Prfung liefern.                         000229
+26   Ggf. mehrfaches Einarbeiten von Prfanmerkungen.                     000230
+26   Freigegebene und zur Bauausfhrung genehmigte                        000231
+2664AUnterlagen 1 * digital, 1 * Original und '(>2<)' * als               000232
+26   Kopie an AG liefern.                                                 000233
+26   Prflauf und Verteiler nach Vorgaben des AG.                         000234
+26   Digitale Unterlagen im Format PDF/ A - 1 b (Level B)                 000235
+26   gem„á ISO 19005-1, Papierformate gem„á DIN-Norm 476                  000236
+26   bzw. EN ISO 216.                                                     000237
+26                                                                        000238
+2101010070 NNN         00000001000psch                                    000239
+25Zuarbeiten zu SiGe - Plan                                               000240
+25MLV-ALI_01010070                                                        000241
+26   Regelm„áige Zuarbeiten an den AG zur Anpassung des                   000242
+26   Sicherheits- und Gesundheitschutzplans gem„á BaustellV               000243
+26   an das Baugeschehen w„hrend der Baumaánahmen liefern                 000244
+26                                                                        000245
+2101010080 NNN         00000001000psch   X                                000246
+25Messprogramm aufstellen                                                 000247
+25MLV-ALI_01010080                                                        000248
+26   Erstellen eines Messprogramms fr die messtechnische                 000249
+26   šberwachung der in Betrieb befindlichen Gleise auf                   000250
+2661Aeine L„nge von '(>eingleisig/zweigleisig, XXX<)'m.                   000251
+26   Das Messprogramm ist mit dem AG abzustimmen und                      000252
+26   vom AG best„tigen zu lassen. šbergabe der Unterlagen                 000253
+2662Azur Abstimmung beim AG 1* digital, '(>2<)'* in                       000254
+2663APapierform sp„testens '(>2<)'* Wochen nach                           000255
+26   Auftragserteilung. Digitale Unterlagen im Format PDF,                000256
+26   Papierformate gem„á DIN-Norm 476 bzw. EN ISO 216. Die                000257
+26   Anpassung des Messprogramms in der Bauphase ist in den               000258
+26   Einheitspreis einzurechnen.                                          000259
+26                                                                        000260
+2101010090 NNN         00000001000psch                                    000261
+25Messprogramm zur Gleisberwachung durchfhren                           000262
+25MLV-ALI_01010090                                                        000263
+26   Durchfhrung s„mtlicher w„hrend der Bauausfhrung fr                000264
+26   die šberwachung der in Betrieb befindlichen Gleise                   000265
+26   notwendigen Vermessungs- und Aufmaá-Arbeiten gem„á                   000266
+26   Messprogramm.                                                        000267
+26                                                                        000268
+2101010100 NNN         00000001000psch                                    000269
+25Messtechnische Prfung Erdung                                           000270
+25MLV-ALI_01010100                                                        000271
+26   Messung und Kontrolle aller verlegten Erdungsanlagen,                000272
+26   Messung nach VDE- Vorschriften und auf die Belange der               000273
+26   Bahn abgestimmt, einschl. Aufstellung eines                          000274
+26   Prfprotokolls mit šbergabe an den AG. Bereich:                      000275
+26   gesamtes Bauwerk mit Baubehelfen und                                 000276
+26   Ausrstungsbauteilen.                                                000277
+26                                                                        000278
+2101010110 NNN         00000001000psch                                    000279
+25Sicherung Festpunktfeld                                                 000280
+25MLV-ALI_01010110                                                        000281
+26   Sicherung und Dokumentation des bestehenden                          000282
+26   Festpunktfelds nach Rcksprache mit AG. Vorgaben des                 000283
+26   Vermessungsdienstes der DB AG sind zu bercksichtigen.               000284
+26   Die Dokumentation der Festpunkte hat im                              000285
+26   DB-REF-Bezussystem zu erfolgen.                                      000286
+26                                                                        000287
+20                                                                        000288
+26   HINWEIS FšR DEN LV-ERSTELLER Beweissicherung:                        000289
+26   ENTWEDER die nachfolgende allgemeine                                 000290
+26   Beweissicherungs-Pauschal-Position ODER die                          000291
+26   detaillierten Positionen verwenden, keinesfalls beides.              000292
+26                                                                        000293
+2101010120 NNN         00000001000psch   X                                000294
+25Beweissicherung                                                         000295
+25MLV-ALI_01010120                                                        000296
+26   Beweissicherung (mehrmalig). Lieferung einer                         000297
+26   Dokumentation ber den Zustand des gesamten durch die                000298
+26   Baumaánahme beeinflussten Baubereiches und aller                     000299
+26   Bauwerke sowie Einbauten, der Bahnanlagen, Straáen,                  000300
+26   Wege, Zufahrten sowie šberg„ngen zu ”ffentlichen und                 000301
+26   angrenzenden Straáenr„umen und Gel„ndefl„chen,                       000302
+26   Vorfluteinrichtungen etc. als                                        000303
+26   Beweissicherungsverfahren. Die Dokumentation erfolgt                 000304
+26   als Plan, Bild und Text. Ausfhrung der Arbeiten durch               000305
+26   ein Bro mit besonderer Sachkunde - erstmalig vor                    000306
+26   Beginn der Bauausfhrung unmittelbar nach                            000307
+26   Auftragsvergabe - sowie nach Fertigstellung der                      000308
+26   ausgeschriebenen Bauleistungen. Der Nachweis der                     000309
+26   besonderen Sachkunde hat ber geeignete Referenzen zu                000310
+26   erfolgen. Die Beweissicherung ist rechtzeitig beim AG                000311
+26   und Betroffenen anzumelden, um die Teilnahme eines                   000312
+26   AG-Vertreters und der Betroffenen zu erm”glichen.                    000313
+26   šbergabe der Unterlagen an den AG vor Beginn der                     000314
+26   Bauarbeiten auf der Baustelle und nach Beendigung der                000315
+2663ABauarbeiten. Unterlagen sind jeweils  '(>3<)'-fach in                000316
+26   Papierform und 1-fach digital zu liefern. Digitale                   000317
+26   Unterlagen im Format PDF, Fotos im Format JPG                        000318
+26   (Bildgr”áe mind. 900 x 600 Pixel),                                   000319
+26   Papierformate gem„á DIN-Norm 476 bzw. EN ISO 216.                    000320
+26                                                                        000321
+26                                                                        000322
+2101010130 NNN         00000001000psch   X                                000323
+25Beweissicherung im Sinne der Bundes-Bodenschutz- und                    000324
+25Altlastenverordnung                                                     000325
+25MLV-ALI_01010130                                                        000326
+26   Beweissicherung (mehrmalig) im Sinne der                             000327
+26   Bundes-Bodenschutz- und Altlastenverordnung                          000328
+26   (BBodSchV). Lieferung einer Dokumentation ber den                   000329
+26   Zustand des gesamten durch die Baumaánahme                           000330
+26   beeinflussten Baubereiches und aller in Anspruch                     000331
+26   genomenen Fl„chen, als Beweissicherungsverfahren. Die                000332
+26   Dokumentation erfolgt als Plan, Bild und Text.                       000333
+26   Ausfhrung der Arbeiten durch ein zertifiziertes Bro                000334
+26   - erstmalig vor Beginn der Bauausfhrung unmittelbar                 000335
+26   nach Auftragsvergabe, - sowie nach Ber„umung der                     000336
+26   Baustelle und aller genutzten Fl„chen. Die                           000337
+26   Beweissicherung ist rechtzeitig beim AG anzumelden, um               000338
+26   die Teilnahme eines AG-Vertreters zu erm”glichen.                    000339
+26   šbergabe der Unterlagen an den AG vor Beginn der                     000340
+26   Bauarbeiten auf der Baustelle und nach                               000341
+26   Beendigung der Bauarbeiten. Unterlagen sind                          000342
+2663Ajeweils'(>3<)'-fach in Papierform und 1-fach digital zu              000343
+26   liefern. Digitale Unterlagen im Format PDF,                          000344
+26   Papierformate gem„á DIN-Norm 476 bzw. EN ISO 216.                    000345
+26                                                                        000346
+20                                                                        000347
+26   HINWEIS FšR DEN LV-ERSTELLER Beweissicherung:                        000348
+26   ENTWEDER die nachfolgende allgemeine                                 000349
+26   Beweissicherungs-Pauschal-Position ODER die                          000350
+26   detaillierten Positionen verwenden, keinesfalls beides.              000351
+26                                                                        000352
+2101010140 NNN         00000001000St     X                                000353
+25Beweissicherung Geb„ude                                                 000354
+25MLV-ALI 01010140                                                        000355
+26   Bestandsaufnahme und Gutachten zur Beweissicherung                   000356
+26   an/in                                                                000357
+26   Geb„uden und Bauwerken durch ein unabh„ngiges und                    000358
+26   anerkanntes Sachverst„ndigenbro durchfhren lassen.                 000359
+26   Die Beweissicherung wird an/in allen Geb„uden /                      000360
+26   Bauwerken                                                            000361
+26   einschl. Nebengeb„uden, die sich in einem Abstand bis                000362
+26   zu 25 m zum Grndungsstandort befinden oder aufgrund                 000363
+26   ihres Zustandes / ihrer Lage als notwendig erachtet                  000364
+26   werden, durchgefhrt. Abgerechnet wird je Grundstck,                000365
+26   nicht die Anzahl der betroffenen Geb„ude einschl.                    000366
+26   Nebengeb„ude auf dem Grundstck. Einzurechnen sind die               000367
+26   notwendigen Ortstermine mit den Beteiligten                          000368
+26   einschlieálich Schlussbegehung, die Aufnahme von                     000369
+26   Rissen und anderen relevanter Bausch„den. Die                        000370
+26   Dokumentation erfolgt in Bild und Text. Ausfhrung der               000371
+26   Beweissicherung unmittelbar nach Auftragsvergabe,                    000372
+26   Fertigstellung und šbergabe der Unterlagen an den AG                 000373
+26   vor Beginn der Bauarbeiten auf der Baustelle.                        000374
+26   Ausfhrung der                                                       000375
+26   Schlussbegehung nach Ausfhrung der Arbeiten.                        000376
+2663AUnterlagen sind jeweils '(>3<)'-fach in Papierform und               000377
+26   1-fach digital zu liefern. Digitale Unterlagen im                    000378
+26   Format PDF, Fotos im Format JPG (Bildgr”áe mind. 900 x               000379
+26   600 Pixel), Papierformate gem„á DIN-Norm 476 bzw. EN                 000380
+26   ISO 216                                                              000381
+26                                                                        000382
+2101010150 NNN         00000001000St     X                                000383
+25Beweissicherung vorh. Maste                                             000384
+25MLV-ALI 01010150                                                        000385
+26   Bestandsaufnahme zur Beweissicherung an                              000386
+26   Oberleitungsmasten, Beleuchtungs- und Signalmasten im                000387
+26   Bereich der Baumaánahme durchfhren. Aufmaá der 4                    000388
+26   Fundamenteckpunkte in Lage und H”he sowie der                        000389
+26   Schr„gstellung des Mastes vor und nach den                           000390
+26   Grndungsarbeiten durch einen unabh„ngigen                           000391
+26   Vermessungsingenieur. Einschlieálich Protokollierung                 000392
+26   und šbergabe an den AG vor Beginn der Bauarbeiten auf                000393
+26   der Baustelle. Abgerechnet wird je Mast,                             000394
+26   nicht die Anzahl der Messpunkte. Unterlagen sind                     000395
+2663Ajeweils '(>3<)'-fach in Papierform und 1-fach digital                000396
+26   zu liefern. Digitale Unterlagen im Format PDF, Fotos                 000397
+26   im Format JPG (Bildgr”áe mind. 900 x 600 Pixel),                     000398
+26   Papierformate gem„á DIN-Norm 476 bzw. EN ISO 216                     000399
+26                                                                        000400
+2101010160 NNN         00000001000m      X                                000401
+25Beweissicherung an Gleisen                                              000402
+25MLV-ALI 01010160                                                        000403
+26   Bestandsaufnahme zur Beweissicherung an Gleisen im                   000404
+26   Bereich der Baumaánahme durchfhren. Aufmaá der                      000405
+26   Schienenoberkanten und des Gleisquerschnittes (bis zum               000406
+26   Schotterfuápunkt) des angrenzenden Gleises nach H”he                 000407
+2661Aund Lage im Rasterabstand von '(>5,00<)'m -vor und                   000408
+26   nach den Grndungsarbeiten durch einen unabh„ngigen                  000409
+26   Vermessungsingenieur. Einschlieálich Protokollierung                 000410
+26   und šbergabe an den AG vor Beginn der Bauarbeiten auf                000411
+26   der Baustelle. Abgerechnet wird pro laufenden                        000412
+26   Meter Gleis, nicht die Anzahl der Messpunkte.                        000413
+2662AUnterlagen sind jeweils '(>3<)'-fach in Papierform und               000414
+26   1-fach digital zu liefern. Digitale Unterlagen im                    000415
+26   Format PDF, Fotos im Format JPG (Bildgr”áe mind. 900 x               000416
+26   600 Pixel), Papierformate gem„á DIN-Norm 476 bzw. EN                 000417
+26   ISO 216                                                              000418
+26                                                                        000419
+2101010180 NNN         00000001000m      X                                000420
+25Beweissicherung Kan„le und Rohrdurchl„sse                               000421
+25MLV-ALI 01010180                                                        000422
+26   Bestandsaufnahme zur Beweissicherung an vorhandenen                  000423
+26   Kan„len und Rohrdurchl„ssen im Bereich der Baumaánahme               000424
+26   durchfhren. Kanalkamerabefahrung mit Videoaufnahmen                 000425
+26   und schriftliche Auswertung des baulichen Zustandes                  000426
+26   vor und nach den Grndungsarbeiten durch ein                         000427
+26   unabh„ngiges Sachverst„ndigenbro. Einschlieálich                    000428
+26   Protokollierung und šbergabe an den AG vor Beginn der                000429
+26   Bauarbeiten auf der Baustelle. Unterlagen                            000430
+2663Asind jeweils '(>3<)'-fach in Papierform und 1-fach                   000431
+26   digital zu liefern. Digitale Unterlagen im Format PDF,               000432
+26   Fotos im Format JPG (Bildgr”áe mind. 900 x 600 Pixel),               000433
+26   Papierformate gem„á DIN-Norm 476 bzw. EN ISO 216                     000434
+26                                                                        000435
+2101010190 NNN         00000001000psch   X                                000436
+25Beweissicherung sonstige Bahnanlagen, Ingenieurbauwerke, Straáen,       000437
+25Wege und Fl„chen                                                        000438
+25MLV-ALI 01010190                                                        000439
+26   Bestandsaufnahme zur Beweissicherung an den durch die                000440
+26   Baumaánahme beeinflussten sonstigen Bahnanlagen wie                  000441
+26   z.B Bahnsteigbereiche, Ingenieurbauwerke, Straáen,                   000442
+26   Wege und Gel„ndefl„chen durchfhren. Einzurechnen sind               000443
+26   die notwendigen Ortstermine mit dem AG, Baulasttr„gern               000444
+26   und anderen Beteiligten. Aufnahme von Zust„nden der                  000445
+26   Schwellen, Kabelkan„le, Signale, Bahnsteigbelag,                     000446
+26   Bahnsteigausrstungsgegenst„nde etc., des                            000447
+26   Straáenbelages, der Bordsteinkanten, der Fusswege, von               000448
+26   Grnstreifen, etc. im Bereich der benutzen oder                      000449
+26   beeinflussten Fl„chen. Die Dokumentation erfolgt in                  000450
+26   Bild und Text. Ausfhrung der Beweissicherung                        000451
+26   unmittelbar nach Auftragsvergabe, Fertigstellung und                 000452
+26   šbergabe der Unterlagen an den AG vor Beginn der                     000453
+26   Bauarbeiten auf der Baustelle. Unterlagen sind                       000454
+2663Ajeweils'(>3<)'-fach in Papierform und 1-fach digital zu              000455
+26   liefern. Digitale Unterlagen im Format PDF, Fotos im                 000456
+26   Format JPG (Bildgr”áe mind. 900 x 600 Pixel),                        000457
+26   Papierformate gem„á DIN-Norm 476 bzw. EN ISO 216                     000458
+26                                                                        000459
+2101010200 NNN         00000001000St     X                                000460
+25Schwingungsmessung beim Einsatz von Hochfrquenzrttlern                 000461
+25MLV-ALI_01010200                                                        000462
+26   Durchfhrung von Schwingungsmessungen w„hrend der                    000463
+26   Einbringung eines Grndungspfahls. Ort des Pfahls und                000464
+26   Lage der Schwingungssensoren nach Angabe des AG. Es                  000465
+26   ist jeweils eine Messung im Abstand von 10m, 20m, 30m,               000466
+26   40m, und 50m vom Emissionsort durchzufhren.                         000467
+26   Messeinrichtung, z.B. Vibrations-Monitoring-System,                  000468
+26   mit Aufzeichnung der Frequenzen und zugeh”rigen                      000469
+26   Schwingungsgeschwindigkeiten in x-, y- und z-Richtung.               000470
+26   Auswertung auf PC mit zugeh”riger Auswertungssoftware                000471
+26   auf Basis der DIN 4150 (T. 1 u. 3) Abgerechnet wird je               000472
+26   festgelegtem Messstandort, die o. g. Messungen mit                   000473
+26   verschiedenen Abst„nden sind hierbei einzurechnen.                   000474
+2663AUnterlagen sind jeweils '(>3<)'-fach in Papierform und               000475
+26   1-fach digital zu liefern. Digitale Unterlagen im                    000476
+26   Format PDF, Fotos                                                    000477
+26   im Format JPG (Bildgr”áe mind. 900 x 600 Pixel),                     000478
+26   Papierformate gem„á DIN-Norm 476 bzw. EN ISO 216                     000479
+26                                                                        000480
+2101010220 NNN         00000001000St     X                                000481
+25Bauwerksbuch als Dokumentation                                          000482
+25MLV-ALI_01010220                                                        000483
+26   Bauwerksbuch / Bauwerksheft als Dokumentation des                    000484
+26   Bauwerks nach den Richtlinien und Arbeitsanweisungen                 000485
+2661Ader Deutschen Bahn AG erstellen,'(>3 Wochen<)' vor                   000486
+2662AInbetriebnahme im Entwurf und '(>2 Wochen<)' vor der                 000487
+26   Inspektion vor der VOB-Abnahme in der Endfassung                     000488
+26   liefern.                                                             000489
+26   Aufstellung unter Verwendung von Formularen der                      000490
+26   Richtlinien der Deutschen Bahn AG. Angaben fr die                   000491
+26   Bauwerksdatenbank in Erfassungsformulare des AG                      000492
+2663Aeintragen. Unterlagen sind '(>3<)'-fach in Papierform                000493
+26   und 1 - fach digital zu liefern. Digitale Unterlagen im              000494
+26   Format PDF/ A - 1 b (Level B) gem„á                                  000495
+26   ISO 1 9005-1, Papierformate gem„á DIN- Norm 476 bzw.                 000496
+26   EN ISO 216 und Ril 886.0102.                                         000497
+26                                                                        000498
+2101010230 NNN         00000001000psch                                    000499
+25Aktualisierung der Bestandsdokumentation in DB AVANI                    000500
+25MLV-ALI_01010230                                                        000501
+26   Erstellen der Bestandsdokumentation mit:                             000502
+26   Erstellung des Engstellenverzeichnisses nach RIL 458                 000503
+26   und RIL 883.0026, Sicherung und Dokumentation des                    000504
+26   Festpunktsystems und der Gleisvermarkung (Trassenplan =              000505
+26   Ivmg-Plan) nach RIL 883. Dokumentation ver„nderter                   000506
+26   Sollgeometrie der Gleise und Weichen in AVANI mittels                000507
+26   Standardschnittstelle GND-Edit / GITA in der jeweils                 000508
+26   gltigen Form (RIL 885).                                             000509
+26   Dokumentation aller nderungen an baulichen Anlagen (z.              000510
+26   B. Bahnsteige, Signale, Brcken, B”schungen usw.) in                 000511
+26   AVANI.                                                               000512
+26   Hinweis: Der notwendige AVANI-Job ist beim regional                  000513
+26   zust„ndigen Fachbereich Datenmanagement V.IW-x-I 3 zur               000514
+26   Fortschreibung der Bahn-Geodaten (u. A. Ausgangsdaten                000515
+26   fr Lageplan = Ivl-Plan) zu bestellen.                               000516
+26   Voraussetzung fr die Arbeit in AVANI (Analyse,                      000517
+26   Verwaltung und Abgabe der DB InfraGO GeoInformationen)               000518
+26   ist die erfolgreiche Teilnahme an einer                              000519
+26   kostenpflichtigen Grundlagen- und Fachschulung                       000520
+26   (DB-Training).                                                       000521
+26   Grundlagen sind die Schlussvermessung und die                        000522
+26   Bestandsunterlagen des AN.                                           000523
+26   Eine Plausibilit„tsprfung des bereinigten Planwerks                 000524
+26   erfolgt nach Rcksprache mit den Verantwortlichen der                000525
+26   DB AG unter Vorlage der aktualisierten Bestandspl„ne.                000526
+26                                                                        000527
+26                                                                        000528
+26                                                                        000529
+26                                                                        000530
+2101010250 NNN         00000001000psch   X                                000531
+25Fotodokumentation liefern                                               000532
+25MLV-ALI_01010250                                                        000533
+26   Fotodokumentation ber den wesentlichen Bauablauf,                   000534
+26   insbesondere zur Darstellung der Ausbildung von                      000535
+26   Einzelkonstruktions- und Bauwerksteilen, die sp„ter                  000536
+26   nicht mehr sicht- und prfbar sind mit Digitalkamera                 000537
+26   herstellen und dem AG baubegleitend bergeben.                       000538
+2661AMindestanzahl der Fotos: '(>99<)'. Ausfhrung 1*                     000539
+2662Adigital auf CD / DVD und '(>1<)' in Papierform.                      000540
+26   Einschlieálich Inhaltsverzeichnisse mit den Angaben                  000541
+26   (Los, Teillos, Bauwerk, Datum, Ortsangaben) der                      000542
+26   dargestellten Aufnahmen. Digitale Unterlagen im Format               000543
+26   PDF, Fotos im Format JPG (Bildgr”áe mind. 900 x 600                  000544
+26   Pixel), Papierformate gem„á DIN-Norm 476 bzw. EN ISO                 000545
+26   216                                                                  000546
+26                                                                        000547
+2101010260 NNN         00000001000St     X                                000548
+25Webcam fr Langzeitdokumentation                                        000549
+25MLV-ALI_01010260                                                        000550
+26   DSGVO-konforme Webcam fr Langzeitdokumentation der                  000551
+26   Baustelle und digitales Archivieren. Webcam in                       000552
+26   Absprache mit dem AG auf Baustelle liefern, aufstellen,              000553
+26   installieren,                                                        000554
+26   unterhalten und nach Beendigung der Maánahme wieder                  000555
+26   rckbauen. Setup, Inbetriebnahme und Wartung der Webcam              000556
+26   einschl. der dazu ben”tigten Technik ber die gesamte                000557
+26   Dauer der Baustelle. Nach Installation der Kamera ist                000558
+26   ein Live-Link einzurichten und dem AG zug„nglich zu                  000559
+26   machen.                                                              000560
+2661AMehrmaliges '(>bis zu 2 x<)' Umsetzen der Webcam je                  000561
+26   nach Baustellenfortschritt ist in den Einheitspreis                  000562
+26   einzurechnen. Webcam einschl. Befestigung und je nach                000563
+26   Aufstellungsort einschl. Mast inkl. Grndung.                        000564
+26       Aufstellh”he der Kamera: ca. 10 m ber SO.                       000565
+26        Aufstellort: Baustelleneinrichtungsfl„che und                   000566
+26   DB-Fl„chen,                                                          000567
+26   nach vorheriger Abstimmung mit dem AG.                               000568
+2662ASichtbereiche: '(>gem„á Baubeschreibung<)'                           000569
+2663AZusatzbeleuchtung: '(>entf„llt<)'                                    000570
+26   Aufl”sung mind. 2048 x 1536 Pixel,                                   000571
+26   Webcam robust und wetterfest von - 30ø bis + 60øC.                   000572
+26   Speicherung der Bilder via LAN/ Internet auf FTP-                    000573
+26   Server. Bildrate = 10 Bilder je Stunde                               000574
+26   (nur w„hrend Baustellent„tigkeit).                                   000575
+26   Server ist vom AN bereitzustellen und dem AG ist der                 000576
+26   Zugriff zu gew„hrleisten. Datenanbindung nach Wahl des               000577
+26   AN.               Bilder zu Dokumentationszwecken                    000578
+26   speichern.                                                           000579
+26   Dokumentation des Baufortschrittes in Form von                       000580
+26   šbersichtsbildern. Bildmaterial darf nicht an Dritte                 000581
+26   weitergegeben werden. Am Ende der Maánahme šbergabe der              000582
+26   Daten als Film und Einzelbilddokumentation auf                       000583
+26   geeignetem Datentr„ger an den AG.                                    000584
+26                                                                        000585
+2101010280 NNN         00000001000psch   X                                000586
+25koordinierter Kabel- und Leitungsbestand - Bauzust„nde                  000587
+25MLV-ALI_01010280                                                        000588
+26   Allumfassenden, koordinierten Kabel- und                             000589
+26   Leitungsbestandsplan mit Kabelschachtbelegung fr die                000590
+26   Bauzust„nde im Bereich der Baustelle prff„hig                       000591
+26   aufstellen und liefern. Die Lieferung                                000592
+2661Aerfolgt'(>5-fach<)' in Papierform und 1-fach digital.                000593
+2662AFormat: '(>*.dwg (mit Stiftbelegungsdatei), *.plt sowie              000594
+2662A*.pdf<)'.                                                            000595
+26                                                                        000596
+2101010290 NNN         00000001000psch   X                                000597
+25Koordinierter Kabel- und Leitungsbestand - Endzustand                   000598
+25MLV-ALI_01010290                                                        000599
+26   Allumfassenden, koordinierten Kabel- und                             000600
+26   Leitungsbestandsplan mit Kabelschachtbelegung fr den                000601
+26   Endzustand im Bereich der Baustelle prff„hig                        000602
+26   aufstellen und liefern. Die Lieferung                                000603
+2661Aerfolgt'(>5-fach<)'fach in Papierform und 1-fach                     000604
+26   digital.                                                             000605
+2662AFormat: '(>*.dwg (mit Stiftbelegungsdatei), *.plt sowie              000606
+2662A*.pdf<)'.                                                            000607
+26                                                                        000608
+2101010300 NNN         00000001000psch                                    000609
+25Abstimmung / Einholung von Genehmigungen                                000610
+25MLV-ALI_01010300                                                        000611
+26   Abstimmung / Einholung von Genehmigungen zur                         000612
+26   Durchfhrung der Arbeiten ber die den                               000613
+26   Vergabeunterlagen beiliegenden Genehmigungen                         000614
+26   hinausgehenden Genehmigungen von Beh”rden (z.B. EBA,                 000615
+26   Gewerbeaufsichtsamt, Verkehrsbeh”rden)                               000616
+26                                                                        000617
+2101010310 NNN         00000001000psch   X                                000618
+25Elektronischer Planprflauf                                             000619
+25MLV-ALI_01010310                                                        000620
+26   Einreichung und Abwicklung des elektronischen                        000621
+2661APlanprflaufs im '(>DMS DOXiS ODER EPLASS<)'.                        000622
+26   Die Entwrfe der Ausfhrungsunterlagen sind der                      000623
+26   Baufolge                                                             000624
+26   entsprechend dem AG, neben der schriftlichen                         000625
+26   Abstimmung, elektronisch im PDF- und DWG-Format ber                 000626
+2662Adas Dokumenten-Management-System '(>DMS DOXiS ODER                   000627
+2662AEPLASS<)' des AG einzureichen. Der AN nimmt am                       000628
+26   elektronischen Planprflauf im                                       000629
+26   Dokumentenmanagementsystem teil. Leistungsumfang ist                 000630
+26   zudem die Beantragung, Einrichtung, Nutzung und                      000631
+26   Beendigung von ITK-Anwendungen bei der DB AG. Hierzu                 000632
+26   ist vom AN ber DB Systel GmbH ein IT-Fernzugang fr                 000633
+26   das Dokumentenmanagementsystem (Vollzugriff ber                     000634
+26   winCube) zu beantragen, durch den Kosten in H”he von                 000635
+2663AEUR '(>971,61<)' pro Jahr zzgl. Mehrwertsteuer                       000636
+26   anfallen.                                                            000637
+26                                                                        000638
+20                                                                        000639
+26   Hinweis fr den LV-Ersteller:                                        000640
+26   Der Gesamtablauf fr die Bestandsplanrckfhrung fr AN              000641
+26   und AG betr„gt 180 Tage ab Inbetriebnahme und ist mit                000642
+26   Einzelfristen untersetzt (gem. DB Netz Prozess                       000643
+26   I.01.04.04.01 und I.01.04.04.02). Dem AN stehen hierfr              000644
+26   maximal 90 Tage zur Verfgung. Die Terminierung in                   000645
+26   Bezug auf die VOB-Abnahme ist derart zu w„hlen, dass                 000646
+26   die Lieferung durch den AN sp„testens 104 Tage nach                  000647
+26   Inbetriebnahme erfolgt.                                              000648
+26                                                                        000649
+2101010320 NNN         00000001000psch   X                                000650
+25Bestandspl„ne erstellen/aktualisieren und liefern                       000651
+25MLV-ALI_01010320                                                        000652
+26   Bestandspl„ne (berichtigt nach Ausfhrung und                        000653
+26   ™rtlichkeit) erstellen und einschlieálich der                        000654
+26   Best„tigung des AN auf šbereinstimmung der                           000655
+26   Bestandspl„ne mit der ™rtlichkeit sowie aktualisierter               000656
+2661AMetadatenliste '(>4 Wochen<)' vor VOB- Abnahme liefern,              000657
+26   zur Qualit„tskontrolle durch den AG. Einarbeitung der                000658
+26   Kontrollergebnisse des AGs durch den AN.                             000659
+26   Bercksichtigung der im Boden verbliebenen Bauteile                  000660
+26   aufgrund der Ausfhrung in den Bestandspl„nen.                       000661
+26   Schriftliche Anforderung erforderlicher Barcodenummern               000662
+26   fr neu zu erstellende Bestandspl„ne durch den AN bei                000663
+26   der planverwaltenden Stelle (IZ-Plan) und šbernahme der              000664
+26   Barcodenummern in die Bestandspl„ne. Erg„nzung /                     000665
+26   Aktualisierung der durch IZ-Plan mit den Barcodenummern              000666
+26   bzw. durch den AG zur Verfgung gestellten                           000667
+26   Metadatenlisten inkl. Streckendaten und                              000668
+26   Objektverknpfungen.                                                 000669
+26   Abstimmung der Lieferung mit IZ-Plan auf der Grundlage               000670
+26   einer durch den AN erstellten Test-Ausfertigung.                     000671
+26   Art der Lieferung der Bestandspl„ne:                                 000672
+26   Alle Bestandspl„ne als digitale Unterlagen als                       000673
+26   Ansichts- und Quelldateien (Datenformat DWG) gem„á Ril               000674
+26   886.0103A01 an den AG bergeben.                                     000675
+2662ALieferung von '(>1<)' Satz Bestandspl„ne in Papierform               000676
+26   zur Qualit„tskontrolle durch den AG.                                 000677
+2663ALieferung von  '(>1<)' Satz abschlieáend berarbeiteter              000678
+26   Bestandspl„ne in Papierform inkl. Randstempel gem„á Ril              000679
+26   886.0102, auf Grundlage einer vom AG bereitgestellten                000680
+26   digitalen und mit Randstempel versehenen Version der                 000681
+26   vom AN gelieferten Bestandspl„ne.                                    000682
+26                                                                        000683
+20                                                                        000684
+26   *** HINWEIS FšR DEN LV- ERSTELLER BIM-Leistungen                     000685
+26   (diesen gesamten Hinweistext bitte nach Fertigstellung               000686
+26   des LV l”schen) ***:                                                 000687
+26   Nachfolgende Positionen fr BIM-Leistungen sind                      000688
+26   ausschlieálich im Gesch„ftsbereich Personenbahnh”fe zu               000689
+26   verwenden.                                                           000690
+26   Fr den Gesch„ftsbereich Personenbahnh”fe wiederum ist               000691
+26   die Verwendung der Positionen zwingend vorgeschrieben.               000692
+2101010510 NNN         00000001000psch                                    000693
+25Erstellung As-Built-Modell (nur Gesch„ftsbereich Personenbahnh”fe)      000694
+25MLV-ALI_01010510                                                        000695
+26   Erstellung eines  As-Built-Modells durch den AN als                  000696
+26   ganzheitliche Fortschreibung der BIM-Modelle unter                   000697
+26   Bercksichtigung der ihm bertragenen Leistungen gem„á               000698
+26   Vorgaben zur Anwendung der BIM-Methodik.                             000699
+26   Alle auf die tats„chliche Bauausfhrung bezogenen                    000700
+26   Informationen, Daten und Dokumente gem„á Vorgaben zur                000701
+26   Anwendung der BIM-Methodik, insbesondere dem                         000702
+26   BIM-Pflichtenheft, sind in einem As-Built-Modell                     000703
+26   lagerichtig                                                          000704
+26   zusammenzufhren.                                                    000705
+26   Das fertiggestellte As-Built-Modell ist dem AG                       000706
+26   sp„testens 2 Wochen vor VOB-Abnahme inkl.                            000707
+26   Qualit„tssicherungsbericht und                                       000708
+26   šbergabetabelle zu anlagespezifischen Attributen zu                  000709
+26   bergeben. Datenlieferung gem. Vorgaben zur Anwendung                000710
+26   der                                                                  000711
+26   BIM-Methodik.                                                        000712
+26   šbergabe des fertiggestellten As-Built-Modells an den                000713
+26   AG.                                                                  000714
+2101010520 NNN         00000001000psch   X                                000715
+25BIM-Koordination (nur Gesch„ftsbereich Personenbahnh”fe)                000716
+25MLV-ALI_01010520                                                        000717
+26   Zusammenfhrung der Daten zum As-Built-Modell.                       000718
+26   Zus„tzlich zu Position "Erstellung As-Built-Modell"                  000719
+26   sind Daten und Informationen aus Leistungen Dritter                  000720
+26   lagerichtig und baubegleitend in das As-Built-Modell zu              000721
+26   integrieren und zu koordinieren. Vor- und                            000722
+26   Nachbereitung, Durchfhrung der Baubesprechung mit BIM               000723
+26   am BIM-Modell sowie šbernahme weiterer geforderter                   000724
+26   Verantwortlichkeiten des BIM-Koordinators gem. Vorgaben              000725
+26   zur Anwendung der BIM-Methodik.                                      000726
+26   Die erforderlichen Fachmodelle, Daten und Informationen              000727
+26   sind durch den AN rechtzeitig beim AG abzufordern.                   000728
+26   Folgende Fachdisziplinen bzw. Informationen sind                     000729
+26   insbesondere zu bercksichtigen:                                     000730
+26   - Verkehrsanlagen                                                    000731
+26   - Ingenieurbauwerke                                                  000732
+26   - Elektrotechnik                                                     000733
+26   - Telekommunikation                                                  000734
+26   - F”rder- und Maschinentechnik                                       000735
+26   - Leit- und Sicherungstechnik                                        000736
+26   - Oberleitungsanlagen                                                000737
+26   - Beweissicherung                                                    000738
+26   - Bestandserfassung                                                  000739
+2661A- '>Sonstiges<'                                                      000740
+26                                                                        000741
+2101010530 NNN         00000001000psch   X                                000742
+25Dokumentation des Bauzustands und Bauablaufs mittels Punktwolken (nur   000743
+25Gesch„ftsbereich Personenbahnh”fe)                                      000744
+25MLV-ALI_01010530                                                        000745
+26   Dokumentation mittels georeferenzierter Punktwolke ber              000746
+26   den wesentlichen Bauablauf, insbesondere zur                         000747
+26   Darstellung der Ausbildung von Einzelkonstruktions- und              000748
+26   Bauwerksteilen, die sp„ter nicht mehr sicht- und                     000749
+26   prfbar sind. Lagerichtige Integration und Koordination              000750
+26   im Koordinationsmodell.                                              000751
+26   šbergabe von Unterlagen in digitaler Form gem. Anlage                000752
+26   3.14 zum Bauvertrag ,Erg„nzende Regelungen zur Nutzung               000753
+26   der Projektkommunikationsplattform" sowie Punktwolken                000754
+2661Ain digitaler Form auf '>einem<' Datentr„ger gem.                     000755
+26   Vorgaben zur Anwendung der BIM-Methodik im nativen und               000756
+26   E57-Format. Bezeichnung gem. TM 2017-03 I. SBB, Anlage               000757
+26   8 13.0104A05.                                                        000758
+2101010540 NNN         00000001000psch   X                                000759
+25Dokumentation des Endzustands mittels Punktwolken (nur                  000760
+25Gesch„ftsbereich Personenbahnh”fe)                                      000761
+25MLV-ALI_01010540                                                        000762
+26   Dokumentation des gebauten IST-Zustands eines Bauwerks               000763
+26   und der Umgebung mittels farbiger, georeferenzierter                 000764
+26   Punktwolken (relative Genauigkeit ñ 5mm) inkl.                       000765
+26   photogrammetrischer Aufnahmen sowie baubegleitende                   000766
+26   Erfassung des Endzustands berbauter bzw.                            000767
+26   unterirdischer Bereiche zur Darstellung von                          000768
+26   Einzelkonstruktions- und Bauwerksteilen, die sp„ter                  000769
+26   nicht mehr sicht- und prfbar sind.                                  000770
+26   Lagerichtige Integration und Koordination im                         000771
+26   Koordinationsmodell.                                                 000772
+26   šbergabe in digitaler Form gem. Anlage 3.14 zum                      000773
+26   Bauvertrag ,Erg„nzende Regelungen zur Nutzung der                    000774
+26   Projektkommunikationsplattform" im Format PDF / A-1b                 000775
+26   (Level                                                               000776
+26   B) gem„á ISO 19005-1 sowie Bestandserfassung in                      000777
+2661Adigitaler Form auf '>einem<' Datentr„ger gem. Vorgaben               000778
+26   zur Anwendung der BIM-Methodik im nativen und                        000779
+26   E57-Format. Bezeichnung gem. TM 2017-03 I. SBB, Anlage               000780
+26   8 13.0104A05.                                                        000781
+2101010550 NNN         00000001000psch                                    000782
+25Revision des Endzustands mittels As-Built-Kontrolle (nur                000783
+25Gesch„ftsbereich Personenbahnh”fe)                                      000784
+25MLV-ALI_01010550                                                        000785
+26   Abgleich des gebauten Endzustands mit dem                            000786
+26   As-Built-Modell durch lagerichtige šberlagerung des                  000787
+26   As-Built-Modells mit der Bestandserfassung des                       000788
+26   Endzustands (As-Built-Erfassung) inkl.                               000789
+26   Abgleich der nicht-geometrischen Bauteilinformationen                000790
+26   (LoI) gem. Vorgaben zur Anwendung der BIM-Methodik.                  000791
+26   Die šbereinstimmung des As-Built-Modells wird durch das              000792
+26   Bauunternehmen berprft bzw. sichergestellt und                     000793
+26   gegenber dem AG demonstriert und erforderlichenfalls                000794
+26   im As-Built-Modell                                                   000795
+26   bereinstimmend mit dem Endzustand angepasst.                        000796
+2101010560 NNN         00000001000psch                                    000797
+25Nutzung der vom AG vorgegebenen Projektkommunikationsplattform (nur     000798
+25Gesch„ftsbereich Personenbahnh”fe)                                      000799
+25MLV-ALI_01010560                                                        000800
+26   Nutzung der vom AG vorgegebenen                                      000801
+26   Projektkommunikationsplattform. Die Anwendung ist                    000802
+26   verpflichtend, dabei ist insbesondere die Anlage 3.14                000803
+26   zum                                                                  000804
+26   Bauvertrag ,Erg„nzende Regelungen zur Nutzung der                    000805
+26   Projektkommunikationsplattform" zu beachten und                      000806
+26   einzukalkulieren. Dies gilt auch, wenn Teilleistungen                000807
+26   durch Subunternehmer erbracht werden.                                000808
+2101010570 NNN         00000001000psch   X                                000809
+25Beweissicherung mittels Punktwolken (nur Gesch„ftsbereich               000810
+25Personenbahnh”fe)                                                       000811
+25MLV-ALI_01010570                                                        000812
+26   Beweissicherung (mehrmalig). Lieferung einer                         000813
+26   Dokumentation ber den Zustand und die Beschaffenheit                000814
+26   aller durch die Baumaánahme beeinflussten vorhandenen                000815
+26   Oberfl„chen, Befestigungen und Einfassungen,                         000816
+26   insbesondere der Straáen, Wege, Pl„tze, angrenzenden                 000817
+26   Bebauung, Vegetation sowie baulichen Anlagen und Ver-                000818
+26   und Entsorgungsanlagen, durch Begehung mit                           000819
+26   schriftlichem Protokoll und mittels farbiger,                        000820
+26   georeferenzierter Punktwolken  (relative Genauigkeit +-              000821
+26   5 mm) inklusive photogrammetrischer                                  000822
+26   Aufnahmen als Beweissicherungsverfahren.                             000823
+26   Die Dokumentation erfolgt als Plan, Bild und Text.                   000824
+26   Beweissicherungsprotokolle und die dazugeh”rige                      000825
+26   Bestandserfassung mittels Punktwolken mssen durch                   000826
+26   Unterschrift aller Beteiligter anerkannt sein.                       000827
+26   Lagerichtige                                                         000828
+26   Integration der Bestandserfassung im                                 000829
+26   Koordinationsmodell.                                                 000830
+26   Ausfhrung der Arbeiten durch ein zertifiziertes Bro -              000831
+26   erstmalig vor Beginn der Bauausfhrung unmittelbar nach              000832
+26   Auftragsvergabe - sowie nach Fertigstellung der                      000833
+26   ausgeschriebenen Bauleistungen. Die Beweissicherung ist              000834
+26   rechtzeitig beim AG und Betroffenen anzumelden, um die               000835
+26   Teilnahmeeines AG-Vertreters und der Betroffenen zu                  000836
+26   erm”glichen. šbergabe der Unterlagen an den AG sowie                 000837
+26   alle Beteiligten vor Beginn der Bauarbeiten auf der                  000838
+26   Baustelle und                                                        000839
+26   nach Beendigung der Bauarbeiten.                                     000840
+26   Unterlagen gem. Anlage 3.14 zum Bauvertrag                           000841
+26   ,Erg„nzende Regelungen zur Nutzung der                               000842
+26   Projektkommunikationsplattform". Bestandserfassung in                000843
+2661Adigitaler Form auf '>einem<' Datentr„ger gem. Vorgaben               000844
+26   zur Anwendung der BIM-Methodik im nativen und E5 7-                  000845
+26   Format. Bezeichnung gem. TM 2017-03 I. SBB, Anlage                   000846
+26   813.0104A05.                                                         000847
+2101010580 NNN         00000001000psch   X                                000848
+25Bauakte (Anteil AN) erstellen, fhren und bergeben (nur                000849
+25Gesch„ftsbereich Personenbahnh”fe)                                      000850
+25MLV-ALI_01010580                                                        000851
+26   Bauakte fr die Leistungen des AN auf Basis EIU                      000852
+26   Ablagestruktur                                                       000853
+26   gem„á Ril 809 bzw. 813 unter Einhaltung der                          000854
+26   projektspezifischen Struktur baubegleitend fhren bzw.               000855
+26   beibringen und baubegleitend an den AG bergeben.                    000856
+26   Erstellung des Inbetriebnahmedossiers (Anteil AN Bau)                000857
+26   nach                                                                 000858
+26   EIGV und VV IBG Infrastruktur,                                       000859
+26   liefern des IBN Dossiers an den AG                                   000860
+26   ggf. erg„nzen nach Plausibilit„tsprfung durch den AG                000861
+26   Hinweis:                                                             000862
+26   IBN- Dossier, die nicht den Vorgaben entsprechen,                    000863
+26   werden                                                               000864
+26   zurckgewiesen.                                                      000865
+26   Der AN hat dabei die Vorgaben der einschl„gigen                      000866
+26   technischen Normen und Richtlinien sowie hinsichtlich                000867
+26   der formalen Gestaltung die Ril 813, die TM 2017-03                  000868
+26   Neuver”ffentlichung Ril 813.0104                                     000869
+26   "Dokumentationsvorgaben" und die erg„nzende TM                       000870
+26   2019-02 - Archivierung Papieroriginale bei                           000871
+26   Projektdokumentation mit PKP zu beachten und zu                      000872
+26   erfllen.                                                            000873
+26   Der AN hat die Dokumente (BIM - Modelle, Pl„ne,                      000874
+26   Protokolle, Unterlagen, endrevidierte As-Built- Modelle              000875
+26   und                                                                  000876
+26   abgeleitete Bestandspl„ne sowie s„mtliche                            000877
+26   Bestandsunterlagen etc.) so fortzuschreiben, dass                    000878
+26   jeweils                                                              000879
+26   eine šbereinstimmung zwischen den Dokumenten und                     000880
+26   den erstellten baulichen Anlagen besteht.                            000881
+26   S„mtliche Unterlagen sind in digitaler Form (gem„á TM                000882
+26   2017-03 Neuver”ffentlichung Ril 813.0104                             000883
+26   " Dokumentationsvorgaben") in der PKP abzulegen.                     000884
+26   Vollst„ndige šbergabe in digitaler Form gem„á Anlage                 000885
+26   3.14                                                                 000886
+26   zum Bauvertrag "Erg„nzende Regelungen zur Nutzung der                000887
+2661AProjektkommunikationsplattform" mind. '(>zwei<)' Wochen              000888
+26   vor der erstmaligen Nutzung der jeweiligen                           000889
+26   festgestellten Anlage                                                000890
+26   vollst„ndig zu bergeben.                                            000891
+26   Sofern nicht fr die Erstellung, Beibringung oder                    000892
+26   šbergabe von Bestandteilen der Bauakte spezielle                     000893
+26   LV- Positionen ausgeschrieben und vereinbart sind,                   000894
+26   umfasst die Vergtung ber diese Pauschalposition                    000895
+26   s„mtliche zur Erstellung, zum Fhren, zum Fllen und                 000896
+26   fr die šbergabe der Bauakte erforderlichen Leistungen               000897
+26   einschlieálich des Erstellens und der Beschaffung aller              000898
+26   in der projektspezifischen Ablagestruktur des AN                     000899
+26   zugewiesenen Dokumente.                                              000900
+26   Das betrifft insbesondere auch die zur Erstellung der                000901
+26   Bauakte notwendigen Vermessungsarbeiten sowie ”rtlichen              000902
+26   Aufmaáe, die in diese Pauschalposition einzurechnen                  000903
+26   sind und mit dieser Pauschalvergtung abgegolten                     000904
+26   werden.                                                              000905
+26   šbergabe der Nachweise der TSI Konformit„t nach EIGV an              000906
+26   den AG, vor der Nutzungsaufnahme der Anlage und                      000907
+26   entsprechend der fr das Projekt angewendeten TSI-                   000908
+26   Checkliste                                                           000909
+26   DB InfraGO AG (siehe:                                                000910
+26   www.deutschebahn.com/personenbahnhoefe-regelwerk)                    000911
+26   Der AN erh„lt die TSI Checkliste DB InfraGO AG beim                  000912
+26   Bauauftaktgespr„ch.                                                  000913
+26   Der AN liefert dem AG anhand dieser TSI                              000914
+26   Checkliste DB InfraGO AG die Nachweise fr die TSI                   000915
+26   Konformit„t.                                                         000916
+26   Die Nachweise fr einzubauenden Bauprodukte sind                     000917
+26   vor dem Einbau dem AG zu liefern.                                    000918
+310101                                                                    000919
+110102     N    LV-Gruppe 2                                               000920
+12Baustelleneinrichtung                                                   000921
+20                                                                        000922
+26   Nachfolgende Positionen gelten fr den gesamten                      000923
+26   Leistungsbereich soweit nicht in anderen Titeln separat              000924
+26   beschrieben.                                                         000925
+26                                                                        000926
+2101020010 NNN         00000001000psch                                    000927
+25Baustellenlogistik                                                      000928
+25MLV-ALI_01020010                                                        000929
+26   Zu- und Abfhrung von Baumaschinen und Personal,                     000930
+26   Durchfhrung aller notwendigen Transporte zwischen                   000931
+26   šbergabe-/Gterverkehrs- und Einbaustelle sowie                      000932
+26   Montage-/Demontageplatz und Verwendungsstelle                        000933
+26   einschlieálich aller Transportmittel und Personal                    000934
+26   einschlieál. Rangierbegleiter und Triebfahrzeugfhrer                000935
+26   sowie Telekommunikationsm”glichkeiten fr alle                       000936
+26   Beteiligte und inkl. Fahrpl„nen und šberwachung des                  000937
+26   Zuglaufs von Material, Transportmitteln und                          000938
+26   gleisgebundenen Maschinen. Alle zur                                  000939
+26   Leistungserbringung erforderlichen Be- und                           000940
+26   Entlade-arbeiten sind einzurechnen und werden nicht                  000941
+26   gesondert vergtet. Vorbereiten, Erstellen und                       000942
+26   Aktualisieren des Betriebs-ablaufplanes einschlieálich               000943
+26   aller erforderlichen Einsatzpl„ne.                                   000944
+26                                                                        000945
+2101020020 NNN         00000001000psch                                    000946
+25Baustelle einrichten                                                    000947
+25MLV-ALI_01020020                                                        000948
+26   Ger„te, Groáger„te, Werkzeuge und sonstige                           000949
+26   Betriebsmittel, die zur vertragsgem„áen Durchfhrung                 000950
+26   der Bauleistungen erforderlich sind, auf die Baustelle               000951
+26   bringen, bereitstellen und soweit der Ger„teeinsatz                  000952
+26   nicht gesondert vergtet wird, betriebsfertig                        000953
+26   aufstellen einschl. der dafr notwendigen Arbeiten,                  000954
+26   die erforderlichen festen Anlagen herstellen.                        000955
+26   Baubros, Unterknfte, Werkst„tten, Lagerschuppen und                000956
+26   dgl., soweit erforderlich, antransportieren, aufbauen                000957
+26   und einrichten. Strom-, Wasser-, Fernsprechanschluss                 000958
+26   sowie Entsorgungseinrichtungen und dgl. fr die                      000959
+26   Baustelle, soweit erforderlich, herstellen. Bei Bedarf               000960
+26   Lagerpl„tze, Montage-/ Demontagefl„chen, sonstige                    000961
+26   Platzbefestigungen, notwendige Eingleisstellen und                   000962
+26   Wege im Baustellenbereich anlegen. Beseitigung von                   000963
+26   Aufwuchs fr die Baustelleneinrichtung, soweit                       000964
+26   erforderlich, ausfhren. Fl„chen beschaffen, sofern                  000965
+26   die vom AG zur Verfgung gestellten nicht ausreichen.                000966
+26   Soweit nicht fr bestimmte Leistungen fr das                        000967
+26   Einrichten der Baustelle gesonderte Positionen                       000968
+26   enthalten sind, gilt die Pauschale fr alle Leistungen               000969
+26   dieser Ausschreibung. Vom AN ist vor Baubeginn ein                   000970
+26   Baustelleneinrichtungsplan aufzustellen und mit dem AG               000971
+26   abzustimmen. Oberbodenarbeiten sind einzurechnen und                 000972
+26   werden nicht gesondert vergtet.                                     000973
+26                                                                        000974
+2101020030 NNN         00000001000psch                                    000975
+25Baustelleneinrichtung vorhalten                                         000976
+25MLV-ALI_01020030                                                        000977
+26   Vorhalten, Unterhalten und Betreiben der Anlagen und                 000978
+26   Einrichtungen, einschl. Mieten, Pacht, Gebhren und                  000979
+26   dgl., die fr die Baustelle notwendig sind und nicht                 000980
+26   mit den Einheitspreisen anderer Teilleistungen                       000981
+26   vergtet werden. Beleuchtung, Wasser und Strom                       000982
+26   bereitstellen, Abwasser beseitigen. Vorhalten fr die                000983
+26   vertraglich vereinbarte Gesamtbauzeit und die                        000984
+26   Ausfhrung der ausgeschriebenen Leistungen. Abrechnung               000985
+26   der Pauschale erfolgt anteilig gem„á Baufortschritt.                 000986
+26                                                                        000987
+2101020040 NNN         00000001000psch                                    000988
+25Baustelle r„umen                                                        000989
+25MLV-ALI_01020040                                                        000990
+26   Baustelle von allen Ger„ten, Groáger„ten, Anlagen,                   000991
+26   Einrichtungen und dergl. r„umen. Benutzte Fl„chen und                000992
+26   Wege entsprechend dem ursprnglichen Zustand unter                   000993
+26   Wahrung der landschaftspflegerischen Belange                         000994
+26   ordnungsgem„á herrichten. Verunreinigungen beseitigen.               000995
+26   Soweit nicht fr bestimmte Bauleistungen das R„umen                  000996
+26   der Baustelle als gesonderter Ansatz enthalten ist,                  000997
+26   umfasst die Pauschale die Vergtung der                              000998
+26   Baustellenr„umung fr alle Bauleistungen dieser                      000999
+26   Ausschreibung. Oberbodenarbeiten sind einzurechnen und               001000
+26   werden nicht gesondert vergtet.                                     001001
+26                                                                        001002
+2101020041 NNN         00000001000psch   X                                001003
+25Baustraáen als Zufahrt                                                  001004
+25MLV-ALI_01020041                                                        001005
+2661ABaustraáen als Zufahrt '(>gem. Anlage 3.3.xxx ab der                 001006
+2661AStraáe XXX<)' sowie nach Erfordernis des AN                          001007
+26   herstellen, einschlieálich erforderlicher                            001008
+26   Ausweichstellen, fr die geplante Bauzeit vorhalten                  001009
+26   und unterhalten, wenn notwendig entsprechend dem                     001010
+26   Bauablauf umbauen, einschlieálich aller erforderlichen               001011
+26   Sicherungs- und Beschilderungsmaánahmen.                             001012
+26   Baustraáenbefestigung und - dimensionierung nach Wahl                001013
+26   und Belangen des AN unter Beachtung der Belastung aus                001014
+26   Materialtransporten und geplantem Ger„teeinsatz.                     001015
+26   Oberbodenarbeiten werden gesondert vergtet.                         001016
+26                                                                        001017
+2101020042 NNN         00000001000psch                                    001018
+25Baustraáen rckbauen                                                    001019
+25MLV-ALI_01020042                                                        001020
+26   Baustraáen als Zufahrt nach Beendigung der Bauarbeiten               001021
+26   rckbauen und von der Baustelle entfernen. Das                       001022
+26   Rckbaumaterial verbleibt im Besitz des AN. Nach                     001023
+26   Beendigung der Bauarbeiten ist der ursprngliche                     001024
+26   Zustand wieder herzustellen. Oberbodenarbeiten werden                001025
+26   gesondert vergtet.                                                  001026
+26                                                                        001027
+2101020050 NNN         00000001000St     X                                001028
+25Baustellenschild                                                        001029
+25MLV-ALI_01020050                                                        001030
+26   Bauschild herstellen, aufbauen, unterhalten und                      001031
+26   s„ubern. Bauschild einschlieálich Erdarbeiten,                       001032
+26   Grndung und Tragkonstruktion nach statischen und                    001033
+26   konstruktiven Erfordernissen, Form und Layout nach                   001034
+2661AAngaben des Auftraggebers gem„á Anlage '(>XXX<)' der                 001035
+26   Ausschreibungsunterlage. Gr”áe: B: 2,50 x H:                         001036
+2662A'(>2,80<)'m. Aufstellung ca. 2 Wochen vor Baubeginn,                 001037
+26   Vorhaltung                                                           001038
+26   bis ca. 2 Wochen nach Bauende.                                       001039
+26                                                                        001040
+2101020060 NNN         00000001000St                                      001041
+25Baustellenschild rckbauen                                              001042
+25MLV-ALI_01020060                                                        001043
+26   Bauschild und Tragkonstruktion abbauen, Grndungen                   001044
+26   rckbauen, Bauschild und Abbruchgut von der Baustelle                001045
+26   entfernen und entsorgen. Benutzte Fl„che entsprechend                001046
+26   des ursprnglichen Zustandes herrichten.                             001047
+26                                                                        001048
+20                                                                        001049
+26   *** HINWEIS FšR DEN LV- ERSTELLER Containerpositionen                001050
+26   (diesen gesamten Hinweistext bitte nach Fertigstellung               001051
+26   des LV l”schen) ***:                                                 001052
+26   Bei nachfolgenden Positionen ist ENTWEDER der Container              001053
+26   (Baubro des AG), ggf. in Verbindung mit dem                         001054
+26   Doppel-Container (Besprechungsraum) zu verwenden, ODER               001055
+26   nur der Doppel-Container (Besprechungsraum & Baubro                 001056
+26   des AG), keinesfalls aber beides bzw. alle 3                         001057
+26   Positionen.                                                          001058
+2101020070 NNN         00000001000St                                      001059
+25Container fr Baubro des AG                                            001060
+25MLV-ALI_01020070                                                        001061
+26   Container fr Baubro des AG aufstellen,  nach                       001062
+26   Abschluss der Baumaánahme beseitigen, einschl.                       001063
+26   Standplatz herrichten. Versorgungs- und                              001064
+26   Entsorgungsanschlsse herstellen, anschlieáen und nach               001065
+26   Abschluss der Baumaánahme beseitigen.                                001066
+26   Waschgelegenheit mit flieáend kaltem und warmen                      001067
+26   Wasser, Heizgelegenheit sowie Toilette einrichten, fr               001068
+26   Abwasserbeseitigung sorgen. Grundfl„che 1 x 6,00 m  x                001069
+26   2,50 m. Ausstattung: Baubro fr 1 Arbeitsplatz mit                  001070
+26   Schreibtisch, 3 Sthlen, Magnetleiste ausstatten,                    001071
+26   einschl. verschlieábarem Aktenschrank und Garderobe.                 001072
+26   Internetanschluss (WLAN) mit mind. 50 Mbit/s.                        001073
+26   70 v. H. des Preises werden nach šbernahme des Bros                 001074
+26   durch den AG, der Rest nach Erfllung der Leistung                   001075
+26   vergtet. Stellplatz fr 1 Pkw herrichten Vorhalten                  001076
+26   und Betreiben der Baubros wird gesondert vergtet.                  001077
+26                                                                        001078
+2101020080 NNN         00000001000psch   X                                001079
+25Container unterhalten                                                   001080
+25MLV-ALI_01020080                                                        001081
+26   Vorbeschriebene(n) Container fr Baubro AG mit allen                001082
+26   Einrichtungen w„hrend der vertraglichen                              001083
+26   Ausfhrungszeit der Lose dieses LV betriebsbereit                    001084
+26   vorhalten, betreiben, mit Strom und Wasser versorgen                 001085
+2663Aund bei Bedarf heizen, '(>1<)' mal w”chentlich                       001086
+26   reinigen.                                                            001087
+26                                                                        001088
+2101020090 NNN         00000001000St                                      001089
+25Doppelcontainer fr Baubro des AG                                      001090
+25MLV-ALI_01020090                                                        001091
+26   Doppel-Container fr Baubro des AG aufstellen, nach                 001092
+26   Abschluss der Baumaánahme beseitigen, einschl.                       001093
+26   Standplatz herrichten. Einrichten nach                               001094
+26   Arbeitst„ttenverordnung, Versorgungs- und                            001095
+26   Entsorgungsanschlsse herstellen, anschlieáen und nach               001096
+26   Abschluss der Baumaánahme beseitigen.                                001097
+26   Waschgelegenheit mit flieáend kaltem und warmem                      001098
+26   Wasser, Heizgelegenheit sowie Toilette einrichten, fr               001099
+26   Abwasserbeseitigung sorgen. Grundfl„che 2 x 6,00 m x                 001100
+26   2,50 m. Ausstattung: Baubro fr 2 Arbeitspl„tze,                    001101
+26   jeden Arbeitsplatz mit Schreibtisch, 3 Sthlen und                   001102
+26   Magnetleiste ausstatten, einschl. verschlieábarem                    001103
+26   Aktenschrank und Garderobe. Internetanschluss (WLAN)                 001104
+26   mit mind. 50 MBit/s.                                                 001105
+26   70 v. H. des Preises werden nach šbernahme des Bros                 001106
+26   durch den AG, der Rest nach Erfllung der Leistung                   001107
+26   vergtet. Stellpl„tze fr 2 Pkw herrichten Vorhalten                 001108
+26   und Betreiben der Baubros wird gesondert vergtet.                  001109
+26                                                                        001110
+26                                                                        001111
+2101020100 NNN         00000001000psch   X                                001112
+25Doppel-Container unterhalten                                            001113
+25MLV-ALI_01020100                                                        001114
+26   Vorbeschriebene Doppel-Container fr Baubro AG mit                  001115
+26   allen Einrichtungen w„hrend der vertraglichen                        001116
+26   Ausfhrungszeit der Lose dieses LV betriebsbereit                    001117
+26   vorhalten, betreiben, mit Strom und Wasser versorgen                 001118
+2663Aund bei Bedarf heizen, '(>1<)' mal w”chentlich                       001119
+26   reinigen.                                                            001120
+26                                                                        001121
+2101020110 NNN         00000001000psch                                    001122
+25Doppel-Container fr Besprechungsraum des AG                            001123
+25MLV-ALI_01020110                                                        001124
+26   Doppel-Container fr Besprechungsraum des AG                         001125
+26   aufstellen, nach Abschluss der Baumaánahme beseitigen,               001126
+26   einschl. Standplatz herrichten. Besprechungsraum fr                 001127
+26   10 Personen Grundfl„che 2 x 6,00 m x 2,50 m                          001128
+26   Ausstattung mit Heizung, Tischen, Sthlen und                        001129
+26   Garderobe sowie Magnetleisten etc. Einrichten nach                   001130
+26   Arbeitsst„ttenverordnung, Versorgungs- und                           001131
+26   Entsorgungsanschlsse herstellen, anschlieáen, nach                  001132
+26   Abschluss der Baumaánahme wieder beseitigen. 70 v.H.                 001133
+26   des Preises werden nach šbernahme des Bros durch den                001134
+26   AG, der Rest nach Erfllung der Leistung vergtet.                   001135
+26   Vorhalten und Betreiben des Raumes werden gesondert                  001136
+26   vergtet.                                                            001137
+26                                                                        001138
+2101020120 NNN         00000001000psch   X                                001139
+25Besprechungs-Container unterhalten                                      001140
+25MLV-ALI_01020120                                                        001141
+26   Vorbeschriebene Besprechungs- Container mit allen                    001142
+26   Einrichtungen w„hrend der vertraglichen                              001143
+26   Ausfhrungszeit der Lose dieses LV betriebsbereit                    001144
+26   vorhalten, betreiben, mit Strom und Wasser versorgen                 001145
+2663Aund bei Bedarf heizen, '(>1<)' mal w”chentlich                       001146
+26   reinigen.                                                            001147
+26                                                                        001148
+2101020125 NNN         00000001000St                                      001149
+25Doppel-Container fr Besprechungsraum und Baubro des AG                001150
+25MLV-ALI_01020125                                                        001151
+26   Doppel-Container fr Besprechungsraum und Baubro des                001152
+26   AG aufstellen, nach Abschluss der Baumaánahme                        001153
+26   beseitigen einschl. Standplatz herrichten. Versorgungs-              001154
+26   und Entsorgungsanschlsse herstellen, anschlieáen und                001155
+26   nach Abschluss der Baumaánahme beseitigen.                           001156
+26   Waschgelegenheit mit flieáend kaltem und warmem Wasser,              001157
+26   Heizgelegenheit sowie Toilette einrichten.                           001158
+26   Besprechungsraum fr 10 Personen Grundfl„che 2 x 6 ,00               001159
+26   m x 2 ,50 m                                                          001160
+26   Ausstattung mit Heizung, Tischen, Sthlen und                        001161
+26   Garderobe sowie Magnetleisten, Beamer etc. Einrichten                001162
+26   nach                                                                 001163
+26   Arbeitsst„ttenverordnung zzgl. 1 Arbeitsplatz mit                    001164
+26   Schreibtisch, Stuhl einschl. verschlieábarem Akten- und              001165
+26   Kleiderschrank. Internetanschluss (WLAN) mit mind. 50                001166
+26   Mbit/s.                                                              001167
+26   70 v. H. des Preises werden nach šbernahme des Bros                 001168
+26   durch den AG, der Rest nach Erfllung der Leistung                   001169
+26   vergtet. Stellplatz fr 1 Pkw herrichten.                           001170
+26   Vorhalten und Betreiben des Raumes werden gesondert                  001171
+26   vergtet.                                                            001172
+2101020126 NNN         00000001000psch   X                                001173
+25Container unterhalten                                                   001174
+25MLV-ALI_01020126                                                        001175
+26   Vorbeschriebene(n) Besprechungs-Container und Baubro                001176
+26   mit allen Einrichtungen w„hrend der vertraglichen                    001177
+26   Ausfhrungszeit der Lose dieses LV betriebsbereit                    001178
+26   vorhalten, betreiben, mit Strom und Wasser versorgen                 001179
+2663Aund bei Bedarf heizen, '(>1<)' mal w”chentlich                       001180
+26   reinigen.                                                            001181
+26                                                                        001182
+2101020127 NNN         00000001000St     X                                001183
+254-fach Container fr Lean-Steuerungsraum des AG                         001184
+25MLV-ALI_01020127                                                        001185
+26   4-fach Container fr Lean-Steuerungsraum des AG                      001186
+26   aufstellen, nach Abschluss der Baumaánahme beseitigen,               001187
+26   einschl. Standplatz herrichten. Besprechungsraum fr 20              001188
+26   Personen, Grundfl„che 4,00 x 6,00 x 2,50 m, Ausstattung              001189
+26   mit Heizung, Tischen, Sthlen und Garderobe, etc.                    001190
+26   Einrichten nach Arbeitsst„ttenverordnung, Versorgungs-               001191
+26   und Entsorgungsanschlsse herstellen, anschlieáen, nach              001192
+26   Abschluss der Baumaánahme wieder beseitigen.                         001193
+26   Internetanschluss (WLAN) mit mind. 50 Mbit/s.                        001194
+26   Ausstattung: 3 glatte Wandseiten mit magnetisch                      001195
+26   lackierter Oberfl„che oder gleichwertig (Magnetleisten               001196
+26   dreifach fr A0) zum Aufspannen von Papier fr                       001197
+26   Workshoparbeit.                                                      001198
+2661AAusstattung mit '>XX Zoll Touch-Bildschirm / Beamer /                001199
+2661AFernsehger„t Fabrikat<', Erste-Hilfe-Kasten,                         001200
+26   Moderationskoffer und Klebezettel mit mindestens 25                  001201
+26   Farben nach Angabe des AG und Klimaanlage.                           001202
+26   70 v. H. des Preises werden nach šbernahme des                       001203
+26   Steuerungsraums durch den AG, der Rest nach Erfllung                001204
+26   der Leistung vergtet.                                               001205
+26   Vorhalten und Betreiben des Raums werden gesondert                   001206
+26   vergtet.                                                            001207
+2101020128 NNN         00000001000psch   X                                001208
+25Lean-Steuerungsraum unterhalten                                         001209
+25MLV-ALI_01020128                                                        001210
+26   Vorbeschriebene Besprechungs-Container mit allen                     001211
+26   Einrichtungen w„hrend der vertraglichen Ausfhrungszeit              001212
+26   der Lose dieses LV betriebsbereit vorhalten, betreiben,              001213
+26   mit Strom und Wasser versorgen und bei Bedarf heizen,                001214
+2661A'>1<' mal w”chentlich reinigen.                                      001215
+20                                                                        001216
+26   Nachfolgende Bauzaun-Position betrifft nur besondere                 001217
+26   Sicherungsmaánahmen auf gesonderte Anordnung des AG                  001218
+26   ber die einzurechnende Sicherungspflicht (insbes. gem.              001219
+26   VOB/C DIN 18299, UVV, etc.) des AN hinaus.                           001220
+26                                                                        001221
+26                                                                        001222
+2101020130 NNN         00000001000m      X                                001223
+25Bauzaun auf gesonderte Anordnung des AG                                 001224
+25MLV-ALI_01020130                                                        001225
+2661ABauzaun '(>mobil / fest<)' auf gesonderte Anordnung des              001226
+26   AG einschl. der erforderlichen Tore standsicher                      001227
+26   aufstellen, w„hrend der Bauzeit vorhalten und                        001228
+2662Aunterhalten, ggf. mehrfach umsetzen. Einbauort: '(>im                001229
+2662Agesamten Baubereich<)' nach Angabe des AG.                           001230
+2663A'(>2<)' Tor(e) mit lichter Breite:                                   001231
+2664A'(>XXX<)'m auf                                                       001232
+2665A'(>befestigtem und / oder unbefestigtem<)' Untergrund.               001233
+2666AZaunoberkante ber Boden '(>ber 1,75 bis 2,00<)'m.                  001234
+26   Kontrolle und Ersatz                                                 001235
+26   zerst”rter und abhanden gekommener Teile der                         001236
+26   Einrichtungen werden nicht gesondert vergtet.                       001237
+26   Abgerechnet werden nur die vom AG best„tigten Mengen.                001238
+26                                                                        001239
+26                                                                        001240
+2101020135 NNN         00000001000m      X                                001241
+25Zulage fr Sichtschutz Bauzaun                                          001242
+25MLV-ALI_01020135                                                        001243
+26   Zulage zu vorgenannter Position Bauzaun nach Angaben                 001244
+26   des AG fr die Ausfhrung mit Sichtschutz.                           001245
+26                                                                        001246
+26   Vollfl„chige Verkleidung des vorbeschriebenen Bauzauns               001247
+2661Amit '>Sichtschutzplane nach DIN 4102-B1 - schwer                     001248
+2661Aentflammbar<'. Sichtschutz anbringen, vorhalten,                     001249
+26   unterhalten, und beseitigen. Material bleibt Eigentum                001250
+26   des AN.                                                              001251
+2101020140 NNN         00000001000m                                       001252
+25Bauzaun rckbauen                                                       001253
+25MLV-ALI_01020140                                                        001254
+26   Bauzaun, der nach Angaben des AG errichtet wurde, nach               001255
+26   Beendigung der Bauzeit entfernen.                                    001256
+26                                                                        001257
+2101020150 NNN         00000001000m2     X                                001258
+25Stammschutz fr B„ume                                                   001259
+25MLV-ALI_01020150                                                        001260
+26   Stammschutz durch Ummantelung aus Brettern einschl.                  001261
+26   Polsterung gegen den Baum herstellen und abbauen.                    001262
+26   Stammschutz nach Beendigung der Bauzeit entfernen,                   001263
+26   Material bleibt Eigentum des AN. Stammdurchmesser                    001264
+2661A'(>ber 0,40 bis 0,60 m<)', Mindesth”he                              001265
+2662A'(>2,00 m<)'.                                                        001266
+26                                                                        001267
+2101020160 NNN         00000001000m      X                                001268
+25Biotopschutzzaun herstellen und vorhalten                               001269
+25MLV-ALI_01020160                                                        001270
+2661ABiotopschutzzaun '(>nach Wahl des AN<)' herstellen,                  001271
+26   w„hrend der Bauzeit vor- und unterhalten.                            001272
+2662AZaunoberkante mind. '(>1,20 m<)' ber GOK. Regelm„áige               001273
+26   Kontrolle und Ersatz abhanden gekommener Bauteile sind               001274
+26   einzurechnen und werden nicht gesondert vergtet.                    001275
+26                                                                        001276
+2101020170 NNN         00000001000m                                       001277
+25Biotopschutzzaun rckbauen                                              001278
+25MLV-ALI_01020170                                                        001279
+26   vorbeschriebenen Biotopschutzaun nach Beendigung der                 001280
+26   Bauzeit entfernen.                                                   001281
+26                                                                        001282
+2101020180 NNN         00000001000m      X                                001283
+25Amphibien-/Reptilienschutzzaun herstellen und vorhalten                 001284
+25MLV-ALI_01020180                                                        001285
+26   Amphibien-/Reptilienschutzzaun, tempor„r, Oberkante                  001286
+26   abgewinkelt als šberkletterschutz herstellen, w„hrend                001287
+26   der Bauzeit vor- und unterhalten. Schutzzaun,                        001288
+2661Afreitragend bestehend aus: Plane, '(>50 cm<)' ber                   001289
+26   GOK, UV-stabil, bewitterungsstabil, reiáfest inkl.                   001290
+26   Haltepfosten und seitlicher Abspannung mit dichtem                   001291
+26   Abschluss zum Gel„nde. Inklusive monatlichem M„hen des               001292
+2663AAufwuchses in einem '>100 cm<' breiten Streifen                      001293
+26   beidseitig des Zauns. M„hgut der Verwertung nach Wahl                001294
+26   des AN zufhren. Verwertung nachweisen. Regelm„áige                  001295
+26   Kontrolle und                                                        001296
+26   Ersatz abhanden gekommener Bauteile sind einzurechnen                001297
+26   und werden nicht gesondert vergtet.                                 001298
+26                                                                        001299
+2101020190 NNN         00000001000m                                       001300
+25Amphibien-/Reptilienschutzzaun rckbauen                                001301
+25MLV-ALI_01020190                                                        001302
+26   vorbeschriebenen Amphibien-/Reptilienschutzaun nach                  001303
+26   Beendigung der Bauzeit entfernen.                                    001304
+26                                                                        001305
+2101020200 NNN         00000001000psch   X                                001306
+25Beleuchtung                                                             001307
+25MLV-ALI_01020200                                                        001308
+26   Beleuchtung der Baustelle gem„á                                      001309
+26   Arbeitsst„ttenrichtlinie aufbauen, fr die Dauer der                 001310
+26   Bauzeit vor- und unterhalten, ggf. mehrfach umsetzen,                001311
+26   betreiben und abbauen inkl. An- und Abfuhr der                       001312
+26   hierfr notwendigen Beleuchtungseinrichtungen.                       001313
+2662AAuszuleuchtende L„nge / Bereich: '(>gesamter                         001314
+2662ABaubereich<)'. Beleuchtung blendfrei fr Zugverkehr.                 001315
+26   Signalfarben drfen nicht verwendet werden.                          001316
+26                                                                        001317
+2101020211 NNN         00000001000psch                                    001318
+25Gleisberfahrten fr Bauger„te                                          001319
+25MLV-ALI_01020211                                                        001320
+26   Gleis-šberfahrten fr Bauger„te ggf. mehrfach                        001321
+26   herstellen, vorhalten, unterhalten und entfernen.                    001322
+26   Material bleibt Eigentum des AN. šberfahrten                         001323
+26   nach Wahl und entsprechend dem Bauablauf des AN, jedoch              001324
+26   so auszubilden, dass berfahrende Kettenger„te den                   001325
+26   Schienenkopf nicht besch„digen k”nnen und Zugfahrten                 001326
+26   m”glich sind. Die Wiederherstellung des ursprnglichen               001327
+26   Zustands geh”rt zum Leistungsumfang und wird nicht                   001328
+26   gesondert vergtet.                                                  001329
+26                                                                        001330
+2101020220 NNN         00000001000psch                                    001331
+25Arbeitsebenen und Rampen                                                001332
+25MLV-ALI_01020220                                                        001333
+26   Herstellen von erforderlichen Arbeitsebenen und Rampen               001334
+26   fr alle ausgeschriebenen Leistungen.                                001335
+26   Ausfhrung nach Wahl und entsprechend der eingesetzten               001336
+26   Technologie des AN inkl. Lieferung/ Entsorgung aller                 001337
+26   notwendigen Stoffe und Nebenleistungen.                              001338
+26   Die Rampen mssen den Ansprchen der einzusetzenden                  001339
+26   Ger„te entsprechen.                                                  001340
+26   Die Trennung zum Untergrund ist durch geeignete                      001341
+26   Maánahmen                                                            001342
+26   nach Wahl des AN sicherzustellen ( mind. jedoch ein                  001343
+26   Trennvlies GRK 3), um beim Rckbau eine eindeutige                   001344
+26   Schichtabgrenzung zum verbleibenden Untergrund zu                    001345
+26   realisieren.                                                         001346
+26   Inkl. Rckbau, Material bleibt Eigentum des AN und ist               001347
+26   von der Baustelle zu entfernen sowie Wiederherstellung               001348
+26   des ursprnglichen Zustands.                                         001349
+310102                                                                    001350
+110103     N    LV-Gruppe 2                                               001351
+12Freimachung Baustelle                                                   001352
+20                                                                        001353
+26   *** HINWEIS Fr den Ersteller (diesen gesamten                       001354
+26   Hinweistext bitte nach Fertigstellung des LV l”schen)                001355
+26   ***                                                                  001356
+26   Fr jeden Durchmesserbereich ist eine eigene                         001357
+26   LV-Position aufzunehmen.                                             001358
+2101030010 NNN         00000001000St     X                                001359
+25B„ume f„llen                                                            001360
+25MLV-ALI_01030010                                                        001361
+26   B„ume f„llen, h”chstens 0,25 m ber GOK abs„gen,                     001362
+26   Wurzelst”cke roden. Gemessen wird der Durchmesser 1 m                001363
+2662Aber GOK. Durchmesser ber '(>0,10 bis 0,30 / 0,30 bis               001364
+2662A0,50 / 0,50 bis 0,70 m<)'. Wurzell”cher mit                          001365
+26   geeignetem Boden verfllen. Boden liefern. Gesamtes                  001366
+26   Holz, Wurzelst”cke und Schlagabraum der nachweislichen               001367
+26   Verwertung nach Wahl des AN zufhren.                                001368
+26                                                                        001369
+2101030020 NNN         00000001000St     X                                001370
+25Wurzelst”cke bereits gef„llter B„ume roden                              001371
+25MLV-ALI_01030020                                                        001372
+26   Wurzelst”cke bereits gef„llter B„ume roden.  Gemessen                001373
+26   wird der Durchmesser an der Schnittstelle, im                        001374
+2662ARegelfall 0,25 m ber GOK. Durchmesser ber '(>0,3 bis               001375
+2662A0,5 m<)'. Wurzell”cher mit geeignetem Boden verfllen.               001376
+26   Boden liefern. Gesamtes Rodungsgut der nachweislichen                001377
+26   Verwertung nach Wahl des AN zufhren.                                001378
+26                                                                        001379
+2101030030 NNN         00000001000St     X                                001380
+25Wurzelst”cke >50cm D roden, zur weiteren Verwendung lagern              001381
+25MLV-ALI_01030030                                                        001382
+26   Wurzelst”cke bereits gef„llter B„ume roden.  Gemessen                001383
+26   wird der Durchmesser an der Schnittstelle, im                        001384
+2662ARegelfall 0,25 m ber GOK. Durchmesser ber '(>0,5 bis               001385
+2662A0,7 m<)'. Wurzell”cher mit geeignetem Boden                          001386
+26   verfllen. Boden liefern. Wurzelstock im Ganzen                      001387
+26   aufnehmen, auf Zwischenlager transportieren und zur                  001388
+26   weiteren Verwendung lagern.                                          001389
+26                                                                        001390
+2101030040 NNN         00000001000m2                                      001391
+25Bereich der Baustelle abr„umen                                          001392
+25MLV-ALI_01030040                                                        001393
+26   Bereich der Baustelle abr„umen. Vorhandene Wurzeln und               001394
+26   Baumstmpfe roden. Auf dem Baugel„nde sind vorhanden:                001395
+26   Busch-, Hecken- und Baumbestand sowie Aufwuchs bis 0,10              001396
+26   m Stammdurchmesser, 1,00 m ber dem Erdboden gemessen,               001397
+26   mit Wurzeln und Baumstmpfen. Astwerk bereits gef„llter              001398
+26   B„ume aller Durchmesser. Steine, Betonreste,                         001399
+26   Mauerreste, Z„une, Schutt und Unrat abr„umen,                        001400
+26   transportieren und zwischenlagern. Abtransport und                   001401
+26   Entsorgung werden gesondert vergtet.                                001402
+26   Gesamtes Holz, Wurzelst”cke und Schlagabraum der                     001403
+26   nachweislichen Verwertung nach Wahl des AN zufhren.                 001404
+26   Bei der abzurechnenden Menge sind die in anderweitigen               001405
+26   Leistungspositionen (insbesondere                                    001406
+26   Baustelleneinrichtungs- bzw. Bereitstellungsfl„chen                  001407
+26   gem. MLV der DB) bereits vergteten Mengen zu                        001408
+26   bercksichtigen.                                                     001409
+26                                                                        001410
+26                                                                        001411
+26                                                                        001412
+2101030050 NNN         00000001000m3     X                                001413
+25Suchgraben zur Lagebestimmung der Kabel und Leitungen bis 1,25m         001414
+25MLV-ALI_01030050                                                        001415
+26   Boden zur Freilegung und zur eindeutigen                             001416
+26   Lagebestimmung der Kabel und Leitungen, in Handarbeit                001417
+26   ausheben und seitlich lagern. Boden fachgerecht wieder               001418
+26   verfllen in Lagen von 0,30 m und verdichten.                        001419
+2662AAushubtiefe bis 1,25 m, '(>Homogenbereich                            001420
+2662A"Bodenschicht" gem„á beiliegendem Baugrundgutachten<)'.              001421
+26   Die Vorschriften der Versorgungsunternehmen sind zu                  001422
+26   beachten. Abgerechnet                                                001423
+26   wird mit senkrechten W„nden. Notwendige bauzeitliche                 001424
+26   Verbaumaánahmen werden nicht gesondert vergtet und                  001425
+26   sind in den Einheitspreis einzurechnen. Zur                          001426
+26   zweifelsfreien Verortung der Kabellage und Eingrenzung               001427
+26   des Umfangs der Suchschachtung ist die Anwendung eines               001428
+26   Suchger„tes vorzusehen. Die Kabelortung mittels                      001429
+26   Suchger„t wird nicht gesondert vergtet und ist                      001430
+26   einzukalkulieren.                                                    001431
+26                                                                        001432
+26                                                                        001433
+2101030060 NNN         00000001000m3     X                                001434
+25Suchgraben zur Lagebestimmung der Kabel und Leitungen ber 1,25m        001435
+25MLV-ALI_01030060                                                        001436
+26   Boden zur Freilegung und zur eindeutigen                             001437
+26   Lagebestimmung der Kabel und Leitungen in Handarbeit                 001438
+26   ausheben und seitlich lagern. Boden fachgerecht wieder               001439
+26   verfllen in Lagen von 0,30 m und verdichten.                        001440
+2661AAushubtiefe ber 1,25 m '(>bis                                       001441
+2661A1,75m<)',                                                            001442
+2662A'(>Homogenbereich "Bodenschicht" gem„á beiliegendem                  001443
+2662ABaugrundgutachten<)'. Die Vorschriften der                           001444
+26   Versorgungsunternehmen sind zu beachten. Abgerechnet                 001445
+26   wird die gesamte Aushubtiefe (keine Staffelabrechnung)               001446
+26   mit senkrechten W„nden. Notwendige bauzeitliche                      001447
+26   Verbaumaánahmen werden nicht gesondert vergtet und                  001448
+26   sind in den Einheitspreis einzurechnen.                              001449
+26   Zur zweifelsfreien Verortung der Kabellage und                       001450
+26   Eingrenzung des Umfangs der Suchschachtung ist die                   001451
+26   Anwendung eines Suchger„tes vorzusehen. Die Kabelortung              001452
+26   mittels Suchger„t wird nicht gesondert vergtet und ist              001453
+26   einzukalkulieren.                                                    001454
+26                                                                        001455
+26                                                                        001456
+2101030070 NNN         00000001000m      X                                001457
+25Erdverlegte Kabel sichern                                               001458
+25MLV-ALI_01030070                                                        001459
+26   Erdverlegte Kabel sichern                                            001460
+2661AVorhandene '(>Kabel XXX einschl. vorh. Sch„chte<)'                   001461
+2662Asichern. Lage: '(>B”schungsfuá / im Bereich der                      001462
+2662ABaustelle<)' Sicherung in Abstimmung mit dem Betreiber               001463
+26   nach Wahl des AN. Die Abrechnung erfolgt nach Aufmaá,                001464
+26   Bndel aus mehreren Kabeln werden zusammengefasst und                001465
+26   wie ein einzelnes Kabel                                              001466
+26   abgerechnet.                                                         001467
+26                                                                        001468
+2101030075 NNN         00000001000m      X                                001469
+25Erdverlegte Leitungen sichern                                           001470
+25MLV-ALI_01030075                                                        001471
+2661AVorhandene erdverlegte '(>Leitungen XXX einschl. vorh.               001472
+2661ASch„chte<)' sichern. Lage:                                           001473
+2662A'(>B”schungsfuá / im Bereich der Baustelle<)' Sicherung              001474
+26   in Abstimmung mit dem Betreiber nach Wahl des AN. Die                001475
+26   Abrechnung erfolgt nach Aufmaá, Bndel aus mehreren                  001476
+26   Leitungen werden zusammengefasst und wie eine einzelne               001477
+26   Leitung abgerechnet.                                                 001478
+26                                                                        001479
+26                                                                        001480
+26                                                                        001481
+2101030080 NNN         00000001000m      X                                001482
+25Schutz bestehender Kabeltrassen                                         001483
+25MLV-ALI_01030080                                                        001484
+2661AVorhandene Kabeltrassen '(>im erdverlegten Kabeltrog /               001485
+2661Aim aufgest„nderten Kabeltrog, einschl. vorh.                         001486
+2661ASch„chte<)' entsprechend Bautechnologie des AN sichern.              001487
+2662ALage:'(>im Bereich der Baustelle<)'                                  001488
+26   Sicherung nach Wahl des AN.                                          001489
+26                                                                        001490
+26                                                                        001491
+2101030090 NNN         00000001000m      X                                001492
+25Kabel bauzeitlich umlegen                                               001493
+25MLV-ALI_01030090                                                        001494
+26   Kabel / Kabelbndel bauzeitlich umlegen, sichern und                 001495
+26   zurckverlegen. Kabel / Kabelbndel bestehend aus bis                001496
+2661Azu '(>5<)' Kabeln,                                                   001497
+2662A'(>erdverlegt ODER im Trog verlegt<)', freilegen, fr                001498
+26   die Dauer der Bauzeit umlegen und sichern. Die                       001499
+26   notwendigen Arbeiten fr das Freilegen und wieder                    001500
+26   Verfllen bzw. das ™ffnen und wieder Verschlieáen der                001501
+26   Kabeltr”ge sind einzurechnen und werden nicht gesondert              001502
+26   vergtet. Sicherung nach Wahl des AN gegen Besch„digung              001503
+26   aus dem Baubetrieb                                                   001504
+26   einbauen, bauzeitlich instandhalten sowie ausbauen und               001505
+26   geordnet entsorgen. Das Zurckverlegen in                            001506
+26   ursprngliche Lage mit den hierfr notwendigen                       001507
+26   Nebenleistungen wie Erdarbeiten, Beilieferung von                    001508
+26   Kabelsand und Trassenwarnband bzw ™ffnen und Schlieáen               001509
+26   der Kabeltr”ge entsprechend dem ursprnglichen Zustand               001510
+26   ist einzurechnen und wird nicht gesondert vergtet.                  001511
+26   Bei Bndeln aus mehreren Kabeln erfolgt die Abrechnung               001512
+26   nach L„nge des Bndels, nicht nach einzelnen                         001513
+26   Kabel-L„ngen.                                                        001514
+26                                                                        001515
+2101030100 NNN         00000001000m      X                                001516
+25Rckbau Kabeltr”ge                                                      001517
+25MLV-ALI_01030100                                                        001518
+26   Rckbau vorhandener Kabeltr”ge.                                      001519
+2661AKabeltr”ge aus'(>unbewehrtem<)' Beton, Kabeltr”ge                    001520
+2662A'(>Gr. I-II<)'.                                                      001521
+2663AAusfhrung '(>erschtterungsarm, l„rmarm / ohne                      001522
+2663Abesondere Anforderungen<)', Rckbauverfahren nach                    001523
+26   Wahl des AN, erforderliche Erdarbeiten durchfhren.                  001524
+2664ARckbauort: '(>erdverlegte Kabeltr”ge im Bereich der                 001525
+2664ABaustelle<)'.                                                        001526
+2665A'(>Arbeiten in Abschnitten gem„á Bautechnologie AN<)'                001527
+26   Material l”sen, laden, zur Bereitstellungsfl„che des                 001528
+26   AN transportieren, abladen und lagern.                               001529
+26                                                                        001530
+26                                                                        001531
+2101030101 NNN         00000001000m                                       001532
+25Zulage zu Rckbau Kabeltr”ge                                            001533
+25MLV-ALI_01030101                                                        001534
+26   Zulage zu vorbeschriebenem Rckbau fr schonenden                    001535
+26   Ausbau und Lagerung zur Wiederverwendung der                         001536
+26   ausgebauten Kabeltr”ge. Kabeltr”ge reinigen und                      001537
+26   geordnet zum Wiedereinbau lagern.                                    001538
+26                                                                        001539
+26                                                                        001540
+2101030110 NNN         00000001000psch                                    001541
+25Grenzsteine sichern                                                     001542
+25MLV-ALI_01030110                                                        001543
+26   Grenzsteine innerhalb des Bereichs der Baustelle                     001544
+26   sichern.                                                             001545
+26                                                                        001546
+2101030120 NNN         00000001000m3     X                                001547
+25Bestehende Fundamente komplett abbrechen                                001548
+25MLV-ALI_01030120                                                        001549
+2661ABestehende Fundamente aus '(>unbewehrtem Beton /                     001550
+2661AStahlbeton<)' bis zu Einzelgr”áen von                                001551
+2662A'(>2,5 m3<)' komplett abbrechen. Abbruchgut ggfs                     001552
+26   zerkleinern,                                                         001553
+26   transportieren und zwischenlagern.                                   001554
+26                                                                        001555
+2101030130 NNN         00000001000m3     X                                001556
+25Teilabbruch bestehender Fundamente                                      001557
+25MLV-ALI_01030130                                                        001558
+2661ABestehende Fundamente aus '(>unbewehrtem Beton /                     001559
+2661AStahlbeton<)' > 2,0 m3, Einzelgr”áe                                  001560
+2662A'(>bis 0,80m unter EOK / im Bereich der Konfliktpunkte               001561
+2662Azu den vorgesehenen Erd-/Grndungsarbeiten<)'                        001562
+2663Aabstemmen,'(>mit gut verdichtbarem Material<)''                      001563
+26   verfllen.                                                           001564
+26   Abbruchgut ggfs zerkleinern, transportieren und                      001565
+26   zwischenlagern.                                                      001566
+26                                                                        001567
+2101030140 NNN         00000001000m3     X                                001568
+25Bestehende Sttzmauern abbrechen                                        001569
+25MLV-ALI_01030140                                                        001570
+2661ABestehende Sttzmauern aus '(>Stahlbetonfertigteilen /               001571
+2661ANatursteinmauerwerk<)' sowie Fundamentierung                         001572
+2662Aaus'(>Stahlbeton<)' komplett abbrechen. Abbruchgut ggfs              001573
+26   zerkleinern, transportieren und zwischenlagern.                      001574
+26                                                                        001575
+2101030150 NNN         00000001000m      X                                001576
+25Bestehende Z„une abbrechen                                              001577
+25MLV-ALI_01030150                                                        001578
+2661ABestehende Zaunanlagen als '(>Maschendrahtzaun /                     001579
+2661AHolzlattenzaun / J„gerzaun / Drahtgitterzaun<)'                      001580
+2662Amit '(>Pfosten aus Holz / Metall / Beton ca. alle                    001581
+2662A2,50m<)'                                                             001582
+2663Asowie'(>Fundamentierung aus unbewehrtem Beton /                      001583
+2663AStahlbeton mit Einzelgr”áen von bis zu 0,1 cbm /                     001584
+2663AVerschraubung auf bestehendem Bauwerk<)' komplett                    001585
+26   abbrechen, incl. vorhandener Tren und Tore. H”he der                001586
+2664AZaunanlage '(>1,00 - 1,50m<)'. Abbruchgut ggfs                       001587
+26   zerkleinern, transportieren und zwischenlagern.                      001588
+26                                                                        001589
+2101030160 NNN         00000001000m3     X                                001590
+25Bestehende Betonfáe v Signalstandorten abbrechen                       001591
+25MLV-ALI_01030160                                                        001592
+26   Bestehende Signalstandorte / sonstige                                001593
+26   Streckeneinrichtungen als Betonfáe                                  001594
+2664A'(>groáe / kleine<)' Bauform aus Betonfertigteilen in                001595
+26   Einzelmengen abbrechen, incl. der hierfr notwendigen                001596
+26   Erdarbeiten. Abbruchgut ggfs zerkleinern,                            001597
+26   transportieren und zwischenlagern.                                   001598
+26                                                                        001599
+2101030170 NNN         00000001000m3     X                                001600
+25Bestehende Einfassungsrahmen sonstiger Einrichtungsstandorte abbrechen  001601
+25                                                                        001602
+25MLV-ALI_01030170                                                        001603
+26   Bestehende Einfassungsrahmen von Standorten sonstiger                001604
+26   Streckeneinrichtungen als Betonfertigteile mit einer                 001605
+2661ADicke von '(>i. M. 10-20cm, Verst„rkungen an den Ecken               001606
+2661Avorhanden<)' in Einzelmengen abbrechen, incl.                        001607
+26   der hierfr notwendigen Erdarbeiten und Angleichung                  001608
+2662Ader B”schung mit '(>vorhandem / zu lieferndem                        001609
+2662Afrostsicherem und gut verdichtbarem<)' Material,                     001610
+26   eingebautes Material verdichten. Abbruchgut ggfs                     001611
+26   zerkleinern, transportieren und zwischenlagern.                      001612
+26                                                                        001613
+2101030180 NNN         00000001000m      X                                001614
+25Bestehende Verbauten freilegen, abtrennen                               001615
+25MLV-ALI_01030180                                                        001616
+2661ABestehende Verbauten '(>Spundwand bis zu 85kg                        001617
+2661AEigenlast/m Einzelbohle<)' freilegen, H”hen von bis                  001618
+2662Azu'(>1,00m<)' abtrennen, Wiederverfllung der Baugruben              001619
+2663Amit'(>vorhandem / zu lieferndem frostsicherem und gut                001620
+2663Averdichtbarem<)' Material, eingebautes Material                      001621
+26   verdichten. Abgetrenntes Verbaumaterial ggfs                         001622
+26   zerkleinern, transportieren und zwischenlagern.                      001623
+26   Abrechnung nach horizontaler Trennl„nge.                             001624
+26                                                                        001625
+26                                                                        001626
+310103                                                                    001627
+110104     N    LV-Gruppe 2                                               001628
+12Verkehrssicherung                                                       001629
+2101040010 NNN         00000001000psch                                    001630
+25Verkehrsrechtliche Anordnungen                                          001631
+25MLV-ALI_01040010                                                        001632
+26   Verkehrsrechtliche Anordnungen fr die Einrichtung der               001633
+26   Verkehrsfhrung und -sicherung bei der zust„ndigen                   001634
+26   Verkehrsbeh”rde vorbereiten, beantragen und erwirken.                001635
+26   Die Beantragung beinhaltet die Erstellung und                        001636
+26   Einreichung aller erf. Pl„ne (Regel-, Lage-,                         001637
+26   Beschilderungspl„ne usw.) und Erl„uterungsberichte,                  001638
+26   alle anfallenden Gebhren sowie die Teilnahme an                     001639
+26   verkehrsrechtlichen Besprechungen,                                   001640
+26   Koordinierungs-Besprechungen und Verkehrsschau vor                   001641
+26   Ort. Die Pauschale gilt fr alle zur Erreichung der                  001642
+26   vertraglich vereinbarten Leistungen notwendigen                      001643
+26   verkehrsrechtlichen Anordnungen.                                     001644
+26                                                                        001645
+2101040020 NNN         00000001000psch                                    001646
+25Verkehrsfhrung, -sicherung, -umleitung                                 001647
+25MLV-ALI_01040020                                                        001648
+26   Einrichtungen zur Verkehrsfhrung, -sicherung und                    001649
+26   -regelung im Bereich der Baustelle sowie ggf.                        001650
+26   erforderlicher Umleitungen nach StVO und gem„á                       001651
+26   verkehrsrechtlicher Anordnung unter Aufrechterhaltung                001652
+26   des Verkehrs aufbauen, vorhalten, warten, unterhalten,               001653
+26   betreiben, entsprechend Bauablauf des AN, auch                       001654
+26   mehrfach, umsetzen und abbauen. Besch„digte oder                     001655
+26   abhanden gekommene Teile der Einrichtungen ersetzen.                 001656
+26   T„gliche Kontrollfahrten sind einzurechnen.                          001657
+26   Einrichtungen im Zuge der ”ffentlichen Straáen und                   001658
+26   Wege im Bereich der Baustelle, der Lagerfl„chen, ggf.                001659
+26   erforderlicher Umleitungen und bei den                               001660
+26   Baustellenzufahrten. Nach Beendigung der Baumaánahme                 001661
+26   entfernen. Lichtzeichenanlagen und ggf. erforderliche                001662
+26   Sicherungsposten fr Bahnbetrieb werden gesondert                    001663
+26   vergtet.                                                            001664
+26                                                                        001665
+20                                                                        001666
+26   *** HINWEIS Fr den Ersteller (diesen gesamten                       001667
+26   Hinweistext bitte nach Fertigstellung                                001668
+26   des LV l”schen) ***                                                  001669
+26   Die nachfolgende Position ist nur bei                                001670
+26   Nichtbercksichtigung des Passus Nebenleistungen 16.1                001671
+26   der Besondere Vertragsbedingungen anzuwenden.                        001672
+26   Wenn der Passus Nebenleistungen der Ziffer 16.1 der BVB              001673
+26   ausgew„hlt wurde, ist diese Position nicht in das                    001674
+26   Leistungsverzeichnis aufzunehmen.                                    001675
+2101040030 NNN         00000001000psch                                    001676
+25Verkehrsfl„chen reinigen                                                001677
+25MLV-ALI_01040030                                                        001678
+26   Reinigung aller ”ffentlichen Verkehrsfl„chen sowie                   001679
+26   Transportwege im Baubereich fr die Dauer der Bauzeit,               001680
+26   inkl. aller Personal-, Material- und Nebenkosten.                    001681
+26                                                                        001682
+2101040040 NNN         00000001000St     X                                001683
+25Lichtzeichenanlage einrichten u r„umen                                  001684
+25MLV-ALI_01040040                                                        001685
+2661AZugelassene Anlage, bestehend aus '(>XXX (mindestens                 001686
+2661A2)<)'                                                                001687
+26   Lichtsignalen antransportieren, betriebsbereit                       001688
+26   aufstellen und ggf. mehrfach umsetzen, Steuerung nach                001689
+26   Maágaben der verkehrsrechtlichen Anordnung einrichten,               001690
+26   nach Beendigung des Einsatzes abbauen und von der                    001691
+26   Baustelle entfernen. Energieversorgung nach Wahl des                 001692
+26   AN Die Abrechnung erfolgt je Anlage, ausdrcklich                    001693
+26   nicht je Lichtsignal.                                                001694
+26                                                                        001695
+2101040050 NNN         00000001000d                                       001696
+25Lichtzeichenanlage vorhalten                                            001697
+25MLV-ALI_01040050                                                        001698
+26   Vorbeschriebene Lichtsignalanlage vorhalten und                      001699
+26   betriebsbereit unterhalten. Abrechnung nach                          001700
+26   Kalendertagen, an denen die Anlage gem„á                             001701
+26   verkehrsrechtlicher Anordnung und nach Abstimmung mit                001702
+26   dem AG auf der Baustelle vorgehalten werden muss.                    001703
+26                                                                        001704
+2101040060 NNN         00000001000d                                       001705
+25Lichtzeichenanlage betreiben                                            001706
+25MLV-ALI_01040060                                                        001707
+26   Vorbeschriebene Lichtsignalanlage zur Verkehrsregelung               001708
+26   nach StVO und gem„á verkehrsrechtlicher Anordnung                    001709
+26   betreiben, ggf. erforderliche Handsteuerung zur                      001710
+26   situationsgerechten Verkehrslenkung ist einzurechnen                 001711
+26   und wird nicht gesondert vergtet.                                   001712
+26                                                                        001713
+2101040070 NNN         00000001000St                                      001714
+25Reifenwaschanlage einrichten u r„umen                                   001715
+25MLV-ALI_01040070                                                        001716
+26   Reifenwaschanlage nach Wahl des AN anfahren,                         001717
+26   betriebsbereit aufstellen, nach Beendigung des                       001718
+26   Einsatzes rckbauen und abtransportieren. Strom- und                 001719
+26   Wasserzufhrung nach Wahl des AN herstellen und wieder               001720
+26   beseitigen inkl. der hierfr ggf. erforderlichen                     001721
+26   Antr„ge und Gebhren.                                                001722
+26                                                                        001723
+2101040080 NNN         00000001000Mt                                      001724
+25Reifenwaschanlage vorhalten                                             001725
+25MLV-ALI_01040080                                                        001726
+26   Vorbeschriebene Reifenwaschanlage vorhalten und                      001727
+26   betriebsbereit unterhalten. Die Abrechnung erfolgt                   001728
+26   nach Monaten pro Anlage. Auáer den vollen Monaten                    001729
+26   werden Teilzeiten nach Tagen zu 1 /30 des                            001730
+26   Einheitspreises ermittelt.                                           001731
+26                                                                        001732
+2101040090 NNN         00000001000d                                       001733
+25Reifenwaschanlage betreiben                                             001734
+25MLV-ALI_01040090                                                        001735
+26   Vorbeschriebene Reifenwaschanlage betreiben inkl.                    001736
+26   aller entstehenden Betriebskosten sowie den                          001737
+26   Aufwendungen fr alle Fahrzeuge des AN, die die                      001738
+26   Reifenwaschanlage durchfahren. Die Beilieferung und                  001739
+26   der Verbrauch an Flockungsmittel sowie Strom- und                    001740
+26   Wasserverbrauch sind einzurechnen und werden nicht                   001741
+26   gesondert vergtet. Der ausgeworfene Schlamm ist nach                001742
+26   Wahl des AN seitlich zu sammeln, mindestens                          001743
+26   arbeitst„glich aufzunehmen und auf Zwischenlager in                  001744
+26   gesonderten Haufwerken zu lagern.                                    001745
+26                                                                        001746
+20                                                                        001747
+26   *** HINWEIS FšR DEN LV- ERSTELLER Wegeleitung (diesen                001748
+26   gesamten Hinweistext bitte nach Fertigstellung des LV                001749
+26   l”schen) ***:                                                        001750
+26   Nachfolgende Positionen fr                                          001751
+26   Wegeleitung/Reisendenlenkung sind ausschlieálich im                  001752
+26   Gesch„ftsbereich Personenbahnh”fe zu verwenden.                      001753
+2101040200 NNN         00000001000psch   X                                001754
+25Tempor„re Wegeleitung Verkehrssicherung / Reisendenlenkung (nur         001755
+25Gesch„ftsbereich Personenbahnh”fe)                                      001756
+25MLV-ALI_01040200                                                        001757
+26   Tempor„re Wegeleitung zur Verkehrssicherung und                      001758
+26   Reisendenlenkung nach Planung des AG und in Abstimmung               001759
+26   mit dem AG aufbauen und beseitigen, st„ndig unterhalten              001760
+26   und betreiben und fr die Dauer der Bauzeit vorhalten.               001761
+26   Dem Bauablauf in den einzelnen Bauphasen folgend                     001762
+26   umbauen und anpassen.                                                001763
+26   Anzahl der Bauphasen und Beschilderung je Bauphase gem.              001764
+26   Bauphasenplanung/ Planung der Reisendenlenkung des AG                001765
+26   mit Beschilderungspl„nen.                                            001766
+2661ADie Wegeleitung ist min. '>3<' Wochen vor nderung der               001767
+26   Bauphasen/Unterbauphasen mit dem AG abzustimmen.                     001768
+26   Stellung aller Verkehrszeichen und Beschilderungen                   001769
+26   durch den AN.                                                        001770
+26   Die Vorgaben des Ausfhrungshandbuches 8 1393 (Design                001771
+26   Manual) bzgl. Typografie, Piktogrammen und Raster sind               001772
+26   umzusetzen.                                                          001773
+26   Zerst”rte bzw. abhanden gekommene Gegenst„nde sind                   001774
+26   sofort zu ersetzen und werden nicht zus„tzlich                       001775
+26   vergtet.                                                            001776
+26   70 v. H. der Pauschale werden nach betriebsfertigem                  001777
+26   Aufbau, der Rest nach Abbau der Wegeleitung vergtet.                001778
+2101040210 NNN         00000001000psch   X                                001779
+25Schutzeinhausung/Schutzgang herstellen (nur Gesch„ftsbereich            001780
+25Personenbahnh”fe)                                                       001781
+25MLV-ALI_01040210                                                        001782
+26   Schutzeinhausung/Schutzgang nach statischen,                         001783
+26   konstruktiven und verkehrstechnischen Erfordernissen                 001784
+26   inkl. Trag- und Unterkonstruktion sowie Aussteifungen                001785
+26   herstellen, gem. Bauablauf mehrfach umsetzen, umbauen                001786
+26   und anpassen, vor- und unterhalten und r„umen.                       001787
+26   Die Schutzeinhausung ist nach Wahl des AN als                        001788
+26   Witterungs- und Sicht-/Staubschutz inkl. šberdachung                 001789
+26   als geradlinige und bersichtliche                                   001790
+2661AKonstruktion'>mit/ohne Beleuchtungseinrichtungen<' '                 001791
+26   bis 1,25 m ber OK Gehweg geschlossen, ab 1,25 m H”he                001792
+26   lichtdurchl„ssig, jedoch stoáfest mit einer lichten                  001793
+2663ADurchgangsh”he'>2,25 m<', Weite von                                  001794
+2664A'>1,50 m<' inkl. rutschfester, selbstentw„ssernder                   001795
+2665AVerkehrsfl„che herzustellen. '>Ausfhrung in                         001796
+2665ATeill„ngen.<' Einrichtungen fr                                      001797
+26   Verkehrssicherung/Reisendenlenkung gem.                              001798
+26   Ausfhrungsunterlagen des AN einbauen.                               001799
+2666AEinsatzort '>fr alle auszufhrenden Leistungen/ODER                 001800
+2666AANGEBEN<'                                                            001801
+2101040220 NNN         00000001000m      X                                001802
+25Schutzzaun aufstellen (nur Gesch„ftsbereich Personenbahnh”fe)           001803
+25MLV-ALI_01040220                                                        001804
+26   Schutzzaun, versetzbar, auf                                          001805
+2661A'>befestigtem/unbefestigtem< ' Untergrund, als                       001806
+26   Absturzsicherung aus Kunststoff, mit Leuchtstutzen,                  001807
+2662AZaunoberkante ber Oberfl„che Gel„nde ' >1<' m,                      001808
+26   aufstellen, w„hrend der Bauzeit vorhalten und                        001809
+26   unterhalten, ggf. mehrfach umsetzen, inkl. Ersatz                    001810
+26   defekter oder besch„digter Leuchten.                                 001811
+2101040230 NNN         00000001000m                                       001812
+25Schutzzaun r„umen (nur Gesch„ftsbereich Personenbahnh”fe)               001813
+25MLV-ALI_01040230                                                        001814
+26   Schutzzaun nach Beendigung der Bauzeit entfernen.                    001815
+310104                                                                    001816
+110105     N    LV-Gruppe 2                                               001817
+12Landschaftsbau                                                          001818
+2101050005 NNN         00000001000m3     X                                001819
+25Oberboden mit Vegetationsdecke abtragen und zwischenlagern              001820
+25MLV-ALI_01050005                                                        001821
+26   Oberboden ggf. einschlieálich Vegetationsdecke                       001822
+26   abtragen und lagern. Ansaat und M„hen einer Decksaat                 001823
+2661Awerden gesondert vergtet. Dicke des Abtrages: '(>ber               001824
+2661A0,10 bis 0,50 m<)'. Oberboden profilgerecht                          001825
+26   abtragen, laden, f”rdern und zwischenlagern. Unrat                   001826
+26   w„hrend der Arbeiten aussondern, aufnehmen,                          001827
+26   transportieren und zwischenlagern. Bis zum                           001828
+26   Wiedereinbau bzw. der weiteren Verwertung ist der                    001829
+26   Oberboden auf Fl„chen des AN zwischenzulagern.                       001830
+26   Oberbodenlager w„hrend der Lagerzeit, l„ngstens bis                  001831
+26   zur Abnahme der Arbeiten pflegen und w„ssern. Oberboden              001832
+26   in Mieten                                                            001833
+26   locker aufsetzen. Abgerechnet wird nach                              001834
+26   Abtragsprofilen.                                                     001835
+26                                                                        001836
+2101050006 NNN         00000001000m2     X                                001837
+25Oberbodenlager ans„en Saatgut 25 g/m2                                   001838
+25MLV-ALI_01050006                                                        001839
+26   Oberbodenlager fr die Decksaat vorbereiten und                      001840
+26   ans„en. Das Saatgut einarbeiten und andrcken. Ansaat                001841
+26   unzureichend begrnter Fl„chen wiederholen.                          001842
+26   Ortsbliches Saatgut verwenden. Saatgut- Menge: 25                   001843
+2661Ag/m2. '(>50 v.H. einj„hrige Lupinen (Div. Lupinus), 30               001844
+2661Av.H. Sommerwicke (Viciasativa), 20 v.H. Weiáklee                     001845
+2661A(Trifolium repens)<)'.                                               001846
+26                                                                        001847
+2101050007 NNN         00000001000m2                                      001848
+25Oberbodenlager m„hen                                                    001849
+25MLV-ALI_01050007                                                        001850
+26   Aufwuchs auf Oberbodenlager und unmittelbar                          001851
+26   angrenzenden Fl„chen nach Angabe des AG m„hen. M„hgut                001852
+26   der Verwertung nach Wahl des AN zufhren. Verwertung                 001853
+26   nachweisen. Unkraut auf Oberboden w„hrend der                        001854
+26   Lagerzeit jeweils vor der Samenreife m„hen.                          001855
+26                                                                        001856
+2101050010 NNN         00000001000m2     X                                001857
+25zwischengelagerten Oberboden andecken                                   001858
+25MLV-ALI_01050010                                                        001859
+26   Gelagerten Oberboden laden, f”rdern und profilgem„á                  001860
+26   andecken und anpritschen. Andecken auf  den zuvor                    001861
+2661Aabgetragenen Fl„chen, '(>B”schungen und Grnfl„chen<)'.              001862
+2662ADicke der Andeckung '(>0-30 cm /wie zuvor                            001863
+2662Aabgetragen<)'.                                                       001864
+26   Abgerechnet wird nach Auftragsfl„che.                                001865
+26                                                                        001866
+2101050020 NNN         00000001000m2     X                                001867
+25Oberboden liefern und andecken                                          001868
+25MLV-ALI_01050020                                                        001869
+26   Oberboden liefern und profilgem„á andecken. Andecken                 001870
+2661Aauf  den zuvor abgetragenen Fl„chen, '(>B”schungen und               001871
+2661AGrnfl„chen<)'. Dicke der Andeckung                                  001872
+2662A'(>10-30 cm<)'.                                                      001873
+26   Abgerechnet wird nach Auftragsfl„che.                                001874
+26                                                                        001875
+2101050030 NNN         00000001000m2     X                                001876
+25Rasenansaat                                                             001877
+25MLV-ALI_01050030                                                        001878
+26   Initialansaat auf hergestellten Fl„chen und                          001879
+26   Bahnb”schungen mit standortgerechten und                             001880
+26   gebietsheimischen Arten derselben naturr„umlichen                    001881
+26   Region ans„en.                                                       001882
+2661AOrt: '(>Bahndammb”schung und Grnfl„chen<)',                         001883
+2662ALandschaftsrasen, '(>RSM 7.1.2 - Standard mit Kr„utern               001884
+2662Aals Untersaat, Saatgutmenge 15 g/m2, Neigung der                     001885
+2662AFl„chen 1:1 - 1,5<)'.                                                001886
+26                                                                        001887
+2101050040 NNN         00000001000m2     X                                001888
+25B”schungspflasterung mit Verbundsteinen                                 001889
+25MLV-ALI_01050040                                                        001890
+2662APflasterung mit Verbundsteinen '(>entsprechend                       001891
+2662ARichtzeichnung, Ril 804 / mit im Schrittmaá erh”hten                 001892
+2662AVerbundsteinen<' einschl. erforderlicher Erdarbeiten                 001893
+26   herstellen.                                                          001894
+2663A'(>Bauteil: Flgel / an B”schungen in Einzelfl„chen<)'               001895
+26   Material: Verbundstein, z. B. H-Form bzw. Doppel-T                   001896
+26   B/L/H =                                                              001897
+26   16,5/20/10 Verlegung in 15 cm Beton                                  001898
+26   Betonfestigkeitsklasse C 12/15 X0. Beton wird nicht                  001899
+26   gesondert vergtet.                                                  001900
+26                                                                        001901
+2101050050 NNN         00000001000m2     X                                001902
+25B”schungspflaster Naturstein                                            001903
+25MLV-ALI_01050050                                                        001904
+2661APflasterung mit Naturstein '(>mit im Schrittmaá                      001905
+2661Aerh”hten Natursteinen<)' einschl. erforderlicher                     001906
+2662AErdarbeiten herstellen. '(>An B”schungen in                          001907
+2662AEinzelfl„chen<)'                                                     001908
+2663AMaterial: '(>Hartgestein 150/X, weitgehend plattig<)',               001909
+26   Verlegung in 15 cm Beton Betonfestigkeitsklasse C 12/15              001910
+26   X0. Beton wird nicht                                                 001911
+26   gesondert vergtet.                                                  001912
+26                                                                        001913
+2101050060 NNN         00000001000m2     X                                001914
+25Steinschttung als B”schungssicherung                                   001915
+25MLV-ALI_01050060                                                        001916
+26   Schttung mit Naturstein einschl. erforderlicher                     001917
+2661AErdarbeiten herstellen. '(>An B”schungen in                          001918
+2661AEinzelfl„chen<)'                                                     001919
+2662AMaterial: '(>Hartgestein 150/X<)',                                   001920
+2663Ain einer Midestst„rke von '(>0,30m<)' einbauen, Fugen                001921
+26   mit Oberboden verfllen.                                             001922
+26                                                                        001923
+2101050065 NNN         00000001000m2                                      001924
+25Erosionsschutz mit Matten aus verrottbaren Naturprodukten fr           001925
+25B”schungsfl„chen                                                        001926
+25MLV-ALI_01050065                                                        001927
+26   Erosionsschutz mit Matten aus verrottbaren                           001928
+26   Naturprodukten fr B”schungsfl„chen bis zum Aufgehen                 001929
+26   einer schtzenden Begrnung herstellen. šberlappung                  001930
+26   der Bahnen min. 20 cm, Befestigung mit 4 Erdn„geln/mı,               001931
+26   im Bereich der šberlappung mit min. 1 Erdnagel/m.                    001932
+26   Erdn„gel aus Holz. Verlegen in Falllinie der B”schung.               001933
+26   Einbau auf Oberbodenauftrag, ohne Samen in der                       001934
+26   Begrnungsmatte, Samenmischung wird gesondert                        001935
+26   vergtet, B”schungsneigung nach Ausfhrungsunterlagen                001936
+26   des AN.                                                              001937
+26                                                                        001938
+2101050070 NNN         00000001000St     X                                001939
+25gelagerte Wurzelst”cke als Habitat einbauen                             001940
+25MLV-ALI_01050070                                                        001941
+26   Zulage zu den Positionen der Freimachung Baubereich fr              001942
+26   den Einbau zwischengelagerter Wurzelst”cke nach                      001943
+26   besonderer Abstimmung mit AG / Anweisung der BšW                     001944
+2663AUmwelt auf Ausgleichsfl„chen '(>im Bereich der                       001945
+2663ABaustelle<)'                                                         001946
+26   als Kleintier-Habitat inkl. der notwendigen                          001947
+26   Zwischentransporte.                                                  001948
+26                                                                        001949
+2101050080 NNN         00000001000St                                      001950
+25Eidechesenhabitat herstellen                                            001951
+25MLV-ALI_01050080                                                        001952
+26   Eidechsenhabitat herstellen, bestehend aus:                          001953
+26   Totholz, Einbau kreuz- und lageweise geschichtet                     001954
+26   abwechselnd                                                          001955
+26   mit dem unten beschriebenen Substratgemisch 3 Lagen                  001956
+26   mit Schichth”he ca. 10 cm auf gesamter Breite der                    001957
+26   Habitate Durchmesser 2-6 cm, L„nge 0,5 bis 1,5 m,.                   001958
+26   Fr Substratgemisch Bruchsteine mit unregelm„áiger                   001959
+26   Oberfl„che, Durchmesser ca. 8/15 Pro Habitat ca. 2,3                 001960
+26   m3,                                                                  001961
+26   Rohdichte etwa 2,4 (t/m3) Fr Substratgemisch Kies                   001962
+26   0/32, Pro Habitat ca. 2,3 m3 Bruchsteine und Kies vor                001963
+26   Einbau mischen und im Wechsel mit der                                001964
+26   Totholzschichtung im mittleren Habitatbereich locker                 001965
+26   ohne Verdichtung einbauen, Schttth”he 0,5 m bis GOK                 001966
+26   Mischungsverh„ltnis: Bruchsteine 8/15 (ca. 2,3 m3),                  001967
+26   Kies (ca. 2,3 m3), Totholz (ca. 1,4 m3)                              001968
+26                                                                        001969
+310105                                                                    001970
+3101                                                                      001971
+99                   0000                                            00110001972

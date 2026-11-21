@@ -1,0 +1,105 @@
+00        83L                                                 1122PPPPI90 000001
+01Abrechnung Stoffpreisgleitklausel       04.04.23                        000002
+02Muster-LV Åbergreifend                                                  000003
+03                                                                        000004
+08EUR   Euro                                                              000005
+20                                                                        000006
+26   Bearbeitungshinweise und ErlÑuterung.                                000007
+26                                                                        000008
+26   Ein Abschnitt hat mit der Index-Nummer/Bezeichnung                   000009
+26   (Index) zu beginnen.                                                 000010
+26                                                                        000011
+26   ErgÑnzend ist eine Position fÅr den jeweiligen                       000012
+26   Index/Stoff gemÑ· Anlage 2.23 Stoffpreisgleitklausel                 000013
+26   einzufÅgen (eine Position je Stoff/Indexwert ist                     000014
+26   mîglich, wenn gemÑ· Finanzierung/Kontierung zulÑssig).               000015
+26                                                                        000016
+26   Beispiel Aufbau:                                                     000017
+26   Ö GP 09-2410 Ö Kurztext ist GP 09-2410 Abrechnung                    000018
+26   Stahl.                                                               000019
+26                                                                        000020
+26   Ist die Verwendung von Mischkontierung oder                          000021
+26   Mengensplitt nicht mîglich, kann eine Aufteilung nach                000022
+26   Kontierungen erfolgen. HierfÅr sind beispielsweise                   000023
+26   Kontierung X und Kontierung Y zu verwenden.                          000024
+26                                                                        000025
+26   Beispiele Aufbau:                                                    000026
+26   Ö GP 09-2410 Abrechnung Stahl Kontierung X                           000027
+26   Ö GP 09-2410 Abrechnung Stahl Kontierung Y                           000028
+26                                                                        000029
+26   Hinweis:                                                             000030
+26   In der Vorlagedatei zur Abrechnung erfolgt die                       000031
+26   Darstellung nach Index/Stoff.                                        000032
+26   Es wird empfohlen, entsprechend  wenn mîglich  nur eine              000033
+26   Position je Index/Stoff zu verwenden.                                000034
+26                                                                        000035
+1101       N    Bereich                                                   000036
+12Abrechnung SPGK                                                         000037
+110101     N    Abschnitt                                                 000038
+12GP09-2016                                                               000039
+2101010010 NNN         00000000000LE                                      000040
+25GP09-2016 Abrechnung Kunsstoffe Kontierung X                            000041
+26   GP09-2016 Abrechnung Kunsstoffe Kontierung X                         000042
+26                                                                        000043
+2101010020 NNN         00000000000LE                                      000044
+25GP09-2016 Abrechnung Kunsstoffe Kontierung Y                            000045
+26   GP09-2016 Abrechnung Kunsstoffe Kontierung Y                         000046
+26                                                                        000047
+310101                                                                    000048
+110102     N    Abschnitt                                                 000049
+12GP09-2410                                                               000050
+2101020010 NNN         00000000000LE                                      000051
+25GP09-2410 Abrechnung Stahl Kontierung X                                 000052
+26   GP09-2410 Abrechnung Stahl Kontierung X                              000053
+26                                                                        000054
+2101020020 NNN         00000000000LE                                      000055
+25GP09-2410 Abrechnung Stahl Kontierung Y                                 000056
+26   GP09-2410 Abrechnung Stahl Kontierung Y                              000057
+26                                                                        000058
+310102                                                                    000059
+110103     N    Abschnitt                                                 000060
+12GP09-2442                                                               000061
+2101030010 NNN         00000000000LE                                      000062
+25GP09-2442 Abrechnung Aluminium Kontierung X                             000063
+26   GP09-2442 Abrechnung Aluminium Kontierung X                          000064
+26                                                                        000065
+2101030020 NNN         00000000000LE                                      000066
+25GP09-2442 Abrechnung Aluminium Kontierung Y                             000067
+26   GP09-2442 Abrechnung Aluminium Kontierung Y                          000068
+26                                                                        000069
+310103                                                                    000070
+110104     N    Abschnitt                                                 000071
+12GP09-2444                                                               000072
+2101040010 NNN         00000000000LE                                      000073
+25GP09-2444 Abrechnung Kupfer Kontierung X                                000074
+26   GP09-2444 Abrechnung Kupfer Kontierung X                             000075
+26                                                                        000076
+2101040020 NNN         00000000000LE                                      000077
+25GP09-2444 Abrechnung Kupfer Kontierung Y                                000078
+26   GP09-2444 Abrechnung Kupfer Kontierung Y                             000079
+26                                                                        000080
+310104                                                                    000081
+110105     N    Abschnitt                                                 000082
+12GP09-2363                                                               000083
+2101050010 NNN         00000000000LE                                      000084
+25GP09-2363 Abrechnung Beton Kontierung X                                 000085
+26   GP09-2363 Abrechnung Beton Kontierung X                              000086
+26                                                                        000087
+2101050020 NNN         00000000000LE                                      000088
+25GP09-2363 Abrechnung Beton Kontierung Y                                 000089
+26   GP09-2363 Abrechnung Beton Kontierung Y                              000090
+26                                                                        000091
+310105                                                                    000092
+110106     N    Abschnitt                                                 000093
+12GP 19 20 26 005                                                         000094
+2101060010 NNN         00000000000LE                                      000095
+25GP 19 20 26 005 Abrechnung Diesel Kontierung X                          000096
+26   GP 19 20 26 005 Abrechnung Diesel Kontierung X                       000097
+26                                                                        000098
+2101060020 NNN         00000000000LE                                      000099
+25GP 19 20 26 005 Abrechnung Diesel Kontierung Y                          000100
+26   GP 19 20 26 005 Abrechnung Diesel Kontierung Y                       000101
+26                                                                        000102
+310106                                                                    000103
+3101                                                                      000104
+99                   0000                                            00012000105

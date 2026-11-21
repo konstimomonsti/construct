@@ -1,0 +1,1094 @@
+00        83L                                                 1122PPPPI90 000001
+01MLV Entsorgung Bayern_05/2026           28.08.26                        000002
+02DB Netz                                                                 000003
+03                                                                        000004
+060                                                                       000005
+08EUR   Euro                                                              000006
+1101       N                                                              000007
+12Entsorgung von BauabfÑllen                                              000008
+20                                                                        000009
+26   Hinweistext fÅr den Ersteller. Zur Ausschreibung bitte               000010
+26   lîschen:                                                             000011
+26                                                                        000012
+26   Am 01.08.2023 trat die Mantelverordnung mit ihren                    000013
+26   wesentlichen Bestandteilen Ersatzbaustoffverordnung                  000014
+26   (EBV) und einer erheblich geÑnderten                                 000015
+26   Bundes-Bodenschutz- und Altlastenverordnung (BBodSchV)               000016
+26   in Kraft. Die EBV regelt die Anforderungen an den                    000017
+26   Einbau von mineralischen Ersatzbaustoffen (mEB) in                   000018
+26   technische Bauwerke, als mEB zÑhlt dabei auch                        000019
+26   Bodenmaterial, welches in oder unterhalb eines                       000020
+26   technischen Bauwerkes eingebaut werden soll.                         000021
+26                                                                        000022
+26   Die EBV regelt jedoch nicht die abfallrechtliche                     000023
+26   Einstufung von mineralischen BauabfÑllen als                         000024
+26   gefÑhrlich/nicht gefÑhrlich. Ma·geblich fÅr diese                    000025
+26   Einstufung sind weiterhin die                                        000026
+26   Abfallverzeichnisverordnung (AVV) und die dazu                       000027
+26   erlassenen AusfÅhrungsbestimmungen des jeweiligen                    000028
+26   Bundeslandes (in Bayern: Leitfaden fÅr die VerfÅllung                000029
+26   von Gruben, BrÅchen und Tagebauen, kurz:                             000030
+26   Eckpunktepapier, EPP), da dieser Sachverhalt in die                  000031
+26   grundgesetzlich geregelte ZustÑndigkeit der                          000032
+26   BundeslÑnder fÑllt.                                                  000033
+26                                                                        000034
+26   Das bay. Eckpunktepapier soll laut Landesamt fÅr Umwelt              000035
+26   auch nach dem 31.07.2023 fÅr die Genehmigung von                     000036
+26   VerfÅllungen als ermessenslenkende                                   000037
+26   Verwaltungsvorschrift die Grundlage bilden. Die                      000038
+26   Weiterentwicklung des EPP soll ermîglichen,                          000039
+26   dieses im Vollzug funktionierende, in sich geschlossene              000040
+26   Werkzeug nach wie vor anzuwenden.                                    000041
+26                                                                        000042
+110101     N                                                              000043
+12Entsorgung von BauabfÑllen                                              000044
+2101010010 NNN         00000001000psch                                    000045
+25Abfallverantwortlicher der Baustelle, MLV-ENB_01010010                  000046
+26   Gestellung eines Abfallverantwortlichen auf der                      000047
+26   Baustelle mit der Qualifikation eines                                000048
+26   Abfallbeauftragten nach 5 9 KrWG und mind. 1 Jahr                   000049
+26   Praxiserfahrung als Abfallbeauftragter durch den AN:                 000050
+26   - Steuerung des Abfallmanagements des AN vor Ort                     000051
+26   (inkl. bedarfsweiser Teilnahme an Baubesprechungen,                  000052
+26   Begehungen, AbklÑren von Entsorgungswegen) gemÑ·                     000053
+26   Vorbemerkungen                                                       000054
+26   - Steuerung Umsetzung des vom AG frei gegebenen                      000055
+26   Entsorgungskonzeptes AN                                              000056
+26   - Steuerung von Aushub, RÅckbau, Getrennthaltung ,                   000057
+26   Aufhaldung und Beprobung von Bodenaushub und                         000058
+26   BauabfÑllen                                                          000059
+26   - Sachkundenachweis fÅr die Probenahme fester AbfÑlle                000060
+26   gemÑ· LAGA PN 98                                                     000061
+26   - Mitwirkung bei der Deklaration der anfallenden                     000062
+26   AbfÑlle                                                              000063
+26   - Steuerung des Einbaus von Material (Wiedereinbau                   000064
+26   oder Fremdlieferung) einschlie·lich Dokumentation                    000065
+26   - Mitwirken bei der bauvertraglich geschuldeten                      000066
+26   NachweisfÅhrung und Dokumentation vor Ort                            000067
+26   - eigener Zugang zum eANV-System ZEDAL                               000068
+26   - Ansprechpartner zu allen Fragen des                                000069
+26   Abfallmanagements und der ErsatzbaustoffV fÅr den AG.                000070
+26                                                                        000071
+2101010020 NNN         00000001000psch                                    000072
+25Entsorgungskonzept AN, MLV-ENB_01010020                                 000073
+26   Entsorgungskonzept des Auftragnehmers Bau (AN) gemÑ·                 000074
+26   Vorbemerkungen und gemÑ· der                                         000075
+26   Anlage 8 "Mustergliederung Entsorgungskonzept AN"                    000076
+26   zum Abfallprozess DB InfraGO AG (M.01.02.15.03)                      000077
+26   erarbeiten,                                                          000078
+26   regelmÑ·ige Fortschreibung/ErgÑnzung gemÑ·                           000079
+26   Baufortschritt, inklusive der beauftragten RÅckbau und               000080
+26   Abbrucharbeiten und der Vorbereitung/Mitwirkung                      000081
+26   bei der NachweisfÅhrung, gemÑ· Vorbemerkungen.                       000082
+26   Der Entwurf des Entsorgungskonzeptes ist spÑtestens 4                000083
+26   Wochen nach Zuschlagserteilung, die erste Vollversion                000084
+26   mindestens 6 Wochen vor dem technischen Baubeginn beim               000085
+26   AG zur BestÑtigung vorzulegen. Das Vorliegen eines vom               000086
+26   AG bestÑtigten Entsorgungskonzeptes ist Voraussetzung                000087
+26   fÅr den Beginn von Aushub oder RÅckbauma·nahmen mit                  000088
+26   der Entstehung von Abfall.                                           000089
+26   Die vom AG freigegebene Version ist sowohl digital als               000090
+26   auch in Papierform (zweifach) vorzulegen.                            000091
+26                                                                        000092
+26                                                                        000093
+2101010030 NNN         00000001000psch                                    000094
+25Elektronische NachweisfÅhrung Åber die Entsorgung aller AbfÑlle,        000095
+25MLV-ENB_01010030                                                        000096
+26   Die NachweisfÅhrung Åber die Entsorgung aller                        000097
+26   gefÑhrlichen und nicht gefÑhrlichen BauabfÑlle hat                   000098
+26   mittels des elektronischen Abfallnachweisverfahrens                  000099
+26   (eANV) zu erfolgen. Der AN und die von ihm                           000100
+26   beauftragten Abfallentsorger und Abfallbefîrderer                    000101
+26   haben aktiv bei Vorbereitung und Erstellung der                      000102
+26   erforderlichen Nachweisunterlagen fÅr die Vorab- und                 000103
+26   Verbleibskontrolle im eANV mitzuwirken.                              000104
+26                                                                        000105
+26                                                                        000106
+2101010040 NNN         00000001000psch                                    000107
+25Ersatzweise Signatur von Registerbelegen, MLV-ENB_01010040              000108
+26   FÅr den Fall, dass die vom AN beauftragten Befîrderer                000109
+26   oder Entsorger nicht am eANV fÅr nicht gefÑhrliche                   000110
+26   AbfÑlle (ngA ) teilnehmen, hat der AN ersatzweise fÅr                000111
+26   Befîrderer und Entsorger die elektronischen                          000112
+26   Registerbelege zu signieren.                                         000113
+26   Der genaue Ablauf ist nach dem "Leitfaden zur                        000114
+26   Realisierung des elektronischen Nachweisverfahrens                   000115
+26   (eANV) fÅr nicht gefÑhrliche AbfÑlle im ZEDAL"                       000116
+26   (Anlage 12a zum Prozess M.01.02.15.03) auszugestalten                000117
+26   und mit dem Entsorgungskonzept des AN detailliert                    000118
+26   zu beschreiben und vom AG frei zu geben.                             000119
+26                                                                        000120
+2101010050 NNN         00000001000psch                                    000121
+25Technische Ausstattung, MLV-ENB_01010050                                000122
+26   Zur Abwicklung der elektronischen NachweisfÅhrung sind               000123
+26   folgende ZugÑnge und anwendungsbereite                               000124
+26   GerÑteausstattungen fÅr den Abfallbeauftragten/                      000125
+26   BevollmÑchtigten des AN und die Befîrderer auf der                   000126
+26   Baustelle zur VerfÅgung zu stellen. Die Ausstattung                  000127
+26   und die ZugÑnge sind im Entsorgungskonzept des AN zu                 000128
+26   dokumentieren:                                                       000129
+26   - GebrÑuchliche Computerhardware inkl.                               000130
+26   DSL-Verbindung (Internet) oder gleichwertig                          000131
+26   - Abfallerfassungssoftware inklusive eigenstÑndigem                  000132
+26   Zugang, kompatibel zur Zentralen Koordinierungsstelle                000133
+26   der LÑnder (ZKS), Empfehlung: Anmeldung bei der                      000134
+26   ZEDAL-Provider-Lîsung, einschl. S ignaturarbeitsplatz                000135
+26   - KartenlesegerÑte incl. Treibersoftware mit                         000136
+26   Zulassung der Bundesnetzagentur zur qualifizierten                   000137
+26   Signatur abfallrechtlicher Dokumente durch                           000138
+26   BauÅberwachung und Befîrderer.                                       000139
+26                                                                        000140
+26                                                                        000141
+2101010055 NNN         00000001000psch                                    000142
+25Erstellung Einbaudokumentation gemÑ· EBV, MLV-ENB_01010055              000143
+26   Der Auftragnehmer wird vom AG als Verwender der                      000144
+26   mineralischen Ersatzbaustoffe (MEB) festgelegt, die er               000145
+26   im Auftrag des AG in technische Bauwerke / Bauweisen                 000146
+26   gem. Anlage 2 + 3 EBV einbaut. Der AN hat daher eine                 000147
+26   vollstÑndige elektronische Einbaudokumentation fÅr alle              000148
+26   von ihm in technische Bauwerke eingebauten MEB im                    000149
+26   System ZEDAL zu erstellen, unabhÑngig davon, ob die MEB              000150
+26   von ihm geliefert oder vom AG beigestellt wurden.                    000151
+26   Nach der vom AG gem. Ziff. 0.2.13.1 der Baubeschreibung              000152
+26   erteilten Zustimmung des AG zum MEB-Einbau legt der AG               000153
+26   eine elektronische Akte in ZEDAL an und gibt die Akte                000154
+26   dem AN frei. Der AN erstellt in der vom AG angelegten                000155
+26   und frei gegebenen elektronischen Akte eigenstÑndig das              000156
+26   elektronische Deckblatt bzw. die elektronische                       000157
+26   Voranzeige im ZEDAL. Im Dokumentenkopf ist das KÅrzel                000158
+26   der als Bauherr bzw. AG fungierenden DB-Organisation                 000159
+26   sowie die Bezeichnung des Bauvorhabens einzutragen. Aus              000160
+26   dem Deckblatt / Voranzeige erstellt der AN ein                       000161
+26   Lieferscheinmuster, aus dem er die benîtigte Anzahl an               000162
+26   Lieferscheinen generiert.                                            000163
+26   FÅr jeden per LKW angelieferten MEB ist dabei ein                    000164
+26   elektronischer Lieferschein zu erstellen, alle                       000165
+26   Lieferscheine eines unter gleichbleibenden Bedingungen               000166
+26   eingebauten MEB sind Åber die o.g. Erstellung dabei                  000167
+26   einem elektronischen Deckblatt oder einer Voranzeige                 000168
+26   zuzuordnen. Bei jedem Wechsel des MEB, der technischen               000169
+26   Bauweise, der Beschaffenheit der                                     000170
+26   Grundwasserdeckschicht, des Grundwasserflurabstandes                 000171
+26   oder der Kategorie des wasserrechtlichen Schutzgebietes              000172
+26   ist ein neues Deckblatt (bzw. Voranzeige siehe                       000173
+26   nachfolgenden Text) zu erstellen.  In folgenden FÑllen               000174
+26   ist durch den AN anstelle des Deckblatts eine                        000175
+26   elektronische Vor- und Abschlussanzeige gemÑ· Anlage 8               000176
+26   EBV im System ZEDAL zu erstellen:                                    000177
+26                                                                        000178
+26   1. Es soll Bodenmaterial mindestens BM-F0*, Baggergut                000179
+26   mind. BG-F0*, aufbereiteter Gleisschotter mind. GS-1                 000180
+26   oder aufbereitete RC-Baustoffe mind. RC-1 oder jeweils               000181
+26   hîherer Materialklassen in Wasser- oder                              000182
+26   Heilquellenschutzgebiete der Zone III oder hîherer                   000183
+26   Zonen eingebaut werden oder                                          000184
+26                                                                        000185
+26   2. Es soll Bodenmaterial, Baggergut oder RC-Baustoffe                000186
+26   der Klasse 3 (BM-F3, BG-F3 oder RC-3) mit einer                      000187
+26   geplanten Einbaumenge Ú 250 m3 eingebaut werden.                     000188
+26                                                                        000189
+26   In diesen FÑllen hat der AN den Einbau 4 Wochen vor                  000190
+26   Beginn mittels der öbermittlung der elektronischen                   000191
+26   Voranzeige als Mail/pdf-Export aus dem ZEDAL bei der                 000192
+26   zustÑndigen Bodenschutzbehîrde elektronisch anzuzeigen,              000193
+26   und spÑtestens 2 Wochen nach Einbauende die                          000194
+26   Abschlussanzeige nebst aller Lieferscheine auf gleichem              000195
+26   Wege zu Åbermitteln.                                                 000196
+26   Der AN erstellt anschlie·end aus den DeckblÑttern die                000197
+26   jew. Muster-Lieferscheine, generiert daraus die                      000198
+26   benîtigten Lieferscheine, vervollstÑndigt diese und                  000199
+26   signiert sie elektronisch. Bei Notwendigkeit einer                   000200
+26   Voranzeige ist der Ablauf identisch, zusÑtzlich ist                  000201
+26   nach Abschluss der Bauma·nahme eine elektronische                    000202
+26   Abschlussanzeige zu erstellen.                                       000203
+26   Nach Abschluss des Einbaus ist die vollstÑndige                      000204
+26   Dokumentation dem von AG benannten                                   000205
+26   Anlagenverantwortlichen zu Åbergeben.                                000206
+26                                                                        000207
+2101010070 NNN         00000001000psch                                    000208
+25Herstellung BereitstellungsflÑchen, MLV-ENB_01010070                    000209
+26   BerÑumen der zukÅnftigen BereitstellungsflÑchen von                  000210
+26   Bewuchs und auflagernden AbfÑllen inklusive Sammeln,                 000211
+26   Verladen und Abtransport zu einer zertifizierten                     000212
+26   Entsorgungsanlage, NachweisfÅhrung gemÑ· vom AG                      000213
+26   bestÑtigten Entsorgungskonzept AN.                                   000214
+26   Bei Nutzung nicht versiegelter FlÑchen: Abschieben des               000215
+26   Oberbodens, seitliches Aufsetzen in Mieten mit max. 2 m              000216
+26   Hîhe.                                                                000217
+26   Ansaat von Mischsaaten (ohne Lollium perenne) bei                    000218
+26   Liegedauer grî·er 1 Monat. Technischer Aufbau des                    000219
+26   FlÑchenuntergrundes und Haufwerkssicherung entsprechend              000220
+26   den Anforderungen des allgemeinen Boden- und                         000221
+26   GewÑsserschutzes gemÑ· Vorbemerkungen.                               000222
+26   Vorhandene Grundwassermessstellen, SickerschÑchte,                   000223
+26   Kanalanlagen etc. sind zu sichern und betriebsbereit zu              000224
+26   halten.                                                              000225
+26   Durch Anlage geeigneter Einrichtungen wie RandgrÑben,                000226
+26   RÅckhaltebecken, Staustufen und Steinpackungen hat der               000227
+26   AN Ma·nahmen gegen Verunreinigung z. B. von Vorflutern               000228
+26   und Stra·engrÑben durch Sedimente zu treffen.                        000229
+26                                                                        000230
+2101010080 NNN         00000001000psch                                    000231
+25Betrieb und RÅckbau BereitstellungsflÑchen, MLV-ENB_01010080            000232
+26   Betreiben der BereitstellungsflÑchen Åber die gesamte                000233
+26   Bauzeit inklusive separiertem Aufhalden bis                          000234
+26   bis maximal 500 m3 je Haufwerk einschl.                              000235
+26   Reparaturarbeiten,                                                   000236
+26   Sichern der Haufwerke, ggf. Umsetzen der Haufwerke                   000237
+26   usw., Gestellung geeigneten GerÑts inkl. Personal.                   000238
+26   Haufwerke mit Verdacht oder Nachweis von                             000239
+26   Kontaminationen EPP Z 1.2 oder hîher sind gegen                      000240
+26   Niederschlagswasser mit mind. 0,4 mm starker HDPE-Folie              000241
+26   vollstÑndig abzudecken.                                              000242
+26   Erfolgt der untersuchungsmÑ·ige Nachweis einer                       000243
+26   Belastung kleiner EPP Z 1.2 kann die Abdeckung                       000244
+26   entfernt werden.                                                     000245
+26   Das ggf. notwendige mehrfache Abdecken (auf Weisung der              000246
+26   BöW ) der Haufwerke und die Entsorgung                               000247
+26   unbrauchbarer/gebrauchter Baufolien sind                             000248
+26   einzukalkulieren.                                                    000249
+26   Einrichtungen zur RÅckhaltung/Reinigung von AbwÑssern                000250
+26   sind wÑhrend der Nutzungszeit der                                    000251
+26   BereitstellungsflÑchen instand zu halten und                         000252
+26   erforderlichenfalls zu reparieren.                                   000253
+26   BerÑumung der BereitstellungsflÑchen und                             000254
+26   Wiederherstellung des ursprÅnglichen FlÑchenzustandes                000255
+26   inkl. Andeckung des abgeschobenen Oberbodens.                        000256
+26                                                                        000257
+2101010085 NNN         00000001000psch                                    000258
+25Zulage f. Betreiben BereitstellungsflÑchen gem. AwSV, MLV-ENB_01010085  000259
+26   Zulage fÅr das Betreiben der BereitstellungsflÑchen fÅr              000260
+26   AbfÑlle entsprechend den Anforderungen der AwSV                      000261
+26   (Verordnung Åber Anlagen zum Umgang mit                              000262
+26   wassergefÑhrdenden Stoffe) inklusive öbernahme der                   000263
+26   Betreiberverantwortung.                                              000264
+26   Bei KapazitÑt grî·er 1.000 t:                                        000265
+26   PrÅfung durch einen SachverstÑndigen nach AwSV vor                   000266
+26   Inbetriebnahme und Erstellen einer Betriebsanweisung,                000267
+26   DurchfÅhren von EigenÅberwachungen, Veranlassen von                  000268
+26   FremdÅberwachungen/ Gestellung von persînlicher                      000269
+26   SchutzausrÅstung/FÅhren eines Betriebstagebuches.                    000270
+26                                                                        000271
+20                                                                        000272
+26   Entsorgung und Transport von BauabfÑllen                             000273
+26                                                                        000274
+26   Alle in den Bestandteilen des Bauvertrages                           000275
+26   beschriebenen Regelungen zum ordnungsgemÑ·en Umgang                  000276
+26   und zur Entsorgung von AbfÑllen sind einzuhalten.                    000277
+26   Vom AN sind die jeweils gÅltigen behîrdlichen                        000278
+26   Genehmigungen und Zertifizierungen der                               000279
+26   Entsorgungsanlagen zusammen mit dem Entsorgungskonzept               000280
+26   bzw. bei Beantragung von Entsorgungsnachweisen                       000281
+26   vorzulegen.                                                          000282
+26   Aushub und Abbruchmaterialien sind sortenrein auf den                000283
+26   BereitstellungsflÑchen zwischenzulagern.                             000284
+26   Quertransporte sowie alle fÅr den Transport                          000285
+26   erforderlichen Aufwendungen sind in den Einheitspreis                000286
+26   einzurechnen.                                                        000287
+26   Abrechnungsgrundlage der Entsorgungs- und                            000288
+26   Transportleistungen sind die Originale der                           000289
+26   Lieferscheine/Wiegenoten der Entsorgungsanlage, oder,                000290
+26   nach Vereinbarung mit dem AG, die Aufma·e.                           000291
+26   Die Kosten fÅr die Verwiegung auf geeichten Waagen und               000292
+26   die Erstellung der o. g. Unterlagen sind in den                      000293
+26   Einheitspreis einzurechnen.                                          000294
+26                                                                        000295
+20                                                                        000296
+26   Entsorgung und Transport Boden                                       000297
+26                                                                        000298
+26   Boden ist in Bayern gemÑ· der jeweils gÅltigen Fassung               000299
+26   des Eckpunktepapiers (EPP) "Leitfaden zur VerfÅllung                 000300
+26   von Gruben, BrÅchen und Tagebauen" (Bayerisches                      000301
+26   Staatsministerium fÅr Umwelt, Gesundheit und                         000302
+26   Verbraucherschutz), zu deklarieren.                                  000303
+26   Es sind Schadstoffgehalte bis Z 2 definiert.                         000304
+26                                                                        000305
+26   Bei öberschreitung von EPP Z2 erfolgt die Entsorgung                 000306
+26   nach Deponieverordnung (DepV). Die Einstufung erfolgt                000307
+26   in die Deponieklassen DK 0 bis DK III.                               000308
+26                                                                        000309
+2101010090 NNN         00000000000t                                       000310
+25Entsorgung Boden EPP Z 0, MLV-ENB_01010090                              000311
+26   Entsorgung Boden EPP Z 0                                             000312
+26   Boden (AVV-Nr. 17 05 04 Boden und Steine mit                         000313
+26   Ausnahme derjenigen, die unter 17 05 03* fallen)                     000314
+26   mit mineralischen Fremdbestandteilen                                 000315
+26   aus Bauschutt oder sonstigen mineralischen                           000316
+26   Stoffen verwiegen und ordnungsgemÑ·                                  000317
+26   entsorgen.                                                           000318
+26                                                                        000319
+2101010100 NNN         00000000000t                                       000320
+25Entsorgung Boden EPP Z 1.1, MLV-ENB_01010100                            000321
+26   Entsorgung Boden EPP Z 1.1                                           000322
+26   Boden (AVV-Nr. 17 05 04 Boden und Steine mit                         000323
+26   Ausnahme derjenigen, die unter 17 05 03*                             000324
+26   fallen) mit mineralischen Fremdbestandteilen                         000325
+26   aus Bauschutt oder sonstigen mineralischen                           000326
+26   Stoffen verwiegen und ordnungsgemÑ·                                  000327
+26   entsorgen.                                                           000328
+26                                                                        000329
+2101010110 NNN         00000000000t                                       000330
+25Entsorgung Boden EPP Z 1.2, MLV-ENB_01010110                            000331
+26   Entsorgung Boden EPP Z 1.2                                           000332
+26   Boden (AVV-Nr. 17 05 04 Boden und Steine mit                         000333
+26   Ausnahme derjenigen, die unter 17 05 03*                             000334
+26   fallen) mit mineralischen Fremdbestandteilen                         000335
+26   aus Bauschutt oder sonstigen mineralischen                           000336
+26   Stoffen verwiegen und ordnungsgemÑ·                                  000337
+26   entsorgen.                                                           000338
+26                                                                        000339
+2101010120 NNN         00000000000t                                       000340
+25Entsorgung Boden EPP Z 2, MLV-ENB_01010120                              000341
+26   Entsorgung Boden EPP Z 2                                             000342
+26   Boden (AVV-Nr. 17 05 04 Boden und Steine mit                         000343
+26   Ausnahme derjenigen, die unter 17 05 03*                             000344
+26   fallen) mit mineralischen Fremdbestandteilen                         000345
+26   aus Bauschutt oder sonstigen mineralischen                           000346
+26   Stoffen verwiegen und ordnungsgemÑ·                                  000347
+26   entsorgen.                                                           000348
+26                                                                        000349
+2101010121 NNN         00000000000t      X                                000350
+25Zulage fÅr Entsorgung biogen belasteter Boden MLV-ENB_01010121          000351
+26   Entsorgung Boden (AVV 17 05 04) EPP Z 0 bis Z 2, mit                 000352
+2661Abiogener Belastung '(>Japanischer                                    000353
+2661AStaudenknîterich/....<)' mittels thermophiler                        000354
+26   Hygienisierungsphase (Hei·rotte) oder Entsorgung in                  000355
+26   einer Verbrennungsanlage mit anschlie·ender                          000356
+26   Deponierung, inklusive Verwiegung.                                   000357
+26                                                                        000358
+2101010130 NNN         00000000000t                                       000359
+25Zulage fÅr Entsorgung Boden, MLV-ENB_01010130                           000360
+26   Zulage fÅr Entsorgung Boden                                          000361
+26   TOC > 3% bis 6% und DOC < 25 mg/l (EPP).                             000362
+26                                                                        000363
+2101010140 NNN         00000000000t                                       000364
+25Entsorgung Boden DepV DK 0, MLV-ENB_01010140                            000365
+26   Entsorgung Boden DepV DK 0                                           000366
+26   AVV 17 05 04 nicht gefÑhrlicher Abfall                               000367
+26   Boden mit mineralischen Fremdbestandteilen                           000368
+26   aus Bauschutt oder sonstigen mineralischen                           000369
+26   Stoffen verwiegen und ordnungsgemÑ·                                  000370
+26   entsorgen.                                                           000371
+26                                                                        000372
+2101010150 NNN         00000000000t                                       000373
+25Entsorgung Boden DepV DK I, MLV-ENB_01010150                            000374
+26   Entsorgung Boden DepV DK I                                           000375
+26   AVV 17 05 04 nicht gefÑhrlicher Abfall und AVV 17 05                 000376
+26   03* gefÑhrlicher Abfall,                                             000377
+26   Boden mit mineralischen Fremdbestandteilen                           000378
+26   aus Bauschutt oder sonstigen mineralischen                           000379
+26   Stoffen verwiegen und ordnungsgemÑ·                                  000380
+26   entsorgen.                                                           000381
+26                                                                        000382
+2101010160 NNN         00000000000t                                       000383
+25Entsorgung Boden DepV DK II, MLV-ENB_01010160                           000384
+26   Entsorgung Boden DepV DK II                                          000385
+26   AVV 17 05 04 nicht gefÑhrlicher Abfall AVV 17 05 03*                 000386
+26   gefÑhrlicher Abfall oder wenn Summe Schwermetalle im                 000387
+26   Feststoff > 2.500 mg/kg, gefÑhrlicher Abfall.                        000388
+26   Boden mit mineralischen Fremdbestandteilen                           000389
+26   aus Bauschutt oder sonstigen mineralischen                           000390
+26   Stoffen verwiegen und ordnungsgemÑ·                                  000391
+26   entsorgen.                                                           000392
+26                                                                        000393
+2101010170 NNN         00000000000t                                       000394
+25Entsorgung Boden DepV DK III, MLV-ENB_01010170                          000395
+26   Entsorgung Boden DepV DK III                                         000396
+26   AVV 17 05 04 nicht gefÑhrlicher Abfall und AVV 17 05                 000397
+26   03* gefÑhrlicher Abfall                                              000398
+26   Boden mit mineralischen Fremdbestandteilen                           000399
+26   aus Bauschutt oder sonstigen mineralischen                           000400
+26   Stoffen verwiegen und ordnungsgemÑ·                                  000401
+26   entsorgen.                                                           000402
+26                                                                        000403
+2101010180 NNN         00000000000t                                       000404
+25Transport Boden EPP Z 0, MLV-ENB_01010180                               000405
+26   Transport Boden EPP Z 0                                              000406
+26   Verladung und Befîrderung von Boden                                  000407
+26   (AVV 17 05 04) von der BereitstellungsflÑche                         000408
+26   zur Verwertungsstelle.                                               000409
+26                                                                        000410
+2101010190 NNN         00000000000t                                       000411
+25Transport Boden EPP Z 1.1, MLV-ENB_01010190                             000412
+26   Transport Boden EPP Z 1.1                                            000413
+26   Verladung und Befîrderung von Boden                                  000414
+26   (AVV 17 05 04) von der BereitstellungsflÑche                         000415
+26   zur Verwertungsstelle.                                               000416
+26                                                                        000417
+2101010200 NNN         00000000000t                                       000418
+25Transport Boden EPP Z 1.2, MLV-ENB_01010200                             000419
+26   Transport Boden EPP Z 1.2                                            000420
+26   Verladung und Befîrderung von Boden                                  000421
+26   (AVV 17 05 04) von der BereitstellungsflÑche                         000422
+26   zur Verwertungsstelle.                                               000423
+26                                                                        000424
+2101010210 NNN         00000000000t                                       000425
+25Transport Boden EPP Z 2, MLV-ENB_01010210                               000426
+26   Transport Boden EPP Z 2                                              000427
+26   Verladung und Befîrderung von Boden                                  000428
+26   (AVV 17 05 04) von der BereitstellungsflÑche                         000429
+26   zur Verwertungsstelle.                                               000430
+26                                                                        000431
+2101010211 NNN         00000000000t                                       000432
+25Zulage fÅr Transport biogen belasteter Boden MLV-ENB_01010211           000433
+26   Transport biogen belasteter Boden (AVV 17 05 04) EPP Z               000434
+26   0 bis Z 2 Verladung und Befîrderung von Boden von der                000435
+26   BereitstellungsflÑche zur Verwertungsstelle.                         000436
+26                                                                        000437
+2101010220 NNN         00000000000t                                       000438
+25Zulage fÅr Transport Boden, MLV-ENB_01010220                            000439
+26   Zulage fÅr Transport Boden                                           000440
+26   TOC > 3% bis 6% und DOC < 25 mg/l (EPP).                             000441
+26                                                                        000442
+2101010230 NNN         00000000000t                                       000443
+25Transport Boden DepV DK 0, MLV-ENB_01010230                             000444
+26   Transport Boden DepV DK 0                                            000445
+26   Verladung und Befîrderung von Boden                                  000446
+26   (AVV 17 05 04) von der BereitstellungsflÑche                         000447
+26   zur Deponie.                                                         000448
+26                                                                        000449
+2101010240 NNN         00000000000t                                       000450
+25Transport Boden DepV DK I, MLV-ENB_01010240                             000451
+26   Transport Boden DepV DK I                                            000452
+26   Verladung und Befîrderung von Boden                                  000453
+26   (AVV 17 05 04 und AVV 17 05 03*) von der                             000454
+26   BereitstellungsflÑche                                                000455
+26   zur Deponie.                                                         000456
+26                                                                        000457
+2101010250 NNN         00000000000t                                       000458
+25Transport Boden DepV DK II, MLV-ENB_01010250                            000459
+26   Transport Boden DepV DK II                                           000460
+26   Verladung und Befîrderung von Boden                                  000461
+26   AVV 17 05 04 nicht gefÑhrlicher Abfall, AVV 17 05 03*                000462
+26    gefÑhrlicher Abfall oder wenn Summe SM in Feststoff                 000463
+26   > 2.500 mg/kg gefÑhrlicher Abfall                                    000464
+26   von der BereitstellungsflÑche zur Deponie.                           000465
+26                                                                        000466
+26                                                                        000467
+26                                                                        000468
+26                                                                        000469
+26                                                                        000470
+2101010260 NNN         00000000000t                                       000471
+25Transport Boden DepV DK III, MLV-ENB_01010260                           000472
+26   Transport Boden DepV DK III                                          000473
+26   Verladung und Befîrderung von Boden                                  000474
+26   (AVV 17 05 04 nicht gefÑhrlicher Abfall und                          000475
+26   AVV 17 05 03* gefÑhrlicher Abfall) von der                           000476
+26   BereitstellungsflÑche zur Deponie.                                   000477
+26                                                                        000478
+20                                                                        000479
+26   Entsorgung und Transport Beton und Bauschutt                         000480
+26                                                                        000481
+26   Bauschutt und Beton sind in Bayern gemÑ· der jeweils                 000482
+26   gÅltigen                                                             000483
+26   Fassung des Eckpunktepapiers (EPP) "Leitfaden zur                    000484
+26   VerfÅllung                                                           000485
+26   von Gruben,BrÅchen und Tagebauen" (Bayerisches                       000486
+26   Staatsministerium fÅrUmwelt, Gesundheit und                          000487
+26   Verbraucherschutz) zu deklarieren. Es sind                           000488
+26   Schadstoffgehaltebis Z 2 definiert.                                  000489
+26                                                                        000490
+26   Bei öberschreitung von EPP Z 2 erfolgt dieEntsorgung                 000491
+26   nach Deponieverordnung (DepV). Die Einstufung erfolgt                000492
+26   in die Deponieklassen DK 0 bis DK III.                               000493
+26                                                                        000494
+26                                                                        000495
+2101010270 NNN         00000000000t                                       000496
+25Entsorgung Beton EPP Z 0, MLV-ENB_01010270                              000497
+26   Entsorgung Beton EPP Z 0                                             000498
+26   Beton (AVV 17 01 01) verwiegen und                                   000499
+26   ordnungsgemÑ· verwerten.                                             000500
+26                                                                        000501
+2101010280 NNN         00000000000t                                       000502
+25Entsorgung Beton  EPP Z 1.1, MLV-ENB_01010280                           000503
+26   Entsorgung Beton  EPP Z 1.1                                          000504
+26   Beton (AVV 17 01 01) verwiegen und                                   000505
+26   ordnungsgemÑ· entsorgen.                                             000506
+26                                                                        000507
+2101010290 NNN         00000000000t                                       000508
+25Entsorgung Beton EPP Z 1.2, MLV-ENB_01010290                            000509
+26   Entsorgung Beton EPP Z 1.2                                           000510
+26   Beton (AVV 17 01 01) verwiegen und                                   000511
+26   ordnungsgemÑ· entsorgen.                                             000512
+26                                                                        000513
+2101010300 NNN         00000000000t                                       000514
+25Entsorgung Beton EPP Z 2, MLV-ENB_01010300                              000515
+26   Entsorgung Beton EPP Z 2                                             000516
+26   Beton (AVV 17 01 01) verwiegen und                                   000517
+26   ordnungsgemÑ· entsorgen.                                             000518
+26                                                                        000519
+2101010310 NNN         00000000000t                                       000520
+25Entsorgung Bauschutt EPP Z 0, MLV-ENB_01010310                          000521
+26   Entsorgung Bauschutt EPP Z 0                                         000522
+26   Bauschuttgemisch (AVV 17 01 07) verwiegen                            000523
+26   und ordnungsgemÑ· entsorgen.                                         000524
+26                                                                        000525
+2101010320 NNN         00000000000t                                       000526
+25Entsorgung Bauschutt EPP Z 1.1, MLV-ENB_01010320                        000527
+26   Entsorgung Bauschutt EPP Z 1.1                                       000528
+26   Bauschuttgemisch (AVV 17 01 07) verwiegen                            000529
+26   und ordnungsgemÑ· entsorgen.                                         000530
+26                                                                        000531
+2101010330 NNN         00000000000t                                       000532
+25Entsorgung Bauschutt EPP Z 1.2, MLV-ENB_01010330                        000533
+26   Entsorgung Bauschutt EPP Z 1.2                                       000534
+26   Bauschuttgemisch (AVV 17 01 07) verwiegen                            000535
+26   und ordnungsgemÑ· entsorgen.                                         000536
+26                                                                        000537
+2101010340 NNN         00000000000t                                       000538
+25Entsorgung Bauschutt EPP Z 2, MLV-ENB_01010340                          000539
+26   Entsorgung Bauschutt EPP Z 2                                         000540
+26   Bauschuttgemisch (AVV 17 01 07) verwiegen                            000541
+26   und ordnungsgemÑ· entsorgen.                                         000542
+26                                                                        000543
+2101010350 NNN         00000000000t                                       000544
+25Entsorgung Beton und Bauschutt DepV DK 0, MLV-ENB_01010350              000545
+26   Entsorgung Beton und Bauschutt DepV DK 0                             000546
+26   Beton (AVV 17 01 01) und Bauschuttgemisch                            000547
+26   (AVV 17 01 07) verwiegen und ordnungsgemÑ·                           000548
+26   entsorgen.                                                           000549
+26                                                                        000550
+2101010360 NNN         00000000000t                                       000551
+25Entsorgung Beton und Bauschutt DepV DK I, MLV-ENB_01010360              000552
+26   Entsorgung Beton und Bauschutt DepV DK I                             000553
+26   Beton (AVV 17 01 01) und Bauschuttgemisch                            000554
+26   (AVV 17 01 07) und gefÑhrlicher Abfall (AVV 17 01 06*)               000555
+26   verwiegen und ordnungsgemÑ·                                          000556
+26   entsorgen.                                                           000557
+26                                                                        000558
+2101010370 NNN         00000000000t                                       000559
+25Entsorgung Beton und Bauschutt DepV DK II, MLV-ENB_01010370             000560
+26   Entsorgung Beton und Bauschutt DepV DK II                            000561
+26   Beton (AVV 17 01 01) und Bauschuttgemisch                            000562
+26   (AVV 17 01 07) und gefÑhrlicher Abfall (AVV 17 01 06*)               000563
+26   und wenn Summe SM im Feststoff > 2500 mg/kg verwiegen                000564
+26   und ordnungsgemÑ·                                                    000565
+26   entsorgen.                                                           000566
+26                                                                        000567
+2101010380 NNN         00000000000t                                       000568
+25Entsorgung Beton und Bauschutt DepV DK III, MLV-ENB_01010380            000569
+26   Entsorgung Beton und Bauschutt DepV DK III                           000570
+26   nicht gefÑhrlicher Abfall Beton (AVV 17 01 01) und                   000571
+26   Bauschuttgemisch (AVV 17 01 07) und gefÑhrlicher Abfall              000572
+26   (AVV 17 01 06* Bauschuttgemisch mit gefÑhrlichen                     000573
+26   Stoffen)                                                             000574
+26   verwiegen und ordnungsmÑ· entsorgen.                                 000575
+26                                                                        000576
+2101010390 NNN         00000000000t                                       000577
+25Transport Beton EPP Z 0, MLV-ENB_01010390                               000578
+26   Transport Beton EPP Z 0                                              000579
+26   Verladung und Befîrderung von Beton                                  000580
+26   (AVV 17 01 01) von der BereitstellungsflÑche                         000581
+26   zur Verwertungsstelle.                                               000582
+26                                                                        000583
+2101010400 NNN         00000000000t                                       000584
+25Transport Beton EPP Z 1.1, MLV-ENB_01010400                             000585
+26   Transport Beton EPP Z 1.1                                            000586
+26   Verladung und Befîrderung von Beton                                  000587
+26   (AVV 17 01 01) von der BereitstellungsflÑche                         000588
+26   zur Verwertungsstelle.                                               000589
+26                                                                        000590
+2101010410 NNN         00000000000t                                       000591
+25Transport Beton EPP Z 1.2, MLV-ENB_01010410                             000592
+26   Transport Beton EPP Z 1.2                                            000593
+26   Verladung und Befîrderung von Beton                                  000594
+26   (AVV 17 01 01) von der BereitstellungsflÑche                         000595
+26   zur Verwertungsstelle.                                               000596
+26                                                                        000597
+2101010420 NNN         00000000000t                                       000598
+25Transport Beton EPP Z 2, MLV-ENB_01010420                               000599
+26   Transport Beton EPP Z 2                                              000600
+26   Verladung und Befîrderung von Beton                                  000601
+26   (AVV 17 01 01) von der BereitstellungsflÑche                         000602
+26   zur Verwertungsstelle.                                               000603
+26                                                                        000604
+2101010430 NNN         00000000000t                                       000605
+25Transport Bauschutt  EPP Z 0, MLV-ENB_01010430                          000606
+26   Transport Bauschutt  EPP Z 0                                         000607
+26   Verladung und Befîrderung von Bauschutt                              000608
+26   (AVV 17 01 07) von der BereitstellungsflÑche                         000609
+26   zur Verwertungsstelle.                                               000610
+26                                                                        000611
+2101010440 NNN         00000000000t                                       000612
+25Transport Bauschutt  EPP Z 1.1, MLV-ENB_01010440                        000613
+26   Transport Bauschutt  EPP Z 1.1                                       000614
+26   Verladung und Befîrderung von Bauschutt                              000615
+26   (AVV 17 01 07) von der BereitstellungsflÑche                         000616
+26   zur Verwertungsstelle.                                               000617
+26                                                                        000618
+2101010450 NNN         00000000000t                                       000619
+25Transport Bauschutt  EPP Z 1.2, MLV-ENB_01010450                        000620
+26   Transport Bauschutt  EPP Z 1.2                                       000621
+26   Verladung und Befîrderung von Bauschutt                              000622
+26   (AVV 17 01 07) von der BereitstellungsflÑche                         000623
+26   zur Verwertungsstelle.                                               000624
+26                                                                        000625
+2101010460 NNN         00000000000t                                       000626
+25Transport Bauschutt  EPP Z 2, MLV-ENB_01010460                          000627
+26   Transport Bauschutt  EPP Z 2                                         000628
+26   Verladung und Befîrderung von Bauschutt                              000629
+26   (AVV 17 01 07) von der BereitstellungsflÑche                         000630
+26   zur Verwertungsstelle.                                               000631
+26                                                                        000632
+2101010470 NNN         00000000000t                                       000633
+25Transport Beton und Bauschutt DepV DK 0, MLV-ENB_01010470               000634
+26   Transport Beton und Bauschutt DepV DK 0                              000635
+26   Verladung und Befîrderung von Beton                                  000636
+26   (AVV 17 01 01) und Bauschutt (AVV 17 01 07)                          000637
+26   von der BereitstellungsflÑche zur Deponie.                           000638
+26                                                                        000639
+2101010480 NNN         00000000000t                                       000640
+25Transport Beton und Bauschutt DepV DK I, MLV-ENB_01010480               000641
+26   Transport Beton und Bauschutt DepV DK I                              000642
+26   Verladung und Befîrderung von Beton                                  000643
+26   (AVV 17 01 01) und Bauschutt (AVV 17 01 07) und                      000644
+26   gefÑhrlicher Abfall (AVV 17 01 06*)                                  000645
+26   von der BereitstellungsflÑche zur Deponie.                           000646
+26                                                                        000647
+2101010490 NNN         00000000000t                                       000648
+25Transport Beton und Bauschutt DepV DK II, MLV-ENB_01010490              000649
+26   Transport Beton und Bauschutt DepV DK II                             000650
+26   Verladung und Befîrderung von Beton                                  000651
+26   (AVV 17 01 01) und Bauschutt (AVV 17 01 07) und                      000652
+26   gefÑhrlicher Abfall (AVV 17 01 06*) und wenn Summe SM >              000653
+26   2500 mg/kg                                                           000654
+26   von der BereitstellungsflÑche zur Deponie.                           000655
+26                                                                        000656
+2101010500 NNN         00000000000t                                       000657
+25Transport Beton und Bauschutt DepV DK III, MLV-ENB_01010500             000658
+26   Transport Beton und Bauschutt DepV DK III                            000659
+26   Verladung und Befîrderung nicht gefÑhrlicher Abfall                  000660
+26   Beton (AVV 17 01 01) und Bauschuttgemisch (AVV 17 01                 000661
+26   07) und gefÑhrlicher Abfall (AVV 17 01 06*                           000662
+26   Bauschuttgemisch mit gefÑhrlichen Stoffen)                           000663
+26   von der BereitstellungsflÑche zur Deponie.                           000664
+26                                                                        000665
+20                                                                        000666
+26   Entsorgung/Transport von Bau- und AbbruchabfÑllen                    000667
+26                                                                        000668
+2101010501 NNN         00000000000t                                       000669
+25Entsorgung von Bau- und AbbruchabfÑllen MLV-ENB_01010501                000670
+26   Entsorgung Bau- und AbbruchabfÑlle,                                  000671
+26   (17 09 04 gemischte Bau- und AbbruchabfÑlle), Abfall                 000672
+26   verwiegen und ordnungsgemÑ· entsorgen.                               000673
+26                                                                        000674
+2101010502 NNN         00000000000t                                       000675
+25Transport von Bau- und AbbruchabfÑllen MLV-ENB_01010502                 000676
+26   Transport Bau- und AbbruchabfÑlle,                                   000677
+26   (17 09 04 gemischte Bau- und AbbruchabfÑlle), Verladung              000678
+26   und Befîrderung von der Baustelle zur                                000679
+26   Entsorgungsanlage.                                                   000680
+26                                                                        000681
+20                                                                        000682
+26                                                                        000683
+2101010510 NNN         00000000000t                                       000684
+25Entsorgung von Unrat, MLV-ENB_01010510                                  000685
+26   Entsorgung von Unrat                                                 000686
+26   Unrat (AVV 20 03 01 gemischte SiedlungsabfÑlle)                      000687
+26   verwiegen und ordnungsgemÑ· entsorgen.                               000688
+26                                                                        000689
+2101010520 NNN         00000000000t                                       000690
+25Transport von Unrat, MLV-ENB_01010520                                   000691
+26   Transport von Unrat                                                  000692
+26   Verladung und Befîrderung von Unrat (AVV 20 03 01                    000693
+26   gemischte SiedlungsabfÑlle) von der                                  000694
+26   BereitstellungsflÑche zur Entsorgungsanlage.                         000695
+26                                                                        000696
+20                                                                        000697
+26                                                                        000698
+2101010530 NNN         00000000000t                                       000699
+25Verwertung von Oberboden, MLV-ENB_01010530                              000700
+26   Hochwertige Verwertung von Oberboden zur Herstellung                 000701
+26   einer durchwurzelbaren Bodenschicht oder zur                         000702
+26   Einbringung auf/in eine durchwurzelbare Bodenschicht.                000703
+26   Der Boden hÑlt die Vorsorgewerte der BundesbodenschutzV              000704
+26   Anlage 1 Tab. 1+2 fÅr Bodenart Lehm/Schluff ein, der                 000705
+26   Gesamtkohlenstoffgehalt (TOC) betrÑgt max. 9 %. Eine                 000706
+26   Genehmigung der zustÑndigen Bodenschutzbehîrde zum                   000707
+26   vorgesehenen Einbauort ist beim AG vorzulegen.                       000708
+26                                                                        000709
+2101010540 NNN         00000000000t                                       000710
+25Transport von Oberboden, MLV-ENB_01010540                               000711
+26   Transport von Oberboden                                              000712
+26   Verladung und Befîrderung von Boden von der                          000713
+26   BereitstellungsflÑche zur Verwertungsstelle.                         000714
+26                                                                        000715
+20                                                                        000716
+26                                                                        000717
+2101010550 NNN         00000000000t                                       000718
+25Entsorgung von Oberboden vermischt mit Resten von Wurzeln,              000719
+25BaumstÅmpfen und Astwerk, MLV-ENB_01010550                              000720
+26   Entsorgung von Oberboden vermischt mit Resten von                    000721
+26   Wurzeln, BaumstÅmpfen und Astwerk verwiegen und                      000722
+26   ordnungsgemÑ· entsorgen.                                             000723
+26                                                                        000724
+2101010560 NNN         00000000000t                                       000725
+25Transport von Oberboden vermischt mit Resten von Wurzeln, BaumstÅmpfen  000726
+25und Astwerk, MLV-ENB_01010560                                           000727
+26   Verladung und Transport von Oberboden vermischt mit                  000728
+26   Resten von Wurzeln, BaumstÅmpfen und Astwerk.                        000729
+26                                                                        000730
+20                                                                        000731
+26   Entsorgung/Transport Ausbauasphalt, Bitumengemische                  000732
+26   und teerhaltige Produkte                                             000733
+26                                                                        000734
+26   Ausbauasphalt und teerhaltiger Stra·enaufbruch ist                   000735
+26   gemÑ· dem Abfall-Merkblatt Nr. 3.4/1 Umweltfachliche                 000736
+26   Beurteilung der Lagerung, Aufbereitung und Verwertung                000737
+26   von bituminîsem Stra·enaufbruch, Bayerisches Landesamt               000738
+26   fÅr Wasserwirtschaft, in der jeweils gÅltigen Fassung,               000739
+26   zu deklarieren und zu entsorgen.                                     000740
+26                                                                        000741
+2101010570 NNN         00000000000t                                       000742
+25Entsorgung Ausbauasphalt PAK <= 10 mg/kg, MLV-ENB_01010570              000743
+26   Entsorgung Ausbauasphalt                                             000744
+26   PAK <= 10 mg/kg                                                      000745
+26   Ausbauasphalt (AVV 17 03 02                                          000746
+26   Bitumengemische) verwiegen und                                       000747
+26   ordnungsgemÑ· entsorgen.                                             000748
+26                                                                        000749
+2101010580 NNN         00000000000t                                       000750
+25Entsorgung Ausbauasphalt PAK > 10 mg/kg und <= 25 mg/kg,                000751
+25MLV-ENB_01010580                                                        000752
+26   Entsorgung Ausbauasphalt PAK > 10 mg/kg und <= 25 mg/kg              000753
+26                                                                        000754
+26   Ausbauasphalt (AVV 17 03 02                                          000755
+26   Bitumengemische) verwiegen und                                       000756
+26   ordnungsgemÑ· entsorgen.                                             000757
+26                                                                        000758
+2101010590 NNN         00000000000t                                       000759
+25Entsorgung pechhaltiger Stra·enaufbruch PAK > 25 mg/kg und < 1.000      000760
+25mg/kg und/oder < 50 mg/kg Benzo(a)pyren, MLV-ENB_01010590               000761
+26   Entsorgung pechhaltiger Stra·enaufbruch PAK > 25 mg/kg               000762
+26   und < 1.000 mg/kg und/oder < 50 mg/kg Benzo(a)pyren                  000763
+26   Stra·enaufbruch (AVV 17 03 02                                        000764
+26   Bitumengemische) verwiegen und                                       000765
+26   ordnungsgemÑ· entsorgen.                                             000766
+26                                                                        000767
+2101010600 NNN         00000000000t                                       000768
+25Entsorgung pechhaltiger Stra·enaufbruch PAK >= 1.000 mg/kg und/oder >=  000769
+2550 mg/kg Benzo(a)pyren, MLV-ENB_01010600                                000770
+26   Entsorgung pechhaltiger Stra·enaufbruch PAK >= 1.000                 000771
+26   mg/kg und/oder >= 50 mg/kg Benzo(a)pyren                             000772
+26   (Hier AVV 17 03 01* kohlenteerhaltige Bitumengemische),              000773
+26   gefÑhrlicher Abfall, verwiegen und ordnungsgemÑ·                     000774
+26   entsorgen.                                                           000775
+26                                                                        000776
+2101010610 NNN         00000000000t                                       000777
+25Entsorgung Bitumengemische PAK < 1.000 mg/kg und/oder < 50 mg/kg        000778
+25Benzo(a)pyren, MLV-ENB_01010610                                         000779
+26   Entsorgung Bitumengemische PAK < 1.000 mg/kg und/oder <              000780
+26   50 mg/kg Benzo-(a)pyren                                              000781
+26   Gering verunreinigte Bitumengemische (AVV 17 03 02)                  000782
+26   verwiegen und ordnungsgemÑ· entsorgen.                               000783
+26                                                                        000784
+2101010620 NNN         00000000000t                                       000785
+25Entsorgung teerhaltige Produkte PAK >= 1.000 mg/kg, MLV-ENB_01010620    000786
+26   Entsorgung teerhaltige Produkte PAK >= 1.000 mg/kg                   000787
+26   (Hier AVV 17 03 03* Kohlenteer und teerhaltige                       000788
+26   Produkte), gefÑhrlicher Abfall, verwiegen und                        000789
+26   ordnungsgemÑ· entsorgen.                                             000790
+26                                                                        000791
+26                                                                        000792
+2101010630 NNN         00000000000t                                       000793
+25Transport Ausbauasphalt PAK <= 10 mg/kg, MLV-ENB_01010630               000794
+26   Transport Ausbauasphalt PAK <= 10 mg/kg                              000795
+26   Verladung und Befîrderung von Ausbauasphalt (AVV 17 03               000796
+26   02 Bitumengemische) von der BereitstellungsflÑche zur                000797
+26   Entsorgungsanlage.                                                   000798
+26                                                                        000799
+2101010640 NNN         00000000000t                                       000800
+25Transport Ausbauasphalt PAK > 10 mg/kg und <= 25 mg/kg,                 000801
+25MLV-ENB_01010640                                                        000802
+26   Transport Ausbauasphalt PAK > 10 mg/kg und <= 25 mg/kg               000803
+26   Verladung und Befîrderung von Ausbauasphalt (AVV 17 03               000804
+26   02) Bitumengemische von der BereitstellungsflÑche zur                000805
+26   Entsorgungsanlage.                                                   000806
+26                                                                        000807
+2101010650 NNN         00000000000t                                       000808
+25Transport pechhaltiger Stra·enaufbruch PAK > 25 mg/kg und < 1.000       000809
+25mg/kg und/oder < 50 mg/kg Benzo(a)pyren, MLV-ENB_01010650               000810
+26   Transport pechhaltiger Stra·enaufbruch PAK > 25 mg/kg                000811
+26   und < 1.000 mg/kg und/oder < 50 mg/kg Benzo(a)pyren                  000812
+26   Verladung und Befîrderung von Stra·enaufbruch (AVV 17                000813
+26   03 02) Bitumengemische von der BereitstellungsflÑche                 000814
+26   zur Entsorgungsanlage.                                               000815
+26                                                                        000816
+2101010660 NNN         00000000000t                                       000817
+25Transport pechhaltiger Stra·enaufbruch PAK >= 1.000 mg/kg und/oder >=   000818
+2550 mg/kg Benzo(a)pyren, MLV-ENB_01010660                                000819
+26   Transport pechhaltiger Stra·enaufbruch PAK >= 1.000                  000820
+26   mg/kg                                                                000821
+26   und/oder >= 50 mg/kg Benzo(a)pyren                                   000822
+26   (AVV 17 03 01* kohlenteerhaltige Bitumengemische),                   000823
+26   gefÑhrlicher Abfall, Verladung und Befîrderung  von der              000824
+26   Baustelle zur Entsorgungsanlage/Deponie.                             000825
+26                                                                        000826
+2101010670 NNN         00000000000t                                       000827
+25Transport Bitumengemische PAK < 1.000 mg/kg und/oder < 50 mg/kg         000828
+25Benzo(a)pyren, MLV-ENB_01010670                                         000829
+26   Transport Bitumengemische PAK < 1.000 mg/kg und/oder <               000830
+26   50 mg/kg Benzo(a)pyren,                                              000831
+26   Verladung und Befîrderung von Bitumengemischen (17 03                000832
+26   02) von der BereitstellungsflÑche zur                                000833
+26   Entsorgungsanlage.                                                   000834
+26                                                                        000835
+2101010680 NNN         00000000000t                                       000836
+25Transport teerhaltiger Produkte PAK >= 1.000 mg/kg, MLV-ENB_01010680    000837
+26   Transport teerhaltiger Produkte PAK >= 1.000 mg/kg                   000838
+26   (AVV 17 03 03* Kohlenteer und teerhaltige Produkte, die              000839
+26   gefÑhrliche Stoffe enthalten), gefÑhrlicher Abfall,                  000840
+26   Verladung und Befîrderung von der BereitstellungsflÑche              000841
+26   zur Entsorgungsanlage.                                               000842
+26                                                                        000843
+20                                                                        000844
+26                                                                        000845
+2101010690 NNN         00000000000t                                       000846
+25Entsorgung von Kunststoff, MLV-ENB_01010690                             000847
+26   Entsorgung von Kunststoff (AVV 17 02 03 Kunststoff aus               000848
+26   Abbruch), verwiegen und ordnungsgemÑ· entsorgen.                     000849
+26                                                                        000850
+2101010700 NNN         00000000000t                                       000851
+25Transport von Kunststoff, MLV-ENB_01010700                              000852
+26   Transport von Kunststoff (AVV 17 02 03 Kunststoff aus                000853
+26   Abbruch), Verladung und Befîrderung von der                          000854
+26   BereitstellungsflÑche zur Entsorgungsanlage.                         000855
+26                                                                        000856
+2101010701 NNN         00000000000t                                       000857
+25Entsorgung von GFK, MLV-ENB_01010701                                    000858
+26   Entsorgung von glasfaserverstÑrktem Kunststoff (GFK),                000859
+26   verwiegen und ordnungsgemÑ· entsorgen.                               000860
+26                                                                        000861
+2101010702 NNN         00000000000t                                       000862
+25Transport von GFK, MLV-ENB_01010702                                     000863
+26   Transport von glasfaserverstÑrktem Kunststoff (GFK),                 000864
+26   Verladung und Befîrderung von der BereitstellungsflÑche              000865
+26   zur Entsorgungsanlage.                                               000866
+26                                                                        000867
+2101010710 NNN         00000000000t                                       000868
+25Entsorgung von Holz, MLV-ENB_01010710                                   000869
+26   Entsorgung von Holz (A IV nach AltholzV, 17 02 04*                   000870
+26   Glas, Kunststoff und Holz, die gefÑhrliche Stoffe                    000871
+26   enthalten oder durch gefÑhrliche Stoffe verunreinigt                 000872
+26   sind), gefÑhrlicher Abfall, verwiegen und ordnungsgemÑ·              000873
+26   entsorgen.                                                           000874
+26                                                                        000875
+26                                                                        000876
+2101010720 NNN         00000000000t                                       000877
+25Transport von Holz, MLV-ENB_01010720                                    000878
+26   Transport von Holz (A IV nach AltholzV, 17 02 04* Glas,              000879
+26   Kunststoff und Holz, die gefÑhrliche Stoffe enthalten                000880
+26   oder durch gefÑhrliche Stoffe verunreinigt sind),                    000881
+26   gefÑhrlicher Abfall, Verladung und Befîrderung von der               000882
+26   BereitstellungsflÑche zur Entsorgungsanlage.                         000883
+26                                                                        000884
+20                                                                        000885
+26                                                                        000886
+2101010730 NNN         00000000000t                                       000887
+25Entsorgung von asbesthaltigen Baustoffen, MLV-ENB_01010730              000888
+26   Entsorgung asbesthaltiger Baustoffe                                  000889
+26   (AVV 17 06 05* asbesthaltige Baustoffe), gefÑhrlicher                000890
+26   Abfall,                                                              000891
+26   verwiegen und ordnungsgemÑ· entsorgen.                               000892
+26                                                                        000893
+2101010740 NNN         00000000000t                                       000894
+25Transport von asbesthaltigen Baustoffen, MLV-ENB_01010740               000895
+26   Transport (AVV 17 06 05* asbesthaltige Baustoffe),                   000896
+26   gefÑhrlicher Abfall,                                                 000897
+26   Verladung und Befîrderung von asbesthaltigen Baustoffen              000898
+26   von der Baustelle zur Entsorgungsanlage.                             000899
+26                                                                        000900
+2101010750 NNN         00000000000t                                       000901
+25Entsorgung von kÅnstlichen Mineralfasern, MLV-ENB_01010750              000902
+26   Entsorgung von Mineralwolle (AVV 17 06 03* anderes                   000903
+26   DÑmmmaterial, das aus gefÑhrlichen Stoffen besteht oder              000904
+26   solche Stoffe enthÑlt), gefÑhrlicher Abfall, verwiegen               000905
+26   und ordnungsgemÑ· entsorgen.                                         000906
+26                                                                        000907
+2101010760 NNN         00000001000t                                       000908
+25Transport von kÅnstlichen Mineralfasern, MLV-ENB_01010760               000909
+26   Transport von Mineralwolle (AVV 17 06 03* anderes                    000910
+26   DÑmmmaterial, das aus gefÑhrlichen Stoffen besteht oder              000911
+26   solche Stoffe enthÑlt), gefÑhrlicher Abfall, Verladung               000912
+26   und Befîrderung von der BereitstellungsflÑche zur                    000913
+26   Entsorgungsanlage.                                                   000914
+26                                                                        000915
+20                                                                        000916
+26                                                                        000917
+2101010770 NNN         00000000000St                                      000918
+25Entsorgung Batterieblock, MLV-ENB_01010770                              000919
+26   Entsorgung Batterieblock (AVV 20 01 33*)                             000920
+26   ordnungsgemÑ· entsorgen.                                             000921
+26                                                                        000922
+2101010780 NNN         00000000000St                                      000923
+25Transport Batterieblock, MLV-ENB_01010780                               000924
+26   Transport Batterieblock (AVV 20 01 33*),                             000925
+26   Verladung und Befîrderung                                            000926
+26   von der BereitstellungsflÑche zur Entsorgungsanlage.                 000927
+26                                                                        000928
+2101010790 NNN         00000000000t                                       000929
+25Entsorgung STRAIL-Platten, MLV-ENB_01010790                             000930
+26   Entsorgung von STRAIL-Platten/vulkanisierten                         000931
+26   Kunststoffen (AVV 16 01 03 Autoreifen u. Ñ.), verwiegen              000932
+26   und ordnungsgemÑ· entsorgen.                                         000933
+26                                                                        000934
+2101010800 NNN         00000000000t                                       000935
+25Transport STRAIL-Platten, MLV-ENB_01010800                              000936
+26   Transport von STRAIL-Platten/vulkanisierten                          000937
+26   Kunststoffen (AVV 16 01 03 Autoreifen u. Ñ.), Verladung              000938
+26   und Befîrderung von der BereitstellungsflÑche zur                    000939
+26   Entsorgungsanlage.                                                   000940
+26                                                                        000941
+2101010810 NNN         00000000000St                                      000942
+25Entsorgung von Leuchtmittel, MLV-ENB_01010810                           000943
+26   Entsorgung von Leuchtmittel (AVV 20 01 21*                           000944
+26   Leuchtstoffrîhren und andere quecksilberhaltige                      000945
+26   AbfÑlle),                                                            000946
+26   ordnungsgemÑ· entsorgen.                                             000947
+26                                                                        000948
+2101010820 NNN         00000000000St                                      000949
+25Transport von Leuchtmittel, MLV-ENB_01010820                            000950
+26   Transport von Leuchtmittel (AVV 20 01 21*                            000951
+26   Leuchtstoffrîhren und andere quecksilberhaltige                      000952
+26   AbfÑlle),                                                            000953
+26   Verladung und Befîrderung von der BereitstellungsflÑche              000954
+26   zur Entsorgungsanlage.                                               000955
+26                                                                        000956
+2101010821 NNN         00000000000St                                      000957
+25Entsorgung LED-Leuchtmittel MLV-ENB_01010821                            000958
+26   Entsorgung LED-Leuchtmittel (AVV 16 02 04 gebrauchte                 000959
+26   GerÑte mit Ausnahme derjenigen, die unter 16 02 09* bis              000960
+26   16 02 13* fallen), ordnungsgemÑ· entsorgen.                          000961
+26                                                                        000962
+2101010822 NNN         00000000000St                                      000963
+25Transport LED-Leuchtmittel MLV-ENB_01010822                             000964
+26   Transport LED-Leuchtmittel (AVV 16 02 04 gebrauchte                  000965
+26   GerÑte mit Ausnahme derjenigen, die unter 16 02 09* bis              000966
+26   16 02 13* fallen) ,                                                  000967
+26   Verladung und Befîrderung von der BereitstellungsflÑche              000968
+26   zur Entsorgungsanlage.                                               000969
+26                                                                        000970
+2101010823 NNN         00000000000St                                      000971
+25Entsorgung Masttransformator inkl. ôl (PCB-frei) MLV-ENB_01010823       000972
+26   Masttransformator inkl. ôl (PCB-frei nach PCB-AbfallV),              000973
+26   gefÑhrlicher Abfall, Beprobung, Parameter und                        000974
+26   Einstufung nach Altîlverordnung,  ordnungsgemÑ· und                  000975
+26   nachweislich                                                         000976
+26   nach Wahl des AN entsorgen.                                          000977
+26                                                                        000978
+2101010824 NNN         00000000000St                                      000979
+25Transport Masttransformator inkl. ôl (PCB-frei) MLV-ENB_01010824        000980
+26   Masttransformator inkl. ôl (PCB-frei nach PCB-AbfallV),              000981
+26   gefÑhrlicher Abfall, Verladung und Befîrderung                       000982
+26   von der BereitstellungsflÑche zur Entsorgungsanlage.                 000983
+26                                                                        000984
+2101010830 NNN         00000000000t                                       000985
+25Entsorgung von Fahrbahnmarkierung, MLV-ENB_01010830                     000986
+26   Fahrbahnmarkierung (AVV 08 01 12 Farb-und LackabfÑlle                000987
+26   mit Ausnahme derjenigen, die unter 08 01 11* fallen)                 000988
+26   verwiegen und ordnungsgemÑ· entsorgen.                               000989
+26                                                                        000990
+2101010840 NNN         00000000000t                                       000991
+25Transport von Fahrbahnmarkierung, MLV-ENB_01010840                      000992
+26   Transport von Fahrbahnmarkierung Verladung und                       000993
+26   Befîrderung von Fahrbahnmarkierung (AVV 08 01 12                     000994
+26   Farb-und LackabfÑlle mit Ausnahme derjenigen, die unter              000995
+26   08 01 11* fallen) von der BereitstellungsflÑche zur                  000996
+26   Entsorgungsanlage.                                                   000997
+26                                                                        000998
+2101010841 NNN         00000000000t                                       000999
+25Entsorgung von SpÅl-/Reinigungsgut, MLV-ENB_01010841                    001000
+26   Entsorgung von SpÅl-/Reinigungsgut (AVV 20 03 06                     001001
+26   AbfÑlle aus der Kanalreinigung) verwiegen und                        001002
+26   ordnungsgemÑ· entsorgen.                                             001003
+26                                                                        001004
+2101010842 NNN         00000000000t                                       001005
+25Transport von SpÅl-/Reinigungsgut MLV-ENB_01010842                      001006
+26   Verladung und Befîrderung von  SpÅl-/Reinigungsgut (AVV              001007
+26   20 03 06 AbfÑlle aus der Kanalreinigung) von der                     001008
+26   BereitstellungsflÑche zur                                            001009
+26   Entsorgungsanlage.                                                   001010
+26                                                                        001011
+20                                                                        001012
+26   Bereitstellung zur Abholung durch AG                                 001013
+26                                                                        001014
+26   Alle in den Bestandteilen des Bauvertrages                           001015
+26   beschriebenen Regelungen zum ordnungsgemÑ·en Umgang                  001016
+26   und zur Entsorgung von AbfÑllen und Wertstoffen sind                 001017
+26   einzuhalten.                                                         001018
+26   Quertransporte sowie alle fÅr den Transport                          001019
+26   erforderlichen Aufwendungen sind in den Einheitspreis                001020
+26   einzurechnen.                                                        001021
+26                                                                        001022
+2101010850 NNN         00000000000m      X                                001023
+25Schienen, MLV-ENB_01010850                                              001024
+2661ASchienen, LÑnge: '(> XX <) 'm,                                       001025
+26   Bereitstellung und ordnungsgemÑ·e Verladung an der                   001026
+26   vereinbarten öbergabestelle.                                         001027
+26                                                                        001028
+2101010860 NNN         00000000000St                                      001029
+25Gleisbetonschwellen, MLV-ENB_01010860                                   001030
+26   Gleisbetonschwellen Bereitstellung und ordnungsgemÑ·e                001031
+26   Verladung an der vereinbarten öbergabestelle.                        001032
+26                                                                        001033
+2101010870 NNN         00000000000St                                      001034
+25Holzschwellen, MLV-ENB_01010870                                         001035
+26   Holzschwellen ordnungsgemÑ·e Verladung                               001036
+26   an der vereinbarten öbergabestelle.                                  001037
+26                                                                        001038
+2101010880 NNN         00000000000t                                       001039
+25Metallschrott, MLV-ENB_01010880                                         001040
+26   Bereitstellen und Verladen von                                       001041
+26   Metallschrott und öbergabe an der vereinbarten                       001042
+26   öbergabestelle.                                                      001043
+26                                                                        001044
+20                                                                        001045
+26   Hinweis fÅr den Ersteller des LVs. Diesen Hinweistext                001046
+26   bitte nach Fertigstellung des LV lîschen:                            001047
+26                                                                        001048
+26   Wurde in der Vorbemerkung/Baubeschreibung im Kap. 0.2.6              001049
+26   "Bereitstellung Absetzmulden durch den AN" ausgewÑhlt,               001050
+26   dann nachfolgende MLV-Position mit aufnehmen.                        001051
+26   Muldengrî·e analog Kapitel 0.2.6 Baubeschreibung.                    001052
+26                                                                        001053
+2101010885 NNN         00000000000St     X                                001054
+25Bereitstellung Absetzmulde(n) MLV-ENB_01010885                          001055
+26   Bereitstellung abschlie·barer Absetzmulde(n) mit                     001056
+2661AVolumen jeweils '(>5/7/10/20 m3<) ',                                 001057
+2662A'(>zur Sammlung von metallischen Wertstoffen / xxx<) '               001058
+26   auf der Baustelleneinrichtungs- und                                  001059
+26   BereitstellungsflÑche des AN wÑhrend der gesamten                    001060
+26   Bauzeit.                                                             001061
+26                                                                        001062
+2101010890 NNN         00000000000t                                       001063
+25Gleisschotter Bahnwagen, MLV-ENB_01010890                               001064
+26   Verladen von Gleisschotter auf Bahnwagen                             001065
+26   Bereitstellung und ordnungsgemÑ·e Verladung von                      001066
+26   Gleisschotter an der vereinbarten öbergabestelle.                    001067
+26                                                                        001068
+2101010900 NNN         00000000000t                                       001069
+25Gleisschotter LKW, MLV-ENB_01010900                                     001070
+26   Verladen von Gleisschotter auf LKW                                   001071
+26   Bereitstellung und ordnungsgemÑ·e Verladung von                      001072
+26   Gleisschotter auf LKW an der vereinbarten                            001073
+26   öbergabestelle.                                                      001074
+26                                                                        001075
+2101010910 NNN         00000000000St                                      001076
+25STRAIL-Platten, MLV-ENB_01010910                                        001077
+26   Einsammeln, Bereitstellen und Verladen von                           001078
+26   STRAIL-Platten aller Grî·en und öbergabe an der                      001079
+26   vereinbarten                                                         001080
+26   öbergabestelle.                                                      001081
+26                                                                        001082
+2101010920 NNN         00000000000t                                       001083
+25Elektrische und elektronische Ausstattung MLV-ENB_01010920              001084
+26   Bereitstellen und Verladen von elektrischer und                      001085
+26   elektronischer Ausstattung (20 01 36 gebrauchte                      001086
+26   elektrische und elektronische GerÑte mit Ausnahme                    001087
+26   derjenigen, die unter 20 01 21*, 20 01 23* und 20 01                 001088
+26   35* fallen) und öbergabe an der vereinbarten                         001089
+26   öbergabestelle.                                                      001090
+26                                                                        001091
+310101                                                                    001092
+3101                                                                      001093
+99                   0000                                            00106001094

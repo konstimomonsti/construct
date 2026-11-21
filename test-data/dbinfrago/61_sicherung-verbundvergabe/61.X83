@@ -1,0 +1,1171 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- GXML Toolbox V3.2 R20170508;  http://www.gaeb-toolbox.de/ 
+ gtcConverter.dll used version 2017.07.18  -->
+<GAEB xmlns="http://www.gaeb.de/GAEB_DA_XML/200407">
+ <GAEBInfo>
+  <Version>3.1</Version>
+  <VersDate>2009-12</VersDate>
+  <Date>2018-08-22</Date>
+  <Time>16:01:44</Time>
+  <ProgSystem>/ GXML Toolbox V3.2 R20170508</ProgSystem>
+  <ProgName>iTWO_64 V7.0.542</ProgName>
+ </GAEBInfo>
+ <PrjInfo>
+  <NamePrj>Muster_Netz</NamePrj>
+  <LblPrj>DB Netz Musterprojekt </LblPrj>
+  <Cur>EUR</Cur>
+  <CurLbl>Euro</CurLbl>
+  <BidCommPerm>Yes</BidCommPerm>
+  <AlterBidPerm>Yes</AlterBidPerm>
+ </PrjInfo>
+ <Award>
+  <DP>83</DP>
+  <AwardInfo>
+   <Cur>EUR</Cur>
+   <CurLbl>Euro</CurLbl>
+  </AwardInfo>
+  <OWN>
+   <Address>
+    <Name1>DB Netz AG</Name1>
+    <Street>Theodor-Heuss-Allee 7</Street>
+    <PCode>60486</PCode>
+    <City>Frankfurt</City>
+   </Address>
+  </OWN>
+  <BoQ ID="AAAAAAABILAIAAAA">
+   <BoQInfo>
+    <Name>61</Name>
+    <LblBoQ>Sicherungs- u. bauaff. Dienstlstng. Verbundvergabe 9/17</LblBoQ>
+    <Date>2018-08-22</Date>
+    <OutlCompl>AllTxt</OutlCompl>
+    <BoQBkdn>
+     <Type>BoQLevel</Type>
+     <LblBoQBkdn/>
+     <Length>2</Length>
+     <Num>Yes</Num>
+    </BoQBkdn>
+    <BoQBkdn>
+     <Type>BoQLevel</Type>
+     <LblBoQBkdn/>
+     <Length>2</Length>
+     <Num>Yes</Num>
+    </BoQBkdn>
+    <BoQBkdn>
+     <Type>Item</Type>
+     <Length>4</Length>
+     <Num>Yes</Num>
+    </BoQBkdn>
+    <BoQBkdn>
+     <Type>Index</Type>
+     <Length>1</Length>
+     <Num>No</Num>
+     <Alignment>left</Alignment>
+    </BoQBkdn>
+    <NoUPComps>4</NoUPComps>
+    <LblUPComp1>Geräte</LblUPComp1>
+    <LblUPComp2>Stoffe</LblUPComp2>
+    <LblUPComp3>Geräte</LblUPComp3>
+    <LblUPComp4>Sonstiges</LblUPComp4>
+    <Ctlg>
+     <CtlgID>AAAAAAABIIJNAANA</CtlgID>
+     <CtlgType>work category</CtlgType>
+     <CtlgName>Leistungsbereichkatalog</CtlgName>
+    </Ctlg>
+   </BoQInfo>
+   <BoQBody>
+    <BoQCtgy ID="AAAAAAABILFPAAAA" RNoPart="01">
+     <LblTx>
+      <p style="text-align:left;margin-top:0pt;margin-bottom:0pt;">
+       <span>Sicherung geg. Gefahren aus dem</span>
+       <br/>
+       <span>Bahnbetrieb u. bauaffine Leistungen</span>
+      </p>
+     </LblTx>
+     <BoQBody>
+      <BoQCtgy ID="AAAAAAABILFPBAAA" RNoPart="01">
+       <LblTx>
+        <p style="text-align:left;margin-top:0pt;margin-bottom:0pt;">
+         <span>Sicherungsmaßnahmen</span>
+        </p>
+       </LblTx>
+       <BoQBody>
+        <Itemlist>
+         <Item ID="AAAAAAABILFPBIDA" RNoPart="0010">
+          <LumpSumItem>Yes</LumpSumItem>
+          <Qty>1.000</Qty>
+          <QU>psch</QU>
+          <CtlgAssign>
+           <CtlgID>AAAAAAABIIJNAANA</CtlgID>
+           <CtlgCode>000</CtlgCode>
+          </CtlgAssign>
+          <Description>
+           <CompleteText>
+            <DetailTxt>
+             <Text>
+              <p style="text-align:left;margin-top:0pt;margin-bottom:0pt;">
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Planung und Durchführung der vorgegebenen</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Sicherungsmaßnahmen zur Abwendung der Gefahren</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">aus dem Bahnbetrieb bei Arbeiten im Gleisbereich.</span>
+               <br/>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Umfang der Sicherungsmaßnahmen:</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">alle während der zeitlichen Vorgaben für die Durchführung der Vorarbeiten betroffenen Gleisbereiche.</span>
+              </p>
+             </Text>
+            </DetailTxt>
+            <OutlineText>
+             <OutlTxt>
+              <TextOutlTxt>
+               <p style="text-align:left;margin-top:0pt;margin-bottom:0pt;">
+                <span>Sicherungsmaßnahmen Vorarbeiten</span>
+               </p>
+              </TextOutlTxt>
+             </OutlTxt>
+            </OutlineText>
+           </CompleteText>
+          </Description>
+         </Item>
+         <Item ID="AAAAAAABILFPAIDA" RNoPart="0020">
+          <LumpSumItem>Yes</LumpSumItem>
+          <Qty>1.000</Qty>
+          <QU>psch</QU>
+          <CtlgAssign>
+           <CtlgID>AAAAAAABIIJNAANA</CtlgID>
+           <CtlgCode>000</CtlgCode>
+          </CtlgAssign>
+          <Description>
+           <CompleteText>
+            <DetailTxt>
+             <Text>
+              <p style="text-align:left;margin-top:0pt;margin-bottom:0pt;">
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Planung und Durchführung der vorgegebenen</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Sicherungsmaßnahmen zur Abwendung der Gefahren</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">aus dem Bahnbetrieb bei Arbeiten im Gleisbereich.</span>
+               <br/>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Umfang der Sicherungsmaßnahmen:</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">alle während der zeitlichen Vorgaben für die Durchführung der Haupt-Bauarbeiten betroffenen Gleisbereiche.</span>
+              </p>
+             </Text>
+            </DetailTxt>
+            <OutlineText>
+             <OutlTxt>
+              <TextOutlTxt>
+               <p style="text-align:left;margin-top:0pt;margin-bottom:0pt;">
+                <span>Sicherungsmaßnahmen Haupt-Bauarbeiten</span>
+               </p>
+              </TextOutlTxt>
+             </OutlTxt>
+            </OutlineText>
+           </CompleteText>
+          </Description>
+         </Item>
+         <Item ID="AAAAAAABILFPBPFA" RNoPart="0030">
+          <LumpSumItem>Yes</LumpSumItem>
+          <Qty>1.000</Qty>
+          <QU>psch</QU>
+          <CtlgAssign>
+           <CtlgID>AAAAAAABIIJNAANA</CtlgID>
+           <CtlgCode>000</CtlgCode>
+          </CtlgAssign>
+          <Description>
+           <CompleteText>
+            <DetailTxt>
+             <Text>
+              <p style="text-align:left;margin-top:0pt;margin-bottom:0pt;">
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Planung und Durchführung der vorgegebenen</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Sicherungsmaßnahmen zur Abwendung der Gefahren</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">aus dem Bahnbetrieb bei Arbeiten im Gleisbereich.</span>
+               <br/>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Umfang der Sicherungsmaßnahmen:</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">alle während der  zeitlichen Vorgaben für die Durchführung der Nacharbeiten betroffenen Gleisbereiche.</span>
+              </p>
+             </Text>
+            </DetailTxt>
+            <OutlineText>
+             <OutlTxt>
+              <TextOutlTxt>
+               <p style="text-align:left;margin-top:0pt;margin-bottom:0pt;">
+                <span>Sicherungsmaßnahmen Nacharbeiten</span>
+               </p>
+              </TextOutlTxt>
+             </OutlTxt>
+            </OutlineText>
+           </CompleteText>
+          </Description>
+         </Item>
+         <Item ID="AAAAAAABILFPCGHA" RNoPart="0040">
+          <LumpSumItem>Yes</LumpSumItem>
+          <Qty>1.000</Qty>
+          <QU>psch</QU>
+          <CtlgAssign>
+           <CtlgID>AAAAAAABIIJNAANA</CtlgID>
+           <CtlgCode>000</CtlgCode>
+          </CtlgAssign>
+          <Description>
+           <CompleteText>
+            <DetailTxt>
+             <Text>
+              <p style="text-align:left;margin-top:0pt;margin-bottom:0pt;">
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Planung und Durchführung der vorgegebenen</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Sicherungsmaßnahmen zur Abwendung der Gefahren</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">aus dem Bahnbetrieb bei Arbeiten im Gleisbereich.</span>
+               <br/>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Umfang der Sicherungsmaßnahmen:</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">alle während der  zeitlichen Vorgaben für die Durchführung der Belastungsstopfung betroffenen Gleisbereiche.</span>
+              </p>
+             </Text>
+            </DetailTxt>
+            <OutlineText>
+             <OutlTxt>
+              <TextOutlTxt>
+               <p style="text-align:left;margin-top:0pt;margin-bottom:0pt;">
+                <span>Sicherungsmaßnahmen Belastungsstopfung</span>
+               </p>
+              </TextOutlTxt>
+             </OutlTxt>
+            </OutlineText>
+           </CompleteText>
+          </Description>
+         </Item>
+         <Item ID="AAAAAAABILFPCNJA" RNoPart="0050">
+          <LumpSumItem>Yes</LumpSumItem>
+          <Qty>1.000</Qty>
+          <QU>psch</QU>
+          <CtlgAssign>
+           <CtlgID>AAAAAAABIIJNAANA</CtlgID>
+           <CtlgCode>000</CtlgCode>
+          </CtlgAssign>
+          <Description>
+           <CompleteText>
+            <DetailTxt>
+             <Text>
+              <p style="text-align:left;margin-top:0pt;margin-bottom:0pt;">
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Prüfung der ATWS-Planung auf schriftliche Anordnung der</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">für den Bahnbetrieb zuständige Stelle (BzS)</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">durchführen.</span>
+              </p>
+             </Text>
+            </DetailTxt>
+            <OutlineText>
+             <OutlTxt>
+              <TextOutlTxt>
+               <p style="text-align:left;margin-top:0pt;margin-bottom:0pt;">
+                <span>ATWS Planprüfung</span>
+               </p>
+              </TextOutlTxt>
+             </OutlTxt>
+            </OutlineText>
+           </CompleteText>
+          </Description>
+         </Item>
+        </Itemlist>
+       </BoQBody>
+      </BoQCtgy>
+      <BoQCtgy ID="AAAAAAABILFPDELA" RNoPart="02">
+       <LblTx>
+        <p style="text-align:left;margin-top:0pt;margin-bottom:0pt;">
+         <span>Sicherungspersonale Vor- u. Nacharbeiten</span>
+        </p>
+       </LblTx>
+       <BoQBody>
+        <Itemlist>
+         <Item ID="AAAAAAABILFPDMOA" RNoPart="0010">
+          <Qty>1.000</Qty>
+          <QU>h</QU>
+          <Description>
+           <CompleteText>
+            <DetailTxt>
+             <Text>
+              <p style="text-align:left;margin-top:0pt;margin-bottom:0pt;">
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Stundenverrechnungssatz je Arbeitsstunde,</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Sicherungsaufsicht.</span>
+              </p>
+             </Text>
+            </DetailTxt>
+            <OutlineText>
+             <OutlTxt>
+              <TextOutlTxt>
+               <p style="text-align:left;margin-top:0pt;margin-bottom:0pt;">
+                <span>Einsatz Sicherungsaufsicht</span>
+               </p>
+              </TextOutlTxt>
+             </OutlTxt>
+            </OutlineText>
+           </CompleteText>
+          </Description>
+         </Item>
+         <Item ID="AAAAAAABILFPEEAA" RNoPart="0020">
+          <Qty>1.000</Qty>
+          <QU>LE</QU>
+          <Description>
+           <CompleteText>
+            <DetailTxt>
+             <Text>
+              <p style="text-align:left;margin-top:0pt;margin-bottom:0pt;">
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Verrechnungssatz als Zulage für Nebenkosten,</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Sicherungsaufsicht,</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">(Abrechnungseinheit:</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">1 Leistungseinheit=1Schicht bis 10Stunden).</span>
+              </p>
+             </Text>
+            </DetailTxt>
+            <OutlineText>
+             <OutlTxt>
+              <TextOutlTxt>
+               <p style="text-align:left;margin-top:0pt;margin-bottom:0pt;">
+                <span>Zuschlag Sicherungsaufsicht, Nebenkosten</span>
+               </p>
+              </TextOutlTxt>
+             </OutlTxt>
+            </OutlineText>
+           </CompleteText>
+          </Description>
+         </Item>
+         <Item ID="AAAAAAABILFPELCA" RNoPart="0030">
+          <Qty>1.000</Qty>
+          <QU>h</QU>
+          <Description>
+           <CompleteText>
+            <DetailTxt>
+             <Text>
+              <p style="text-align:left;margin-top:0pt;margin-bottom:0pt;">
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Verrechnungssatz als Zuschlag bei Nachtarbeit,</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Sicherungsaufsicht.</span>
+              </p>
+             </Text>
+            </DetailTxt>
+            <OutlineText>
+             <OutlTxt>
+              <TextOutlTxt>
+               <p style="text-align:left;margin-top:0pt;margin-bottom:0pt;">
+                <span>Zuschlag Sicherungsaufsicht, Nachtarbeit</span>
+               </p>
+              </TextOutlTxt>
+             </OutlTxt>
+            </OutlineText>
+           </CompleteText>
+          </Description>
+         </Item>
+         <Item ID="AAAAAAABILFPFCEA" RNoPart="0040">
+          <Qty>1.000</Qty>
+          <QU>h</QU>
+          <Description>
+           <CompleteText>
+            <DetailTxt>
+             <Text>
+              <p style="text-align:left;margin-top:0pt;margin-bottom:0pt;">
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Verrechnungssatz als Zuschlag bei Arbeiten an Sonntagen</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Sicherungsaufsicht.</span>
+              </p>
+             </Text>
+            </DetailTxt>
+            <OutlineText>
+             <OutlTxt>
+              <TextOutlTxt>
+               <p style="text-align:left;margin-top:0pt;margin-bottom:0pt;">
+                <span>Zuschlag Sicherungsaufsicht, Sonntag</span>
+               </p>
+              </TextOutlTxt>
+             </OutlTxt>
+            </OutlineText>
+           </CompleteText>
+          </Description>
+         </Item>
+         <Item ID="AAAAAAABILFPFJGA" RNoPart="0050">
+          <Qty>1.000</Qty>
+          <QU>h</QU>
+          <Description>
+           <CompleteText>
+            <DetailTxt>
+             <Text>
+              <p style="text-align:left;margin-top:0pt;margin-bottom:0pt;">
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Verrechnungssatz als Zuschlag bei Arbeiten an</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">gesetzlichen Feiertagen,</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Sicherungsaufsicht.</span>
+              </p>
+             </Text>
+            </DetailTxt>
+            <OutlineText>
+             <OutlTxt>
+              <TextOutlTxt>
+               <p style="text-align:left;margin-top:0pt;margin-bottom:0pt;">
+                <span>Zulage Sicherungsaufsicht, Feiertag</span>
+               </p>
+              </TextOutlTxt>
+             </OutlTxt>
+            </OutlineText>
+           </CompleteText>
+          </Description>
+         </Item>
+         <Item ID="AAAAAAABILFPGAIA" RNoPart="0060">
+          <Qty>1.000</Qty>
+          <QU>h</QU>
+          <Description>
+           <CompleteText>
+            <DetailTxt>
+             <Text>
+              <p style="text-align:left;margin-top:0pt;margin-bottom:0pt;">
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Stundenverrechnungssatz je Arbeitsstunde,</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Sicherungs-, Absperr-, Melde-, Überwachungsposten.</span>
+              </p>
+             </Text>
+            </DetailTxt>
+            <OutlineText>
+             <OutlTxt>
+              <TextOutlTxt>
+               <p style="text-align:left;margin-top:0pt;margin-bottom:0pt;">
+                <span>Einsatz Sicherungs-,Absperr-,Melde-,Überwachungsposten</span>
+               </p>
+              </TextOutlTxt>
+             </OutlTxt>
+            </OutlineText>
+           </CompleteText>
+          </Description>
+         </Item>
+         <Item ID="AAAAAAABILFPGHKA" RNoPart="0070">
+          <Qty>1.000</Qty>
+          <QU>LE</QU>
+          <Description>
+           <CompleteText>
+            <DetailTxt>
+             <Text>
+              <p style="text-align:left;margin-top:0pt;margin-bottom:0pt;">
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Verrechnungssatz als Zulage für Nebenkosten,</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Sicherungs-, Absperr-, Melde-, Überwachungsposten.</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">(Abrechnungseinheit:</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">1 Leistungseinheit=1Schicht bis 10Stunden).</span>
+              </p>
+             </Text>
+            </DetailTxt>
+            <OutlineText>
+             <OutlTxt>
+              <TextOutlTxt>
+               <p style="text-align:left;margin-top:0pt;margin-bottom:0pt;">
+                <span>Zuschlag Sicherungs-,Absperr-,Melde-,Überw.posten., Nebenk.</span>
+               </p>
+              </TextOutlTxt>
+             </OutlTxt>
+            </OutlineText>
+           </CompleteText>
+          </Description>
+         </Item>
+         <Item ID="AAAAAAABILFPGOMA" RNoPart="0080">
+          <Qty>1.000</Qty>
+          <QU>h</QU>
+          <Description>
+           <CompleteText>
+            <DetailTxt>
+             <Text>
+              <p style="text-align:left;margin-top:0pt;margin-bottom:0pt;">
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Verrechnungssatz als Zuschlag bei Nachtarbeit,</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Sicherungs-, Absperr-, Melde-, Überwachungsposten.</span>
+              </p>
+             </Text>
+            </DetailTxt>
+            <OutlineText>
+             <OutlTxt>
+              <TextOutlTxt>
+               <p style="text-align:left;margin-top:0pt;margin-bottom:0pt;">
+                <span>Zuschlag Sicherungs-,Absperr-,Melde-,Überw.posten, Nachtarb.</span>
+               </p>
+              </TextOutlTxt>
+             </OutlTxt>
+            </OutlineText>
+           </CompleteText>
+          </Description>
+         </Item>
+         <Item ID="AAAAAAABILFPHFOA" RNoPart="0090">
+          <Qty>1.000</Qty>
+          <QU>h</QU>
+          <Description>
+           <CompleteText>
+            <DetailTxt>
+             <Text>
+              <p style="text-align:left;margin-top:0pt;margin-bottom:0pt;">
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Verrechnungssatz als Zuschlag bei Arbeiten an Sonntagen</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Sicherungs-, Absperr-, Melde-, Überwachungsposten.</span>
+              </p>
+             </Text>
+            </DetailTxt>
+            <OutlineText>
+             <OutlTxt>
+              <TextOutlTxt>
+               <p style="text-align:left;margin-top:0pt;margin-bottom:0pt;">
+                <span>Zuschlag Sicherungs-,Absperr-,Melde-,Überw.posten., Sonntag</span>
+               </p>
+              </TextOutlTxt>
+             </OutlTxt>
+            </OutlineText>
+           </CompleteText>
+          </Description>
+         </Item>
+         <Item ID="AAAAAAABILFPHNAA" RNoPart="0100">
+          <Qty>1.000</Qty>
+          <QU>h</QU>
+          <Description>
+           <CompleteText>
+            <DetailTxt>
+             <Text>
+              <p style="text-align:left;margin-top:0pt;margin-bottom:0pt;">
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Verrechnungssatz als Zuschlag bei Arbeiten an</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">gesetzlichen Feiertagen,</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Sicherungs-, Absperr-, Melde-, Überwachungsposten.</span>
+              </p>
+             </Text>
+            </DetailTxt>
+            <OutlineText>
+             <OutlTxt>
+              <TextOutlTxt>
+               <p style="text-align:left;margin-top:0pt;margin-bottom:0pt;">
+                <span>Zuschlag Sicherungs-,Absperr-,Melde-,Überw.posten, Feiertag</span>
+               </p>
+              </TextOutlTxt>
+             </OutlTxt>
+            </OutlineText>
+           </CompleteText>
+          </Description>
+         </Item>
+        </Itemlist>
+       </BoQBody>
+      </BoQCtgy>
+      <BoQCtgy ID="AAAAAAABILFPIECA" RNoPart="03">
+       <LblTx>
+        <p style="text-align:left;margin-top:0pt;margin-bottom:0pt;">
+         <span>Akustischer Warnsignalgeber</span>
+        </p>
+       </LblTx>
+       <BoQBody>
+        <Itemlist>
+         <Item ID="AAAAAAABILFPIMFA" RNoPart="0010">
+          <Qty>1.000</Qty>
+          <QU>Std</QU>
+          <Description>
+           <CompleteText>
+            <DetailTxt>
+             <Text>
+              <p style="margin-right:31pt;text-align:left;margin-top:0pt;margin-bottom:0pt;">
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Verrechnungssatz für handbetriebenen, fernbedienbaren</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">akustischen Warnsignalgeber mit 126 dB (A),</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">einschließlich erforderlicher Energiebevorratung und</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">An- und Abtransport, (Abrechnung: Stück x Tag).</span>
+              </p>
+             </Text>
+            </DetailTxt>
+            <OutlineText>
+             <OutlTxt>
+              <TextOutlTxt>
+               <p style="text-align:left;margin-top:0pt;margin-bottom:0pt;">
+                <span>fernbedienbarer akustischer Warnsignalgeber</span>
+               </p>
+              </TextOutlTxt>
+             </OutlTxt>
+            </OutlineText>
+           </CompleteText>
+          </Description>
+         </Item>
+        </Itemlist>
+       </BoQBody>
+      </BoQCtgy>
+      <BoQCtgy ID="AAAAAAABILFPJDHA" RNoPart="04">
+       <LblTx>
+        <p style="text-align:left;margin-top:0pt;margin-bottom:0pt;">
+         <span>Bauaffine Dienstleistungen</span>
+        </p>
+       </LblTx>
+       <BoQBody>
+        <Itemlist>
+         <Item ID="AAAAAAABILFPJLKA" RNoPart="0010">
+          <LumpSumItem>Yes</LumpSumItem>
+          <Qty>1.000</Qty>
+          <QU>psch</QU>
+          <CtlgAssign>
+           <CtlgID>AAAAAAABIIJNAANA</CtlgID>
+           <CtlgCode>000</CtlgCode>
+          </CtlgAssign>
+          <Description>
+           <CompleteText>
+            <DetailTxt>
+             <Text>
+              <p style="text-align:left;margin-top:0pt;margin-bottom:0pt;">
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Schutzhaltsignal (Sh2) als Tages- und Nachtzeichen</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">auf- und abbauen, einschließlich An- und Abtransport,</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">ggf. umsetzen bzw. temporäre Herstellung der</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Profilfreiheit, vorhalten, betreiben,</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">ggf. außer- und wieder in Betrieb setzen.</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Einschl. Betriebsstoffe und Energieversorgung.</span>
+               <br/>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Umfang der Signalisierungsmaßnahme:</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Signalisierung aller für die Durchführung der</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Baumaßnahme gesperrten Gleise, während der zeitlichen</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Vorgaben, in denen Gleissperrungen erforderlich sind.</span>
+              </p>
+             </Text>
+            </DetailTxt>
+            <OutlineText>
+             <OutlTxt>
+              <TextOutlTxt>
+               <p style="text-align:left;margin-top:0pt;margin-bottom:0pt;">
+                <span>Signalisierung: Sh2-Signale</span>
+               </p>
+              </TextOutlTxt>
+             </OutlTxt>
+            </OutlineText>
+           </CompleteText>
+          </Description>
+         </Item>
+         <Item ID="AAAAAAABILFPKCMA" RNoPart="0020">
+          <LumpSumItem>Yes</LumpSumItem>
+          <Qty>1.000</Qty>
+          <QU>psch</QU>
+          <CtlgAssign>
+           <CtlgID>AAAAAAABIIJNAANA</CtlgID>
+           <CtlgCode>000</CtlgCode>
+          </CtlgAssign>
+          <Description>
+           <CompleteText>
+            <DetailTxt>
+             <Text>
+              <p style="text-align:left;margin-top:0pt;margin-bottom:0pt;">
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Langsamfahrsignale Lf 1 und Lf 2/3, ggf. m. Richtungspfeil,</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">als Tages- und Nachtzeichen auf- und abbauen,</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">einschließlich An- und Abtransport, </span>
+              </p>
+              <p style="text-align:left;margin-top:0pt;margin-bottom:0pt;">
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">ggf. umsetzen, vorhalten, betreiben, </span>
+              </p>
+              <p style="text-align:left;margin-top:0pt;margin-bottom:0pt;">
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">ggf. anpassen an wechselnde Geschwindigkeiten</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">bzw. Herstellung der Gültig- bzw. Ungültigkeit.</span>
+               <br/>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Umfang der Signalisierungsmaßnahme:</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Signalisierung aller für die Durchführung der Baumaßnahme erforderlichen Langsamfahrstellen, während der zeitlichen Vorgaben, in denen Langsamfahrstellen erforderlich sind.</span>
+              </p>
+             </Text>
+            </DetailTxt>
+            <OutlineText>
+             <OutlTxt>
+              <TextOutlTxt>
+               <p style="text-align:left;margin-top:0pt;margin-bottom:0pt;">
+                <span>Signalisierung: Lf-Signale</span>
+               </p>
+              </TextOutlTxt>
+             </OutlTxt>
+            </OutlineText>
+           </CompleteText>
+          </Description>
+         </Item>
+         <Item ID="AAAAAAABILFPKJOA" RNoPart="0030">
+          <LumpSumItem>Yes</LumpSumItem>
+          <Qty>1.000</Qty>
+          <QU>psch</QU>
+          <CtlgAssign>
+           <CtlgID>AAAAAAABIIJNAANA</CtlgID>
+           <CtlgCode>000</CtlgCode>
+          </CtlgAssign>
+          <Description>
+           <CompleteText>
+            <DetailTxt>
+             <Text>
+              <p style="text-align:left;margin-top:0pt;margin-bottom:0pt;">
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Signal EL 6 &#x22;Halt für Fahrzeuge mit gehobenem</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Stromabnehmer&#x22;, rückstrahlend, auf- und abbauen,</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">einschließlich An- und Abtransport, ggf. umsetzen,</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">vorhalten,</span>
+               <br/>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Umfang der Signalisierungsmaßnahme:</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Signalisierung aller für die Durchführung der Baumaßnahme erforderlichen Standorte, während der zeitlichen Vorgaben, in denen die Signalisierung erforderlich ist.</span>
+              </p>
+             </Text>
+            </DetailTxt>
+            <OutlineText>
+             <OutlTxt>
+              <TextOutlTxt>
+               <p style="text-align:left;margin-top:0pt;margin-bottom:0pt;">
+                <span>Signalisierung: Signal El 6</span>
+               </p>
+              </TextOutlTxt>
+             </OutlTxt>
+            </OutlineText>
+           </CompleteText>
+          </Description>
+         </Item>
+         <Item ID="AAAAAAABILFPLBAA" RNoPart="0040">
+          <LumpSumItem>Yes</LumpSumItem>
+          <Qty>1.000</Qty>
+          <QU>psch</QU>
+          <CtlgAssign>
+           <CtlgID>AAAAAAABIIJNAANA</CtlgID>
+           <CtlgCode>000</CtlgCode>
+          </CtlgAssign>
+          <Description>
+           <CompleteText>
+            <DetailTxt>
+             <Text>
+              <p style="text-align:left;margin-top:0pt;margin-bottom:0pt;">
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Baugleismagnet(e) 500 Hz oder 1000 Hz, für vorübergehende</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Langsamfahrstelle entsprechend Ril 892.9107A02 einbauen</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">und in Betrieb nehmen, bei Aufhebung der vorübergehenden</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Langsamfahrstelle ausbauen und außer Betrieb nehmen,</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">ggf. bei zeitweiliger Aufhebung der Langsamfahrstelle</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">ausbauen, damit außer Betrieb nehmen, und wieder</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">einbauen, damit wieder in Betrieb nehmen,</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">ggf. umsetzen.</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Inkl. An-/Abtransport der vom/zum Lagerort des AG.</span>
+               <br/>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Umfang der Maßnahme:</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Absicherung aller für die Durchführung der Baumaßnahme</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">erforderlichen Langsamfahrstellen,</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">während der zeitlichen Vorgaben, in denen</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Langsamfahrstellen erforderlich sind.</span>
+              </p>
+             </Text>
+            </DetailTxt>
+            <OutlineText>
+             <OutlTxt>
+              <TextOutlTxt>
+               <p style="text-align:left;margin-top:0pt;margin-bottom:0pt;">
+                <span>Signalisierung: Gleismagnet(e) des AG</span>
+               </p>
+              </TextOutlTxt>
+             </OutlTxt>
+            </OutlineText>
+           </CompleteText>
+          </Description>
+         </Item>
+         <Item ID="AAAAAAABILFPLICA" RNoPart="0050">
+          <LumpSumItem>Yes</LumpSumItem>
+          <Qty>1.000</Qty>
+          <QU>psch</QU>
+          <CtlgAssign>
+           <CtlgID>AAAAAAABIIJNAANA</CtlgID>
+           <CtlgCode>000</CtlgCode>
+          </CtlgAssign>
+          <Description>
+           <CompleteText>
+            <DetailTxt>
+             <Text>
+              <p style="text-align:left;margin-top:0pt;margin-bottom:0pt;">
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Baugleismagnet(e) 500 Hz oder 1000 Hz, für vorübergehende</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Langsamfahrstelle entsprechend Ril 892.9107A02 einbauen</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">und in Betrieb nehmen, bei Aufhebung der vorübergehenden</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Langsamfahrstelle ausbauen und außer Betrieb nehmen</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">ggf. bei zeitweiliger Aufhebung der Langsamfahrstelle</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">ausbauen, damit außer Betrieb nehmen, und wieder</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">einbauen, damit wieder in Betrieb nehmen,</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">ggf. umsetzen,</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Gleismagnet(e) am Einbauort bereitstellen und nach dem</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Ausbauen vom Einbauort entfernen.</span>
+               <br/>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Umfang der Maßnahme:</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Absicherung aller für die Durchführung der Baumaßnahme</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">erforderlichen Langsamfahrstellen,</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">während der zeitlichen Vorgaben, in denen</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Langsamfahrstellen erforderlich sind.</span>
+              </p>
+             </Text>
+            </DetailTxt>
+            <OutlineText>
+             <OutlTxt>
+              <TextOutlTxt>
+               <p style="text-align:left;margin-top:0pt;margin-bottom:0pt;">
+                <span>Signalisierung: Gleismagnet(e) des AN</span>
+               </p>
+              </TextOutlTxt>
+             </OutlTxt>
+            </OutlineText>
+           </CompleteText>
+          </Description>
+         </Item>
+         <Item ID="AAAAAAABILFPLPEA" RNoPart="0060">
+          <Qty>1.000</Qty>
+          <QU>h</QU>
+          <CtlgAssign>
+           <CtlgID>AAAAAAABIIJNAANA</CtlgID>
+           <CtlgCode>000</CtlgCode>
+          </CtlgAssign>
+          <Description>
+           <CompleteText>
+            <DetailTxt>
+             <Text>
+              <p style="text-align:left;margin-top:0pt;margin-bottom:0pt;">
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Stundenverrechnungssatz je Arbeitsstunde für</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Einsatz von Personal als Bahnerdungsberechtigten.</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Durchführung der Bahnerdungen in dem erforderlichen</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Umfang, einschl. Beistellung der Erdungsbestecke und</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">der Spannungsprüfer.</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Erdungsbesteck bestehend aus Erdungsstangen zur</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">profilfreien Erdung einschl. Erdungsseile und</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Spannungsprüfer gemäß VDE 0681 in ausreichender Anzahl.</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Bahnerdungsberechtigter, inkl. Nebenkosten und Zuschlägen.</span>
+              </p>
+             </Text>
+            </DetailTxt>
+            <OutlineText>
+             <OutlTxt>
+              <TextOutlTxt>
+               <p style="text-align:left;margin-top:0pt;margin-bottom:0pt;">
+                <span>Einsatz Bahnerdungsberechtigter</span>
+               </p>
+              </TextOutlTxt>
+             </OutlTxt>
+            </OutlineText>
+           </CompleteText>
+          </Description>
+         </Item>
+         <Item ID="AAAAAAABILFPMGGA" RNoPart="0070">
+          <Qty>1.000</Qty>
+          <QU>h</QU>
+          <CtlgAssign>
+           <CtlgID>AAAAAAABIIJNAANA</CtlgID>
+           <CtlgCode>000</CtlgCode>
+          </CtlgAssign>
+          <Description>
+           <CompleteText>
+            <DetailTxt>
+             <Text>
+              <p style="margin-right:31pt;text-align:left;margin-top:0pt;margin-bottom:0pt;">
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Stundenverrechnungssatz je Arbeitsstunde für</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Einsatz von Personal als Bahnübergangsposten.</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Sicherung des Straßenverkehrs vor Gefahren aus dem</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Eisenbahnbetrieb an einem Bahnübergang.</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Die Beistellung von Hilfsmitteln (Absperrmittel,</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Kommunikationsmittel) ist enthalten.</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Die technische BÜ-Sicherung ist nicht in Betrieb.</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Bahnübergangsposten, inkl. Nebenkosten und Zuschlägen.</span>
+              </p>
+             </Text>
+            </DetailTxt>
+            <OutlineText>
+             <OutlTxt>
+              <TextOutlTxt>
+               <p style="text-align:left;margin-top:0pt;margin-bottom:0pt;">
+                <span>Einsatz Bahnübergangsposten</span>
+               </p>
+              </TextOutlTxt>
+             </OutlTxt>
+            </OutlineText>
+           </CompleteText>
+          </Description>
+         </Item>
+         <Item ID="AAAAAAABILFPMNIA" RNoPart="0080">
+          <Qty>1.000</Qty>
+          <QU>h</QU>
+          <CtlgAssign>
+           <CtlgID>AAAAAAABIIJNAANA</CtlgID>
+           <CtlgCode>000</CtlgCode>
+          </CtlgAssign>
+          <Description>
+           <CompleteText>
+            <DetailTxt>
+             <Text>
+              <p style="margin-right:31pt;text-align:left;margin-top:0pt;margin-bottom:0pt;">
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Stundenverrechnungssatz je Arbeitsstunde für</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Einsatz von Personal als Hilfsposten. Sicherung des Straßenverkehrs vor Gefahren aus dem</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Eisenbahnbetrieb an einem Bahnübergang nach Weisung eines Bahnübergangspostens. Die Beistellung von Hilfsmitteln (Absperrmittel, Kommunikationsmittel) ist enthalten.</span>
+              </p>
+              <p style="margin-right:31pt;text-align:left;margin-top:0pt;margin-bottom:0pt;">
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Die technische BÜ-Sicherung ist nicht in Betrieb.</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Hilfsposten, inkl. Nebenkosten und Zuschlägen.</span>
+              </p>
+             </Text>
+            </DetailTxt>
+            <OutlineText>
+             <OutlTxt>
+              <TextOutlTxt>
+               <p style="text-align:left;margin-top:0pt;margin-bottom:0pt;">
+                <span>Einsatz Hilfsposten</span>
+               </p>
+              </TextOutlTxt>
+             </OutlTxt>
+            </OutlineText>
+           </CompleteText>
+          </Description>
+         </Item>
+         <Item ID="AAAAAAABILFPNEKA" RNoPart="0090">
+          <LumpSumItem>Yes</LumpSumItem>
+          <Qty>1.000</Qty>
+          <QU>psch</QU>
+          <CtlgAssign>
+           <CtlgID>AAAAAAABIIJNAANA</CtlgID>
+           <CtlgCode>000</CtlgCode>
+          </CtlgAssign>
+          <Description>
+           <CompleteText>
+            <ComplTSA>Yes</ComplTSA>
+            <ComplTSB>Yes</ComplTSB>
+            <DetailTxt>
+             <Text>
+              <p style="margin-right:31pt;text-align:left;margin-top:0pt;margin-bottom:0pt;">
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">E</span>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">insatz einer mobilen Sicherungsanlage als technisches Hilfsmittel zur Unterstützung für Bahnübergangsposten zur Sicherung von Bahnübergängen auf- und abbauen, DB zugelassenes System, einschl. Ortsbegehung, Planung, Inbetriebnahme gem.</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">TM 4-2016-10088 oder TM 4-2016-10091,</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Anlage vorhalten und betreiben.</span>
+               <br/>
+              </p>
+              <p style="text-align:left;margin-top:0pt;margin-bottom:0pt;">
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Umfang der Sicherungsmaßnahme:</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">während der zeitlichen Vorgaben zur Sicherung von</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Bahnübergängen.</span>
+              </p>
+              <p style="text-align:left;margin-top:0pt;margin-bottom:0pt;">
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Anzahl der Bahnübergänge: </span>
+              </p>
+             </Text>
+             <TextComplement MarkLbl="61" Kind="Owner">
+              <ComplCaption/>
+              <ComplBody>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">&#x27; &#x27;</span>
+              </ComplBody>
+              <ComplTail/>
+             </TextComplement>
+             <Text>
+              <p style="text-align:left;margin-top:0pt;margin-bottom:0pt;">
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Stk.,</span>
+              </p>
+              <p style="text-align:left;margin-top:0pt;margin-bottom:0pt;">
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">transportable Lichtzeichenanlage </span>
+              </p>
+             </Text>
+             <TextComplement MarkLbl="62" Kind="Bidder">
+              <ComplCaption>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Fabrikat: </span>
+              </ComplCaption>
+              <ComplBody>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">&#x27;...&#x27;</span>
+              </ComplBody>
+              <ComplTail/>
+             </TextComplement>
+             <Text>
+              <p style="text-align:left;margin-top:0pt;margin-bottom:0pt;">
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">(Bieterangabe)</span>
+              </p>
+             </Text>
+            </DetailTxt>
+            <OutlineText>
+             <OutlTxt>
+              <TextOutlTxt>
+               <p style="text-align:left;margin-top:0pt;margin-bottom:0pt;">
+                <span>Einsatz einer mobilen Sicherungsanlage</span>
+               </p>
+              </TextOutlTxt>
+             </OutlTxt>
+            </OutlineText>
+           </CompleteText>
+          </Description>
+         </Item>
+         <Item ID="AAAAAAABILFPNLMA" RNoPart="0100">
+          <Qty>1.000</Qty>
+          <QU>h</QU>
+          <CtlgAssign>
+           <CtlgID>AAAAAAABIIJNAANA</CtlgID>
+           <CtlgCode>000</CtlgCode>
+          </CtlgAssign>
+          <Description>
+           <CompleteText>
+            <DetailTxt>
+             <Text>
+              <p style="margin-right:31pt;text-align:left;margin-top:0pt;margin-bottom:0pt;">
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Verrechnungssatz für die zur Betreibung der mobilen</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Sicherungsanlage(n), gemäß  Leistungsbeschreibung, erforderlichen Betriebsstoffe.</span>
+              </p>
+             </Text>
+            </DetailTxt>
+            <OutlineText>
+             <OutlTxt>
+              <TextOutlTxt>
+               <p style="text-align:left;margin-top:0pt;margin-bottom:0pt;">
+                <span>Energieversorgung mobilen Sicherungsanlage</span>
+               </p>
+              </TextOutlTxt>
+             </OutlTxt>
+            </OutlineText>
+           </CompleteText>
+          </Description>
+         </Item>
+         <Item ID="AAAAAAABILFPOCOA" RNoPart="0110">
+          <Qty>1.000</Qty>
+          <QU>h</QU>
+          <CtlgAssign>
+           <CtlgID>AAAAAAABIIJNAANA</CtlgID>
+           <CtlgCode>000</CtlgCode>
+          </CtlgAssign>
+          <Description>
+           <CompleteText>
+            <DetailTxt>
+             <Text>
+              <p style="margin-right:31pt;text-align:left;margin-top:0pt;margin-bottom:0pt;">
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Stundenverrechnungssatz je Arbeitsstunde für</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Einsatz von Personal als Helfer im Bahnbetrieb.</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Unterstützung des stationären Personals des AG bei der</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Durchführung von Zugfahrten.</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Helfer im Bahnbetrieb, inkl. Nebenkosten und Zuschlägen.</span>
+              </p>
+             </Text>
+            </DetailTxt>
+            <OutlineText>
+             <OutlTxt>
+              <TextOutlTxt>
+               <p style="text-align:left;margin-top:0pt;margin-bottom:0pt;">
+                <span>Einsatz Helfer im Bahnbetrieb</span>
+               </p>
+              </TextOutlTxt>
+             </OutlTxt>
+            </OutlineText>
+           </CompleteText>
+          </Description>
+         </Item>
+         <Item ID="AAAAAAABILFPOKAA" RNoPart="0120">
+          <Qty>1.000</Qty>
+          <QU>h</QU>
+          <CtlgAssign>
+           <CtlgID>AAAAAAABIIJNAANA</CtlgID>
+           <CtlgCode>000</CtlgCode>
+          </CtlgAssign>
+          <Description>
+           <CompleteText>
+            <DetailTxt>
+             <Text>
+              <p style="margin-right:31pt;text-align:left;margin-top:0pt;margin-bottom:0pt;">
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Stundenverrechnungssatz je Arbeitsstunde für</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Einsatz von Personal als Schaltantragsteller.</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Beantragen von Schaltungen und Ausführen von</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Schalthandlungen im Auftrage des AG.</span>
+               <br/>
+               <span style="font-family:Arial;font-size:10pt;Color:rgb(0,0,0);">Schaltantragsteller, inkl. Nebenkosten und Zuschlägen.</span>
+              </p>
+             </Text>
+            </DetailTxt>
+            <OutlineText>
+             <OutlTxt>
+              <TextOutlTxt>
+               <p style="text-align:left;margin-top:0pt;margin-bottom:0pt;">
+                <span>Einsatz Schaltantragsteller</span>
+               </p>
+              </TextOutlTxt>
+             </OutlTxt>
+            </OutlineText>
+           </CompleteText>
+          </Description>
+         </Item>
+        </Itemlist>
+       </BoQBody>
+      </BoQCtgy>
+     </BoQBody>
+    </BoQCtgy>
+   </BoQBody>
+  </BoQ>
+ </Award>
+</GAEB>
