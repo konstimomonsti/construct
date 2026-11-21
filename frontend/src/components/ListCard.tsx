@@ -1,5 +1,5 @@
-import { Row, RowList, RowMenu, BudgetBadge, BudgetMini, budgetPhrase } from './Kit'
-import { int, money, moneyWhole, plural } from '../lib/format'
+import { Row, RowList, RowMenu } from './Kit'
+import { int, money, plural } from '../lib/format'
 import { useActions } from '../lib/actions'
 import type { ListView } from '../lib/store'
 
@@ -58,17 +58,15 @@ export function ListRow({
   const { title } = listLabel(l, siblings)
   const { blank, priced, coverage } = listPricing(l)
   const subtitle = [phaseLabel(l), blank ? null : plural(l.positionsCount, 'position', 'positions'), priced ? completeness(l) : null].filter(Boolean).join(' · ')
-  // the link names the cap and how much is priced, also for a list whose prices were saved as zero
-  const capPhrase = l.cap ? `cap ${moneyWhole(l.cap)}` : 'no cap set'
   const label = [
     title, phaseLabel(l), coverage,
     priced ? money(l.total) : blank ? null : 'not priced',
-    l.supersededBy ? 'earlier version, not counted' : priced && l.cap ? `${budgetPhrase(l.total, l.cap, true)} of ${moneyWhole(l.cap)}` : capPhrase,
+    l.supersededBy ? 'earlier version, not counted' : null,
   ].filter(Boolean).join(', ')
   const meta = l.supersededBy
     ? <span className="text-sm text-slate-600">Replaced by {l.supersededBy}</span>
     : blank ? <span className="text-sm text-slate-600">No positions yet</span>
-    : priced ? <BudgetMini total={l.total} cap={l.cap} priced label={`${title} budget used`} />
+    : priced ? undefined
     : <span className="text-sm text-slate-600">Not priced</span>
   return (
     <Row
@@ -78,7 +76,6 @@ export function ListRow({
       icon="request_quote"
       tone={l.supersededBy ? 'slate' : tone}
       title={title}
-      badge={l.supersededBy ? undefined : <BudgetBadge total={l.total} cap={l.cap} />}
       subtitle={subtitle}
       amount={priced || l.supersededBy ? <span className={l.supersededBy ? 'text-slate-500 line-through decoration-slate-500' : undefined}>{money(l.total)}</span> : undefined}
       meta={meta}

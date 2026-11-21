@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { useShallow } from 'zustand/react/shallow'
 import type { DocMeta, FolderMeta, Library, ListDoc, ListMeta, Position, Tone } from './types'
-import { fixedBudget, gaebPhase } from './format'
+import { gaebPhase } from './format'
 import { positionTotal } from './money'
 import { removeDocuments } from './documents'
 import { withoutLegacyImports } from './legacy'
@@ -373,14 +373,12 @@ export interface FolderView extends FolderMeta {
   archived: boolean
   trashedAt?: string
   total: number
-  cap: number
   positions: number
   priced: number
   listMetas: ListView[]
 }
 
 export interface ListView extends ListMeta {
-  cap: number
   trashedAt?: string
   /** GAEB exchange phase (D84 = bid, D86 = award …) read from the file name */
   phaseCode?: string
@@ -442,7 +440,6 @@ function buildLists(s: State): ListView[] {
     const folderId = patch.folderId ?? m.folderId
     const st = s.stats[m.id]
     const total = st?.total ?? m.total
-    const cap = patch.cap ?? fixedBudget(m.total)
     return {
       ...m,
       title: patch.title ?? m.title,
@@ -450,7 +447,6 @@ function buildLists(s: State): ListView[] {
       total,
       pricedCount: st?.pricedCount ?? m.pricedCount,
       positionsCount: st?.positionsCount ?? m.positionsCount,
-      cap,
       trashedAt: s.folderPatch[folderId]?.trashedAt === 'purged' ? 'purged' : patch.trashedAt,
       phaseCode: phase?.code,
       phaseName: phase?.name,
@@ -474,14 +470,6 @@ function buildDocuments(s: State): (DocMeta & { originalFolderId?: string })[] {
 function buildFolders(s: State, lists: ListView[], documents: ReturnType<typeof buildDocuments>): FolderView[] {
   const byId = new Map(lists.map((l) => [l.id, l]))
   const all = [...(s.base?.folders ?? []), ...s.userFolders]
-  const originalTotals = new Map<string, number>()
-  // an earlier version (D84 next to its D86) is not counted twice in the fixed budget;
-  // imported lists set the budget of the folder they arrived in, like the sample lists do
-  const superseded = new Set(lists.filter((l) => l.supersededBy).map((l) => l.id))
-  for (const list of [...(s.base?.lists ?? []), ...s.userLists]) {
-    if (superseded.has(list.id)) continue
-    originalTotals.set(list.folderId, (originalTotals.get(list.folderId) ?? 0) + list.total)
-  }
   const documentsByFolder = new Map<string, DocMeta[]>()
   for (const doc of documents) {
     const list = doc.listId ? byId.get(doc.listId) : undefined
@@ -511,7 +499,6 @@ function buildFolders(s: State, lists: ListView[], documents: ReturnType<typeof 
         archived: !!patch.archived,
         trashedAt: patch.trashedAt,
         total,
-        cap: patch.cap ?? fixedBudget(originalTotals.get(f.id) ?? 0),
         positions: counted.reduce((a, l) => a + l.positionsCount, 0),
         priced: counted.reduce((a, l) => a + l.pricedCount, 0),
         listMetas: ordered,
@@ -558,26 +545,4 @@ export function folderPath(folders: FolderView[], id: string): FolderView[] {
     folder = folders.find((entry) => entry.id === parentId)
   }
   return path
-}
-
-/**
- * The one portfolio figure used on All Projects and Active Budgets: the money in every
- * active (not archived, not trashed) project, against the sum of those projects' caps.
- * Projects without priced lists add neither money nor cap.
- */
-export function portfolioBudget(folders: FolderView[]) {
-  const live = folders.filter((f) => !f.trashedAt && !f.archived && !isInArchived(folders, f) && f.total > 0)
-  const total = live.reduce((a, f) => a + f.total, 0)
-  const cap = live.reduce((a, f) => a + f.cap, 0)
-  return { total, cap, projects: live.length }
-}
-
-function isInArchived(folders: FolderView[], f: FolderView) {
-  return folderPath(folders, f.id).some((x) => x.archived || x.trashedAt)
-}
-
-export function useWorkspaceBudget() {
-  const { folders } = useModel()
-  const b = portfolioBudget(folders)
-  return { total: b.total, cap: b.cap, pct: b.cap ? (b.total / b.cap) * 100 : 0 }
 }

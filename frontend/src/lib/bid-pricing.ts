@@ -48,10 +48,10 @@ export function bidAssumptions(tender: PricingTender, rates: Record<string, Rate
     const rate = rates[key]
     const cost = number(rate.cost, `${key} unit cost`, 2)
     const standard = number(rate.standard, `${key} standard rate`, 2)
-    const floor = rate.floor.trim() ? number(rate.floor, `${key} minimum rate`, 2) : standard
-    const ceiling = rate.ceiling.trim() ? number(rate.ceiling, `${key} maximum rate`, 2) : standard
+    const floor = rate.floor.trim() ? number(rate.floor, `${key} lower rate`, 2) : standard
+    const ceiling = rate.ceiling.trim() ? number(rate.ceiling, `${key} higher rate`, 2) : standard
     if (!(cost <= floor && floor <= standard && standard <= ceiling)) {
-      throw new Error(`Position ${key} needs unit cost ≤ minimum ≤ standard ≤ maximum.`)
+      throw new Error(`Position ${key} needs unit cost ≤ lower rate ≤ standard ≤ higher rate.`)
     }
     return [key, { unit_cost: cost, standard_rate: standard, min_rate: floor, max_rate: ceiling }]
   }))
@@ -73,7 +73,7 @@ export function bidAssumptions(tender: PricingTender, rates: Record<string, Rate
     throw new Error('Enter positive market probabilities that add up to 100%.')
   }
   const scenarios = markets.flatMap(({ threshold }, i) => {
-    const winning_bid_ceiling = number(threshold, `Market ${i + 1} award ceiling`, 2)
+    const winning_bid_ceiling = number(threshold, `Market ${i + 1} estimated competing bid`, 2)
     const weight = marketWeights[i]
     return [
       { name: `Market ${i + 1} · as tendered`, weight: weight * (PERCENT - correctionChance), changes: {} },

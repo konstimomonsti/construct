@@ -75,7 +75,6 @@ export function useActions() {
     { label: 'Open', icon: 'folder_open', onSelect: () => navigate(`/folder/${f.id}`) },
     { label: 'Rename', icon: 'edit', onSelect: () => openDialog({ kind: 'rename-folder', id: f.id }) },
     { label: 'Move…', icon: 'drive_file_move', onSelect: () => openDialog({ kind: 'folder-target', action: 'move-folder', folderId: f.id }) },
-    { label: 'Edit budget cap…', icon: 'savings', onSelect: () => openDialog({ kind: 'edit-cap', target: 'folder', id: f.id }) },
     {
       label: f.archived ? 'Restore from Archive' : 'Archive',
       icon: f.archived ? 'unarchive' : 'archive',
@@ -97,7 +96,6 @@ export function useActions() {
     { label: 'Open in new tab bar', icon: 'tab', onSelect: () => useStore.getState().openTab(l.id) },
     { label: 'Rename', icon: 'edit', onSelect: () => openDialog({ kind: 'rename-list', id: l.id }) },
     { label: 'Move…', icon: 'drive_file_move', onSelect: () => openDialog({ kind: 'folder-target', action: 'move-list', listId: l.id }) },
-    { label: 'Edit budget cap…', icon: 'savings', onSelect: () => openDialog({ kind: 'edit-cap', target: 'list', id: l.id }) },
     'sep',
     { label: 'Delete…', icon: 'delete', danger: true, onSelect: () => deleteLists([l]) },
   ]

@@ -3,7 +3,7 @@ import { Button, Dialog, Icon, inputCls } from './ui'
 import { bidAssumptions, bidPricing, type BidPosition, type Change, type Market, type Opportunity, type PricingResult, type PricingTender, type Rates } from '../lib/bid-pricing'
 import { inputNumber, parseNumber, pct1, qty } from '../lib/format'
 
-const rateLabels = { cost: 'Unit cost', standard: 'Standard rate', floor: 'Minimum', ceiling: 'Maximum' } as const
+const rateLabels = { cost: 'Unit cost', standard: 'Standard rate', floor: 'Lower rate', ceiling: 'Higher rate' } as const
 const strategies = { standard: 'Standard rates', price_only: 'Price-only', quantity_aware: 'Quantity-aware' } as const
 const numberClass = `${inputCls} h-9 min-w-0 text-right tabular-nums`
 
@@ -130,7 +130,7 @@ export function BidSimulator({ listId, title, standardRates }: {
             <section className="rounded-lg border border-slate-200">
               <div className="px-4 py-3">
                 <h3 className="text-sm font-semibold text-slate-900">Position rates <span className="font-normal text-slate-500">· {currency} per unit</span></h3>
-                <p className="mt-0.5 text-xs text-slate-600">Enter direct costs and standard rates. Blank limits fix the rate at its standard value.</p>
+                <p className="mt-0.5 text-xs text-slate-600">Enter direct costs and standard rates. Blank rates use the standard rate.</p>
               </div>
               <div className="max-h-64 overflow-auto">
                 <table className="w-full border-collapse sm:min-w-[600px] text-sm">
@@ -156,10 +156,10 @@ export function BidSimulator({ listId, title, standardRates }: {
             <div className="grid gap-4 md:grid-cols-2">
               <section className="min-w-0 rounded-lg border border-slate-200 p-4">
                 <h3 className="text-sm font-semibold text-slate-900">Market scenarios</h3>
-                <p className="mb-3 mt-0.5 text-xs text-slate-600">A bid wins at or below the award ceiling. Market probabilities must total 100%.</p>
+                <p className="mb-3 mt-0.5 text-xs text-slate-600">The model compares your offer with the estimated competing bid. Market probabilities must total 100%.</p>
                 {markets.map((market, index) => <div key={market.id} className="mb-2 grid grid-cols-[1fr_1fr_auto] items-end gap-2">
-                  <label className="text-xs text-slate-700">Award ceiling ({currency})
-                    <NumberField label={`Market ${index + 1} award ceiling`} value={market.threshold}
+                  <label className="text-xs text-slate-700">Estimated competing bid ({currency})
+                    <NumberField label={`Market ${index + 1} estimated competing bid`} value={market.threshold}
                       onChange={(threshold) => update(() => setMarkets((all) => all.map((m) => m.id === market.id ? { ...m, threshold } : m)))} />
                   </label>
                   <label className="text-xs text-slate-700">Probability (%)

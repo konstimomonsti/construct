@@ -2,8 +2,7 @@ import { clsx } from 'clsx'
 import { useRef, type KeyboardEvent, type ReactNode } from 'react'
 import { Icon } from '../ui'
 import { CraneProgress } from './CraneProgress'
-import { money, moneyWhole } from '../../lib/format'
-import { raisedCls } from '../../lib/cls'
+import { money } from '../../lib/format'
 import type { WorkflowPhase, WorkflowState } from '../../lib/workflow'
 
 export type Phase = WorkflowPhase
@@ -26,15 +25,13 @@ export function PhasePanel({ phase, children }: { phase: Phase; children: ReactN
 }
 
 /**
- * The list hero: the "Left" figure, the crane jib showing workflow progress, the phase tabs directly under the jib
+ * The list hero: the total, the crane jib showing workflow progress, the phase tabs directly under the jib
  * (the tick marks on the jib sit at the tab boundaries), then the meta row, the research note and the expandable legend.
  */
 export function PhaseHeader({
-  cap, total, onEditCap, sub, meta, note, extra, phase, onPhase, badges, workflow,
+  total, sub, meta, note, extra, phase, onPhase, badges, workflow,
 }: {
-  cap: number
   total: number
-  onEditCap?: () => void
   /** one quiet line, e.g. money that is proposed but not counted yet */
   sub?: ReactNode
   meta?: ReactNode
@@ -47,7 +44,6 @@ export function PhaseHeader({
   /** where the project stands (`currentPhase`): drives the crane and the check marks */
   workflow: WorkflowState
 }) {
-  const left = cap - total
   const tabs = useRef<(HTMLButtonElement | null)[]>([])
 
   const onKey = (e: KeyboardEvent<HTMLButtonElement>, index: number) => {
@@ -63,31 +59,11 @@ export function PhaseHeader({
   }
 
   return (
-    <section aria-label="List budget and workflow" className="mb-6">
-      <div className="flex min-h-[3.25rem] flex-wrap items-end justify-end gap-x-10 gap-y-2">
-        {cap > 0 ? (
-          <dl className="text-right">
-            <dt className="text-sm font-semibold text-slate-800">{left >= 0 ? 'Left' : 'Over'}</dt>
-            <dd className={clsx('num mt-0.5 text-xl font-bold sm:text-[28px]', left >= 0 ? 'text-slate-900' : 'text-rose-700')}>{money(Math.abs(left))}</dd>
-            <dd className="text-sm text-slate-600">
-              {left >= 0 ? 'before the cap' : 'past the cap'}
-              {onEditCap && (
-                <button
-                  type="button"
-                  onClick={onEditCap}
-                  aria-label={`Cap: ${moneyWhole(cap)}. Edit budget cap`}
-                  title={`Cap: ${moneyWhole(cap)}. Edit budget cap`}
-                  className="relative ml-1 inline-flex size-7 items-center justify-center rounded-md align-middle text-slate-600 transition-colors after:absolute after:-inset-1.5 after:content-[''] hover:bg-slate-100 hover:text-slate-900"
-                >
-                  <Icon name="edit" size={16} />
-                </button>
-              )}
-            </dd>
-          </dl>
-        ) : (
-          onEditCap && <button type="button" onClick={onEditCap} className={clsx('h-9 rounded-md px-3 text-sm font-semibold', raisedCls)}>Set a cap</button>
-        )}
-      </div>
+    <section aria-label="List total and workflow" className="mb-6">
+      <dl className="text-right">
+        <dt className="text-sm font-semibold text-slate-800">List total</dt>
+        <dd className="num mt-0.5 text-xl font-bold text-slate-900 sm:text-[28px]">{money(total)}</dd>
+      </dl>
       {sub && <div className="mt-1.5 text-right text-sm text-slate-600">{sub}</div>}
 
       <div className="relative mt-3 sm:mt-4">

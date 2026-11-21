@@ -1,10 +1,10 @@
 import { clsx } from 'clsx'
-import { Fragment, useId, type ReactNode } from 'react'
+import { Fragment, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { Icon, kbdCls, Menu, Meter, type MenuItem } from './ui'
+import { Icon, kbdCls, Menu, type MenuItem } from './ui'
 import { raisedCls } from '../lib/cls'
 import { Page } from './Page'
-import { budgetStatus, int, money, moneyWhole } from '../lib/format'
+import { int } from '../lib/format'
 import { MOD_KEY } from '../lib/keys'
 
 /* ------------------------------------------------------------------ */
@@ -69,7 +69,7 @@ export function PageHeader({
 /* Avatar (round icon, Wise-style)                                     */
 /* ------------------------------------------------------------------ */
 
-/** every project and list gets the same tile: colour is kept for budget status, so tiles carry no hue of their own */
+/** every project and list gets the same tile: tiles carry no hue of their own */
 export const toneTile: Record<string, string> = {
   indigo: 'bg-brand-50 text-brand-700',
   emerald: 'bg-brand-50 text-brand-700',
@@ -96,101 +96,7 @@ export function Avatar({ icon, tone = 'slate', size = 'md' }: { icon: string; to
 }
 
 /* ------------------------------------------------------------------ */
-/* Status tag + budget line                                            */
-/* ------------------------------------------------------------------ */
-
-const statusCls: Record<string, string> = {
-  ok: 'bg-emerald-100 text-emerald-800',
-  caution: 'bg-amber-100 text-amber-900',
-  warn: 'bg-orange-100 text-orange-800',
-  // past the cap is the one state that shouts
-  over: 'bg-rose-600 text-white',
-  none: 'bg-slate-200 text-slate-800',
-}
-export const statusText: Record<string, string> = {
-  ok: 'text-emerald-800',
-  caution: 'text-amber-800',
-  warn: 'text-orange-800',
-  over: 'text-rose-700',
-  none: 'text-slate-600',
-}
-const statusIcon: Record<string, string> = {
-  ok: 'check_circle',
-  caution: 'error',
-  warn: 'warning',
-  over: 'report',
-  none: 'remove_circle_outline',
-}
-
-/** one threshold per status word; spoken after the word, never a mouse-only tooltip */
-export const STATUS_HINT: Record<string, string> = {
-  ok: 'below 75% of the cap used',
-  caution: '75 to 89% of the cap used',
-  warn: '90 to 100% of the cap used',
-  over: 'more than the cap used',
-  none: '',
-}
-
-export function StatusTag({ tone, word, small, hint }: { tone: string; word: string; small?: boolean; hint?: boolean }) {
-  return (
-    <span
-      className={clsx(
-        'inline-flex items-center gap-1 rounded-md font-semibold whitespace-nowrap',
-        small ? 'py-px pr-2 pl-1 text-xs' : 'h-7 pr-2.5 pl-2 text-sm',
-        statusCls[tone] ?? statusCls.none,
-      )}
-    >
-      <Icon name={statusIcon[tone] ?? 'info'} size={small ? 14 : 16} fill />
-      {word}
-      {hint && STATUS_HINT[tone] && <span className="sr-only">, {STATUS_HINT[tone]}</span>}
-    </span>
-  )
-}
-
-/** status chip for a row's title line; nothing when the budget is fine */
-export function BudgetBadge({ total, cap }: { total: number; cap: number }) {
-  const st = budgetStatus(total, cap)
-  if (!total || !cap || st.tone === 'ok') return null
-  return <StatusTag tone={st.tone} word={st.word} />
-}
-
-/**
- * a roll-up ("1 list almost at cap") is about the children, not the row itself, so it is quieter than the row's own
- * filled status chip: no fill, the status icon keeps its colour, the words stay muted ink.
- * `tinted` (the hero) sets the words in the status colour too, so the worst child state reads beside the total's chip.
- */
-export function RollupTag({ tone, word, tinted }: { tone: string; word: string; tinted?: boolean }) {
-  return (
-    <span className={clsx('inline-flex items-center gap-1 whitespace-nowrap', tinted ? ['text-sm font-semibold', statusText[tone]] : 'text-[13px] font-medium text-slate-700')}>
-      <Icon name={statusIcon[tone] ?? 'info'} size={16} fill className={statusText[tone]} />
-      {word}
-    </span>
-  )
-}
-
-/** spoken summary of a budget, used inside row link names; `priced` keeps a saved zero price from reading as unpriced */
-export function budgetPhrase(total: number, cap: number, priced?: boolean) {
-  if (!total && !priced) return 'not priced'
-  if (!cap) return 'no cap set'
-  const st = budgetStatus(total, cap)
-  return `${st.word.toLowerCase()}, ${Math.round(st.pct)}% of cap`
-}
-
-/** row right-column budget line: "75% of 2.000.000 €" plus a slim meter; the status word sits on the title line (BudgetBadge) */
-export function BudgetMini({ total, cap, label, priced }: { total: number; cap: number; label: string; priced?: boolean }) {
-  const st = budgetStatus(total, cap)
-  if (!total && !priced) return <span className="text-sm text-slate-600">Not priced</span>
-  if (!cap) return <span className="text-sm text-slate-600">No cap set</span>
-  return (
-    <span className="flex items-center justify-end gap-2 text-sm whitespace-nowrap text-slate-600">
-      <span className="num">{Math.round(st.pct)}%<span className="max-sm:sr-only"> of {moneyWhole(cap)}</span></span>
-      <Meter value={st.pct} tone={st.tone} height="h-2" className="w-12 flex-none sm:w-16" label={label} />
-    </span>
-  )
-}
-
-/* ------------------------------------------------------------------ */
-/* Summary — the one hero number per screen                            */
+/* Summary                                            */
 /* ------------------------------------------------------------------ */
 
 /** the hero number; cents are set smaller so the euros carry the weight (Wise-style) */
@@ -205,266 +111,16 @@ export function BigMoney({ value, className }: { value: string; className?: stri
   )
 }
 
-export interface HeroStatus {
-  tone: string
-  word: string
-}
-
-/**
- * "of 2.000.000 € ✎" as one button: the cap is a setting, so it reads as one. 32px tall, bleeding into the line
- * spacing so the text keeps its place; the pencil is slate-600 at rest (3:1 against the page).
- */
-function CapButton({ cap, capLabel, onClick }: { cap: number; capLabel: string; onClick: () => void }) {
+export function Summary({ label, amount, sub }: { label: string; amount: string; sub?: ReactNode }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={`${capLabel === 'cap' ? 'Cap' : capLabel}: ${moneyWhole(cap)}. Edit budget cap`}
-      className="group/cap -mx-1.5 -my-1.5 inline-flex h-8 items-center gap-1 rounded-md px-1.5 align-middle text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
-    >
-      of
-      <span className="num text-slate-700 underline decoration-slate-400 decoration-dotted underline-offset-4 group-hover/cap:text-slate-900 group-hover/cap:decoration-slate-900">{moneyWhole(cap)}</span>
-      <Icon name="edit" size={16} className="text-slate-600 group-hover/cap:text-slate-900" />
-    </button>
-  )
-}
-
-/** an info button whose explanation shows on hover or focus; the text is also its accessible name */
-export function InfoTip({ text }: { text: string }) {
-  return (
-    <span className="group/tip relative inline-flex">
-      <button type="button" aria-label={text} className="relative grid size-6 place-items-center rounded-full text-slate-500 after:absolute after:-inset-2 after:content-[''] hover:text-slate-900">
-        <Icon name="info" size={18} />
-      </button>
-      <span role="tooltip" aria-hidden className="pointer-events-none absolute top-full left-1/2 z-30 mt-2 w-max max-w-64 -translate-x-1/2 rounded-md bg-slate-900 px-2.5 py-1.5 text-[13px] leading-snug text-white opacity-0 transition-opacity group-hover/tip:opacity-100 group-has-focus-visible/tip:opacity-100">
-        {text}
-      </span>
-    </span>
-  )
-}
-
-/**
- * One hero per screen: label, number, bar, ONE status line, at most one muted line, actions.
- * The pill always shows the worst state (a project near its cap makes the whole page "1 near cap").
- */
-export function Summary({
-  label, amount, total, cap, actions, meta, capLabel = 'cap', compact, status, bar, extra, hideLeft, note, hint, onEditCap, onStatus, sub, capNote, unpriced, pending, subject, statusAction, leftNote,
-}: {
-  /** one muted line beside the headroom, e.g. "12 of 40 positions priced", so what is left reads against coverage */
-  leftNote?: ReactNode
-  /** what the aggregate chip is about ("Portfolio" reads "Portfolio on track") */
-  subject?: string
-  /** spoken after the flagged-children text when it is a button, e.g. "show them in Needs attention" */
-  statusAction?: string
-  /** nothing counted yet: "On track" at 0 € would be a false all-clear, so the status says so instead */
-  unpriced?: boolean
-  /** money suggested but not yet confirmed: drawn as an unlit stretch on the jib */
-  pending?: number
-  /** one muted line under the cap figure saying what the cap is made of ("sum of 6 list caps") */
-  capNote?: ReactNode
-  /** one quiet line under the hero figure, e.g. money that is proposed but not counted yet */
-  sub?: ReactNode
-  /** makes the flagged-children text a link, e.g. to the Needs attention filter */
-  onStatus?: () => void
-  /** how the figure is measured, shown on demand behind an info button */
-  hint?: string
-  /** one muted line under the status line, e.g. which caps the figure is measured against */
-  note?: ReactNode
-  /** makes "x% of cap" a button that opens the cap editor */
-  onEditCap?: () => void
-  compact?: boolean
-  /** the hero number already is the headroom */
-  hideLeft?: boolean
-  status?: HeroStatus
-  label: string
-  amount: string
-  total: number
-  cap: number
-  /** replaces the plain meter, e.g. a bar split by pricing section */
-  bar?: ReactNode
-  /** rendered under the meta line, e.g. an expandable breakdown */
-  extra?: ReactNode
-  actions?: ReactNode
-  meta?: ReactNode
-  capLabel?: string
-}) {
-  const st = budgetStatus(total, cap)
-  const left = cap - total
-  const statusEl = status && (onStatus ? (
-    <button type="button" onClick={onStatus} className="relative -ml-1 inline-flex h-7 items-center gap-0.5 rounded-md pr-1 pl-1.5 after:absolute after:inset-x-0 after:-inset-y-2 after:content-[''] hover:bg-slate-100">
-      <RollupTag tone={status.tone} word={status.word} tinted />
-      {statusAction && <span className="sr-only">, {statusAction}</span>}
-      <Icon name="chevron_right" size={18} className="text-slate-500" />
-    </button>
-  ) : <RollupTag tone={status.tone} word={status.word} tinted />)
-  return (
-    <section aria-label={label} className={compact ? 'mb-6' : actions ? 'mb-10' : 'mb-8'}>
-      {/* the figure on the left, the two numbers it is judged by on the right, the jib across the full width */}
-      <div className="flex flex-wrap items-end justify-between gap-x-10 gap-y-4">
-        <div className="min-w-0">
-          <div className="text-sm font-semibold text-slate-800">{label}</div>
-          <BigMoney value={amount} className={clsx('num display mt-1 block leading-[1.05] text-slate-900', compact ? 'text-[30px] sm:text-[44px]' : 'text-[34px] sm:text-[54px]')} />
-          {sub && <div className="mt-1.5 text-sm text-slate-600">{sub}</div>}
-          {/* on phones the hero states the two judging numbers in one line, so the work starts sooner */}
-          {cap > 0 && (
-            <p className="num mt-1 text-sm text-slate-600 sm:hidden">
-              {Math.round(st.pct)}% {onEditCap ? <CapButton cap={cap} capLabel={capLabel} onClick={onEditCap} /> : <>of {moneyWhole(cap)}</>} · <span className={left < 0 ? 'font-semibold text-rose-700' : undefined}>{money(Math.abs(left))} {left >= 0 ? 'left' : 'over'}</span>
-            </p>
-          )}
-          {cap > 0 && capNote && <p className="mt-0.5 text-[13px] text-slate-600 sm:hidden">{capNote}</p>}
-          {cap > 0 && leftNote && <p className="num mt-0.5 text-[13px] text-slate-600 sm:hidden">{leftNote}</p>}
-        </div>
-        {cap > 0 && (
-          <dl className="flex gap-x-10 gap-y-2 pb-1 max-sm:hidden sm:text-right">
-            <div>
-              <dt className="text-sm font-semibold text-slate-800">Used</dt>
-              <dd className="num mt-0.5 text-xl font-bold text-slate-900 sm:text-[28px]">{Math.round(st.pct)}%</dd>
-              <dd className="num text-sm text-slate-600">
-                {onEditCap ? <CapButton cap={cap} capLabel={capLabel} onClick={onEditCap} /> : <>of {moneyWhole(cap)}</>}
-              </dd>
-              {capNote && <dd className="mt-0.5 text-[13px] text-slate-600">{capNote}</dd>}
-            </div>
-            {!hideLeft && (
-              <div>
-                <dt className="text-sm font-semibold text-slate-800">{left >= 0 ? 'Left' : 'Over'}</dt>
-                <dd className={clsx('num mt-0.5 text-xl font-bold sm:text-[28px]', left >= 0 ? 'text-slate-900' : 'text-rose-700')}>{money(Math.abs(left))}</dd>
-                <dd className="text-sm text-slate-600">{left >= 0 ? 'before the cap' : 'past the cap'}</dd>
-                {leftNote && <dd className="num mt-0.5 text-[13px] text-slate-600">{leftNote}</dd>}
-              </div>
-            )}
-          </dl>
-        )}
-      </div>
-      {cap ? (
-        <>
-          <div className={compact ? 'mt-3 sm:mt-4' : 'mt-5'}>{bar ?? <TrussMeter total={total} cap={cap} tone={st.tone} pending={pending} label={`${label}: share of ${capLabel} used`} />}</div>
-          <div className="mt-2 flex flex-wrap items-center justify-between gap-x-6 gap-y-2 text-sm text-slate-600">
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-              {/* flagged children lead, so the first words read are the worst state; the total's chip then says it is about the total */}
-              {statusEl}
-              {unpriced && total === 0 ? <StatusTag tone="none" word="Nothing priced yet" /> : <StatusTag tone={st.tone} word={subject ? `${subject} ${st.word.toLowerCase()}` : status ? `Total ${st.word.toLowerCase()}` : st.word} hint />}
-              {hint && <InfoTip text={hint} />}
-              {note && <span>{note}</span>}
-            </div>
-            {meta && <div>{meta}</div>}
-          </div>
-        </>
-      ) : (
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-x-6 gap-y-2 text-sm text-slate-600">
-          <div className="flex flex-wrap items-center gap-3">
-            {statusEl}
-            <StatusTag tone="none" word="No cap set" />
-            {onEditCap && (
-              <button type="button" onClick={onEditCap} className={clsx('h-9 rounded-md px-3 font-semibold', raisedCls)}>Set a cap</button>
-            )}
-          </div>
-          {meta && <div>{meta}</div>}
-        </div>
-      )}
-      {extra}
-      {actions && <div className={clsx('flex flex-wrap items-center gap-2', compact ? 'mt-4' : 'mt-6')}>{actions}</div>}
+    <section aria-label={label} className="mb-8">
+      <div className="text-sm font-semibold text-slate-800">{label}</div>
+      <BigMoney value={amount} className="num display mt-1 block text-[34px] leading-[1.05] text-slate-900 sm:text-[54px]" />
+      {sub && <div className="mt-1.5 text-sm text-slate-600">{sub}</div>}
     </section>
   )
 }
 
-const trussInk: Record<string, string> = {
-  ok: 'text-jib',
-  caution: 'text-amber-500',
-  warn: 'text-orange-500',
-  over: 'text-rose-600',
-  none: 'text-slate-400',
-}
-
-/**
- * The hero meter, drawn as a crane jib: two chords and a zigzag web. The jib is the cap; the
- * lit part is what is spent; a hook hangs where spending stands. Past the cap the jib extends and
- * a mast marks where the cap was.
- */
-export function TrussMeter({ total, cap, tone, label, pending = 0 }: { total: number; cap: number; tone: string; label: string; pending?: number }) {
-  const id = useId().replace(/:/g, '')
-  const pct = cap > 0 ? (total / cap) * 100 : 0
-  const scale = Math.max(total, cap) || 1
-  const fill = Math.max(0, Math.min(100, (total / scale) * 100))
-  const capAt = (cap / scale) * 100
-  const hookAt = Math.max(1.5, Math.min(98.5, fill))
-  // money waiting for confirmation: an unlit stretch after the lit part, so "what if I confirm" reads at a glance; the hook stays put
-  const ghost = pending > 0 ? Math.max(0.5, Math.min(100 - fill, (pending / scale) * 100)) : 0
-  /* a pattern takes its colour from where it is defined, so each jib carries its own web */
-  const jib = (key: string) => (
-    <>
-      <pattern id={`${id}-${key}`} width="16" height="18" patternUnits="userSpaceOnUse">
-        <path d="M0 17 L8 1 L16 17" fill="none" stroke="currentColor" strokeWidth="1.25" />
-      </pattern>
-      <line x1="0" y1="1" x2="100%" y2="1" strokeWidth="2" />
-      <line x1="0" y1="17" x2="100%" y2="17" strokeWidth="2" />
-      <rect x="0" y="0" width="100%" height="18" fill={`url(#${id}-${key})`} stroke="none" />
-    </>
-  )
-  return (
-    <div
-      role="progressbar"
-      aria-valuemin={0}
-      aria-valuemax={100}
-      aria-valuenow={Math.round(Math.min(pct, 100))}
-      aria-valuetext={`${Math.round(pct)}%${ghost ? `, ${Math.round(cap > 0 ? ((total + pending) / cap) * 100 : 0)}% after confirming pending prices` : ''}`}
-      aria-label={label}
-      className="relative pb-4"
-    >
-      <svg width="100%" height="18" className="block overflow-visible" aria-hidden>
-        <defs>
-          <clipPath id={`${id}-clip`}>
-            <rect x="0" y="-2" height="22" className="transition-[width] duration-700 ease-out-expo motion-reduce:transition-none" style={{ width: `${fill}%` }} />
-          </clipPath>
-          {ghost > 0 && (
-            <clipPath id={`${id}-ghost`}>
-              <rect x={`${fill}%`} y="-2" width={`${ghost}%`} height="22" />
-            </clipPath>
-          )}
-        </defs>
-        <g className="text-slate-400" stroke="currentColor" strokeDasharray="4 3">{jib('rest')}</g>
-        {ghost > 0 && <g className="text-slate-500" stroke="currentColor" clipPath={`url(#${id}-ghost)`}><rect x="0" y="1" width="100%" height="16" className="fill-slate-200/70" stroke="none" />{jib('ghost')}</g>}
-        <g className={trussInk[tone] ?? trussInk.none} stroke="currentColor" clipPath={`url(#${id}-clip)`}>{jib('lit')}</g>
-        <rect x={`${capAt}%`} y="-5" width="3" height="28" className="fill-slate-700" transform="translate(-1.5 0)" />
-      </svg>
-      <svg width="12" height="16" viewBox="0 0 12 16" aria-hidden className={clsx('absolute top-[17px] -translate-x-1/2 transition-[left] duration-700 ease-out-expo motion-reduce:transition-none', trussInk[tone] ?? trussInk.none)} style={{ left: `${hookAt}%` }}>
-        <path d="M6 0 V8 M6 8 C6 8 2.5 8 2.5 11.5 C2.5 15 9.5 15 9.5 11.5" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
-      </svg>
-    </div>
-  )
-}
-
-const RANK: Record<string, number> = { none: 0, ok: 0, caution: 1, warn: 2, over: 3 }
-
-const PHRASE: Record<string, string> = { over: 'over cap', warn: 'almost at cap', caution: 'near cap' }
-
-/**
- * Aggregate pill: the worst state wins. When the total itself is fine but children are flagged,
- * the pill counts them per level, worst first ("1 list almost at cap · 1 near cap").
- * `keepSame` (heroes) keeps the count when the total is already at the same level, so the exceptions stay visible.
- */
-export function heroStatus(own: { total: number; cap: number }, children: { tone: string }[], noun: [string, string], opts?: { keepSame?: boolean; always?: boolean }): HeroStatus | undefined {
-  const mine = budgetStatus(own.total, own.cap)
-  const flagged = children.filter((c) => RANK[c.tone] > 0)
-  if (!flagged.length) return undefined
-  const worst = flagged.reduce((w, c) => (RANK[c.tone] > RANK[w] ? c.tone : w), 'caution')
-  // `always`: the exception count stays even when the aggregate is worse, so the flagged children are never hidden
-  if (!opts?.always && (opts?.keepSame ? RANK[mine.tone] > RANK[worst] : RANK[mine.tone] >= RANK[worst])) return undefined
-  const parts = (['over', 'warn', 'caution'] as const)
-    .map((t) => [t, flagged.filter((c) => c.tone === t).length] as const)
-    .filter(([, n]) => n > 0)
-    .map(([t, n], i) => (i === 0 ? `${n} ${n === 1 ? noun[0] : noun[1]} ${PHRASE[t]}` : `${n} ${PHRASE[t]}`))
-  return { tone: worst, word: parts.join(' · ') }
-}
-
-/** worst status of an object's own cap and its children's caps (a project is as bad as its worst list) */
-export function worstTone(own: { total: number; cap: number }, children: { total: number; cap: number }[] = []) {
-  return [own, ...children]
-    .filter((x) => x.total > 0 && x.cap > 0)
-    .map((x) => budgetStatus(x.total, x.cap).tone as string)
-    .reduce((w, t) => (RANK[t] > RANK[w] ? t : w), 'ok')
-}
-
-/** a filter link inside hero meta: only the action words are underlined */
 export function MetaLink({ children, onClick, pressed }: { children: ReactNode; onClick: () => void; pressed?: boolean }) {
   return (
     <button type="button" aria-pressed={pressed} onClick={onClick} className="relative inline-flex h-7 items-center gap-1 rounded-md bg-slate-100 px-2 font-medium text-slate-900 after:absolute after:inset-x-0 after:-inset-y-2 after:content-[''] hover:bg-slate-200 aria-pressed:bg-slate-900 aria-pressed:text-white">
@@ -522,7 +178,7 @@ export function RowMenu({ items, label }: { items: (MenuItem | 'sep')[]; label: 
  * Wise-style list row: round icon · title (+ status chip) / subtitle · amount / meta · menu.
  * The whole row is one link (stretched); the menu sits above it. The row's content lines up with
  * the page column and its hover fill bleeds 12px outside it, so every trailing control shares one edge.
- * Phones keep the same anatomy: amount right on the title line, the budget line under the subtitle.
+ * Phones keep the same anatomy: amount right on the title line, the metadata under the subtitle.
  *
  * Mouse devices keep a fixed action gutter, so figures never move when the ⋯ appears on hover or focus: where the
  * page has a wide enough margin (≥1400px) the gutter sits outside the content edge and the figures end on that edge,
