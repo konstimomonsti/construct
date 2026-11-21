@@ -2,7 +2,7 @@
 
 Date — 21 November 2026
 
-Status — The stored-BOM pipe and cable conduit pilot is implemented. Review the operating instructions in the [README](../README.md#stored-bom-catalogue-analytics). Valves can appear as separate evidence-bearing occurrences and remain outside automatic identification and approval pending family-specific validation.
+Status — The stored-BOM pipe and cable conduit pilot is implemented. See the [operating instructions](OPERATIONS.md#stored-bom-catalogue-analytics). Valves can appear as separate evidence-bearing occurrences and remain outside automatic identification and approval pending family-specific validation.
 
 ## Objective
 

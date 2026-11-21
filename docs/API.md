@@ -188,7 +188,7 @@ These endpoints run the `backend/analysis/` pipeline on a stored BOM:
 - Layer 1: arithmetic, completeness, pricing and consistency checks.
 - Layer 2: GAEB dependency rules, such as concrete that needs formwork.
 - Layer 3: AI review of short- and long-text contradictions and layer 2 findings. Configure Ollama
-  or Anthropic as described in the [deployment guide](../README.md#enable-layer-3).
+  or Anthropic as described in the [deployment guide](OPERATIONS.md#enable-layer-3).
 
 Every run is stored. Each finding has a stable `id` (its finding key). An accept or reject decision
 carries over to later runs of the same BOM.
