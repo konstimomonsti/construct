@@ -13,6 +13,7 @@ The lead merges PRs and resolves conflicts in this file. Contracts are in [CLAUD
 | 04 | [Risk report UI, reviewer decisions, exports](tasks/04-risk-report-ui.md) | `feat/task-04` | todo | Uses a fixture until 03 lands |
 | 05 | [Planted-error evaluation and demo files](tasks/05-planted-error-evaluation.md) | `feat/task-05` | todo | Precast labels show "missed" until 01/02 merge |
 | 06 | [Upload real tender PDFs and .xls (queued)](tasks/06-real-pdf-excel-upload.md) | `feat/task-06` | queued | First worker to finish takes it |
+| 07 | [Usability walkthrough and improvement proposals (queued)](tasks/07-usability-walkthrough.md) | `feat/task-07` | queued | Report only (`docs/ui-review/WALKTHROUGH.md`); next free worker |
 
 Suggested merge order: 01 → 03 → 02 → 05 → 04 → 06. Each PR must pass CI (Python tests, frontend lint/build).
 
