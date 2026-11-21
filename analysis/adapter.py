@@ -407,7 +407,8 @@ def from_db(connection, bom_version_id: str) -> AnalysisInput:
     """Build from a stored BOM. `connection` is a psycopg 3 connection."""
     header = connection.execute(
         """
-        SELECT v.id, v.package_code, v.title, p.id, p.name, p.default_currency,
+        SELECT v.id, v.package_code, v.title, p.id, p.name,
+               COALESCE(to_jsonb(v)->>'draft_currency', p.default_currency::text),
                d.id, d.filename, d.format, d.exchange_phase
         FROM bom_version v
         JOIN project p ON p.id = v.project_id
@@ -452,23 +453,28 @@ def from_db(connection, bom_version_id: str) -> AnalysisInput:
     for row in connection.execute(
         """
         SELECT id, section_id, line_code, sort_order, short_description, long_description, quantity,
-               raw_unit, unit_code, pricing_basis, total_rule, alternative_for_line_id, source_locator
-        FROM bom_line WHERE bom_version_id = %s ORDER BY sort_order
+               raw_unit, unit_code, pricing_basis, total_rule, alternative_for_line_id, source_locator,
+               (to_jsonb(l)->>'draft_unit_price')::numeric
+        FROM bom_line l WHERE bom_version_id = %s ORDER BY sort_order, id
         """, (version_id,),
     ):
         (line_id, section_id, code, sort_order, short, long, quantity, raw_unit, unit_code, pricing_basis,
-         total_rule, alternative_for, locator) = row
+         total_rule, alternative_for, locator, draft_price) = row
         line_id = str(line_id)
         source = source_rows.get(line_id, {})
         unit_raw = raw_unit if raw_unit is not None else unit_code
+        normalized_unit = units.normalize(unit_code) or units.normalize(unit_raw)
+        price = prices.get(line_id)
+        if price is None and draft_price is not None:
+            price = PriceInfo(unit_price=draft_price, currency=currency, price_unit=normalized_unit, source="client")
         lines.append(Line(
             id=line_id, code=code, code_parts=code.split(".") if code else [], section_id=_str(section_id),
             sort_order=sort_order, short_text=clean_short(short), long_text=clean_long(long),
             quantity=quantity, quantity_raw=_raw_quantity(source, quantity),
-            unit=units.normalize(unit_raw), unit_raw=unit_raw,
+            unit=normalized_unit, unit_raw=unit_raw,
             pricing_basis=pricing_basis, total_rule=total_rule, alternative_for=_str(alternative_for),
             gaeb_flags=clean_flags(source.get("flags")), source_amounts=_source_amounts(source),
-            price=prices.get(line_id), distributions=distributions.get(line_id, []),
+            price=price, distributions=distributions.get(line_id, []),
             source_locator=locator or {},
         ))
 

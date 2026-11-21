@@ -2,7 +2,7 @@ from io import BytesIO
 import re
 from zipfile import ZipFile
 
-from .common import Result, checked_entries, decimal_text, local_name, parse_xml, read_member, xml_document, zip_metadata
+from .common import Result, checked_entries, decimal_text, german_decimal, local_name, parse_xml, read_member, xml_document, zip_metadata
 
 
 def child(node, tag):
@@ -122,7 +122,7 @@ _WORD_ITEM = re.compile(r"^\s*(?:[-•]\s*)?(\d+(?:\.\d+)+)\s*[–—-]\s*(.*?)\
 def word_text(para):
     segments = []
     for node in para.iter():
-        if node.tag in {_WORD + "t", _WORD + "delText", _WORD + "instrText"}:
+        if node.tag == _WORD + "t":
             segments.append(node.text or "")
         elif node.tag == _WORD + "tab":
             segments.append("\t")
@@ -151,6 +151,7 @@ def docx(data: bytes) -> Result:
                     if entry.filename == "word/document.xml":
                         found_body = True
                         extract_word_paragraphs(root, locator, result)
+                        extract_workspace_tables(root, locator, result)
                 except (ValueError, SyntaxError) as exc:
                     result.warn("unreadable_word_part", locator, str(exc))
             result.add("word_part", locator, **info)
@@ -178,3 +179,23 @@ def extract_word_paragraphs(root, locator, result):
             connector = phrase.strip()
         elif phrase.strip() and phrase.strip() not in {"…", "..."}:
             context, connector = phrase.strip(), None
+
+
+def extract_workspace_tables(root, locator, result):
+    fields = ("Position", "Description", "Quantity", "Unit", "Rate", "Amount", "Total rule")
+    for table in root.iter(_WORD + "tbl"):
+        rows = table.findall(_WORD + "tr")
+        if not rows or tuple(word_text(cell).strip() for cell in rows[0].findall(_WORD + "tc")) != fields:
+            continue
+        for row in rows[1:]:
+            cells = [word_text(cell).strip() for cell in row.findall(_WORD + "tc")]
+            if len(cells) != len(fields) or not cells[1]:
+                continue
+            code, description, qty, unit, price, amount, total_rule = cells
+            short, _, detail = description.partition("\n")
+            flags = {"unit_price_only": total_rule == "Unit price only", "alternative_item": total_rule == "Conditional"}
+            path = row.getroottree().getelementpath(row)
+            result.add("item_candidate", {**locator, "xml_path": path}, code=code or None,
+                       short_description=short, long_description=detail or None, unit=unit or None,
+                       quantity=german_decimal(qty), unit_price=german_decimal(price),
+                       line_amount=german_decimal(amount), flags=flags, confidence="review")

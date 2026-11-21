@@ -1,0 +1,201 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  PYTHON_VERSION: "3.12"
+  NODE_VERSION: "22"
+
+jobs:
+  python:
+    name: Python tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            importer/requirements.txt
+      - name: Install dependencies
+        run: pip install -r requirements.txt -r importer/requirements.txt pytest python-docx==1.2.0 reportlab==4.5.1
+      - name: Backend and analysis tests
+        env:
+          PYTHONPATH: backend:importer:.
+        run: python -m pytest -q backend/tests analysis/tests
+      - name: Importer tests
+        working-directory: importer
+        run: python -m pytest -q tests
+
+  database:
+    name: Database and API smoke test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: construction
+          POSTGRES_PASSWORD: ci-owner-password
+          POSTGRES_DB: construction
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U construction -d construction"
+          --health-interval 2s --health-timeout 5s --health-retries 30
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: "5432"
+      PGDATABASE: construction
+      POSTGRES_APP_PASSWORD: ci-app-password
+    steps:
+      - uses: actions/checkout@v5
+      # psql 18 from the same image as production, so \if, \gset and \getenv behave identically.
+      - name: Apply migrations twice (second run must be a no-op) and run the SQL smoke test
+        env:
+          PGUSER: construction
+          PGPASSWORD: ci-owner-password
+        run: |
+          psql18() {
+            docker run --rm --network host -v "$PWD/db:/db:ro" \
+              -e PGHOST -e PGPORT -e PGDATABASE -e PGUSER -e PGPASSWORD -e POSTGRES_APP_PASSWORD \
+              postgres:18 psql -X -q -v ON_ERROR_STOP=1 "$@"
+          }
+          psql18 -f /db/migrate.sql
+          psql18 -f /db/migrate.sql
+          psql18 -f /db/smoke.sql
+          psql18 -At -c "SELECT 'applied migrations: ' || string_agg(version::text, ',' ORDER BY version) FROM db_migration.applied_version"
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            importer/requirements.txt
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt -r importer/requirements.txt pytest python-docx==1.2.0 reportlab==4.5.1
+          test -f /usr/share/fonts/truetype/dejavu/DejaVuSans.ttf \
+            || (sudo apt-get update -qq && sudo apt-get install -y -qq fonts-dejavu-core)
+      - name: Start backend as the runtime role
+        env:
+          PGUSER: construction_app
+          PGPASSWORD: ci-app-password
+          PYTHONPATH: backend:importer:.
+          PORT: "8080"
+        run: nohup python backend/server.py > backend.log 2>&1 &
+      - name: API smoke test (upload, draft, save, analyse, export)
+        run: .github/scripts/api-smoke.sh http://localhost:8080
+      - name: Backend log
+        if: always()
+        run: cat backend.log || true
+
+  frontend:
+    name: Frontend lint and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - run: npm run lint
+      - run: npm run build
+
+  docker:
+    name: Docker images and deploy config
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      # Dummy values: only used to render and validate the compose files.
+      POSTGRES_PASSWORD: ci
+      POSTGRES_APP_PASSWORD: ci
+      APP_DOMAIN: ci.example.com
+      BASIC_AUTH_USER: ci
+      BASIC_AUTH_HASH: ci
+    steps:
+      - uses: actions/checkout@v5
+      - name: Shell scripts
+        run: |
+          bash -n deploy.sh
+          shellcheck -S warning deploy.sh db/ops.sh .github/scripts/*.sh
+      - name: Compose files
+        run: |
+          docker compose -f compose.yaml --profile app --profile tools config -q
+          docker compose -f compose.prod.yaml --profile tools --profile llm config -q
+      - uses: docker/setup-buildx-action@v3
+      - name: Build backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: backend/Dockerfile
+          push: false
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,scope=backend,mode=max
+      - name: Build web image (frontend + Caddy)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/web.Dockerfile
+          push: false
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,scope=web,mode=max
+      - name: Build importer image
+        uses: docker/build-push-action@v6
+        with:
+          context: importer
+          push: false
+          cache-from: type=gha,scope=importer
+          cache-to: type=gha,scope=importer,mode=max
+
+  deploy:
+    name: Deploy to VPS
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.VPS_HOST != ''
+    needs: [python, database, frontend, docker]
+    runs-on: ${{ vars.VPS_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Check that the tested commit is still on top of main
+        id: revision
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          current=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')
+          if [[ "$current" == "$GITHUB_SHA" ]]; then
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Skipping deployment because main advanced to $current."
+          fi
+      - name: Publish the tested revision and start the stack
+        if: steps.revision.outputs.deploy == 'true'
+        env:
+          VPS_HOST: ${{ vars.VPS_HOST }}
+          VPS_PORT: ${{ vars.VPS_PORT }}
+          VPS_USER: ${{ vars.VPS_USER }}
+          VPS_PATH: ${{ vars.VPS_PATH }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: .github/scripts/deploy-vps.sh

@@ -1,3 +1,4 @@
+from decimal import Decimal, InvalidOperation
 import re
 
 from .store import jsonb
@@ -36,13 +37,32 @@ def load_extractions(connection, document_id, kinds):
     return document, entries
 
 
-def create_draft(connection, document_id, package_code, title, boq_index, phase):
+def draft_price(row, flags):
+    candidates = row.get("price_records") or [row]
+    if len(candidates) != 1:
+        return None
+    candidate = candidates[0]
+    try:
+        rate = Decimal(candidate["unit_price"])
+        if not rate.is_finite():
+            return None
+        quantity = row.get("quantity")
+        amount = candidate.get("line_amount")
+        if quantity is not None and amount is not None and not flags.get("unit_price_only"):
+            if abs(Decimal(quantity) * rate - Decimal(amount)) > Decimal("0.01"):
+                return None
+        return rate
+    except (KeyError, TypeError, InvalidOperation):
+        return None
+
+
+def create_draft(connection, document_id, package_code, title, boq_index, phase, *, allow_bid=False):
     with connection.transaction():
         document, entries = load_extractions(
-            connection, document_id, ["boq_header", "section", "section_candidate", "item", "item_candidate"]
+            connection, document_id, ["boq_header", "section", "section_candidate", "item", "item_candidate", "note", "price"]
         )
         project_id, filename, document_format, exchange_phase, import_id, _, metadata = document
-        if exchange_phase == "84" or document_format == "zip":
+        if (exchange_phase == "84" and not allow_bid) or document_format == "zip":
             raise ValueError("Select a scope document. GAEB bid submissions can be imported as reference prices.")
         indexes = {entry[3]["boq_index"] for entry in entries if entry[1] == "boq_header"}
         if boq_index is None and len(indexes) > 1:
@@ -50,6 +70,12 @@ def create_draft(connection, document_id, package_code, title, boq_index, phase)
         if boq_index is not None and boq_index not in indexes:
             raise ValueError("This source does not contain that BoQ index")
         entries = [entry for entry in entries if boq_index is None or entry[3].get("boq_index") == boq_index]
+        if allow_bid and exchange_phase == "84" and not any(entry[1] in {"item", "item_candidate"} for entry in entries):
+            entries = [
+                (ordinal, "item", locator, {**row, "code": ".".join(row.get("code_parts", [])) or row.get("code_raw")})
+                if kind == "price" else (ordinal, kind, locator, row)
+                for ordinal, kind, locator, row in entries
+            ]
         if not any(entry[1] in {"item", "item_candidate"} for entry in entries):
             raise ValueError("There are no extractable scope items in this document")
 
@@ -73,17 +99,25 @@ def create_draft(connection, document_id, package_code, title, boq_index, phase)
 
         boq_title = next((entry[3].get("boq_title") for entry in entries if entry[1] == "boq_header"), None)
         version_no = previous[1] + 1 if previous else 1
+        notes = "\n\n".join(row["text"] for _, kind, _, row in entries if kind == "note" and row.get("text"))
+        currency = (metadata.get("currency") or "").strip().upper()
+        if not re.fullmatch(r"[A-Z]{3}", currency):
+            currency = None
         version_id = connection.execute(
             """
-            INSERT INTO bom_version (project_id, package_code, version_no, previous_version_id, title, phase)
-            VALUES (%s, %s, %s, %s, %s, %s) RETURNING id
+            INSERT INTO bom_version (project_id, package_code, version_no, previous_version_id, title, phase,
+                                     scope_notes, draft_currency)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id
             """, (project_id, package_code, version_no, previous[0] if previous else None,
                   title or boq_title or metadata.get("title") or filename,
-                  phase or {"83": "tender", "86": "award"}.get(exchange_phase)),
+                  phase or {"83": "tender", "84": "bid", "86": "award"}.get(exchange_phase),
+                  notes or None, currency),
         ).fetchone()[0]
         connection.execute("INSERT INTO bom_source VALUES (%s, %s, 'primary_scope')", (version_id, document_id))
         sections = {}
         item_count = 0
+        versions_by_code = {}
+        alternatives = []
         for ordinal, kind, locator, row in entries:
             parts = tuple(row.get("code_parts") or ())
             xml_path = locator.get("xml_path")
@@ -109,8 +143,9 @@ def create_draft(connection, document_id, package_code, title, boq_index, phase)
                 if parent is None and len(parts) > 1:
                     parent = sections.get(parts[:-1])
                 flags = row.get("flags", {})
+                unit = unit_code(row.get("unit"))
                 lump = (flags.get("LumpSumItem") == "Yes" or flags.get("extra_type_flag") == "L"
-                        or flags.get("MarkupItem") == "Yes")
+                        or flags.get("MarkupItem") == "Yes" or unit == "lump_sum")
                 pricing = "lump_sum" if lump else "unit_rate"
                 provisional = flags.get("Provis")
                 if flags.get("unit_price_only") or flags.get("provisional_flag") == "E" or provisional == "WithoutTotal":
@@ -120,18 +155,36 @@ def create_draft(connection, document_id, package_code, title, boq_index, phase)
                 else:
                     total_rule = "include"
                 code = row.get("code")
-                label = row.get("short_description") or row.get("long_description") or code or "Unresolved source item"
-                connection.execute(
+                label = row.get("short_description") or row.get("long_description") or (
+                    f"Bid position {code}" if code else "Unresolved source item"
+                )
+                option = re.search(r"Wahlposition\s+\d+(?:\.\d+)*\s+zu\s+([\d.]+)", label, re.I)
+                if option and row.get("long_description"):
+                    label = next((part.strip() for part in row["long_description"].splitlines()
+                                  if part.strip() and "wahlposition" not in part.lower()), label)
+                line_id = connection.execute(
                     """
                     INSERT INTO bom_line
                         (bom_version_id, section_id, line_code, sort_order, short_description, long_description,
-                         quantity, unit_code, raw_unit, pricing_basis, total_rule, source_document_id, source_locator)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s::numeric, %s, %s, %s, %s, %s, %s)
+                         quantity, unit_code, raw_unit, pricing_basis, total_rule, source_document_id, source_locator,
+                         draft_unit_price)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s::numeric, %s, %s, %s, %s, %s, %s, %s)
+                    RETURNING id
                     """, (version_id, parent, code, ordinal, label, row.get("long_description"),
-                          row.get("quantity"), unit_code(row.get("unit")), row.get("unit"), pricing, total_rule, document_id,
-                          jsonb({"import_id": str(import_id), "ordinal": ordinal, **locator})),
-                )
+                          row.get("quantity"), unit, row.get("unit"), pricing, total_rule, document_id,
+                          jsonb({"import_id": str(import_id), "ordinal": ordinal, **locator}), draft_price(row, flags)),
+                ).fetchone()[0]
+                group = re.search(r"Grundposition\s+([\d.]+)", label, re.I)
+                if group:
+                    versions_by_code.setdefault(group[1].rstrip("."), []).append(line_id)
+                if option:
+                    alternatives.append((line_id, option[1].rstrip(".")))
                 item_count += 1
+        for option_id, base_code in alternatives:
+            candidates = versions_by_code.get(base_code, [])
+            if len(candidates) == 1:
+                connection.execute("UPDATE bom_line SET alternative_for_line_id = %s WHERE id = %s",
+                                   (candidates[0], option_id))
     return {"bom_version_id": str(version_id), "version": version_no, "items": item_count, "status": "draft"}
 
 

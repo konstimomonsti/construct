@@ -12,16 +12,22 @@ Created in [T3 Code](https://t3.codes).
 
 The database uses PostgreSQL 18 and Docker Compose locally and on a VPS. The [schema dashboard](schema-dashboard.html) shows the application and document-intake tables. The SQL migrations create the schema and its integrity checks.
 
-## Web UI: upload a BoQ and get a report
+## Web app
 
-A basic web page for testing the analysis on real documents. It needs no database: the file is parsed in memory, layers 1 and 2 run, and the findings are shown. Nothing is stored.
+VaultBudget at `/` provides the project and budget library. Open **Tender Desk** from its sidebar to
+upload files and work on shared PostgreSQL drafts. **Review original** on a bundled VaultBudget list
+lets you import its source document into the selected Tender Desk project. VaultBudget's browser-local
+edits stay in VaultBudget. Tender Desk saves its own edits and review decisions to PostgreSQL.
 
-```sh
-python -m pip install -r webapp/requirements.txt
-python -m webapp            # http://127.0.0.1:8000
-```
+On a saved draft, **Catalogue analytics** groups existing catalogue links by product, unit and
+supply or installed scope, with source positions and included quantities. Seed the Challenge A
+catalogue to see linked examples. The [general-purpose matching and LLM reuse plan](docs/CATALOGUE_ANALYTICS_IMPLEMENTATION.md)
+describes future work.
 
-PDF files also need the Poppler tools (`pdftotext`) on the `PATH`. Upload a GAEB XML (X8x), GAEB 90 (D8x), PDF or Word file, or pick one of the files in `Data/`. The report shows counts by severity and the findings, which you can filter by severity, layer, rule or text. Click a finding to see the message, evidence, proposed fix and the position's full text. The Positions tab lists what was extracted from the file. Use Download JSON to save the full result. Layer 3 is off by default. When it's on, its model is set with the layer 3 environment variables. If the model can't be reached, the report says so and layers 1 and 2 still run.
+**Risk assessment** runs deterministic completeness, consistency, arithmetic and pricing checks
+(layer 1), dependency checks (layer 2), and optional AI review of text contradictions and dependency
+findings (layer 3). Runs, evidence and reviewer decisions are saved. Editing a draft can make an
+assessment outdated.
 
 ## Run the database
 
@@ -49,17 +55,97 @@ The application user can read and write application rows. The owner account hand
 docker compose exec db sh -c 'psql -X -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
 ```
 
-## Deploy on a VPS
+## Repository layout
 
-Place the checkout on the VPS and run `./db/ops.sh up` there. Start with the VPS's own `.env` so local and remote installations have independent credentials. An application in the same Compose project can use `db:5432`; an application running directly on the VPS can use `127.0.0.1:5432`. The host port binds to loopback. For remote administration, forward it over SSH.
+| Path | What it is |
+| --- | --- |
+| `db/` | PostgreSQL schema, numbered migrations, runtime role, smoke test |
+| `importer/` | Tender parsing (GAEB XML/90, PDF, DOCX, ZIP) and BOM draft creation, also usable as a CLI |
+| `analysis/` | Plausibility checks: layer 1 (arithmetic, completeness, pricing) and layer 2 (GAEB dependencies) |
+| `backend/` | JSON API over the database, importer and analysis, plus the built-in data tools at `/admin` ([API reference](docs/API.md)) |
+| `frontend/` | The product UI. It is swappable: replace the folder and rebuild ([contract](frontend/README.md)) |
+| `deploy/`, `compose.prod.yaml`, `deploy.sh` | Production stack: Caddy (HTTPS, login, frontend files) in front of the backend |
+
+## Try the BOM MVP
+
+Start the database and backend, build VaultBudget, then open [Tender Desk](http://127.0.0.1:8080/tender-desk/) or [VaultBudget](http://127.0.0.1:8080/).
 
 ```sh
-ssh -N -L 127.0.0.1:15432:127.0.0.1:5432 user@your-vps
+./db/ops.sh up
+(cd frontend && npm ci && npm run build)
+docker compose --profile app up -d --build backend
 ```
 
-With the tunnel open, a client on your machine can use `127.0.0.1:15432` and the VPS database credentials.
+1. Select or create a project. Choose a PDF, DOCX, GAEB file, or ZIP. After a ZIP import, select the scope document before opening its draft. **Open sample tender** uses the existing Challenge A import when present.
+2. Edit quantities, units, draft rates, descriptions, and total rules. Click a description to inspect the source location and any catalogue suggestion. The review filters show scope gaps, missing rates, and conditional positions.
+3. Save the draft. Export PDF, Word, GAEB XML 3.1 or 3.2 X83, XML 3.2 X82, legacy D83/D84/D86, or a ZIP of the PDF and Word files. X83 and D83 carry unpriced scope. D84 carries bid prices by position and is intended to accompany the tender scope. Exchange files require compatible position numbers, units, and numeric precision.
 
-## Back up and restore
+Rates are draft inputs or reconciled source rates. The subtotal includes only priced positions marked `include`. Historical catalogue rates remain reference evidence. These downloads represent the saved draft and its scope, and the original uploaded file remains available from the editor. GAEB exchange uses the [published GAEB profiles](https://www.gaeb.de/de/service/downloads/gaeb-datenaustausch/).
+
+Open [Data tables](http://127.0.0.1:8080/admin/tables) to browse the live schema without editing. Search and sort rows, select visible columns, and follow relationships. Large structured values show a preview and binary files show their byte size.
+
+The backend binds to localhost. Set `BACKEND_PORT` in `.env` to change its port. To build a new UI against it, see [frontend/README.md](frontend/README.md). To put it on a server, see [Deploy on a VPS](#deploy-on-a-vps).
+
+## Deploy on a VPS
+
+`compose.prod.yaml` runs PostgreSQL, schema migrations, the backend API, Caddy with both frontends, and nightly backups. Caddy handles HTTPS and the site login. It is the only public service. Every page and API call requires the site login.
+
+Requirements: a Linux VPS with Docker Engine and the Compose plugin, ports 80 and 443 open, and a DNS name that points at the server. With only an IP address, use `1-2-3-4.sslip.io` (the IP with dashes). It resolves to the server and gets a real certificate.
+
+```sh
+# In the extracted bundle or checked-out project directory on the VPS
+./deploy.sh init     # asks for the hostname and website login; generates database passwords
+./deploy.sh up       # builds, migrates and starts everything; prints the URL
+./deploy.sh seed     # optional: imports the Challenge A files in Data/ and builds the catalogue
+```
+
+`init` writes all settings to `.env.prod` with mode 600. The website password is stored only as a bcrypt hash. Leave the password empty to generate one, which `init` prints once. Without a terminal, `init` reads `APP_DOMAIN`, `BASIC_AUTH_USER` and `BASIC_AUTH_PASSWORD` from the environment.
+
+| Command | What it does |
+| --- | --- |
+| `./deploy.sh model` | Start the optional Ollama service and download the configured model |
+| `./deploy.sh status` | Containers and health |
+| `./deploy.sh logs [backend\|web\|db\|backup]` | Follow logs |
+| `./deploy.sh backup` | Write `backups/manual-<time>.dump` now |
+| `./deploy.sh restore backups/FILE.dump` | Back up the current data, then replace it with FILE (asks you to type `restore`) |
+| `./deploy.sh password` | Change the website login |
+| `./deploy.sh update` | `git pull --ff-only`, rebuild and restart; migrations run automatically |
+| `./deploy.sh down` | Stop everything; data volumes stay |
+| `./deploy.sh push user@host [dir]` | Copy this checkout over SSH (without `.git`, `.env*` and `backups/`) and run `init` and `up` there |
+
+The `backup` service writes a `pg_dump` archive to `./backups` once a day and deletes archives older than `BACKUP_KEEP_DAYS` (14 by default). Archives contain the uploaded originals. Copy them off the server regularly, for example with `rsync user@your-vps:tenderdesk/backups/ ./vps-backups/`.
+
+Optional `.env.prod` settings: `SITE_ADDRESS` overrides the Caddy address (for example `:80` for plain HTTP behind another proxy), `HTTP_PORT` and `HTTPS_PORT` change the published ports, `BACKUP_KEEP_DAYS` sets backup retention, and `FRONTEND_DIST` names the build output folder when `frontend/` has a `package.json` (default `dist`). After replacing `frontend/`, `./deploy.sh up` rebuilds only what changed. The app accepts requests only for `APP_DOMAIN`. Uploads are limited to 128 MiB.
+
+### Enable layer 3
+
+Production starts with layers 1–2 enabled. For local inference, add `ANALYSIS_L3_PROVIDER=ollama`
+and optionally `ANALYSIS_L3_MODEL` to `.env.prod`, then run `./deploy.sh model` and
+`./deploy.sh up`. The default model is `qwen2.5:7b-instruct`. Choose a model sized for the VPS.
+Ollama and its model storage run inside Docker with no published port. For a separately hosted
+Ollama instance, set `OLLAMA_HOST` and run `./deploy.sh up`.
+
+For hosted inference, set `ANALYSIS_L3_PROVIDER=anthropic`, `ANTHROPIC_API_KEY`, and optionally
+`ANALYSIS_L3_MODEL`, then run `./deploy.sh up`. In this mode the provider receives the text needed
+for each requested AI check. The UI keeps the two-layer run available and reports model failures
+or skipped batches. Production defaults to four model calls per run and a 45-second per-call timeout.
+Use `ANALYSIS_L3_MAX_CALLS` and `ANALYSIS_L3_TIMEOUT` to tune those limits. Responses are cached
+in the Docker `analysis_cache` volume.
+
+### Test the production configuration locally
+
+Use a separate Compose project and settings file:
+
+```sh
+export ENV_FILE=.env.prodtest COMPOSE_PROJECT_NAME=tenderdesk-test
+APP_DOMAIN=localhost BASIC_AUTH_USER=tester BASIC_AUTH_PASSWORD=choose-a-password ./deploy.sh init
+printf "SITE_ADDRESS=':80'\nHTTP_PORT='8088'\nHTTPS_PORT='8443'\n" >> .env.prodtest
+./deploy.sh up       # http://localhost:8088
+```
+
+For database administration on the VPS, use `docker compose --env-file .env.prod -f compose.prod.yaml exec db psql -U construction construction`.
+
+## Back up and restore (development stack)
 
 ```sh
 ./db/ops.sh backup backups/construction.dump
@@ -77,6 +163,56 @@ docker compose exec -T db sh -c 'psql -X -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" 
 ```
 
 The smoke test creates a tender with two room distributions and issues a consolidated quote. It checks that duplicate pricing and edits to issued inputs are rejected, then rolls back the sample rows.
+
+## Continuous integration
+
+`.github/workflows/ci.yml` runs four checks on pushes to `main`, on pull requests and on manual runs.
+
+| Job | What it checks |
+| --- | --- |
+| Python tests | `backend/tests` and `analysis/tests` (with `PYTHONPATH=backend:importer:.`), then `importer/tests` |
+| Database and API smoke test | On a fresh PostgreSQL 18 it applies `db/migrate.sql` twice (the second run must change nothing) and runs `db/smoke.sql`. It then starts the backend as `construction_app` and runs `.github/scripts/api-smoke.sh`, which uploads a public GAEB file, builds a draft, saves a price, rejects a stale save, runs the analysis and downloads every export format. |
+| Frontend lint and build | `npm ci`, `npm run lint` and `npm run build` in `frontend/` |
+| Docker images and deploy config | Builds the backend, web and importer images, validates both compose files and runs shellcheck on the shell scripts |
+| Deploy to VPS | Runs after all four checks pass on a push to `main`. It deploys the tested revision when it is still the tip of `main`. |
+
+To run the API smoke test locally, point it at a backend that uses a migrated database:
+
+```sh
+.github/scripts/api-smoke.sh http://localhost:8080
+```
+
+Outside Docker, PDF export needs the DejaVu fonts. If they are not in `/usr/share/fonts/truetype/dejavu`, set `PDF_FONT_DIR` to their folder.
+
+### Automatic VPS deployment
+
+Initialize the VPS once using the [VPS setup](#deploy-on-a-vps). The SSH user needs Docker Compose
+and `rsync` and write access to the dedicated app directory. Install the CI deployment key's
+public half in that user's `authorized_keys`. On a shared VPS with an existing reverse proxy,
+set `SITE_ADDRESS=:80`, `HTTP_PUBLISH=127.0.0.1:18080`, and `HTTPS_PUBLISH=127.0.0.1:18443`
+in `.env.prod`. Point the HTTPS proxy at `http://127.0.0.1:18080` and preserve the original
+Host header. Set `APP_DOMAIN` to the public hostname.
+
+In GitHub under **Settings → Secrets and variables → Actions**, configure these repository settings.
+
+| Setting | Type | Value |
+| --- | --- | --- |
+| `VPS_HOST` | Variable | SSH hostname or IPv4 address reachable from the deploy runner |
+| `VPS_USER` | Variable | SSH deployment account |
+| `VPS_PATH` | Variable | Absolute app directory containing `.env.prod`, for example `/srv/tenderdesk` |
+| `VPS_PORT` | Variable | SSH port. Defaults to `22`. |
+| `VPS_RUNNER` | Variable | Optional label of a dedicated Linux runner with private SSH access. Defaults to `ubuntu-latest`. |
+| `VPS_SSH_KEY` | Secret | Private key dedicated to this workflow |
+| `VPS_KNOWN_HOSTS` | Secret | Verified SSH host key entry for `VPS_HOST`. Use the `[host]:port` form for a nondefault port. |
+
+Verify the host key against a trusted server fingerprint before adding it to GitHub. The workflow
+synchronizes the tested Git revision into the app directory and removes stale source files.
+It preserves server env files, backups and Docker volumes. The deploy job runs `./deploy.sh up`
+to build the images, apply migrations and wait for the services to become healthy.
+
+If the VPS only accepts private SSH connections, use a deploy runner on the private network with
+`gh`, `git`, `ssh`, `rsync` and `tar` installed. The four CI checks still use GitHub-hosted runners.
+Set `VPS_HOST` after the other settings are ready to enable the deploy job.
 
 ## Import a tender ZIP or document
 
@@ -150,7 +286,7 @@ docker compose build importer
 docker compose run --rm -T importer challenge-catalogue
 ```
 
-The import groups companion GAEB, Word, and PDF copies by tender position. It also merges exact full specifications with compatible tender units and keeps position-specific variants for review. New materials and equipment go into `product` as pending. The import records source positions in `catalogue_source_line`, including activities, headings, and lines whose product identity is ambiguous. Each link carries the tender unit and any observed rate. The original descriptions and prices are also available in `source_extract`.
+The import groups companion GAEB, Word, and PDF copies by tender position. It also merges exact full specifications with compatible tender units and keeps position-specific variants for review. New materials and equipment go into `product` as pending. The import records classified source positions in `catalogue_source_line`, including activities and headings. Each link carries the tender unit and any observed rate. Unclassified positions and their evidence remain in `source_extract` only.
 
 The importer stores dated rates in `product_price` for supply-only positions whose PDF and D84 quantities, rates, and line amounts agree in offer AN24-0305 from 25 November 2024. These entries use the anonymized bidder `[FIRMA_110]` and price basis `tender_offer`. The paired conduit’s rate is per metre of the pair. Mixed work rates and other observed prices stay on their source positions. Missing suppliers, purchase units, and rates stay empty.
 
@@ -188,5 +324,7 @@ python -m pip install -r requirements.txt
 python -m analysis run Data/8209.003_Leistungsverzeichnis_leer.X83 --layers 1,2
 python -m analysis.layer2 examples/items.json --scope trade --format table
 ```
+
+The backend runs both layers on a stored BOM and keeps every run in `analysis_run` / `analysis_finding`. Accept or reject decisions carry over to later runs by finding key. See `POST /api/mvp/analyze`, `GET /api/mvp/analysis` and `POST /api/mvp/finding` in the [API reference](docs/API.md).
 
 See [dependency checker setup and usage](docs/DEPENDENCY_VALIDATOR.md) for parsed JSON input, room/trade scoping, custom rules, and integration details. Importing raw GAEB files also requires the existing dependencies in `importer/requirements.txt`.

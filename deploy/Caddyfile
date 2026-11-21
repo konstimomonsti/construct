@@ -1,0 +1,60 @@
+# Public entry point: HTTPS (automatic Let's Encrypt for a real hostname), one password for the site,
+# the frontend build served from /srv, and /api + /admin proxied to the backend.
+{$SITE_ADDRESS} {
+	encode zstd gzip
+
+	# Tender uploads may be up to 128 MiB.
+	request_body {
+		max_size 128MiB
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		Referrer-Policy "same-origin"
+		X-Frame-Options "DENY"
+		X-Content-Type-Options "nosniff"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		-Server
+	}
+
+	basic_auth {
+		{$BASIC_AUTH_USER} {$BASIC_AUTH_HASH}
+	}
+
+	@backend path /api/* /admin /admin/* /healthz
+	handle @backend {
+		reverse_proxy backend:8080 {
+			# The backend records who accepted or rejected a finding. Replaces any client-sent value.
+			header_up X-Remote-User {http.auth.user.id}
+			transport http {
+				read_timeout 10m
+				write_timeout 5m
+			}
+		}
+	}
+
+	# Everything else is the frontend (frontend/ or its build output). Unknown paths fall back to
+	# index.html so client-side routes work on reload. Keep the CSP in sync with backend/server.py.
+	handle {
+		root * /srv
+		@tender_desk path /tender-desk /tender-desk/
+		rewrite @tender_desk /tender-desk/index.html
+		header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self'; frame-src 'self' blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
+		@pdf path_regexp pdf (?i)^/files/.+\.pdf$
+		header @pdf {
+			>Content-Security-Policy "default-src 'none'; frame-ancestors 'self'"
+			>X-Frame-Options "SAMEORIGIN"
+		}
+		@hashed path /assets/*
+		header @hashed Cache-Control "public, max-age=31536000, immutable"
+		@unhashed not path /assets/*
+		header @unhashed Cache-Control "no-cache"
+		try_files {path} /index.html
+		file_server
+	}
+
+	log {
+		output stdout
+		format console
+	}
+}

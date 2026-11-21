@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Read the live construction BOM, catalogue, and source records in PostgreSQL.">
+  <title>Database tables · BOM Workspace</title>
+  <link rel="stylesheet" href="/admin/styles.css">
+  <script src="/admin/app.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="BOM Workspace">
+      <span class="brand-mark" aria-hidden="true"><span class="table-icon"></span></span>
+      BOM Workspace
+    </a>
+    <nav class="workspace-nav" aria-label="Workspace">
+      <a href="/">BOM editor</a>
+      <a href="/admin/tables" aria-current="page">Tables</a>
+      <a href="/admin/schema#schema">Schema &amp; workflow</a>
+    </nav>
+    <span class="connection"><span class="connection-dot" id="connection-dot" aria-hidden="true"></span><span id="connection-label">Connecting…</span></span>
+  </header>
+
+  <div class="workspace">
+    <aside class="sidebar" aria-label="Database navigation">
+      <div class="sidebar-title"><h2>Tables</h2><span id="table-count" class="subtle"></span></div>
+      <label class="search table-search">
+        <span class="search-icon" aria-hidden="true"></span>
+        <input type="search" id="table-search" placeholder="Find a table" aria-label="Find a table" autocomplete="off">
+      </label>
+      <nav id="table-list" class="table-list" aria-label="Database tables"></nav>
+    </aside>
+
+    <main class="content">
+      <div id="connection-error" class="message error" hidden>
+        <h1>Couldn’t connect to the database</h1>
+        <p id="connection-error-text"></p>
+        <button type="button" id="retry" class="button">Retry connection</button>
+      </div>
+      <section id="table-view" aria-labelledby="table-title" hidden>
+        <div class="table-heading">
+          <div>
+            <p id="table-group" class="eyebrow"></p>
+            <h1 id="table-title"></h1>
+            <div class="heading-meta"><code id="table-name"></code><span id="table-summary" class="subtle"></span></div>
+          </div>
+          <button type="button" class="button" id="relationships">Relationships<span id="relationship-count" class="button-count"></span></button>
+        </div>
+        <div class="records">
+          <div class="toolbar">
+            <label class="search row-search">
+              <span class="search-icon" aria-hidden="true"></span>
+              <input type="search" id="row-search" placeholder="Search rows" aria-label="Search rows" autocomplete="off" maxlength="200">
+            </label>
+            <select id="product-status" aria-label="Filter products by review status" hidden>
+              <option value="">All statuses</option>
+              <option value="pending">Pending review</option>
+              <option value="approved">Approved</option>
+            </select>
+            <div class="toolbar-spacer"></div>
+            <details id="column-picker" class="column-picker">
+              <summary class="button">Columns <span id="visible-column-count" class="button-count"></span></summary>
+              <fieldset id="column-options"><legend>Visible columns</legend></fieldset>
+            </details>
+            <button type="button" class="button" id="refresh">Refresh</button>
+          </div>
+          <div id="relationship-filter" class="active-filters" hidden></div>
+          <div id="rows-region" class="rows-region" role="region" aria-label="Table contents" tabindex="0">
+            <table id="records-table" hidden>
+              <thead id="table-header"></thead>
+              <tbody id="table-body"></tbody>
+            </table>
+            <div id="rows-message" class="message"></div>
+          </div>
+          <footer class="pagination">
+            <p class="pagination-summary" id="row-count" aria-live="polite"></p>
+            <div class="pagination-controls">
+              <label for="page-size" class="subtle">Rows per page</label>
+              <select id="page-size">
+                <option>25</option><option>50</option><option>100</option>
+              </select>
+              <span id="page-indicator" class="page-indicator"></span>
+              <button type="button" class="button" id="previous">Previous</button>
+              <button type="button" class="button" id="next">Next</button>
+            </div>
+          </footer>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="inspector" aria-labelledby="inspector-title">
+    <header class="inspector-heading">
+      <div><p class="eyebrow" id="inspector-context"></p><h2 id="inspector-title"></h2></div>
+      <form method="dialog"><button class="button" aria-label="Close inspector">Close</button></form>
+    </header>
+    <div id="inspector-body" class="inspector-body"></div>
+  </dialog>
+
+  <noscript><p class="message">Enable JavaScript to browse the PostgreSQL tables.</p></noscript>
+</body>
+</html>

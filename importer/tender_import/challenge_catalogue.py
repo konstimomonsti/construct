@@ -352,6 +352,9 @@ def import_challenge_catalogue(connection, project_name):
             title, description = specification(row)
             is_heading = position in parents and not row.data.get("unit") and not row.data.get("quantity")
             decision, category = classify(position, row, title, description, is_heading)
+            if decision == "review":
+                counts["excluded_positions"] += 1
+                continue
             counts[decision] += 1
             product = None
             if category:

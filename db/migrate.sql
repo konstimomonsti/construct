@@ -71,12 +71,22 @@ SELECT NOT EXISTS (
     INSERT INTO db_migration.applied_version (version) VALUES (8);
 \endif
 
+-- Development databases created before the analysis merge recorded version 9 for the
+-- draft columns, so the analysis tables are also applied whenever they are missing.
 SELECT NOT EXISTS (
     SELECT FROM db_migration.applied_version WHERE version = 9
-) AS apply_analysis \gset
+) OR to_regclass('public.analysis_run') IS NULL AS apply_analysis \gset
 \if :apply_analysis
     \ir migrations/009_analysis.sql
-    INSERT INTO db_migration.applied_version (version) VALUES (9);
+    INSERT INTO db_migration.applied_version (version) VALUES (9) ON CONFLICT DO NOTHING;
+\endif
+
+SELECT NOT EXISTS (
+    SELECT FROM db_migration.applied_version WHERE version = 10
+) AS apply_mvp_drafts \gset
+\if :apply_mvp_drafts
+    \ir migrations/010_mvp_drafts.sql
+    INSERT INTO db_migration.applied_version (version) VALUES (10);
 \endif
 
 \ir runtime_role.sql

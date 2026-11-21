@@ -1,0 +1,9 @@
+**
+!deploy/Caddyfile
+!frontend/
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+frontend/.next/
+frontend/.env
+frontend/.env.*

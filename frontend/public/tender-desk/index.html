@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Upload a tender, review and price its bill of quantities, and export it.">
+  <title>Tender desk</title>
+  <link rel="stylesheet" href="/tender-desk/mvp.css">
+  <script src="/tender-desk/mvp.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="bar">
+    <a class="brand" href="/tender-desk/" id="home-link">
+      <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V9l8-5 8 5v11" /><path d="M9 20v-6h6v6" /></svg>
+      Tender desk
+    </a>
+    <div class="project-picker">
+      <label for="project">Project</label>
+      <select id="project"></select>
+      <button id="create-project" type="button" class="ghost small-btn">New project</button>
+    </div>
+    <nav class="bar-nav" aria-label="Other tools">
+      <a href="/">VaultBudget</a>
+      <a href="/admin/tables">Data tables</a>
+      <a href="/admin/schema#schema">Schema</a>
+      <span class="connection"><span class="dot" id="db-dot" aria-hidden="true"></span><span id="db-label">Connecting…</span></span>
+    </nav>
+  </header>
+
+  <main id="main">
+    <!-- Home: upload + list of bills -->
+    <section id="welcome" class="home" aria-labelledby="home-title">
+      <div class="home-head">
+        <h1 id="home-title">Bills of quantities</h1>
+        <p class="muted" id="home-sub">Upload a tender to get an editable bill you can price and export.</p>
+      </div>
+
+      <div id="dropzone" class="drop">
+        <input id="file" type="file" accept=".pdf,.docx,.xml,.x82,.x83,.x84,.x86,.d83,.d84,.d86,.zip" hidden>
+        <svg class="drop-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V4" /><path d="m7 9 5-5 5 5" /><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3" /></svg>
+        <div class="drop-text">
+          <strong>Drop a tender file here</strong>
+          <span class="muted">GAEB (X83, X84, D83…), PDF, Word or a ZIP of several files</span>
+        </div>
+        <div class="drop-actions">
+          <button id="pick-file" type="button" class="primary">Choose file</button>
+          <button id="sample" type="button" class="ghost">Try the sample tender</button>
+        </div>
+        <p id="upload-note" class="drop-note" role="status"></p>
+      </div>
+
+      <section id="library-source" class="list-block" aria-labelledby="library-source-title" hidden>
+        <h2 id="library-source-title">Review a VaultBudget original</h2>
+        <p id="library-source-name" class="muted"></p>
+        <button id="import-library-source" type="button" class="primary">Import into selected project</button>
+      </section>
+
+      <section class="list-block" aria-labelledby="drafts-title">
+        <h2 id="drafts-title">Your bills <span class="count" id="drafts-count"></span></h2>
+        <div id="drafts" class="bill-list"></div>
+      </section>
+
+      <section class="list-block" id="pending-block" aria-labelledby="pending-title" hidden>
+        <h2 id="pending-title">Uploaded files not opened yet <span class="count" id="pending-count"></span></h2>
+        <p class="muted small">These files were imported but don't have a bill yet. Open one to start editing.</p>
+        <div id="pending" class="bill-list"></div>
+      </section>
+    </section>
+
+    <!-- Editor -->
+    <section id="review" class="editor" hidden aria-label="Bill editor">
+      <div class="editor-head">
+        <button type="button" id="back" class="back">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg>All bills
+        </button>
+        <div class="title-row">
+          <div class="title-block">
+            <h1 id="title">Bill</h1>
+            <p id="subtitle" class="muted meta"></p>
+          </div>
+          <div class="title-actions">
+            <button id="catalogue" type="button" class="ghost">Catalogue analytics</button>
+            <button id="risk" type="button" class="ghost">Risk assessment</button>
+            <button id="scope" type="button" class="ghost">Scope notes</button>
+            <a id="original" class="ghost btn" href="/">Original file</a>
+            <button id="export" type="button" class="primary">Export</button>
+          </div>
+        </div>
+        <ol class="steps" aria-label="Workflow">
+          <li class="done"><span class="step-num">1</span>Imported</li>
+          <li id="review-step" aria-current="step"><span class="step-num">2</span>Review &amp; price</li>
+          <li id="export-step"><span class="step-num">3</span>Export</li>
+        </ol>
+      </div>
+
+      <dl class="stats">
+        <div class="stat stat-wide">
+          <dt>Priced positions</dt>
+          <dd><span id="metric-priced"></span> <span class="muted">of <span id="metric-lines"></span></span></dd>
+          <div class="meter" aria-hidden="true"><span id="metric-meter"></span></div>
+        </div>
+        <div class="stat">
+          <dt>Subtotal</dt>
+          <dd id="metric-total"></dd>
+          <p id="metric-unpriced" class="muted small"></p>
+        </div>
+        <div class="stat"><dt>Catalogue matches</dt><dd id="metric-matches"></dd></div>
+        <div class="stat"><dt>Scope gaps</dt><dd id="metric-gaps"></dd></div>
+      </dl>
+
+      <div class="sheet">
+        <div class="sheet-tools">
+          <div class="tabs" role="group" aria-label="Show positions" id="filters"></div>
+          <div class="tools-right">
+            <label class="search">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
+              <input id="search" type="search" aria-label="Search BOM lines" placeholder="Search position or text">
+            </label>
+            <select id="section" aria-label="Filter by section"></select>
+          </div>
+        </div>
+        <div class="sheet-scroll" role="region" aria-label="Editable bill of quantities" tabindex="0">
+          <table>
+            <thead><tr>
+              <th class="c-pos">Pos.</th><th class="c-desc">Description</th>
+              <th class="c-num c-qty">Qty</th><th class="c-unit">Unit</th>
+              <th class="c-num c-rate" id="rate-header">Rate</th><th class="c-num c-amt">Amount</th>
+            </tr></thead>
+            <tbody id="lines"></tbody>
+          </table>
+          <div id="empty-lines" class="empty" hidden>
+            <strong>No positions match</strong>
+            <span class="muted">Clear the search or pick another tab.</span>
+          </div>
+        </div>
+        <footer class="sheet-foot">
+          <p id="line-count" class="muted small"></p>
+          <div class="pager"><button id="previous" class="ghost small-btn" type="button">Previous</button><button id="next" class="ghost small-btn" type="button">Next</button></div>
+        </footer>
+      </div>
+    </section>
+  </main>
+
+  <div class="savebar" id="savebar" hidden>
+    <span><strong id="unsaved-count"></strong> unsaved <span class="muted kbd-hint">· ⌘S to save</span></span>
+    <button id="discard" type="button" class="ghost">Discard</button>
+    <button id="save" type="button" class="primary">Save changes</button>
+  </div>
+
+  <p id="notice" role="status" class="toast" hidden></p>
+
+  <dialog id="drawer" aria-labelledby="drawer-title">
+    <header class="drawer-head">
+      <div><p id="drawer-context" class="eyebrow"></p><h2 id="drawer-title"></h2></div>
+      <form method="dialog"><button class="icon-btn" aria-label="Close panel">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
+      </button></form>
+    </header>
+    <div id="drawer-content" class="drawer-body"></div>
+  </dialog>
+</body>
+</html>
