@@ -152,6 +152,8 @@ def included_positions(snapshot: AnalysisInput) -> dict[str, tuple[Line, Decimal
                     or (kind == Dimension.COUNT and quantity not in (None, Decimal(1)))):
                 raise ValueError(f"{key}: unit and quantity conflict with lump-sum pricing")
             quantity = Decimal(1)
+        if quantity == 0:
+            continue  # Adds nothing to the bid total; layer 1 already flags it (L1.QTY.ZERO).
         if quantity is None or not quantity.is_finite() or quantity <= 0:
             raise ValueError(f"{key}: expected a positive tender quantity")
         positions[key] = (line, quantity)

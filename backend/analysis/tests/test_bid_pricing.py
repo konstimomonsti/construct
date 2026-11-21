@@ -5,12 +5,31 @@ from pathlib import Path
 import pytest
 
 from analysis.adapter import from_file
-from analysis.bid_pricing import Change, Position, PriceBand, PricingAssumptions, Scenario, evaluate, optimize, prepare
+from analysis.bid_pricing import (Change, Position, PriceBand, PricingAssumptions, Scenario, evaluate, included_positions,
+                                  optimize, prepare)
 from analysis.bid_pricing_benchmark import benchmark
 from analysis.contracts import Finding
 from analysis.runner import analyze
 
 EXAMPLES = Path(__file__).resolve().parents[3] / "data" / "examples" / "bid-pricing"
+DEMO_HALL = Path(__file__).resolve().parents[3] / "data" / "demo" / "building_hall_planted.X83"
+
+
+def test_zero_quantity_position_is_left_out_of_the_simulation():
+    snapshot = from_file(DEMO_HALL)
+    zero = next(line for line in snapshot.lines if line.code == "05.02.0050")
+    assert zero.quantity == 0
+    positions = included_positions(snapshot)
+    assert "05.02.0050" not in positions
+    assert all(quantity > 0 for _, quantity in positions.values())
+
+
+def test_negative_quantity_still_blocks_the_simulation():
+    snapshot = from_file(DEMO_HALL)
+    lines = [line.model_copy(update={"quantity": Decimal(-1)}) if line.code == "05.02.0050" else line
+             for line in snapshot.lines]
+    with pytest.raises(ValueError, match="05.02.0050: expected a positive tender quantity"):
+        included_positions(snapshot.model_copy(update={"lines": lines}))
 
 
 def test_x83_benchmark_and_downside():
