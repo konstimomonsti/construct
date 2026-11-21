@@ -11,7 +11,8 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "data": "tsx scripts/build-data.ts",
-    "test": "tsx tests/export-roundtrip.ts",
+    "test": "tsx --test tests/*.test.ts",
+    "test:roundtrip": "tsx tests/export-roundtrip.ts",
     "layout": "python scripts/pdf-layout.py"
   },
   "dependencies": {

@@ -1,4 +1,4 @@
-// npm test [-- pdf] — export verification (requires Poppler)
+// npm run test:roundtrip [-- pdf] — export verification (requires Poppler)
 import { readFileSync, readdirSync, writeFileSync, mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { execFileSync } from 'node:child_process'
@@ -55,18 +55,15 @@ async function main() {
     const parser = (id: FormatId, data: Uint8Array) => (id.startsWith('x83') ? parseGaebXml(new TextDecoder().decode(data)) : parseGaeb90(decodeGaeb90(data)))
     for (const d of gaeb) {
       for (const f of ['x83', 'x83-2004', 'd83', 'd84', 'd86'] as FormatId[]) {
-        const own = d.fileName.split('.').pop()!.toLowerCase()
-        const r = await run(d, f, undefined, { edited: true }) // force regeneration path by disabling original (loadOriginal undefined below)
-        void own
         const g = await exportList({ doc: d, resolved: resolveList(d), format: f, longTexts: true, scope: 'selection', selectedIds: d.positions.map((p) => p.id), now: new Date() })
-        void r
         const p = parser(f, g.data)
         let m = 0
-        const ref = resolveList(d).positions
+        const byCode = (a: { oz: string }, b: { oz: string }) => normOz(a.oz).localeCompare(normOz(b.oz))
+        const ref = resolveList(d).positions.toSorted(byCode)
+        const actual = p.positions.toSorted(byCode)
         ref.forEach((a, i) => {
-          const b = p.positions[i]
+          const b = actual[i]
           if (!b) return m++
-          if (/[A-Za-z]/.test(a.oz)) return
           const dos = f.startsWith('d')
           const sa = dos ? ws(dosFold(a.short)) : ws(a.short)
           const upBad = (f === 'd84' || f === 'd86') && a.up != null && a.qty > 0 && Math.abs(a.up - (b.up ?? -1)) > 0.006

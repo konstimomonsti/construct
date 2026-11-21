@@ -117,8 +117,8 @@ def gaeb_1990(data: bytes, *, encoding_override: str | None = None) -> Result:
     if encoding_override is not None:
         encoding = encoding_override
     header, _ = legacy_fields(record_view(opening, encoding), "00")
-    mask = header["number_mask"]
-    if len(mask) != 9 or not re.fullmatch(r"[1-9P]+I?", mask):
+    mask = record_view(opening, encoding)[61:71].strip()
+    if len(mask) > 9 or not re.fullmatch(r"[1-9]*P+I?", mask):
         mask = "1122PPPPI"
     result = Result("gaeb_1990", "1990", header["phase"].strip())
     result.metadata.update(encoding=encoding, encoding_scores=scores, encoding_override=encoding_override,

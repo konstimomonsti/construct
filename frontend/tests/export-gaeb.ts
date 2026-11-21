@@ -2,8 +2,8 @@
 import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { parseGaeb90, parseGaebXml, decodeGaeb90 } from '../src/lib/gaeb.ts'
-import { generateGaebXml, patchGaebXml, type XmlVariant } from '../src/lib/export/gaeb-xml.ts'
-import { generateGaeb90, patchGaeb90 } from '../src/lib/export/gaeb90.ts'
+import { generateGaebXml, type XmlVariant } from '../src/lib/export/gaeb-xml.ts'
+import { generateGaeb90 } from '../src/lib/export/gaeb90.ts'
 import { normOz } from '../src/lib/export/util.ts'
 import { dosFold } from '../src/lib/export/gaeb90.ts'
 const ws = (t: string) => t.replace(/\s+/g, ' ').trim()
@@ -30,8 +30,11 @@ for (const d of gaeb) {
     const p = parseGaebXml(x)
     check(p.positions.length === d.positions.length, `${v} count ${p.positions.length} vs ${d.positions.length}`)
     let m = 0
-    d.positions.forEach((a, i) => {
-      const b = p.positions[i]
+    // An OZ outside the source category has to move to a matching category on conversion.
+    const order = (a: { oz: string }, b: { oz: string }) => normOz(a.oz).localeCompare(normOz(b.oz))
+    const rows = p.positions.toSorted(order)
+    d.positions.toSorted(order).forEach((a, i) => {
+      const b = rows[i]
       if (!b) return
       if (normOz(a.oz) !== normOz(b.oz) || ws(a.short) !== ws(b.short) || Math.abs(a.qty - b.qty) > 1e-6 || fold(a.unit) !== b.unit) {
         if (m++ < 3) console.log('   diff', i, JSON.stringify([a.oz, a.short, a.qty, a.unit]), JSON.stringify([b.oz, b.short, b.qty, b.unit]))
@@ -54,7 +57,7 @@ for (const d of gaeb) {
     })
     check(m === 0, `D${ph} mismatches ${m}`)
   }
-  void patchGaebXml
-  void patchGaeb90
 }
 console.log(bad ? `${bad} failures` : 'OK')
+
+if (bad) process.exitCode = 1

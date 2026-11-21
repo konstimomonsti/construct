@@ -159,10 +159,10 @@ Saves the changed lines in one transaction. Include only the fields that changed
 Returns a file download with `Content-Disposition: attachment`. The available formats:
 
 - `pdf` and `docx`: priced documents.
-- `x83`: GAEB XML 3.3. `x83-31`: GAEB XML 3.1.
+- `x83`: GAEB XML 3.2. `x83-31`: GAEB XML 3.1.
 - `x82`: cost estimate.
 - `d83`, `d84`, `d86`: GAEB 90.
-- `zip`: all of the above.
+- `zip`: a bundle containing the PDF and Word exports.
 
 A plain `<a href>` works for the download. With `fetch`, read the response as a blob.
 

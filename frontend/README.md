@@ -34,3 +34,6 @@ Run `npm run layout` with PyMuPDF installed to refresh the PDF layout metadata.
 
 Run `npm test` to check GAEB, PDF, CSV, XLSX, and DOCX exports. The PDF checks require Poppler.
 The PDF layout measurements are in [docs/pdf-templates](docs/pdf-templates/).
+
+Run `npm test` to check import parsing across both datasets and round-trip every workspace format.
+Run `npm run test:roundtrip` for the larger export checks with Poppler.
