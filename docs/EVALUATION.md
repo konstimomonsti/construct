@@ -157,6 +157,14 @@ WORKSPACE_PARSE_ORIGIN=http://127.0.0.1:8080 \
   | python -m analysis.eval.uploads --product-evidence "$fixture_dir/product-evidence.json"
 ```
 
+### Requirements on repeated position codes
+
+A product requirement still uses the written `position_code`. Add a `position_locator` when the code repeats. Every supplied coordinate must match the same source position. Use the worksheet and row for Excel, page for PDF, table and row or paragraph for Word, and source item ID or record for GAEB. The locator supports `sheet`, `row`, `page`, `table`, `paragraph`, `source_id`, and `record`. Numbers are positive source coordinates and worksheet names and source IDs are exact. A stale locator or an ambiguous code calls for confirmation and lists the source positions with that code. Existing requirements without a locator continue to work for unique codes.
+
+The XLS and XLSX replay reused one code on two worksheets. It caught both planted diameter conflicts at the selected worksheet and row, and all four review notes for an unqualified or stale link. Both sheet-reorder controls passed. The same six-file replay with all three layers and local Qwen 2.5 7B kept those results. A separate check used a synthetic requirement to verify source links on one position each in the repository sanitary PDF, Word bill, and 8209 GAEB X83 and D83 exports. Those checks exercised the original page, paragraph, item ID, and record coordinates. The synthetic requirements were only source-link probes.
+
+Generate the workbook cases with `--suite product-position` and the same spreadsheet dependencies and upload replay as above. Pass `position-*.{xlsx,xls}` and the generated `product-evidence.json`.
+
 ## GAEB workspace upload replay
 
 The workspace picker parses the test files. The replay saves each original file and its parsed list in PostgreSQL, runs the assessment worker, and checks the stored findings and input hash against analysis of the original file. The worker keeps the original file's quantities, prices, subtotals, flags, and source locators. Unambiguous position and section links carry those findings into the workspace. Separate draft assessments continue to use the edited values.

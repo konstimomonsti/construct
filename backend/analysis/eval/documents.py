@@ -290,6 +290,60 @@ def generate_product_offer(out):
                                  *(labels or [{"control": True, "layers": [1], "expect": []}]))
 
 
+def generate_product_position(out):
+    """Repeat the same code across two worksheets and qualify the governed position."""
+    from openpyxl import Workbook
+    from . import workbooks
+
+    out.mkdir(parents=True, exist_ok=True)
+    code = "01.0010"
+    title = "Entwässerung"
+    examples = Path(__file__).resolve().parents[3] / "data" / "examples"
+    package = json.loads((examples / "drainage-variant-evidence.json").read_text(encoding="utf-8"))
+    small, = package["declarations"]
+    compliant = {**small, "product_code": "P160-B", "document": "Synthetic declaration P160-B",
+                 "properties": {"outside_diameter": {"value": "16", "unit": "cm"}}}
+    package["declarations"].append(compliant)
+    requirement = package["product_requirements"][0]
+    package["product_requirements"] = [
+        {**requirement, "position_locator": {"sheet": title, "row": 3}},
+        {**requirement, "locator": "index without a worksheet"},
+        {**requirement, "locator": "outdated worksheet index", "position_locator": {"sheet": title, "row": 12}},
+    ]
+    (out / "product-evidence.json").write_text(json.dumps(package, indent=2), encoding="utf-8")
+
+    def pipe(product):
+        return workbooks.Item(code, "Abwasserrohr liefern", 10, "m", 10, 100,
+                              f"Hersteller: Synthetic Works; SKU: {product}")
+
+    rule = "L1.PRODUCT.DECLARED_PROPERTY"
+    for name, sku, reorder in (("position-matching", "P160-B", False), ("position-conflict", "P160-A", False),
+                               ("position-reordered", "P160-B", True)):
+        sheets = [(title, pipe(sku)), ("Reserve", pipe("P160-A"))]
+        if reorder:
+            sheets.reverse()
+        workbooks.workbook(out / f"{name}.xls", [(sheet, [item], 0, 0) for sheet, item in sheets])
+        book = Workbook()
+        book.remove(book.active)
+        for sheet, item in sheets:
+            tab = book.create_sheet(sheet)
+            tab.append((sheet,))
+            tab.append(("OZ", "Kurztext", "Menge", "ME", "EP", "GP", "Langtext"))
+            tab.append((item.code, item.description, item.quantity, item.unit, item.rate, item.amount, item.detail))
+        book.save(out / f"{name}.xlsx")
+        for ext in ("xls", "xlsx"):
+            if name == "position-conflict":
+                labels = [{"match": "line", "layers": [1], "expect": [rule], "target": {
+                    "line_codes": [code], "severity": "warning", "source_locator": {"sheet": title, "row": 3},
+                }}]
+            elif name == "position-matching":
+                labels = [{"match": "bom", "layers": [1], "expect": [rule], "target": {"severity": "info", "reason": reason}}
+                          for reason in ("position_ambiguous", "position_locator_mismatch")]
+            else:
+                labels = [{"control": True, "layers": [1], "expect": []}]
+            write_fixture_labels(out / f"{name}.{ext}", f"position-matching.{ext}", *labels)
+
+
 def generate_grade_scope(out):
     """Test concrete grade conflicts, legitimate component differences and unclear attribution."""
     out.mkdir(parents=True, exist_ok=True)
@@ -399,7 +453,7 @@ if __name__ == "__main__":
     suites = {"tabular": generate, "precast": generate_precast, "gutter": generate_gutter,
               "dimensions": generate_dimensions, "dotted": generate_dotted, "grade-scope": generate_grade_scope,
               "exposure-scope": generate_exposure_scope, "dependency-scope": generate_dependency_scope,
-              "product-offer": generate_product_offer}
+              "product-offer": generate_product_offer, "product-position": generate_product_position}
     parser.add_argument("--suite", choices=suites, default="tabular")
     args = parser.parse_args()
     suites[args.suite](args.out)

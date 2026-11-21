@@ -14,7 +14,7 @@ import json
 from typing import Annotated, Any, Literal, Union
 from uuid import uuid4
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_serializer, model_validator
 
 SCHEMA_VERSION = "0.2"
 
@@ -166,8 +166,28 @@ class ProductDeclaration(_Model):
     attachment_sha256: str | None = None
 
 
+class ProductPositionLocator(_Model):
+    """Exact source coordinates used with the written position code."""
+
+    sheet: str | None = Field(default=None, min_length=1, max_length=240)
+    row: int | None = Field(default=None, strict=True, gt=0)
+    page: int | None = Field(default=None, strict=True, gt=0)
+    table: int | None = Field(default=None, strict=True, gt=0)
+    paragraph: int | None = Field(default=None, strict=True, gt=0)
+    record: int | None = Field(default=None, strict=True, gt=0)
+    source_id: str | None = Field(default=None, min_length=1, max_length=240)
+
+    @model_validator(mode="after")
+    def populated(self):
+        fields = self.model_dump(exclude_none=True)
+        if not fields or any(isinstance(value, str) and not value.strip() for value in fields.values()):
+            raise ValueError("A position locator needs at least one source coordinate with a value")
+        return self
+
+
 class ProductRequirement(_Model):
     position_code: str = Field(min_length=1, max_length=100)
+    position_locator: ProductPositionLocator | None = None
     property_name: str = Field(min_length=1, max_length=100)
     comparison: Literal["equal", "at_least", "at_most"]
     required: ProductProperty
@@ -175,6 +195,16 @@ class ProductRequirement(_Model):
     locator: str = Field(min_length=1, max_length=240)
     attachment_id: str | None = None
     attachment_sha256: str | None = None
+
+    @model_serializer(mode="wrap")
+    def serialize_position_locator(self, handler):
+        # Preserve the canonical hash of existing snapshots with unqualified requirements.
+        data = handler(self)
+        if locator := data.get("position_locator"):
+            data["position_locator"] = {field: value for field, value in locator.items() if value is not None}
+        else:
+            data.pop("position_locator", None)
+        return data
 
 
 class AnalysisInput(_Model):

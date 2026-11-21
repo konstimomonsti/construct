@@ -148,51 +148,60 @@ def _value_in_unit(property, target_unit):
     return value if value is not None else " ".join(str(property.value).casefold().split()) or None
 
 
-def declared_property_comparisons(snapshot):
+def _requirement_positions(snapshot):
     if not snapshot.product_requirements:
         return
     lines = defaultdict(list)
     for line in snapshot.lines:
         if line.code:
             lines[normalized_code(line.code)].append(line)
-    declarations = _by_identity(snapshot.declarations)
     for requirement in snapshot.product_requirements:
-        targets = lines[normalized_code(requirement.position_code)]
-        if len(targets) != 1:
-            yield None, requirement, None, [], None, "insufficient_evidence"
-            continue
-        line = targets[0]
-        identities = _offers(line, snapshot.project.source_document.format)
-        if len(identities) != 1:
-            yield line, requirement, None, [], None, "insufficient_evidence"
-            continue
-        identity, offer = next(iter(identities.items()))
-        items = declarations.get(identity, [])
-        target_unit = requirement.required.unit
-        expected = _value_in_unit(requirement.required, target_unit)
-        values = {_value_in_unit(prop, target_unit) for item in items
-                  if (prop := item.properties.get(requirement.property_name))}
-        if None in values or expected is None or len(values) != 1:
-            yield line, requirement, offer, items, None, "insufficient_evidence"
-            continue
-        actual = next(iter(values))
-        if requirement.comparison == "equal":
-            matches = actual == expected
-        elif isinstance(actual, str) or isinstance(expected, str):
-            yield line, requirement, offer, items, None, "insufficient_evidence"
-            continue
-        elif requirement.comparison == "at_least":
-            matches = actual >= expected
-        else:
-            matches = actual <= expected
-        yield line, requirement, offer, items, actual, "satisfied" if matches else "conflict"
+        candidates = lines[normalized_code(requirement.position_code)]
+        locator = requirement.position_locator.model_dump(exclude_none=True) if requirement.position_locator else {}
+        matches = [line for line in candidates if all(line.source_locator.get(key) == value
+                                                       for key, value in locator.items())]
+        yield requirement, candidates, matches
+
+
+def _compare_property(line, requirement, source_format, declarations):
+    offers = _offers(line, source_format)
+    if len(offers) != 1:
+        return None, [], None, "insufficient_evidence"
+    identity, offer = next(iter(offers.items()))
+    items = declarations.get(identity, [])
+    target_unit = requirement.required.unit
+    expected = _value_in_unit(requirement.required, target_unit)
+    values = {_value_in_unit(prop, target_unit) for item in items
+              if (prop := item.properties.get(requirement.property_name))}
+    if None in values or expected is None or len(values) != 1:
+        return offer, items, None, "insufficient_evidence"
+    actual = next(iter(values))
+    if requirement.comparison == "equal":
+        matches = actual == expected
+    elif isinstance(actual, str) or isinstance(expected, str):
+        return offer, items, None, "insufficient_evidence"
+    elif requirement.comparison == "at_least":
+        matches = actual >= expected
+    else:
+        matches = actual <= expected
+    return offer, items, actual, "satisfied" if matches else "conflict"
 
 
 @rule("L1.PRODUCT.DECLARED_PROPERTY", layer=1, category="product", severity="warning",
       title="Declared product property needs review",
       description="Compare an identified product variant with a typed, source-linked requirement.")
 def declared_properties(ctx):
-    for line, requirement, offer, items, actual, outcome in declared_property_comparisons(ctx.input):
+    declarations = _by_identity(ctx.input.declarations)
+    for requirement, codes, matches in _requirement_positions(ctx.input):
+        line = matches[0] if len(matches) == 1 else None
+        reason, candidates = None, []
+        if line:
+            offer, items, actual, outcome = _compare_property(line, requirement, ctx.input.project.source_document.format,
+                                                               declarations)
+        else:
+            offer, items, actual, outcome = None, [], None, "insufficient_evidence"
+            candidates = matches or codes
+            reason = "position_ambiguous" if matches else "position_locator_mismatch" if codes else "position_missing"
         if outcome == "satisfied":
             continue
         position = requirement.position_code
@@ -204,13 +213,31 @@ def declared_properties(ctx):
             observed = f"{actual} {unit}".strip()
             message = f"Position {position} {operator} {expected} for {name}. The offered variant declares {observed}."
             action = f"Confirm the requirement and request a variant with matching {name} evidence."
+        elif reason == "position_ambiguous":
+            message = f"Position {position} identifies {len(candidates)} source rows. The requirement for {name} needs an exact position link."
+            action = "Specify the source locator that identifies the intended row, such as the worksheet and row."
+        elif reason == "position_locator_mismatch":
+            message = f"The source locator for position {position} does not match any row with that position code."
+            action = "Check the requirement against the current source and correct its position code or locator."
+        elif reason == "position_missing":
+            message = f"The source has no position {position} for the requirement for {name}."
+            action = "Confirm the requirement belongs to this bill and update its position code."
         else:
             message = f"The available evidence cannot establish {name} for position {position} against the requirement {expected}."
             action = f"Confirm the position link and offered variant, then attach one governing declaration for {name} with comparable units."
+        detail = requirement.model_dump(mode="json")
+        discriminator = f"{position}/{name}/{requirement.document}/{requirement.locator}/{outcome}"
+        # Keep the existing finding ID for unqualified links. Distinguish individually qualified requirements.
+        if locator := detail.get("position_locator"):
+            discriminator += f"/{sorted(locator.items())}"
+        example_candidates = candidates[:20]
         yield ctx.finding(
             line=line, field=offer.field if offer else ("long_text" if line else None),
-            discriminator=f"{position}/{name}/{requirement.document}/{requirement.locator}/{outcome}",
-            evidence={"outcome": outcome, "requirement": requirement.model_dump(mode="json"), "observed": actual,
+            discriminator=discriminator, related_line_ids=[candidate.id for candidate in example_candidates],
+            evidence={"outcome": outcome, "reason": reason, "requirement": detail, "observed": actual,
+                      "position_candidate_count": len(candidates),
+                      "position_candidates": [{"line_code": candidate.code, "locator": candidate.source_locator}
+                                              for candidate in example_candidates],
                       "declarations": [item.model_dump(mode="json") for item in items],
                       **(offer.evidence() if offer else {})},
             message=message, suggested_fix=review_fix(action),

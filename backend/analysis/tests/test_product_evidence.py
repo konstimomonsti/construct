@@ -1,10 +1,13 @@
+from copy import deepcopy
 from decimal import Decimal
+from hashlib import sha256
 import json
 from pathlib import Path
 
 import pytest
 
 from analysis import adapter
+from analysis.contracts import ProductRequirement
 from analysis.eval.gaeb_writer import to_bytes
 from analysis.runner import analyze
 
@@ -23,11 +26,15 @@ def drainage():
     return {**package, "items": bom["positions"]}
 
 
-def findings(data):
+def snapshot_from_drainage(data):
     items = [{"id": item["id"], "oz": item["oz"], "short_text": item["short"], "long_text": item["long"],
-              "quantity": item["qty"], "unit": item["unit"]} for item in data["items"]]
-    snapshot = adapter.from_data({**data, "items": items})
-    return {finding.rule_id: finding for finding in analyze(snapshot, [1, 2]).findings}
+              "quantity": item["qty"], "unit": item["unit"], "source_locator": item.get("source_locator", {})}
+             for item in data["items"]]
+    return adapter.from_data({**data, "items": items})
+
+
+def findings(data):
+    return {finding.rule_id: finding for finding in analyze(snapshot_from_drainage(data), [1, 2]).findings}
 
 
 def test_exact_offered_variant_conflicts_with_material_stiffness_and_diameter(drainage):
@@ -140,6 +147,82 @@ def test_explicit_specification_conflicts_even_without_an_offered_variant(draina
     assert report[SCOPE].evidence["scope_material"] == expected
     assert not {MATERIAL, STIFFNESS, PROPERTY} & report.keys()
 
+
+
+@pytest.mark.parametrize(("source", "selector"), [
+    ({"sheet": "Roof", "row": 4}, {"sheet": "Roof", "row": 4}),
+    ({"page": 3}, {"page": 3}),
+    ({"table": 2, "row": 7}, {"table": 2, "row": 7}),
+    ({"source_id": "source-item-b"}, {"source_id": "source-item-b"}),
+    ({"record": 15}, {"record": 15}),
+    ({"paragraph": 9}, {"paragraph": 9}),
+])
+def test_requirement_targets_exact_source_with_repeated_codes(drainage, source, selector):
+    first = drainage["items"][0]
+    first["source_locator"] = {"sheet": "Elsewhere", "row": 4}
+    first["long"] = "Hersteller: Other Works; SKU: C160"
+    qualified = {**first, "id": "target", "oz": "01.0010", "source_locator": source,
+                 "long": "Hersteller: Synthetic Works; SKU: P160-A"}
+    drainage["items"].append(qualified)
+    drainage["product_requirements"][0]["position_locator"] = selector
+    finding = findings(drainage)[PROPERTY]
+    assert finding.target.line_id == "target"
+    assert finding.source_locator == source
+    assert finding.evidence["requirement"]["position_locator"] == selector
+    assert finding.evidence["outcome"] == "conflict"
+    assert finding.suggested_fix and not finding.suggested_fix.operations
+
+
+def test_unqualified_repeated_code_reports_candidate_positions(drainage):
+    first = drainage["items"][0]
+    first["source_locator"] = {"sheet": "First", "row": 3}
+    drainage["items"].append({**first, "id": "second", "source_locator": {"sheet": "Second", "row": 3}})
+    finding = findings(drainage)[PROPERTY]
+    assert finding.severity == "info" and finding.target.line_id is None
+    assert finding.related_line_ids == [first["id"], "second"]
+    assert finding.evidence["reason"] == "position_ambiguous"
+    assert finding.evidence["position_candidate_count"] == 2
+    assert [row["locator"]["sheet"] for row in finding.evidence["position_candidates"]] == ["First", "Second"]
+    assert not finding.evidence["declarations"]
+    assert "worksheet and row" in finding.suggested_fix.rationale
+
+
+def test_wrong_source_coordinates_do_not_fall_back_to_a_unique_code(drainage):
+    item = drainage["items"][0]
+    item["source_locator"] = {"sheet": "First", "row": 3}
+    drainage["items"].append({**item, "id": "other", "oz": "01.0020",
+                              "source_locator": {"sheet": "First", "row": 9}})
+    drainage["product_requirements"][0]["position_locator"] = {"sheet": "First", "row": 9}
+    finding = findings(drainage)[PROPERTY]
+    assert finding.severity == "info" and finding.target.line_id is None
+    assert finding.related_line_ids == [item["id"]]
+    assert finding.evidence["reason"] == "position_locator_mismatch"
+
+
+def test_partial_coordinates_must_still_identify_one_position(drainage):
+    item = drainage["items"][0]
+    item["source_locator"] = {"sheet": "First", "row": 3}
+    drainage["items"].append({**item, "id": "second", "source_locator": {"sheet": "Second", "row": 3}})
+    drainage["product_requirements"][0]["position_locator"] = {"row": 3}
+    assert findings(drainage)[PROPERTY].evidence["reason"] == "position_ambiguous"
+
+
+@pytest.mark.parametrize("locator", [{}, {"row": 0}, {"page": "2"}, {"row": True}, {"unknown": "A"}, {"sheet": " "}])
+def test_invalid_position_coordinates_reject_the_attachment_requirement(drainage, locator):
+    with pytest.raises(ValueError):
+        ProductRequirement.model_validate({**drainage["product_requirements"][0], "position_locator": locator})
+
+
+def test_existing_unqualified_requirements_keep_their_snapshot_hash(drainage):
+    snapshot = snapshot_from_drainage(drainage)
+    payload = snapshot.model_dump(mode="json", exclude={"input_hash"})
+    assert "position_locator" not in payload["product_requirements"][0]
+    canonical = json.dumps(payload, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
+    assert snapshot.input_hash == sha256(canonical.encode("utf-8")).hexdigest()
+
+    qualified = deepcopy(payload)
+    qualified["product_requirements"][0]["position_locator"] = {"sheet": "First", "row": 3}
+    assert adapter.from_data(qualified).input_hash != snapshot.input_hash
 
 
 def test_x83_round_trip_preserves_offered_identity_and_din_reference(drainage):

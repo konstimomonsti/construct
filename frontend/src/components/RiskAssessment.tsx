@@ -2,7 +2,7 @@ import { clsx } from 'clsx'
 import { Icon, Menu, type MenuItem } from './ui'
 import { ToolButton } from './Kit'
 import { money } from '../lib/format'
-import { findingCategory, REASONS, SEVERITIES, type ChangeOrderSignal, type CoverageCheckState, type Decision, type Finding, type ReviewItem, type Severity } from '../lib/risk-assessment'
+import { findingCategory, REASONS, SEVERITIES, type ChangeOrderSignal, type CoverageCheckState, type Decision, type Finding, type ReviewItem, type Severity, type SourceLocator } from '../lib/risk-assessment'
 
 /**
  * severity colours for the risk UI, built on the themed status tokens so they hold in dark mode.
@@ -40,6 +40,20 @@ const COVERAGE_CHECK: Record<CoverageCheckState, string> = {
   quantity_candidate: 'The cited quantity could cover the shortfall if it applies to the same work.',
 }
 
+function sourceLabel(locator?: SourceLocator | null) {
+  if (!locator) return null
+  return [
+    locator.page ? `Source page ${locator.page}` : null,
+    locator.ocr_pages?.length ? `OCR on page ${locator.ocr_pages.join(', ')}` : null,
+    locator.sheet,
+    locator.table ? `Table ${locator.table}` : null,
+    locator.row ? `Row ${locator.row}` : null,
+    locator.paragraph ? `Paragraph ${locator.paragraph}` : null,
+    locator.record && !locator.row ? `Source record ${locator.record}` : null,
+    locator.source_id ? `Source item ${locator.source_id}` : null,
+  ].filter(Boolean).join(' · ') || null
+}
+
 /** Source references and evidence shown under the finding in the drawer. */
 function FindingEvidence({ finding }: { finding: Finding }) {
   const evidence = finding.evidence
@@ -49,13 +63,10 @@ function FindingEvidence({ finding }: { finding: Finding }) {
   const declarations = finding.evidence?.declarations ?? []
   const requirement = finding.rule_id === 'L1.PRODUCT.DECLARED_PROPERTY' ? finding.evidence?.requirement : undefined
   const extracted = Object.entries(finding.evidence?.extracted ?? {})
-  const locator = finding.source_locator
-  const source = locator?.page ? `Source page ${locator.page}${locator.ocr_pages?.length ? ` · OCR on page ${locator.ocr_pages.join(', ')}` : ''}`
-    : locator?.table && locator.row ? `Table ${locator.table} · Row ${locator.row}`
-    : locator?.paragraph ? `Source paragraph ${locator.paragraph}`
-    : locator?.row ? (locator.sheet ? `${locator.sheet} · Row ${locator.row}` : `Source row ${locator.row}`)
-    : locator?.record ? `Source record ${locator.record}`
-    : locator?.source_id ? `Source item ${locator.source_id}` : null
+  const source = sourceLabel(finding.source_locator)
+  const positionLink = sourceLabel(requirement?.position_locator)
+  const positionCandidates = evidence?.position_candidates ?? []
+  const candidateCount = evidence?.position_candidate_count ?? positionCandidates.length
   const sourceField = (field?: string) => field === 'short_text' ? ' in heading' : field === 'long_text' ? ' in detail' : ''
   const quantityCheck = evidence?.quantity_check
   const scopeStatements = evidence?.scope_statements ?? []
@@ -116,6 +127,19 @@ function FindingEvidence({ finding }: { finding: Finding }) {
         </a>
       )}
       {requirement && <p className="text-slate-700"><span className="font-semibold">Requirement</span> — {requirement.document} · {requirement.locator}</p>}
+      {positionLink && <p className="text-slate-700"><span className="font-semibold">Required position</span> — {positionLink}</p>}
+      {positionCandidates.length > 0 && (
+        <div className="text-slate-700">
+          <p className="font-semibold">Positions with this code</p>
+          <ul>
+            {positionCandidates.map(({ line_code, locator }, index) => {
+              const candidate = sourceLabel(locator)
+              return <li key={index}>{line_code}{candidate && ` · ${candidate}`}</li>
+            })}
+          </ul>
+          {candidateCount > positionCandidates.length && <p>{candidateCount - positionCandidates.length} more</p>}
+        </div>
+      )}
       {declarations.length > 0 && (
         <ul className="space-y-1 text-slate-700">
           {declarations.map(({ manufacturer, product_code, document, revision, locator }, index) => (

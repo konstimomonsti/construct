@@ -12,11 +12,15 @@ export const RISK_STYLE = {
 export type CoverageCheckState = 'already_counted' | 'bundled_quantity_unknown' | 'not_a_firm_item'
   | 'scope_unverified' | 'quantity_unverified' | 'quantity_below_shortfall' | 'quantity_candidate'
 
+export type SourceLocator = { page?: number; ocr_pages?: number[]; record?: number | string; source_id?: string; row?: number; sheet?: string; table?: number; paragraph?: number }
+
 export type Evidence = {
   din?: { grade?: string | null; exposure?: string[]; required_min?: string | null }
   din_standard?: { identifier: string; edition: string; url: string }
   declarations?: { manufacturer: string; product_code: string; document: string; revision: string; locator: string }[]
-  requirement?: { document: string; locator: string }
+  requirement?: { document: string; locator: string; position_locator?: SourceLocator }
+  position_candidates?: { line_code: string; locator: SourceLocator }[]
+  position_candidate_count?: number
   extracted?: Record<string, unknown>
   bieterfrage_de?: string
   amount_at_stake?: string
@@ -47,7 +51,7 @@ export type Finding = {
   target: { line_id: string | null; line_code?: string | null; section_id: string | null; field: string | null }
   related_line_ids: string[]
   evidence?: Evidence
-  source_locator?: { page?: number; ocr_pages?: number[]; record?: number | string; source_id?: string; row?: number; sheet?: string; table?: number; paragraph?: number } | null
+  source_locator?: SourceLocator | null
   suggested_fix: { rationale: string } | null
   origin?: 'rule' | 'llm'
   model?: string | null

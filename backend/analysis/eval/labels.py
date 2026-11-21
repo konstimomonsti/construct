@@ -65,6 +65,8 @@ def finding_matches(label: dict, finding: dict) -> bool:
     target = label.get("target", {})
     if target.get("severity") and finding.get("severity") != target["severity"]:
         return False
+    if target.get("reason") and finding.get("reason") != target["reason"]:
+        return False
     locator = finding.get("source_locator") or {}
     if any(locator.get(key) != value for key, value in target.get("source_locator", {}).items()):
         return False
@@ -113,6 +115,7 @@ def compact(result: AnalysisResult, analysis_input) -> list[dict]:
             "title": finding.title, "message": finding.message[:300],
             "guidance": guidance_kind(finding),
             "source_locator": finding.source_locator,
+            **({"reason": finding.evidence["reason"]} if isinstance(finding.evidence.get("reason"), str) else {}),
         })
     return rows
 
