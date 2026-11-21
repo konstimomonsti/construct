@@ -43,7 +43,7 @@ function Labeled({ label, children, className }: { label: string; children: Reac
 }
 
 export function DetailDrawer({
-  p, catalogue, findings, focusField, onClose, edited, added, onPatch, onCode, onQty, onUp, onReset, onMoveCategory, onRemove, onPrev, onNext, position, listTotal, cap, imported,
+  p, catalogue, suggestion, findings, focusField, onClose, edited, added, onPatch, onCode, onQty, onUp, onReset, onMoveCategory, onRemove, onPrev, onNext, position, listTotal, cap, imported,
 }: {
   onRemove?: () => void
   /** live list total and cap, so a price change shows its effect on the budget */
@@ -51,6 +51,8 @@ export function DetailDrawer({
   cap?: number | null
   p: Position | null
   catalogue?: React.ReactNode
+  /** a catalogue price waiting for confirmation, shown under the price fields */
+  suggestion?: React.ReactNode
   findings?: React.ReactNode
   focusField?: string | null
   onClose: () => void
@@ -363,6 +365,7 @@ export function DetailDrawer({
                       Imported: {qty(imported.qty)} {imported.unit} × {imported.up == null ? 'not priced' : money(imported.up)}
                     </p>
                   )}
+                  {suggestion}
                 </div>
                 {findings}
                 {catalogue}

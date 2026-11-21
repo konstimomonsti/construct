@@ -206,7 +206,6 @@ export function CommandPalette() {
       act('import', 'upload', 'Import files', 'GAEB, Excel, CSV, Word or PDF', () => openDialog({ kind: 'folder-target', action: 'import' })),
       act('budgets', 'account_balance_wallet', 'Go to Active Budgets', 'Every priced list against its cap', go('/active')),
       act('archived', 'archive', 'Go to Archived', 'Projects set aside', go('/archived')),
-      act('trash', 'delete', 'Go to Trash', 'Restore or delete forever', go('/trash')),
       act('products', 'package_2', 'Go to Products', 'Catalogue items and prices', go('/catalogues/products')),
       act('suppliers', 'local_shipping', 'Go to Suppliers', 'Companies you buy from', go('/catalogues/suppliers')),
       act('subcontractors', 'engineering', 'Go to Subcontractors', 'Companies you hire for trades', go('/catalogues/subcontractors')),

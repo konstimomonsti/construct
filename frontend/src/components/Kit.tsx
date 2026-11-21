@@ -3,7 +3,7 @@ import { Fragment, useId, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { Icon, Menu, Meter, type MenuItem } from './ui'
 import { Page } from './Page'
-import { budgetStatus, money, moneyWhole } from '../lib/format'
+import { budgetStatus, int, money, moneyWhole } from '../lib/format'
 
 /* ------------------------------------------------------------------ */
 /* Page frame + header                                                 */
@@ -583,7 +583,7 @@ export function Chips<K extends string>({ value, options, onChange, label }: { v
             )}
           >
             {o.label}
-            {o.count !== undefined && <span className={clsx('num', on ? 'text-slate-200' : 'text-slate-600')}>{o.count}</span>}
+            {o.count !== undefined && <span className={clsx('num', on ? 'text-slate-200' : 'text-slate-600')}>{int(o.count)}</span>}
           </button>
         )
       })}

@@ -16,8 +16,8 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-30 bg-white">
-      {/* same column as the page content, so the search lines up with the page title */}
-      <div className="mx-auto flex h-16 w-full max-w-[1120px] items-center justify-between gap-3 px-4 sm:px-8">
+      {/* an app bar across the whole main area: search on the left, account in the corner, whatever the window width */}
+      <div className="flex h-16 w-full items-center justify-between gap-3 border-b border-slate-200 px-4 sm:px-6 lg:px-8">
       <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-4">
         <button
           type="button"

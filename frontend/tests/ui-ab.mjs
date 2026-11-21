@@ -87,7 +87,6 @@ await step('active', async () => {
   await shot('06-active-budgets')
 })
 await step('archived', async () => { await page.goto(base + '/archived'); await settle(900); await shot('07-archived') })
-await step('trash', async () => { await page.goto(base + '/trash'); await settle(900); await shot('08-trash') })
 
 for (const [n, kind] of [['13', 'products'], ['14', 'suppliers'], ['15', 'subcontractors']]) {
   await step(`catalogue ${kind}`, async () => {

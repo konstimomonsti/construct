@@ -46,7 +46,7 @@ export function FolderCollection({
   const sort = useStore((s) => s.sort)
   const setSort = useStore((s) => s.setSort)
   const openDialog = useUi((s) => s.openDialog)
-  const { openLists } = useActions()
+  const { openLists, deleteFolders } = useActions()
   const [selectMode, setSelectMode] = useState(false)
   const [sel, setSel] = useState<Set<string>>(new Set())
   const [view, setView] = useState<View>('all')
@@ -186,13 +186,7 @@ export function FolderCollection({
           done()
         }}
         onDelete={() => {
-          const chosen = folders.filter((f) => sel.has(f.id))
-          chosen.forEach((f) => useStore.getState().patchFolder(f.id, { trashedAt: new Date().toISOString() }))
-          toast(`Moved ${plural(chosen.length, 'project', 'projects')} to Trash`, 'ok', {
-            label: 'Undo',
-            run: () => chosen.forEach((f) => useStore.getState().patchFolder(f.id, { trashedAt: undefined })),
-          })
-          done()
+          deleteFolders(folders.filter((f) => sel.has(f.id)), done)
         }}
         onDone={done}
       />

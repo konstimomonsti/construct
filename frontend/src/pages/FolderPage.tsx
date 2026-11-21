@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { Button, Icon, toast } from '../components/ui'
+import { Button, Icon } from '../components/ui'
 import { Dock } from '../components/Dock'
 import { EmptyFolder } from '../components/EmptyFolder'
 import { DropOverlay, useDropImport } from '../components/DropImport'
 import { ListGrid } from '../components/ListCard'
 import { FolderGrid } from '../components/FolderCard'
-import { Chips, EmptyState, MetaLink, PageFrame, PageHeader, PillLink, RowMenu, Section, SortMenu, Summary, ToolButton, heroStatus } from '../components/Kit'
+import { Chips, EmptyState, PageFrame, PageHeader, PillLink, RowMenu, Section, SortMenu, Summary, ToolButton, heroStatus } from '../components/Kit'
 import { budgetStatus, int, money, moneyWhole, needsAttention, plural } from '../lib/format'
 import { pickAndImport } from '../lib/import'
 import { counts, folderDescription, folderPath, SORT_LABEL, useModel, useStore, type SortKey } from '../lib/store'
@@ -19,7 +19,7 @@ export function FolderPage() {
   const sort = useStore((s) => s.sort)
   const setSort = useStore((s) => s.setSort)
   const openDialog = useUi((s) => s.openDialog)
-  const { openLists, folderMenu } = useActions()
+  const { openLists, folderMenu, deleteLists } = useActions()
   const [view, setView] = useState<'all' | 'attention'>('all')
   const [selectMode, setSelectMode] = useState(false)
   const [sel, setSel] = useState<Set<string>>(new Set())
@@ -66,10 +66,7 @@ export function FolderPage() {
   // list caps are set independently; say when they promise more than the project cap allows
   const listCaps = allLists.filter(counts).reduce((x, l) => x + (l.cap || 0), 0)
   const capNote = f.cap > 0 && listCaps > f.cap ? (
-    <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1">
-      List caps add up to {moneyWhole(listCaps)}, {moneyWhole(listCaps - f.cap)} more than the project cap.
-      <MetaLink onClick={() => openDialog({ kind: 'edit-cap', target: 'folder', id: f.id })}>Edit cap</MetaLink>
-    </span>
+    <span>List caps exceed the project cap by <span className="num">{moneyWhole(listCaps - f.cap)}</span> (<span className="num">{moneyWhole(listCaps)}</span> in total).</span>
   ) : undefined
   const toggle = (id: string) =>
     setSel((s) => {
@@ -93,7 +90,7 @@ export function FolderPage() {
     <PageFrame>
       {f.trashedAt && (
         <div role="status" className="mb-6 flex items-center justify-between gap-3 rounded-lg bg-amber-50 px-5 py-3 text-sm text-amber-900">
-          <span className="flex items-center gap-2"><Icon name="delete" size={18} />This {nested ? 'sub-project' : 'project'} is in the Trash.</span>
+          <span className="flex items-center gap-2"><Icon name="delete" size={18} />This {nested ? 'sub-project' : 'project'} was deleted.</span>
           <Button size="sm" variant="ghost" onClick={() => useStore.getState().patchFolder(f.id, { trashedAt: undefined })}>Restore</Button>
         </div>
       )}
@@ -174,13 +171,7 @@ export function FolderPage() {
           done()
         }}
         onDelete={() => {
-          const ids = [...sel]
-          ids.forEach((id) => useStore.getState().patchList(id, { trashedAt: new Date().toISOString() }))
-          toast(`Moved ${plural(ids.length, 'list', 'lists')} to Trash`, 'ok', {
-            label: 'Undo',
-            run: () => ids.forEach((id) => useStore.getState().patchList(id, { trashedAt: undefined })),
-          })
-          done()
+          deleteLists(allLists.filter((l) => sel.has(l.id)), done)
         }}
         onDone={done}
       />

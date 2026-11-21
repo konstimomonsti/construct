@@ -3,7 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom'
 import { useEffect } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { Icon } from './ui'
-import { useModel, useStore } from '../lib/store'
+import { useStore } from '../lib/store'
 import { useUi } from '../lib/ui-store'
 import { useMedia } from '../lib/hooks'
 
@@ -13,7 +13,6 @@ const NAV_GROUPS = [
     { to: '/', label: 'All Projects', icon: 'source', end: true },
     { to: '/active', label: 'Active Budgets', icon: 'account_balance_wallet', end: false },
     { to: '/archived', label: 'Archived', icon: 'archive', end: false },
-    { to: '/trash', label: 'Trash', icon: 'delete', end: false },
   ] },
   { label: 'Catalogues', links: [
     { to: '/catalogues/products', label: 'Products', icon: 'package_2', end: true },
@@ -29,8 +28,6 @@ export function Sidebar() {
   const setMobile = useUi((s) => s.setMobileNav)
   const isLg = useMedia('(min-width: 1024px)')
   const { pathname } = useLocation()
-  const { folders, lists } = useModel()
-  const trashed = folders.filter((f) => f.trashedAt).length + lists.filter((l) => l.trashedAt && l.trashedAt !== 'purged').length
   const rail = collapsedPref && isLg
   // project and list pages live under All Projects, so it stays lit as their parent
   const nested = /^\/(folder|list)\//.test(pathname)
@@ -63,7 +60,7 @@ export function Sidebar() {
       )}
     >
       <div className="flex min-h-0 flex-col">
-        <div className={clsx('flex h-16 shrink-0 items-center', rail ? 'justify-center px-2' : 'justify-between pr-3 pl-5')}>
+        <div className={clsx('flex h-16 shrink-0 items-center border-b border-slate-200', rail ? 'justify-center px-2' : 'justify-between pr-3 pl-5')}>
           <div className="flex items-center gap-2.5">
             <img
               src="/billbuild-logo.png"
@@ -118,7 +115,6 @@ export function Sidebar() {
                     <>
                       <Icon name={n.icon} size={20} fill={isActive} className={isActive ? 'text-brand-700' : 'text-slate-500'} />
                       {!rail && <span className="flex-1">{n.label}</span>}
-                      {!rail && n.to === '/trash' && trashed > 0 && <span className="num text-sm font-medium text-slate-600">{trashed}</span>}
                     </>
                     )
                   }}

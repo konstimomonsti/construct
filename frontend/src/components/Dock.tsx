@@ -58,12 +58,12 @@ export function Dock({
             type="button"
             disabled={!count}
             onClick={onDelete}
-            title="Move selected to Trash"
-            aria-label="Move selected to Trash"
+            title="Delete selected"
+            aria-label="Delete selected"
             className="flex h-10 items-center gap-1.5 rounded-md px-3 text-sm font-medium text-rose-200 transition-colors hover:bg-white/15 disabled:opacity-50"
           >
             <Icon name="delete" size={18} />
-            <span className="max-sm:sr-only">Trash</span>
+            <span className="max-sm:sr-only">Delete</span>
           </button>
           <button
             type="button"

@@ -1,8 +1,7 @@
 import { useMemo, useState } from 'react'
 import { BudgetBadge, BudgetMini, Chips, EmptyState, PageFrame, PageHeader, Row, RowList, RowMenu, Section, SortMenu, Summary, ToolButton, budgetPhrase, heroStatus } from '../components/Kit'
 import { Dock } from '../components/Dock'
-import { toast } from '../components/ui'
-import { counts, useModel, useStore, type ListView } from '../lib/store'
+import { counts, useModel, type ListView } from '../lib/store'
 import { budgetStatus, money, needsAttention, plural } from '../lib/format'
 import { useActions } from '../lib/actions'
 import { completeness, displayTitle, listLabel, phaseLabel } from '../components/ListCard'
@@ -13,7 +12,7 @@ const SORTS: Record<Key, string> = { usage: 'Closest to cap', total: 'Highest am
 /** the hero reads like every other: what is priced, against the sum of list caps, with Used and Left on the right */
 export function ActiveBudgets() {
   const { lists, folders } = useModel()
-  const { listMenu, openLists } = useActions()
+  const { listMenu, openLists, deleteLists } = useActions()
   const [key, setKey] = useState<Key>('usage')
   const [view, setView] = useState<'all' | 'attention'>('all')
   const [selectMode, setSelectMode] = useState(false)
@@ -141,13 +140,7 @@ export function ActiveBudgets() {
               done()
             }}
             onDelete={() => {
-              const ids = [...sel]
-              ids.forEach((id) => useStore.getState().patchList(id, { trashedAt: new Date().toISOString() }))
-              toast(`Moved ${plural(ids.length, 'list', 'lists')} to Trash`, 'ok', {
-                label: 'Undo',
-                run: () => ids.forEach((id) => useStore.getState().patchList(id, { trashedAt: undefined })),
-              })
-              done()
+              deleteLists(lists.filter((l) => sel.has(l.id)), done)
             }}
             onDone={done}
           />

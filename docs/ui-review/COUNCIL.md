@@ -17,7 +17,7 @@ From round 7 the council is these two members. The ux, estimator, a11y and finte
 | S4 | Position detail drawer | 05-list-detail-drawer.png |
 | S5 | Active Budgets | 06-active-budgets.png |
 | S6 | Archived | 07-archived.png |
-| S7 | Trash | 08-trash.png |
+| S7 | ~~Trash~~ (removed; deleting is permanent behind a confirm) | — |
 | S8 | Search palette | 09-command-palette.png |
 | S9 | Empty folder | 10-empty-folder.png |
 | S10 | Catalogue: Products | 13-catalogue-products.png |

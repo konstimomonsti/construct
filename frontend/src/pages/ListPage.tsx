@@ -1,6 +1,6 @@
 import { clsx } from 'clsx'
 import { lazy, Suspense, use, useEffect, useId, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { useParams, useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import { Button, Dialog, Field, Icon, inputCls, kbdCls, toast, type MenuItem } from '../components/ui'
 import { TableSkeleton } from '../components/Page'
@@ -17,6 +17,7 @@ import { loadList } from '../lib/data'
 import { ExportMenu } from '../components/ExportMenu'
 import { CatalogueDetails, CatalogueOverview } from '../components/WorkspaceCatalogue'
 import { useWorkspaceCatalogue } from '../lib/workspace-catalogue'
+import { usePriceSuggestions, type PriceSuggestion } from '../lib/price-suggestions'
 import { CategoryTree, useExpanded, type CheckState } from '../components/split/CategoryTree'
 import { MoveToCategory } from '../components/split/MoveToCategory'
 import { budgetStatus, fixedBudget, int, money, parseNumber, plural } from '../lib/format'
@@ -47,67 +48,6 @@ export function ListPage() {
 function Loaded({ id }: { id: string }) {
   const doc = use(loadList(id))
   return <ListDetail key={doc.id} doc={doc} />
-}
-
-/* ------------------------------------------------------------------ */
-/* Tabs                                                                */
-/* ------------------------------------------------------------------ */
-
-function TabsBar({ activeId, folderId }: { activeId: string; folderId: string }) {
-  const tabs = useStore((s) => s.openTabs)
-  const { lists } = useModel()
-  const navigate = useNavigate()
-  const setPalette = useUi((s) => s.setPalette)
-  const byId = useMemo(() => new Map(lists.map((l) => [l.id, l])), [lists])
-  const visible = tabs.filter((t) => byId.has(t) && !byId.get(t)!.trashedAt)
-
-  const close = (id: string) => {
-    const i = visible.indexOf(id)
-    useStore.getState().closeTab(id)
-    if (id === activeId) {
-      const next = visible[i + 1] ?? visible[i - 1]
-      navigate(next ? `/list/${next}` : `/folder/${folderId}`)
-    }
-  }
-
-  if (visible.length < 2) return null
-  return (
-    <div className="mb-5 flex min-w-0 items-center gap-1">
-      <nav aria-label="Open lists" className="flex min-w-0 items-center gap-1.5 overflow-x-auto">
-        {visible.map((id) => {
-          const l = byId.get(id)!
-          const active = id === activeId
-          return (
-            <div key={id} className="group relative flex shrink-0 items-center">
-              {active && <motion.span layoutId="tab-pill" className="absolute inset-0 rounded-md bg-brand-50 ring-1 ring-brand-200" transition={{ type: 'spring', stiffness: 500, damping: 40 }} />}
-              <Link
-                to={`/list/${id}`}
-                aria-current={active ? 'page' : undefined}
-                title={l.title}
-                className={clsx(
-                  'relative flex h-10 max-w-[16rem] items-center gap-2 rounded-md pr-10 pl-4 text-sm transition-colors',
-                  active ? 'font-semibold text-brand-700' : 'bg-slate-100 font-medium text-slate-800 hover:bg-slate-200 hover:text-slate-900',
-                )}
-              >
-                <span className="truncate">{l.fileName}</span>
-              </Link>
-              <button
-                type="button"
-                aria-label={`Close ${l.fileName}`}
-                onClick={() => close(id)}
-                className={clsx('absolute right-1 flex size-8 items-center justify-center rounded-md transition-colors', active ? 'text-brand-700 hover:bg-brand-100' : 'text-slate-600 hover:bg-slate-300/60 hover:text-slate-900')}
-              >
-                <Icon name="close" size={16} />
-              </button>
-            </div>
-          )
-        })}
-      </nav>
-      <button type="button" title="Open another list" aria-label="Open another list" onClick={() => setPalette(true)} className="flex size-10 shrink-0 items-center justify-center rounded-md text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900">
-        <Icon name="add" size={20} />
-      </button>
-    </div>
-  )
 }
 
 /* ------------------------------------------------------------------ */
@@ -334,6 +274,9 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   const positions = resolved.positions
   const tree = resolved.tree
   const catStats = useMemo(() => treeStats(positions), [positions])
+  // prices proposed from matched catalogue products: pending until confirmed, never counted in totals
+  const dismissedPrices = useStore((s) => s.listPatch[doc.id]?.dismissedPrices)
+  const pending = usePriceSuggestions(report, positions, dismissedPrices)
   const st = useMemo(() => statsOf(positions), [positions])
   // findings from the automatic check that runs once on upload
   const assessment = useUploadAssessment(catalogueEnabled && original ? imported.id : null)
@@ -385,6 +328,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   const [cats, setCats] = useState<Set<string> | null>(null)
   const [sortTotal, setSortTotal] = useState(false)
   const [onlyUnpriced, setOnlyUnpriced] = useState(false)
+  const [onlyPending, setOnlyPending] = useState(false)
   const [onlyZero, setOnlyZero] = useState(false)
   const [onlyEdited, setOnlyEdited] = useState(false)
   const [selectMode, setSelectMode] = useState(false)
@@ -447,11 +391,11 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   const rows = useMemo(() => {
     const t = q.trim().toLowerCase()
     let r = positions.filter(
-      (p) => matchesFindingFilter(findingFilter, findingsByRow.get(p.id) ?? [], settled) && (!cats || cats.has(leafOz(p))) && (!onlyUnpriced || p.up == null) && (!onlyZero || (p.up != null && p.qty === 0)) && (!onlyEdited || editedIds.has(p.id) || addedIds.has(p.id)) && (!t || p.oz.toLowerCase().includes(t) || p.short.toLowerCase().includes(t) || p.path?.some((part) => part.label.toLowerCase().includes(t))),
+      (p) => matchesFindingFilter(findingFilter, findingsByRow.get(p.id) ?? [], settled) && (!cats || cats.has(leafOz(p))) && (!onlyUnpriced || (p.up == null && !pending.has(p.id))) && (!onlyPending || (p.up == null && pending.has(p.id))) && (!onlyZero || (p.up != null && p.qty === 0)) && (!onlyEdited || editedIds.has(p.id) || addedIds.has(p.id)) && (!t || p.oz.toLowerCase().includes(t) || p.short.toLowerCase().includes(t) || p.path?.some((part) => part.label.toLowerCase().includes(t))),
     )
     if (sortTotal) r = [...r].sort((a, b) => positionTotal(b) - positionTotal(a))
     return r
-  }, [positions, q, cats, sortTotal, onlyUnpriced, onlyZero, onlyEdited, editedIds, addedIds, findingFilter, findingsByRow, settled])
+  }, [positions, q, cats, sortTotal, onlyUnpriced, onlyPending, pending, onlyZero, onlyEdited, editedIds, addedIds, findingFilter, findingsByRow, settled])
 
   const largest = useMemo(() => {
     let best: Position | null = null
@@ -530,8 +474,9 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
     setFindingFilter('all')
     toTable()
   }
-  const only = (k: 'unpriced' | 'zero' | 'edited') => {
+  const only = (k: 'unpriced' | 'pending' | 'zero' | 'edited') => {
     setOnlyUnpriced(k === 'unpriced')
+    setOnlyPending(k === 'pending')
     setOnlyZero(k === 'zero')
     setOnlyEdited(k === 'edited')
     setQ('')
@@ -546,6 +491,27 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
     toast(`Reset ${plural(ids.length, 'position', 'positions')} to the imported values`, 'ok', { label: 'Undo', run: () => useStore.getState().setEdits(doc.id, prev) })
   }
 
+  // confirming writes the suggested price as the position's own price, the same as typing it
+  const confirmPrices = (ids: string[]) => {
+    const picks = ids.flatMap((id) => {
+      const s = pending.get(id)
+      return s ? [[id, s] as [string, PriceSuggestion]] : []
+    })
+    if (!picks.length) return
+    const prev = useStore.getState().edits[doc.id]
+    for (const [id, s] of picks) useStore.getState().setUp(doc.id, id, s.price)
+    const oz = positions.find((p) => p.id === picks[0][0])?.oz
+    toast(picks.length === 1 ? `Confirmed ${money(picks[0][1].price)} for position ${oz}` : `Confirmed ${plural(picks.length, 'price', 'prices')}`, 'ok', {
+      label: 'Undo', run: () => useStore.getState().setEdits(doc.id, prev),
+    })
+  }
+  const dismissPrice = (id: string) => {
+    const store = useStore.getState()
+    const before = store.listPatch[doc.id]?.dismissedPrices ?? []
+    store.patchList(doc.id, { dismissedPrices: [...new Set([...before, id])] })
+    toast('Suggestion dismissed', 'ok', { label: 'Undo', run: () => useStore.getState().patchList(doc.id, { dismissedPrices: before }) })
+  }
+
   const phase = view ? phaseLabel(view) : null
   // dedupe tokens: format strings like "GAEB 90 · D86" repeat the phase code the phase label already shows
   const meta = [...new Set([phase, doc.format, !phase ? doc.phase : null, doc.date].filter(Boolean).flatMap((m) => String(m).split(' · ')))]
@@ -554,9 +520,10 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   const heading = title
   const zeroQty = positions.filter((p) => p.up != null && p.qty === 0).length
   const status = budgetStatus(st.total, cap)
-  const unpriced = st.positionsCount - st.pricedCount
+  const pendingCount = pending.size
+  const unpriced = st.positionsCount - st.pricedCount - pendingCount
   const editedCount = [...editedIds].filter((x) => !addedIds.has(x)).length
-  const filtered = !!q.trim() || !!cats || onlyUnpriced || onlyZero || onlyEdited || findingFilter !== 'all'
+  const filtered = !!q.trim() || !!cats || onlyUnpriced || onlyPending || onlyZero || onlyEdited || findingFilter !== 'all'
   const sections = pricingSections(tree, catStats)
   const live = view && !view.trashedAt ? view : null
   const more: (MenuItem | 'sep')[] = [
@@ -590,7 +557,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
 
       {view?.trashedAt && (
         <div className="mb-5 flex items-center justify-between gap-3 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          <span className="flex items-center gap-2"><Icon name="delete" size={18} />This list is in the Trash.</span>
+          <span className="flex items-center gap-2"><Icon name="delete" size={18} />This list was deleted.</span>
           <button type="button" className="font-semibold underline underline-offset-4" onClick={() => useStore.getState().patchList(doc.id, { trashedAt: undefined })}>Restore</button>
         </div>
       )}
@@ -601,8 +568,6 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
           <span>This is an earlier version. The {view.supersededBy} file of the same tender replaces it, so this list doesn't count toward project totals.</span>
         </div>
       )}
-
-      <TabsBar activeId={doc.id} folderId={folder?.id ?? doc.folderId} />
 
       <Summary
         label="List total"
@@ -624,6 +589,12 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
               <span className="inline-flex items-center gap-x-1.5">
                 <span aria-hidden className="max-sm:hidden">·</span>
                 <MetaLink onClick={() => only('unpriced')} pressed={onlyUnpriced}><span className="num">{int(unpriced)}</span> still to price</MetaLink>
+              </span>
+            )}
+            {pendingCount > 0 && (
+              <span className="inline-flex items-center gap-x-1.5">
+                <span aria-hidden className="max-sm:hidden">·</span>
+                <MetaLink onClick={() => only('pending')} pressed={onlyPending}><span className="num">{int(pendingCount)}</span> pending confirmation</MetaLink>
               </span>
             )}
             {zeroQty > 0 && (
@@ -696,6 +667,16 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
               Not priced <span className="num">{int(unpriced)}</span>
             </FilterPill>
           )}
+          {(pendingCount > 0 || onlyPending) && (
+            <FilterPill on={onlyPending} onClick={() => setOnlyPending((v) => !v)}>
+              Pending <span className="num">{int(pendingCount)}</span>
+            </FilterPill>
+          )}
+          {onlyPending && pendingCount > 0 && (
+            <button type="button" onClick={() => confirmPrices([...pending.keys()])} className="inline-flex h-10 items-center gap-1.5 rounded-md px-3 text-sm font-semibold text-slate-800 hover:bg-slate-100">
+              <Icon name="done_all" size={18} />Confirm all
+            </button>
+          )}
           {onlyZero && <FilterPill on onClick={() => setOnlyZero(false)}>Quantity 0 <span className="num">{int(zeroQty)}</span></FilterPill>}
           {onlyEdited && (
             <>
@@ -735,6 +716,8 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
           qtyEdited={qtyEdited}
           upEdited={upEdited}
           risks={risks}
+          pending={pending}
+          onConfirmPrice={(pid) => confirmPrices([pid])}
           sectionsOpen={sectionsOpen}
           sortActive={sortTotal}
           selectMode={selectMode}
@@ -832,6 +815,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
         setQ('')
         setCats(null)
         setOnlyUnpriced(false)
+        setOnlyPending(false)
         setOnlyZero(false)
         setOnlyEdited(false)
         setSortTotal(false)
@@ -840,6 +824,10 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
       <AddItemDialog open={adding} onClose={() => setAdding(false)} listId={doc.id} tree={tree} positions={positions} />
       <DetailDrawer
         p={detail}
+        suggestion={detail && detail.up == null && pending.get(detail.id) ? (
+          <PriceSuggestionNote s={pending.get(detail.id)!} unit={detail.unit}
+            onConfirm={() => confirmPrices([detail.id])} onDismiss={() => dismissPrice(detail.id)} />
+        ) : undefined}
         catalogue={detail && detailCatalogue ? (
           <CatalogueDetails result={detailCatalogue} position={detail}
             onApply={(long) => useStore.getState().patchPosition(doc.id, detail.id, { long })} />
@@ -938,5 +926,27 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
         </Suspense>
       )}
     </>
+  )
+}
+
+const BASIS: Record<string, string> = { supplier_quote: 'supplier quote', tender_offer: 'earlier tender offer' }
+
+/** the drawer's pending-price note: where the number comes from, and the two ways to settle it */
+function PriceSuggestionNote({ s, unit, onConfirm, onDismiss }: { s: PriceSuggestion; unit: string; onConfirm: () => void; onDismiss: () => void }) {
+  const source = [s.product.supplier, s.basis ? BASIS[s.basis] : null, s.validFrom ? `from ${new Date(s.validFrom).toLocaleDateString('de-DE')}` : null].filter(Boolean).join(', ')
+  return (
+    <div role="group" aria-label="Suggested unit price" className="rounded-lg border border-dashed border-slate-400 bg-slate-50 p-4">
+      <p className="flex items-baseline justify-between gap-3">
+        <span className="flex items-center gap-1.5 text-sm font-semibold text-slate-900"><Icon name="schedule" size={18} className="text-slate-600" />Pending confirmation</span>
+        <span className="num text-[15px] font-semibold text-slate-900">{money(s.price)}<span className="font-normal text-slate-600">{(unit || s.unit) && ` / ${unit || s.unit}`}</span></span>
+      </p>
+      <p className="mt-1 text-sm leading-relaxed text-slate-700">
+        Suggested from the catalogue match <span lang="de" className="font-medium">{s.product.name}</span>{source && <> ({source})</>}. It doesn't count toward the list total until you confirm it.
+      </p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <Button variant="primary" icon="check" onClick={onConfirm}>Confirm price</Button>
+        <Button onClick={onDismiss}>Dismiss</Button>
+      </div>
+    </div>
   )
 }

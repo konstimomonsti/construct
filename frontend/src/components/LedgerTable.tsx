@@ -3,7 +3,8 @@ import { memo, useEffect, useMemo, useRef, useState } from 'react'
 import { Icon, Menu, toast } from './ui'
 import { QtyInput, editableCls } from './QtyStepper'
 import { FindingBadge, RISK_UI } from './RiskAssessment'
-import { amount, nbHyphen, parseNumber, plural } from '../lib/format'
+import { amount, int, nbHyphen, parseNumber, plural } from '../lib/format'
+import type { PriceSuggestion } from '../lib/price-suggestions'
 import { positionTotal } from '../lib/money'
 import { useStore } from '../lib/store'
 import { leafOz, treeStats, type CatStat } from '../lib/resolve'
@@ -14,10 +15,8 @@ export type RowRisk = { severity: Severity; count: number; label?: string }
 
 /** why a section adds up to nothing, in the words the rows use */
 function zeroWhy(s: CatStat) {
-  if (s.zero === s.count) return 'All quantities 0'
   if (s.unpriced === s.count) return 'Not priced'
-  if (s.zero + s.unpriced === s.count) return 'Not priced or quantity 0'
-  return '0,00 €'
+  return amount(0)
 }
 
 function EditDot({ on }: { on: boolean }) {
@@ -82,6 +81,32 @@ function PriceCell({ value, onSave, oz, edited, muted, className }: { value: num
   )
 }
 
+/** a price the catalogue proposes: shown, but not counted, until the user confirms it */
+function PendingPrice({ s, oz, onConfirm, onReview, className }: { s: PriceSuggestion; oz: string; onConfirm: () => void; onReview: () => void; className?: string }) {
+  return (
+    <span className={clsx('flex h-9 items-center justify-end gap-0.5', className ?? 'w-full')}>
+      <button
+        type="button"
+        onClick={onReview}
+        title={`Suggested from the catalogue: ${s.product.name}`}
+        aria-label={`Suggested unit price ${amount(s.price)} € for ${oz}, pending confirmation. Review`}
+        className="num h-8 rounded-md border border-dashed border-slate-400 px-2 text-right text-sm text-slate-700 hover:border-slate-500 hover:bg-slate-100 hover:text-slate-900"
+      >
+        {amount(s.price)}
+      </button>
+      <button
+        type="button"
+        onClick={onConfirm}
+        title="Confirm price"
+        aria-label={`Confirm ${amount(s.price)} € for ${oz}`}
+        className="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-brand-700 hover:bg-brand-50"
+      >
+        <Icon name="check" size={18} />
+      </button>
+    </span>
+  )
+}
+
 interface RowProps {
   listId: string
   p: Position
@@ -93,11 +118,14 @@ interface RowProps {
   qtyEdited: boolean
   upEdited: boolean
   risk?: RowRisk
+  /** catalogue price waiting for confirmation (only on positions without a price) */
+  pending?: PriceSuggestion
+  onConfirmPrice?: (pid: string) => void
   onOpen: (p: Position, fromFinding?: boolean) => void
   onMove: (pid: string) => void
 }
 
-const Row = memo(function Row({ listId, p, showCategory, selected, flash, edited, qtyEdited, upEdited, risk, onToggle, onOpen, onMove }: RowProps) {
+const Row = memo(function Row({ listId, p, showCategory, selected, flash, edited, qtyEdited, upEdited, risk, pending, onConfirmPrice, onToggle, onOpen, onMove }: RowProps) {
   const total = positionTotal(p)
   const remove = () => {
     useStore.getState().removePositions(listId, [p.id])
@@ -106,6 +134,10 @@ const Row = memo(function Row({ listId, p, showCategory, selected, flash, edited
   const hasShort = p.short && p.short !== '(ohne Kurztext)'
   const zero = p.up != null && p.qty === 0
   const setUp = (v: number | null) => useStore.getState().setUp(listId, p.id, v)
+  const suggested = p.up == null ? pending : undefined
+  const price = (className?: string) => suggested
+    ? <PendingPrice s={suggested} oz={p.oz} onConfirm={() => onConfirmPrice?.(p.id)} onReview={() => onOpen(p)} className={className} />
+    : <PriceCell value={p.up} oz={p.oz} edited={upEdited} muted={zero} onSave={setUp} className={className} />
   return (
     <tr
       data-pid={p.id}
@@ -160,7 +192,7 @@ const Row = memo(function Row({ listId, p, showCategory, selected, flash, edited
           <QtyInput value={p.qty} label={p.oz} edited={qtyEdited} muted={zero} onChange={(n) => useStore.getState().setQty(listId, p.id, n)} />
           <span className="text-sm whitespace-nowrap text-slate-600 lg:hidden">{p.unit || '—'} ×</span>
           <span className="relative lg:hidden">
-            <PriceCell value={p.up} oz={p.oz} edited={upEdited} muted={zero} onSave={setUp} className="w-auto min-w-20" />
+            {price('w-auto min-w-20')}
           </span>
           {edited && <span className="size-1.5 shrink-0 rounded-md bg-brand-600 lg:hidden" aria-hidden title="Edited" />}
         </div>
@@ -168,12 +200,12 @@ const Row = memo(function Row({ listId, p, showCategory, selected, flash, edited
       <td data-a="hide" className={clsx('w-16 py-1 pr-2 pl-1 text-sm whitespace-nowrap', zero ? 'text-slate-500' : 'text-slate-600')}>{p.unit || <span aria-label="no unit">—</span>}</td>
       <td data-a="hide" className="relative w-[120px] py-1 pr-1 pl-2 text-right">
         <EditDot on={upEdited} />
-        <PriceCell value={p.up} oz={p.oz} edited={upEdited} muted={zero} onSave={setUp} />
+        {price()}
       </td>
       {/* desktop GP sits under the "GP (€)" header; cards have no header, so they carry the € */}
-      <td data-a="total" className={clsx('num w-32 px-2 py-1 text-right text-sm whitespace-nowrap lg:[@media(hover:hover)]:transition-[padding] lg:[@media(hover:hover)]:group-focus-within:pr-12 lg:[@media(hover:hover)]:group-hover:pr-12 lg:[@media(hover:hover)]:group-has-[[aria-expanded=true]]:pr-12', p.up == null || zero ? 'text-slate-500' : 'font-medium text-slate-900')}>
+      <td data-a="total" className={clsx('num w-32 px-2 py-1 text-right text-sm whitespace-nowrap lg:[@media(hover:hover)]:transition-[padding] lg:[@media(hover:hover)]:group-focus-within:pr-12 lg:[@media(hover:hover)]:group-hover:pr-12 lg:[@media(hover:hover)]:group-has-[[aria-expanded=true]]:pr-12', suggested ? 'text-slate-600' : p.up == null || zero ? 'text-slate-500' : 'font-medium text-slate-900')}>
         <span className="inline-flex h-9 items-center justify-end">
-          {p.up == null ? 'Not priced' : zero ? <>{amount(0)}<span className="lg:hidden">&nbsp;€</span></> : <>{amount(total)}<span className="lg:hidden">&nbsp;€</span></>}
+          {suggested ? <><Icon name="schedule" size={16} className="mr-1 text-slate-500" />Pending</> : p.up == null ? 'Not priced' : zero ? <>{amount(0)}<span className="lg:hidden">&nbsp;€</span></> : <>{amount(total)}<span className="lg:hidden">&nbsp;€</span></>}
         </span>
       </td>
       <td data-a="menu" className="w-11 py-1 pr-1 text-right lg:[@media(hover:hover)]:absolute lg:[@media(hover:hover)]:top-1/2 lg:[@media(hover:hover)]:right-0 lg:[@media(hover:hover)]:w-auto lg:[@media(hover:hover)]:-translate-y-1/2 lg:[@media(hover:hover)]:p-0">
@@ -202,8 +234,11 @@ const EMPTY = new Set<string>()
 const SEVERITY_RANK: Record<Severity, number> = { error: 0, warning: 1, info: 2 }
 
 export function LedgerTable({
-  listId, rows, tree, showEmpty, selected, setSelected, focusId, onOpen, onMove, editedIds, qtyEdited, upEdited, risks, sortActive, selectMode, sectionsOpen = false,
+  listId, rows, tree, showEmpty, selected, setSelected, focusId, onOpen, onMove, editedIds, qtyEdited, upEdited, risks, pending, onConfirmPrice, sortActive, selectMode, sectionsOpen = false,
 }: {
+  /** catalogue prices waiting for confirmation, by position id */
+  pending?: ReadonlyMap<string, PriceSuggestion>
+  onConfirmPrice?: (pid: string) => void
   /** sections start collapsed so a long list reads as an outline; "Expand all" opens every level */
   sectionsOpen?: boolean
   /** category tree; rows are grouped under it unless a sort is active */
@@ -365,43 +400,55 @@ EP (€)
           const top = b.depth === 0
           return (
             <tbody key={cat ? `c-${cat.oz}` : 'loose'}>
-              {cat && (
-                <tr data-group className={clsx('border-b', top ? 'border-slate-300' : 'border-slate-200')}>
-                  <th scope="rowgroup" colSpan={6} className={clsx('py-0 pr-2 text-left', top ? clsx('display text-base text-slate-900', open ? 'pt-6' : 'pt-2') : 'pt-3 text-sm font-semibold text-slate-800')}>
-                    <button
-                      type="button"
-                      aria-expanded={open}
-                      onClick={() => toggleCat(cat.oz)}
-                      className="-ml-1 flex min-h-10 max-w-full items-center gap-1.5 rounded-lg pr-2 text-left hover:bg-slate-100 max-sm:w-full max-sm:items-start"
-                      style={{ marginLeft: b.depth * 20 }}
-                    >
-                      <Icon name="expand_more" size={20} className={clsx('shrink-0 text-slate-500 transition-transform max-sm:mt-1.5', !open && '-rotate-90')} />
-                      <span className="shrink-0 font-mono text-[13px] font-medium text-slate-600 max-sm:mt-1.5">{cat.oz}</span>
-                      {/* phones wrap the title to two lines and drop the count under it, so "Baust…" never happens */}
-                      <span className="flex min-w-0 flex-col py-1 sm:flex-row sm:items-baseline sm:gap-2 sm:py-0">
-                        <span lang="de" className="min-w-0 hyphens-auto max-sm:line-clamp-2 max-sm:text-balance max-sm:break-words sm:truncate">{cat.label || cat.oz}</span>
-                        {!open && stats.has(cat.oz) && (
-                          <span className="num shrink-0 font-sans text-sm font-normal tracking-normal text-slate-600 [font-variation-settings:normal] sm:text-[13px]">{plural(stats.get(cat.oz)!.count, 'position', 'positions')}</span>
-                        )}
-                      </span>
-                    </button>
-                    {flagged && (
-                      <span className="mt-0.5 mb-1.5 block font-sans text-sm font-normal" style={{ marginLeft: b.depth * 20 + 26 }}>
-                        <FindingBadge severity={flagged.severity}>{flagged.count === 1 ? '1 flagged position' : `${flagged.count} flagged positions`}</FindingBadge>
-                      </span>
-                    )}
-                  </th>
-                  <td colSpan={2} className={clsx('num px-2 pr-[3.25rem] text-right whitespace-nowrap lg:[@media(hover:hover)]:pr-2', top ? clsx('display text-base text-slate-900', open ? 'pt-6' : 'pt-2') : 'pt-3 text-sm font-semibold text-slate-800')}>
-                    {!stats.has(cat.oz) ? (
-                      <span className="text-sm font-normal text-slate-600">No positions yet</span>
-                    ) : stats.get(cat.oz)!.total === 0 ? (
-                      <span className="text-sm font-normal text-slate-600">{zeroWhy(stats.get(cat.oz)!)}</span>
-                    ) : (
-                      <>{amount(stats.get(cat.oz)!.total)}<span className="lg:hidden">&nbsp;€</span></>
-                    )}
-                  </td>
-                </tr>
-              )}
+              {cat && (() => {
+                const st = stats.get(cat.oz)
+                const waiting = st && pending?.size ? st.pids.reduce((n, pid) => n + (pending.has(pid) ? 1 : 0), 0) : 0
+                return (
+                  <tr
+                    data-group
+                    data-depth={b.depth}
+                    onClick={(e) => { if (!(e.target as HTMLElement).closest('button')) toggleCat(cat.oz) }}
+                    className={clsx('cursor-pointer border-b border-slate-200 transition-colors hover:bg-slate-50', top && open && 'bg-slate-50/70')}
+                  >
+                    <th scope="rowgroup" colSpan={6} className="p-0 text-left font-normal">
+                      <button
+                        type="button"
+                        aria-expanded={open}
+                        onClick={() => toggleCat(cat.oz)}
+                        className="flex min-h-11 w-full items-center text-left outline-none focus-visible:ring-2 focus-visible:ring-brand-700 focus-visible:ring-inset max-lg:min-h-10"
+                      >
+                        <span className="flex w-10 shrink-0 justify-center pl-2 max-lg:w-7 max-lg:justify-start max-lg:pl-0">
+                          <Icon name="chevron_right" size={18} className={clsx('text-slate-500 transition-transform', open && 'rotate-90')} />
+                        </span>
+                        <span className="w-[88px] shrink-0 px-2 font-mono text-[13px] text-slate-600 tabular-nums max-lg:w-auto max-lg:pr-2 max-lg:pl-0">{cat.oz}</span>
+                        <span className="flex min-w-0 flex-1 items-baseline gap-2.5 px-2 max-lg:flex-col max-lg:items-start max-lg:gap-0 max-lg:pl-0">
+                          <span lang="de" className={clsx('min-w-0 hyphens-auto max-lg:line-clamp-2 max-lg:break-words lg:truncate', top ? 'text-[15px] font-semibold text-slate-900' : 'text-sm font-medium text-slate-800')}>{cat.label || cat.oz}</span>
+                          {!open && st && (
+                            <span className="num shrink-0 text-[13px] text-slate-500">
+                              {plural(st.count, 'position', 'positions')}
+                              {waiting > 0 && <span className="ml-2 font-medium text-slate-700">{int(waiting)} pending</span>}
+                            </span>
+                          )}
+                        </span>
+                      </button>
+                      {flagged && (
+                        <span className="-mt-1 mb-2 block pl-[136px] text-sm max-lg:pl-7">
+                          <FindingBadge severity={flagged.severity}>{flagged.count === 1 ? '1 flagged position' : `${flagged.count} flagged positions`}</FindingBadge>
+                        </span>
+                      )}
+                    </th>
+                    <td colSpan={2} className={clsx('num px-2 pr-[3.25rem] text-right whitespace-nowrap lg:[@media(hover:hover)]:pr-2', top ? 'text-[15px] font-semibold text-slate-900' : 'text-sm font-medium text-slate-700')}>
+                      {!st ? (
+                        <span className="text-sm font-normal text-slate-500">No positions yet</span>
+                      ) : st.total === 0 ? (
+                        <span className="text-sm font-normal text-slate-500">{zeroWhy(st)}</span>
+                      ) : (
+                        <>{amount(st.total)}<span className="lg:hidden">&nbsp;€</span></>
+                      )}
+                    </td>
+                  </tr>
+                )
+              })()}
               {b.items.map((p) => (
                 <Row
                   key={p.id}
@@ -414,6 +461,8 @@ EP (€)
                   qtyEdited={qtyEdited.has(p.id)}
                   upEdited={upEdited.has(p.id)}
                   risk={risks?.get(p.id)}
+                  pending={pending?.get(p.id)}
+                  onConfirmPrice={onConfirmPrice}
                   onToggle={toggle}
                   onOpen={onOpen}
                   onMove={onMove}
