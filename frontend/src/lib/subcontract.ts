@@ -9,6 +9,26 @@ import type { Position } from './types'
 export type SubcontractFormat = 'x83' | 'xlsx' | 'pdf'
 export type SubcontractStatus = 'draft' | 'sent' | 'offer_received'
 
+/** a subcontractor's reply to one package. Internal: never part of a request file or an email. */
+export type SubcontractOffer = {
+  /** ISO; falls back to package.sentAt when missing */
+  sentAt?: string
+  /** ISO, when the subcontractor's X84 / reply arrived */
+  receivedAt?: string
+  /** EUR total they want (net) */
+  amount?: number
+  /** free text info about the reply */
+  note?: string
+  /** imported offer file */
+  fileName?: string
+  /** package positions found in the offer file */
+  matched?: number
+  /** package position ids the offer did not price */
+  missing?: string[]
+  /** we declined this offer */
+  declined?: boolean
+}
+
 export type SubcontractPackage = {
   id: string
   /** e.g. "Estricharbeiten" */
@@ -26,6 +46,10 @@ export type SubcontractPackage = {
   sentAt?: string
   /** internal note, never exported */
   notes?: string
+  /** replies by subcontractor catalogue id */
+  offers?: Record<string, SubcontractOffer>
+  /** subcontractor chosen for this package (shown in X84) */
+  chosenId?: string
 }
 
 /** everything a request file or an email may know about a package: no budget, no notes */
@@ -91,6 +115,48 @@ export const removePackage = (packages: readonly SubcontractPackage[], id: strin
 
 export const setStatus = (packages: readonly SubcontractPackage[], id: string, status: SubcontractStatus, at?: string): SubcontractPackage[] =>
   packages.map((p) => (p.id === id ? { ...p, status, sentAt: status === 'sent' ? at ?? p.sentAt : p.sentAt } : p))
+
+/* ------------------------------------------------------------------ */
+/* offers (replies from subcontractors)                                */
+/* ------------------------------------------------------------------ */
+
+const NO_OFFER: SubcontractOffer = {}
+
+export const offerOf = (pkg: Pick<SubcontractPackage, 'offers'>, subId: string): SubcontractOffer => pkg.offers?.[subId] ?? NO_OFFER
+
+const mapPackage = (packages: readonly SubcontractPackage[], id: string, fn: (p: SubcontractPackage) => SubcontractPackage) =>
+  packages.map((p) => (p.id === id ? fn(p) : p))
+
+/** merges `patch` into one subcontractor's offer; a key set to undefined is removed */
+export function setOffer(packages: readonly SubcontractPackage[], pkgId: string, subId: string, patch: Partial<SubcontractOffer>): SubcontractPackage[] {
+  return mapPackage(packages, pkgId, (p) => {
+    const next: SubcontractOffer = { ...offerOf(p, subId), ...patch }
+    for (const k of Object.keys(next) as (keyof SubcontractOffer)[]) if (next[k] === undefined) delete next[k]
+    return { ...p, offers: { ...p.offers, [subId]: next } }
+  })
+}
+
+/** chooses a subcontractor (null clears the choice). Choosing marks the package as having an offer. */
+export function chooseSubcontractor(packages: readonly SubcontractPackage[], pkgId: string, subId: string | null): SubcontractPackage[] {
+  return mapPackage(packages, pkgId, (p) => {
+    if (subId == null) {
+      const { chosenId: _drop, ...rest } = p
+      return rest
+    }
+    const offers = p.offers?.[subId]?.declined ? { ...p.offers, [subId]: { ...p.offers[subId], declined: false } } : p.offers
+    return { ...p, chosenId: subId, offers, status: p.status === 'draft' || p.status === 'sent' ? 'offer_received' : p.status }
+  })
+}
+
+/** declines (or reopens) an offer. Declining the chosen one clears the choice. */
+export function declineOffer(packages: readonly SubcontractPackage[], pkgId: string, subId: string, declined: boolean): SubcontractPackage[] {
+  const next = setOffer(packages, pkgId, subId, { declined })
+  return declined ? mapPackage(next, pkgId, (p) => {
+    if (p.chosenId !== subId) return p
+    const { chosenId: _drop, ...rest } = p
+    return rest
+  }) : next
+}
 
 /** a package whose positions were deleted from the list loses them */
 export function pruneMissing(pkg: SubcontractPackage, existingIds: ReadonlySet<string>): SubcontractPackage {

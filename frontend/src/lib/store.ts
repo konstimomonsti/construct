@@ -36,6 +36,8 @@ interface ListPatch {
   /** positions whose catalogue price suggestion the user dismissed */
   dismissedPrices?: string[]
   subcontractPackages?: SubcontractPackage[]
+  /** the uploaded award document (X86 tab) */
+  awardDocumentId?: string
 }
 export interface ListEdits {
   qty: Record<string, number>
