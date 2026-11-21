@@ -384,10 +384,13 @@ def classify(connection, workspace, list_id):
         if xml_texts and isinstance(source_id := position.get("srcRef"), str):
             long_text = restored_xml_description(position, long_text, xml_texts.get(source_id))
         companion = descriptions.get(key)
-        used_pdf = compatible_companion(position, companion) and (not short or not long_text)
+        # Some priced GAEB offers carry a blank bidder field instead of a description.
+        has_short = bool(re.search(r"\w", short))
+        has_long = bool(re.search(r"\w", long_text))
+        used_pdf = compatible_companion(position, companion) and (not has_short or not has_long)
         if used_pdf:
-            short = short or companion["short_description"]
-            long_text = long_text or companion.get("long_description") or short
+            short = short if has_short else companion["short_description"]
+            long_text = long_text if has_long else companion.get("long_description") or short
         if not short and long_text:
             short = next((line.strip() for line in long_text.splitlines() if line.strip()), "")[:110]
         recovered = None
@@ -507,7 +510,7 @@ def research_next(connection):
     state = "no_evidence"
     try:
         if model and (check := task["input"].get("model_check")):
-            proposed, = adjudicate(catalogue_provider(), [check])
+            proposed, = adjudicate(catalogue_provider(), [check], repair_quotes=True)
             if proposed and connection.execute(
                 "SELECT 1 FROM product WHERE id=%s AND archived_at IS NULL", (proposed["id"],),
             ).fetchone():

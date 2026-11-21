@@ -182,6 +182,51 @@ def test_small_model_requires_a_valid_verdict_and_verbatim_evidence():
     assert [adjudicate(responses, [check]) for _ in range(3)] == [[None], [None], [None]]
 
 
+def test_quote_repair_retries_an_affirmative_verdict_only():
+    from analysis.layer3.provider import FakeProvider
+    from workspace_product_ai import adjudicate, companion_check
+
+    item = {"id": "valve", "name": "Ventil DN 15", "category": "Valves"}
+    check = companion_check({}, {"position": {"short": item["name"]}, "product": item})
+    rejected = {"case": 0, "compatible": False, "quote": ""}
+    invalid = {"case": 0, "compatible": True, "quote": "Ventil DN 16"}
+    corrected = {"case": 0, "compatible": True, "quote": "Ventil DN 15"}
+    provider = FakeProvider([{"verdicts": [invalid, {**rejected, "case": 1}]}, {"verdicts": [corrected]}])
+    assert adjudicate(provider, [check, check], repair_quotes=True) == [item, None]
+    assert len(provider.requests) == 2
+    assert provider.requests[1].prompt_version.endswith("-quote-repair-v1")
+    provider = FakeProvider([{"verdicts": [rejected]}])
+    assert adjudicate(provider, [check], repair_quotes=True) == [None]
+    assert len(provider.requests) == 1
+
+
+def test_duct_bundle_review_preserves_component_count_dimensions_and_ties():
+    item = {"id": "duct", "name": "PE-HD Leerrohrpaar 2 × da 50 × 4,6 mm", "category": "Ducts",
+            "unit_code": "m", "tender_units": [], "description": "Leerrohrpaar für Glasfaser, je Meter des Paars."}
+    title = "PE-HD Rohre 2x da 50 x 4,6 mm (Leerrohr - zum"
+    detail = title + "\nEinblasen von Glasfaser geeignet) liefern"
+    position = {"short": title, "long": detail, "unit": "m"}
+    matcher = catalogue.ProductMatcher([item])
+    assert matcher.match(position) is None
+    assert matcher.review_candidate(position) == item
+    assert matcher.review_candidate({**position, "long": detail + "\nBestehend aus 3 Innenrohren"}) is None
+    assert matcher.review_candidate({**position, "long": detail.replace("4,6 mm", "5,5 mm")}) is None
+    duplicate = catalogue.ProductMatcher([item, {**item, "id": "duplicate"}])
+    assert duplicate.review_candidate(position) is None
+
+
+def test_review_can_shortlist_a_specification_followed_by_a_printed_total():
+    from workspace_product_match import review_descriptions, tokens
+
+    title = tokens("Einlaufbauwerk Fertigteil")
+    specification = "Wandstärke 20 cm, Anschluss DN 800 und bewehrte Bodenplatte."
+    footer = "Gesamtsumme 03 Stahlbetonrohre ...........................\nMwSt. 19,0 % .................."
+    printed = specification + "\n" + footer
+    assert tokens(printed) in review_descriptions(title, printed)
+    assert tokens(specification) in review_descriptions(title, printed)
+    assert tokens(specification) not in review_descriptions(title, printed + "\nAbweichend DN 1000.")
+
+
 @pytest.mark.skipif(not os.environ.get("CATALOGUE_TEST_DSN"), reason="Requires a disposable migrated PostgreSQL database")
 def test_model_review_uses_independently_uploaded_copies_and_rechecks_removal(monkeypatch):
     from analysis.layer3.provider import FakeProvider
@@ -333,6 +378,32 @@ def test_clipped_gaeb_xml_description_requires_unique_row_and_agreeing_measureme
     assert catalogue.restored_xml_description({**row, "oz": "20"}, visible, source["a"]) == visible
     assert catalogue.restored_xml_description({**row, "qty": 3}, visible, source["a"]) == visible
     assert catalogue.restored_xml_description(row, "Editable description", source["a"]) == "Editable description"
+
+
+@pytest.mark.skipif(not os.environ.get("CATALOGUE_TEST_DSN"), reason="Requires a disposable migrated PostgreSQL database")
+def test_offer_uses_pdf_to_replace_a_blank_field_only_when_measurement_agrees(monkeypatch):
+    monkeypatch.delenv("BILLBUILD_CATALOGUE_MODEL", raising=False)
+    item = {"id": uuid4(), "name": "PE Rohr DN 110 SN 8", "description": "PE Rohr DN 110 SN 8",
+            "category": "Pipes", "unit_code": "m", "tender_units": []}
+    printed_row = {"quantity": "3.0", "unit": "m", "short_description": item["name"],
+                   "long_description": item["description"]}
+    monkeypatch.setattr(catalogue, "catalogue_products", lambda connection: [item])
+    monkeypatch.setattr(catalogue, "companion_descriptions",
+                        lambda *args: {"1.1": printed_row, "1.2": printed_row})
+    list_id = f"offer-blank-{uuid4()}"
+    positions = [{"id": str(i), "oz": f"1.{i}", "short": "'...........................'",
+                  "long": "'...........................'", "unit": "m", "qty": qty}
+                 for i, qty in ((1, 3), (2, 4))]
+    with psycopg.connect(os.environ["CATALOGUE_TEST_DSN"], autocommit=True, row_factory=dict_row) as conn:
+        with conn.transaction(force_rollback=True):
+            workspace.apply(conn, {"changes": {"userLists": {"set": {list_id: {
+                "fileName": "Offer.D84", "source": {"kind": "gaeb90"}, "userCreated": True, "positions": positions,
+            }}}}})
+            assert catalogue.classify_next(conn)
+            states = catalogue.status(conn, "default", list_id)["positions"]
+            assert states["1"]["product"]["id"] == str(item["id"])
+            assert states["1"]["recovered"]["source"] == "Companion offer PDF"
+            assert states["2"]["product"] is None and states["2"]["recovered"] is None
 
 
 def test_direct_model_review_checks_both_quotes_and_leaves_identical_products_tied():

@@ -4,7 +4,7 @@ import json
 import os
 import re
 
-from analysis.layer3.provider import AnthropicProvider, DEFAULT_ANTHROPIC_MODEL, LLMRequest, ResponseDetails
+from analysis.layer3.provider import AnthropicProvider, DEFAULT_ANTHROPIC_MODEL, LLMRequest, ProviderError, ResponseDetails
 from workspace_product_match import clean_description, labelled_values, tender_unit, tokens
 
 
@@ -48,7 +48,7 @@ def catalogue_check(original, product):
     }
 
 
-def adjudicate(provider, cases):
+def adjudicate(provider, cases, *, repair_quotes=False):
     if not cases:
         return []
     direct = cases[0].get("direct", False)
@@ -93,20 +93,46 @@ def adjudicate(provider, cases):
         }},
         version,
     )
+    verdicts = read_verdicts(provider, request, len(cases))
+    decisions = [case["product"] if verified_quote(case, verdicts.get(index)) else None
+                 for index, case in enumerate(cases)]
+    if not repair_quotes:
+        return decisions
+    repair = [index for index, verdict in verdicts.items()
+              if verdict and verdict.get("compatible") is True and decisions[index] is None]
+    if not repair:
+        return decisions
+    # Retry a failed quotation once. A rejection or missing verdict stays unresolved.
+    repair_request = LLMRequest(
+        system + " Your previous quote could not be found as a continuous passage. Reassess each case and "
+        "copy one contiguous passage exactly as written, without adding or joining words. "
+        "Use the original case order of this request, starting at zero.",
+        json.dumps([payload[index] for index in repair], ensure_ascii=False), request.schema, version + "-quote-repair-v1",
+    )
+    try:
+        corrected = read_verdicts(provider, repair_request, len(repair))
+    except ProviderError:
+        return decisions
+    for repair_index, index in enumerate(repair):
+        if verified_quote(cases[index], corrected.get(repair_index)):
+            decisions[index] = cases[index]["product"]
+    return decisions
+
+
+def read_verdicts(provider, request, count):
     response = (provider.complete_json(request, ResponseDetails()) if isinstance(provider, AnthropicProvider)
                 else provider.complete_json(request))
     verdicts = response.get("verdicts") if isinstance(response, dict) else None
     if not isinstance(verdicts, list):
-        return [None] * len(cases)
+        return {}
     grouped = {}
     for verdict in verdicts:
-        if isinstance(verdict, dict) and type(index := verdict.get("case")) is int and 0 <= index < len(cases):
+        if isinstance(verdict, dict) and type(index := verdict.get("case")) is int and 0 <= index < count:
             if index in grouped:
                 grouped[index] = None
             else:
                 grouped[index] = verdict
-    return [case["product"] if verified_quote(case, grouped.get(index)) else None
-            for index, case in enumerate(cases)]
+    return grouped
 
 
 def verified_quote(case, verdict):
