@@ -134,12 +134,13 @@ try {
   }
   await move(await moveDialog('Estimate'), 'Site')
   await page.goto(site)
-  await page.getByRole('button', { name: 'Open estimate.json', exact: true }).waitFor()
-  await move(await moveDialog('estimate.json'), 'Staging')
+  await page.getByRole('region', { name: 'Lists' }).getByRole('link', { name: /Estimate/ }).waitFor()
+  assert.equal(await page.getByRole('heading', { name: 'Documents' }).count(), 0)
   assert.equal(await page.getByRole('button', { name: 'Open estimate.json', exact: true }).count(), 0)
-  await page.goto(staging)
-  await page.getByRole('button', { name: 'Open estimate.json', exact: true }).waitFor()
   await page.goto(estimate)
+  await button('Documents (1)').click()
+  await page.getByRole('menuitem', { name: 'estimate.json' }).waitFor()
+  await page.keyboard.press('Escape')
   assert.equal(await meter.getAttribute('aria-valuemax'), cap)
   await button('Fit the shower', ledger).waitFor()
 
@@ -152,7 +153,7 @@ try {
   for (const file of exports) await cards.getByText(file.name, { exact: true }).waitFor()
   await cards.getByText('estimate.tsv', { exact: true }).waitFor()
   assert.deepEqual(errors, [])
-  console.log('Folder and file moves, category toggles, fixed pricing, and 11 import formats passed.')
+  console.log('Folder and list moves, category toggles, fixed pricing, and 11 import formats passed.')
 } finally {
   await browser.close()
 }

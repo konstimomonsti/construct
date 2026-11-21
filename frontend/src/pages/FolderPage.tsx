@@ -6,23 +6,20 @@ import { DropOverlay, useDropImport } from '../components/DropImport'
 import { ListGrid } from '../components/ListCard'
 import { FolderGrid, MoreMenu, toneTile } from '../components/FolderCard'
 import { money, plural, usageTone } from '../lib/format'
-import { docUrl } from '../lib/data'
 import { pickAndImport } from '../lib/import'
-import { folderPath, SORT_LABEL, useModel, useStore, type ListView, type SortKey } from '../lib/store'
+import { folderPath, SORT_LABEL, useModel, useStore, type SortKey } from '../lib/store'
 import { useUi } from '../lib/ui-store'
 import { useActions } from '../lib/actions'
-import type { DocMeta } from '../lib/types'
 
 export function FolderPage() {
   const { folderId = '' } = useParams()
-  const { folders, lists: allLists } = useModel()
+  const { folders } = useModel()
   const sort = useStore((s) => s.sort)
   const setSort = useStore((s) => s.setSort)
   const openDialog = useUi((s) => s.openDialog)
   const { openLists, folderMenu } = useActions()
   const f = folders.find((x) => x.id === folderId)
   const dragging = useDropImport(folderId, !!f && !f.trashedAt)
-  const docs = f?.documents ?? []
   const subfolders = folders.filter((item) => item.parentId === folderId && !item.trashedAt)
   const ancestors = folderPath(folders, folderId).slice(0, -1)
   const lists = [...(f?.listMetas ?? [])].sort((x, y) => {
@@ -43,7 +40,7 @@ export function FolderPage() {
     )
   }
 
-  const empty = lists.length === 0 && docs.length === 0 && subfolders.length === 0
+  const empty = lists.length === 0 && subfolders.length === 0
   if (empty && !f.trashedAt) {
     return (
       <>
@@ -139,64 +136,8 @@ export function FolderPage() {
         </section>
       )}
 
-      {docs.length > 0 && (
-        <section aria-labelledby="docs-h" className="mt-8">
-          <div className="mb-3 flex items-center gap-2">
-            <h2 id="docs-h" className="font-heading text-sm font-bold tracking-tight text-slate-900">Documents</h2>
-            <span className="rounded-full border border-slate-200 bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500">{docs.length}</span>
-          </div>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {docs.map((d) => (
-              <DocCard key={d.id} doc={d} list={allLists.find((item) => item.id === d.listId)} />
-            ))}
-          </div>
-        </section>
-      )}
       <DropOverlay show={dragging} name={f.name} />
     </Page>
   )
 }
 
-function DocCard({ doc, list }: { doc: DocMeta; list?: ListView }) {
-  const openDialog = useUi((s) => s.openDialog)
-  const open = () => openDialog({ kind: 'doc', doc })
-  const url = docUrl(doc)
-  const pdf = /\.pdf$/i.test(doc.name)
-  const actions = [
-    { label: 'Open document', icon: 'visibility', onSelect: open },
-    ...(url && pdf ? [{ label: 'Open in new tab', icon: 'open_in_new', onSelect: () => window.open(url, '_blank', 'noopener') }] : []),
-    { label: 'Move…', icon: 'drive_file_move', onSelect: () => openDialog({ kind: 'folder-target', action: 'move-document', docId: doc.id }) },
-    ...(!doc.original ? [{ label: 'Change linked list…', icon: 'link', onSelect: () => openDialog({ kind: 'link-document', doc }) }] : []),
-  ]
-  return (
-    <div
-      role="button"
-      tabIndex={0}
-      aria-label={`Open ${doc.name}`}
-      onClick={open}
-      onKeyDown={(e) => e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), open())}
-      className="group flex cursor-pointer flex-col justify-between rounded-xl border border-slate-200 bg-white p-4 transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md"
-    >
-      <div className="flex items-start gap-3">
-        <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-rose-50 text-rose-500 shadow-xs">
-          <Icon name={pdf ? "picture_as_pdf" : "description"} size={24} />
-        </span>
-        <div className="min-w-0">
-          <h3 className="truncate text-sm font-semibold tracking-tight text-slate-900 transition-colors group-hover:text-brand-600">{doc.name}</h3>
-          {doc.excerpt && <p className="mt-0.5 line-clamp-2 text-[11px] leading-snug text-slate-400">{doc.excerpt.replace(/\s+/g, ' ')}</p>}
-          {list && <Link to={`/list/${list.id}`} onClick={(event) => event.stopPropagation()} className="mt-1 block truncate text-xs text-brand-700 hover:underline">{list.title}</Link>}
-        </div>
-      </div>
-      <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-2.5 text-xs text-slate-500">
-        <span className="flex items-center gap-1.5">
-          <span className="size-1.5 rounded-full bg-rose-400" />
-          {pdf ? 'PDF' : 'Source file'}{doc.pages ? ` · ${doc.pages} pages` : ''}
-        </span>
-        <MoreMenu
-          label={`Options for ${doc.name}`}
-          items={actions}
-        />
-      </div>
-    </div>
-  )
-}
