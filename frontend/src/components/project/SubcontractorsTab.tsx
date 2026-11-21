@@ -346,7 +346,7 @@ function ImportForm({ pending, packages, positions, nameOf, onClose, onAssign }:
           <Button
             variant="primary"
             disabled={!ready}
-            onClick={() => pkg && match && onAssign(pkg.id, subId, { receivedAt: new Date().toISOString(), amount: match.amount, fileName: pending.fileName, matched: match.matched, missing: match.missing },
+            onClick={() => pkg && match && onAssign(pkg.id, subId, { receivedAt: new Date().toISOString(), amount: match.amount, fileName: pending.fileName, matched: match.matched, missing: match.missing, prices: match.prices },
               `Assigned ${pending.fileName} to ${nameOf(subId).name}`, pending.file)}
           >
             Assign
@@ -370,6 +370,7 @@ function ImportForm({ pending, packages, positions, nameOf, onClose, onAssign }:
             {match.matched > 0
               ? <><span className="num font-semibold">{int(match.matched)} of {int(total)}</span> positions priced · <span className="num font-semibold">{money(match.amount)}</span></>
               : 'None of the package positions are priced in this file. Check the package.'}
+            {match.qtyDiffs > 0 && <span className="block text-[13px] text-amber-900"><span className="num">{int(match.qtyDiffs)}</span> {match.qtyDiffs === 1 ? 'position' : 'positions'} with a different quantity in the offer. The offer to the client uses our quantities.</span>}
             {match.extra > 0 && <span className="block text-[13px] text-slate-600"><span className="num">{int(match.extra)}</span> priced positions in the file are not in this package.</span>}
           </p>
         )}
