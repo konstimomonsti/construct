@@ -25,7 +25,7 @@ import { RiskSummary } from '../components/risk/RiskSummary'
 import { WarningsPanel, type WarningEntry } from '../components/risk/WarningsPanel'
 import { runSteps, type FixPlan } from '../lib/apply-fix'
 import { partialAnalysis } from '../lib/risk-labels'
-import { BidderQuestions, openQuestions } from '../components/risk/BidderQuestions'
+import { openQuestions } from '../components/risk/BidderQuestions'
 import { RiskPrint } from '../components/risk/RiskPrint'
 import { AddSectionDialog, PricingLegend, PricingBreakdown, pricingSections } from '../components/PricingSummary'
 import { useActions } from '../lib/actions'
@@ -375,7 +375,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   const decisionMap = useStore((s) => s.listPatch[doc.id]?.findingDecisions)
   const decisions = useMemo(() => decisionsOf({ findingDecisions: decisionMap, reviewedFindings: reviewedIds }), [decisionMap, reviewedIds])
   const reviewed = useMemo(() => new Set(Object.keys(decisions)), [decisions])
-  const [questionTexts, setQuestionTexts] = useState<Record<string, string>>({})
+  const questionTexts: Record<string, string> = {}
   const questions = useMemo(() => openQuestions(uploadReport?.questions ?? [], decisions), [uploadReport, decisions])
   const codes = useMemo(() => new Map(imported.positions.map((p) => [p.id, p.oz])), [imported.positions])
   const { byRow: findingsByRow, listWide } = useMemo(
@@ -1097,9 +1097,6 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
         </section>
       )}
 
-      {uploadReport?.questions && (
-        <BidderQuestions title={title} questions={questions} texts={questionTexts} onEdit={(id, text) => setQuestionTexts((prev) => ({ ...prev, [id]: text }))} />
-      )}
       {doc.notes && (
         <section className="mt-8 rounded-lg bg-slate-50">
           <button
