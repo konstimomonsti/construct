@@ -1,11 +1,10 @@
-"""DIN screening using the task specification's deliberately limited matrix."""
+"""DIN 1045-2 screening: strength classes against exposure-class minimums (matrix from the task specification)."""
 
 from ..registry import rule
 from .common import label, text_of
-from .textvalues import EXPOSURE, grades
+from .textvalues import EXPOSURE, NORMAL_GRADES, STANDARD_GRADES, grades
 
-STRENGTH_RANK = {grade: rank for rank, grade in enumerate(
-    ("C16/20", "C20/25", "C25/30", "C30/37", "C35/45", "C40/50", "C45/55", "C50/60"), 1)}
+STRENGTH_RANK = {grade: rank for rank, grade in enumerate(NORMAL_GRADES, 1)}
 EXPOSURE_MIN_STRENGTH = {
     "XC1": "C16/20", "XC2": "C16/20", "XC3": "C20/25", "XC4": "C25/30",
     "XF1": "C25/30", "XF2": "C25/30", "XF3": "C25/30", "XF4": "C30/37",
@@ -20,7 +19,7 @@ NOTES = {
 
 
 def facts(text: str, grade: str | None, required: str | None = None) -> dict:
-    return {"grade": grade, "exposure": sorted(set(EXPOSURE.findall(text.upper()))), "required_min": required}
+    return {"grade": grade, "exposure": sorted(set(EXPOSURE.findall(text))), "required_min": required}
 
 
 @rule("L1.DIN.EXPOSURE_STRENGTH", layer=1, category="din", severity="error",
@@ -35,7 +34,7 @@ def exposure_strength(ctx):
         grade = next(iter(stated))
         if grade not in STRENGTH_RANK:
             continue
-        for exposure in sorted(set(EXPOSURE.findall(text.upper()))):
+        for exposure in sorted(set(EXPOSURE.findall(text))):
             required = EXPOSURE_MIN_STRENGTH.get(exposure)
             if required and STRENGTH_RANK[grade] < STRENGTH_RANK[required]:
                 yield ctx.finding(line=line, field="long_text", discriminator=exposure,
@@ -45,13 +44,13 @@ def exposure_strength(ctx):
 
 
 @rule("L1.DIN.UNKNOWN_GRADE", layer=1, category="din", severity="warning",
-      title="Concrete grade outside screening table", description="A stated concrete class, including LC classes, is absent from the supplied rank table.")
+      title="Concrete grade is not a standard class", description="A stated concrete class is not a DIN EN 206 strength class (likely a typo).")
 def unknown_grade(ctx):
     for line in ctx.input.lines:
         text = text_of(line)
-        for grade in sorted(grades(text) - STRENGTH_RANK.keys()):
+        for grade in sorted(grades(text) - STANDARD_GRADES):
             yield ctx.finding(line=line, field="long_text", discriminator=grade,
-                message=f"{label(line)}: {grade} is not in the screening table; compliance cannot be assessed.",
+                message=f"{label(line)}: {grade} is not a DIN EN 206 strength class; please check for a typo.",
                 evidence={"din": facts(text, grade),
                           "bieterfrage_de": f"Zu Pos. {line.code}: Bitte bestätigen Sie die Betonfestigkeitsklasse {grade} und deren Eignung für die angegebenen Expositionsklassen."})
 
@@ -64,7 +63,7 @@ def special_notes(ctx):
         stated = grades(text)
         if not stated:
             continue
-        for exposure in sorted(set(EXPOSURE.findall(text.upper())) & NOTES.keys()):
+        for exposure in sorted(set(EXPOSURE.findall(text)) & NOTES.keys()):
             yield ctx.finding(line=line, field="long_text", discriminator=exposure,
                 message=f"{label(line)}: {exposure}. {NOTES[exposure]}",
                 evidence={"din": facts(text, next(iter(stated)) if len(stated) == 1 else None,

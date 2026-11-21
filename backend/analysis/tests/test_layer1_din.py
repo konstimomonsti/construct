@@ -24,12 +24,28 @@ def test_exposure_minimum_and_phase(phase):
     assert not any(f.rule_id.endswith("EXPOSURE_STRENGTH") for f in din("Beton C25/30 XF2"))
 
 
-@pytest.mark.parametrize("grade", ["LC 20 / 22", "C99/123", "C12/15"])
+@pytest.mark.parametrize("grade", ["C99/123", "C30/35"])
 def test_unknown_grade_is_not_ranked(grade):
     findings = din(f"Beton {grade} XD3")
     assert [f.rule_id for f in findings] == ["L1.DIN.UNKNOWN_GRADE"]
     assert findings[0].severity == "warning"
     assert din("Beton C35/45 XC2") == []
+
+
+@pytest.mark.parametrize("text", ["Beton LC 20 / 22 XD3", "UHPC C80/95 XC4 XD3 XF4", "Sauberkeitsschicht C8/10",
+                                  "Wasserbausteine C 200/400 liefern", "Auflager C12/15, Stärke 20 cm"])
+def test_standard_or_non_concrete_grades_are_not_unknown(text):
+    assert not any(f.rule_id == "L1.DIN.UNKNOWN_GRADE" for f in din(text))
+
+
+def test_low_standard_grade_is_ranked():
+    findings = din("Fundament C12/15, XC2 XF1")
+    assert {f.evidence["exposure"] for f in findings if f.rule_id.endswith("EXPOSURE_STRENGTH")} == {"XC2", "XF1"}
+
+
+def test_lowercase_words_are_not_exposure_classes():
+    assert EXPOSURE.findall("Leerrohre wo erforderlich, ws. siehe Plan") == []
+    assert din("Beton C35/45, Einbau wo erforderlich") == []
 
 
 def test_special_notes_are_unique_and_stable():
