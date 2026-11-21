@@ -56,4 +56,15 @@ Make the score and the money figure mean something in the demo, **without changi
 
 ## Notes / blockers (fill in)
 
--
+- Resolved contract blocker: `RiskReport.scale` was `Literal[40]`, outside the original allowlist. The user explicitly authorized its one-line change to a positive integer field. The field name and score formula are unchanged. The issue was reported in this chat immediately; no team-chat connector is available here.
+- Frontend handoff for the lead: change the `money_at_stake` tooltip to “Estimated expected value of open risks (exposure × likelihood × impact); not the full value of affected positions.” `top_risks.amount` remains full exposure. `frontend/src/lib/risk-assessment.ts` already uses `risk.scale` in the unchanged score formula.
+- Re-measured on this branch with layers 1–2 (values are from the current `main` inputs, which have fewer findings than the original lead table):
+
+  | File | Findings | Signals | S (points) | Scale | Score | Level | Expected money at stake |
+  |---|---:|---:|---:|---:|---:|---|---:|
+  | Clean building hall | 0 | 9 | 20.00 | 79 | 20 | low | 11,760.00 € |
+  | Planted building hall | 7 | 11 | 102.63 | 79 | 57 | high | 16,719.04 € |
+  | LV_11 precast fixture | 13 | 7 | 28.50 | 46 | 38 | medium | – |
+  | 8209.003 empty LV | 74 | 32 | 155.00 | 143 | 52 | high | – |
+  | StBALV23040.D86 | 32 | 83 | 245.81 | 201 | 55 | high | 43,499.95 € |
+  | [ORT_024] LV24069.D86 | 144 | 32 | 506.00 | 143 | 78 | critical | 41,771.27 € |
