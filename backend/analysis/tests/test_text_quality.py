@@ -53,6 +53,38 @@ def by_rule(findings, rule_id):
 # ---------------------------------------------------------------- typos
 
 
+@pytest.mark.parametrize("title,wrong,right", [
+    ("Abdeckung liefern/aufsetzten; Monteure, die sie aufsetzten", "aufsetzten", "aufsetzen"),
+    ("Montagekeile montieren / einsetzten", "einsetzten", "einsetzen"),
+    ("Abdeckung ausbauen / ersetzten", "ersetzten", "ersetzen"),
+])
+def test_parallel_work_actions_correct_only_the_incorrect_infinitive(title, wrong, right):
+    spelling.use_checker(spelling.SpellChecker({**LEXICON, right: 5}, use_hunspell=False))
+    [typo] = by_rule(run(line(1, title)), "L1.TEXT.TYPO")
+    assert typo.evidence["word"] == wrong and typo.evidence["suggestion"] == right
+    assert typo.evidence["source"]["reason"] == "parallel_infinitives"
+    assert wrong in typo.evidence["source"]["term"]
+    assert typo.evidence["source"]["term"] in typo.message
+    [operation] = typo.suggested_fix.operations
+    assert operation.field == "short_text" and operation.old_value == title
+    assert operation.new_value == title.replace(wrong, right, 1)
+
+
+@pytest.mark.parametrize("title", [
+    "Abdeckung liefern/aufsetzen",
+    "Abdeckung, die die Monteure aufsetzten",
+    "Abdeckung liefern / aufsetzten die Monteure vor Ort",
+    "Fabrikat: Abdeckung liefern/aufsetzten",
+    "Produktbeispiel „Abdeckung liefern/aufsetzten“",
+    "Abdeckung liefern/schätzten",
+    "Abdeckung / seitenversetzten",
+])
+def test_parallel_work_actions_leave_other_uses_untouched(title):
+    spellings = FakeHunspell("aufsetzten", "aufsetzen", "versetzten", "versetzen")
+    spelling.use_checker(spelling.SpellChecker({**LEXICON, "aufsetzen": 5, "versetzen": 5}, spellings))
+    assert by_rule(run(line(1, title)), "L1.TEXT.TYPO") == []
+
+
 def test_typo_found_with_fix_on_every_line():
     findings = run(line(1, "Leistung", "Der Auftragnehemer hat das Material zu liefern und einzubauen."),
                    line(2, "Leistung", "Vom Auftragnehemer zu liefern."),
@@ -94,6 +126,26 @@ def test_no_typo(text):
     assert by_rule(run(line(1, "Leistung", text)), "L1.TEXT.TYPO") == []
 
 
+def test_doubled_letter_pair_in_description_needs_one_known_replacement():
+    spelling.use_checker(spelling.SpellChecker(LEXICON, FakeHunspell("Montageschiene", "Montageplatte")))
+    text = "Eine Mofontageschiene und eine Montatageplatte montieren."
+    [typo] = by_rule(run(line(1, "Leistung", text)), "L1.TEXT.TYPO")
+    assert typo.evidence["word"] == "Montatageplatte"
+    assert typo.evidence["suggestion"] == "Montageplatte"
+    assert typo.suggested_fix.operations[0].new_value == "Eine Mofontageschiene und eine Montageplatte montieren."
+    assert "2 edits" in typo.suggested_fix.rationale
+
+
+@pytest.mark.parametrize("known,text", [
+    (("Montageplatte", "Montatageplatte"), "Die Montatageplatte verwenden."),
+    ((), "Die Montatageplatte verwenden."),
+    (("Montageplattegege", "Montatageplattege"), "Die Montatageplattegege verwenden."),
+])
+def test_doubled_pair_keeps_known_words_and_ambiguous_corrections(known, text):
+    spelling.use_checker(spelling.SpellChecker(LEXICON, FakeHunspell(*known)))
+    assert by_rule(run(line(1, "Leistung", text)), "L1.TEXT.TYPO") == []
+
+
 def test_english_text_is_not_checked():
     text = "The contractor shall supply the materail and install it according to the drawings."
     assert by_rule(run(line(1, "Supply", text)), "L1.TEXT.TYPO") == []
@@ -102,6 +154,48 @@ def test_english_text_is_not_checked():
 def test_no_dictionary_no_typo_findings():
     spelling.use_checker(spelling.SpellChecker(LEXICON, use_hunspell=False))
     assert by_rule(run(line(1, "Leistung", "Der Auftragnehemer und das Material")), "L1.TEXT.TYPO") == []
+
+
+def test_title_transposition_uses_corresponding_description_without_dictionary():
+    spelling.use_checker(spelling.SpellChecker(LEXICON, use_hunspell=False))
+    short = "Brandschutzkalppe montieren. Typ: Brandschutzkalppe"
+    correct = "Die Brandschutzklappe für den Schacht montieren."
+    [finding] = by_rule(run(line(1, short, correct)), "L1.TEXT.TYPO")
+    assert finding.evidence["source"] == {
+        "field": "long_text", "position": "01.0001", "term": "Brandschutzklappe",
+    }
+    [edit] = finding.suggested_fix.operations
+    assert edit.old_value == short
+    assert edit.new_value == "Brandschutzklappe montieren. Typ: Brandschutzkalppe"
+    assert by_rule(run(line(1, short, "Montieren und prüfen."), line(2, "Position", correct)), "L1.TEXT.TYPO") == []
+
+
+def test_title_transposition_uses_ancestor_heading_without_dictionary():
+    spelling.use_checker(spelling.SpellChecker(LEXICON, use_hunspell=False))
+    parent = Section(id="parent", code="03", title="Trockenbauarbeiten", sort_order=0)
+    sub = SECTION.model_copy(update={"parent_id": parent.id})
+    data = AnalysisInput(
+        project=Project(gaeb_phase="83"), sections=[parent, sub],
+        lines=[line(1, "Revisionsklappe für Trcokenbau", "Die Klappe in die Decke einbauen.")],
+    )
+    [finding] = by_rule(analyze(data, [1]).findings, "L1.TEXT.TYPO")
+    assert finding.evidence["source"] == {
+        "field": "section_title", "section": "03", "term": "Trockenbauarbeiten",
+    }
+    assert finding.suggested_fix.operations[0].new_value == "Revisionsklappe für Trockenbau"
+
+
+def test_title_transposition_requires_unique_dictionary_correction():
+    spelling.use_checker(spelling.SpellChecker(LEXICON, FakeHunspell("Verpackungsabfälle")))
+    [finding] = by_rule(run(line(1, "Bauschutt und Verpackugnsabfälle entsorgen")), "L1.TEXT.TYPO")
+    assert finding.evidence["source"] == {"dictionary": "hunspell de_DE"}
+    assert finding.suggested_fix.operations[0].new_value == "Bauschutt und Verpackungsabfälle entsorgen"
+
+
+def test_general_spelling_replacement_keeps_masked_product_terms():
+    text = "Der Auftragnehemer liefert das Produkt. Typ: Auftragnehemer"
+    [finding] = by_rule(run(line(1, "Leistung", text)), "L1.TEXT.TYPO")
+    assert finding.suggested_fix.operations[0].new_value == "Der Auftragnehmer liefert das Produkt. Typ: Auftragnehemer"
 
 
 def test_dictionary_location_setting(monkeypatch, tmp_path):
@@ -180,6 +274,16 @@ def test_notation_variants():
 def test_consistent_notation_has_no_finding():
     findings = run(line(1, "Rohr DN 100"), line(2, "Rohr DN 150"), line(3, "Kabel 5x25"), line(4, "Kabel 3x1,5"))
     assert by_rule(findings, "L1.TEXT.NOTATION_VARIANT") == []
+
+
+def test_notation_variants_require_directly_extracted_text():
+    native = line(1, "Rohr DN 100", unit_raw="St")
+    scanned = line(2, "Rohr DN100", unit_raw="st", source_locator={"page": 2, "ocr_pages": [2]})
+    other_native = line(3, "Rohr DN125", unit_raw="Stk")
+    assert by_rule(run(native, scanned), "L1.TEXT.NOTATION_VARIANT") == []
+    variants = by_rule(run(native, scanned, other_native), "L1.TEXT.NOTATION_VARIANT")
+    assert {finding.evidence.get("kind", "unit") for finding in variants} == {"DN", "unit"}
+    assert {finding.target.line_id for finding in variants} == {"l3"}
 
 
 # ---------------------------------------------------------------- lexicon

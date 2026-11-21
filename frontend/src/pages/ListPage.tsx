@@ -23,7 +23,7 @@ import type { RowRisk } from '../components/LedgerTable'
 import { DecisionControls, DismissMenu } from '../components/risk/DecisionControls'
 import { RiskSummary } from '../components/risk/RiskSummary'
 import { WarningsPanel, type WarningEntry } from '../components/risk/WarningsPanel'
-import { runSteps, type FixPlan } from '../lib/apply-fix'
+import { planFixes, runSteps } from '../lib/apply-fix'
 import { partialAnalysis } from '../lib/risk-labels'
 import { openQuestions } from '../components/risk/BidderQuestions'
 import { RiskPrint } from '../components/risk/RiskPrint'
@@ -31,6 +31,7 @@ import { AddSectionDialog, PricingLegend, PricingBreakdown, pricingSections } fr
 import { useActions } from '../lib/actions'
 import { DetailDrawer } from '../components/DetailDrawer'
 import { loadList } from '../lib/data'
+import { pickAndImport } from '../lib/import'
 import { ExportMenu } from '../components/ExportMenu'
 import { CatalogueDetails, CatalogueOverview, type ResearchView } from '../components/WorkspaceCatalogue'
 import { useWorkspaceCatalogue } from '../lib/workspace-catalogue'
@@ -331,6 +332,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   const edits = useStore((s) => s.edits[doc.id])
   const resolved = useMemo(() => resolveList(doc, edits), [doc, edits])
   const positions = resolved.positions
+  const assessedPositions = useMemo(() => resolveList(doc).positions, [doc])
   const bidStandardRates = useMemo(() => {
     if (!original || imported.phase !== 'X83') return new Map<string, number>()
     const units = new Map(imported.positions.map((p) => [p.id, p.unit]))
@@ -363,7 +365,8 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   const workflow = useMemo(() => currentPhase(packages, !!award, positions.length > 0 && positions.every((p) => p.up != null)), [packages, award, positions])
   const st = useMemo(() => statsOf(positions), [positions])
   // findings from the automatic check that runs once on upload
-  const assessment = useUploadAssessment(catalogueEnabled && original ? imported.id : null)
+  const evidenceSignature = attached.filter((document) => document.productEvidence).map(({ id }) => id).sort().join(',')
+  const assessment = useUploadAssessment(catalogueEnabled && original ? imported.id : null, evidenceSignature)
   const fixtureReport = useFixtureReport(params.get('risk') === 'fixture')
   const uploadReport = fixtureReport ?? (assessment?.state === 'ready' ? assessment.report : null)
   const risk = uploadReport?.risk ?? null
@@ -610,11 +613,20 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
     })
   }
   // applies suggested fixes as tracked edits and records them as accepted; one Undo puts back edits and decisions
-  const applyFixes = (plans: { finding: Finding; plan: FixPlan }[]) => {
-    if (!plans.length) return
+  const applyFixes = (findings: Finding[]) => {
+    if (!findings.length) return
     const store = useStore.getState()
     const beforeEdits = store.edits[doc.id]
     const beforeDecisions = decisionsOf(store.listPatch[doc.id])
+    if (beforeEdits !== edits || findings.some((finding) => beforeDecisions[finding.id])) {
+      toast('The list changed. Review the updated fixes before applying them.')
+      return
+    }
+    const plans = planFixes(findings, resolveList(doc, beforeEdits).positions, assessedPositions)
+    if (plans.some(({ plan }) => !plan.steps.length)) {
+      toast('A proposed change needs review before it can be applied.')
+      return
+    }
     const at = new Date().toISOString()
     for (const { plan } of plans) runSteps(store, doc.id, plan.steps)
     const findingDecisions = { ...beforeDecisions }
@@ -792,6 +804,11 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
     { label: 'Rename list', icon: 'edit', onSelect: () => openDialog({ kind: 'rename-list', id: doc.id }) },
     ...(editedCount ? [{ label: 'Reset all edits', icon: 'restart_alt', onSelect: resetAll }] : []),
     ...(live ? [{ label: 'Move to another project…', icon: 'drive_file_move', onSelect: () => openDialog({ kind: 'folder-target', action: 'move-list', listId: doc.id }) }] : []),
+    ...(live && catalogueEnabled && original ? [{
+      label: 'Attach product evidence…',
+      icon: 'attach_file',
+      onSelect: () => pickAndImport(live.folderId, undefined, '.json', imported.id, true),
+    }] : []),
     ...(attached.length
       ? (['sep' as const, ...[...attached].sort((a, b) => Number(b === original) - Number(a === original)).map((d) => ({ label: d === original ? `Original ${d.name.split('.').pop()?.toUpperCase() ?? 'file'}` : d.name, icon: d === original ? 'description' : 'attach_file', onSelect: () => openDialog({ kind: 'doc', doc: d }) }))] as (MenuItem | 'sep')[])
       : []),
@@ -892,7 +909,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
       {tab === 'x83' && <PhasePanel phase="x83">
       {risk && <RiskSummary risk={risk} decisions={decisions} partial={partial} />}
       {uploadReport && (
-        <WarningsPanel entries={warningEntries} decisions={decisions} settled={settled} positions={positions}
+        <WarningsPanel entries={warningEntries} decisions={decisions} settled={settled} positions={positions} assessedPositions={assessedPositions}
           onOpen={(id) => openDetail(id, 'findings')} onFilter={showWarnings} onDecide={decide} onApplyFixes={applyFixes} />
       )}
 

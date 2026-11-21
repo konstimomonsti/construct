@@ -30,6 +30,8 @@ include = ["analysis*"]
 "analysis.layer2" = ["rules.json"]
 "analysis.layer3" = ["eval_cases.json"]
 "analysis.eval.seeds" = ["*.json"]
+"analysis.eval" = ["labels/*.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["analysis/tests"]
+markers = ["integration: requires a configured model provider"]

@@ -1,13 +1,16 @@
 from base64 import b64encode
+from collections import Counter, defaultdict
 from collections.abc import Mapping
+from functools import cache
 from io import BytesIO
 import json
 import os
 from pathlib import Path
 import re
 import shutil
-from subprocess import run
+from subprocess import TimeoutExpired, run
 from tempfile import TemporaryDirectory
+import time
 import warnings
 
 from pypdf import PdfReader
@@ -15,6 +18,7 @@ from pypdf.errors import PdfReadError
 from pypdf.generic import ByteStringObject, IndirectObject, NullObject
 
 from .common import BOM_PDF_ATTACHMENT, Result, decimal_text, german_decimal, local_name, parse_xml, xml_element
+from .ocr_codes import reread_codes
 
 _NUMBER = r"[+\-−]?(?:\d{1,3}(?:\.\d{3})+|\d+)(?:,\d+)?"
 _CODE = re.compile(r"^(?P<indent> *)(?P<code>\d+(?:\.\d+)*\.?|\.\d+)[ \t]{2,}(?P<body>\S.*)$")
@@ -31,11 +35,13 @@ _MARKER_LINE = re.compile(r"^\*{2,}\s*(?:Bedarfs|Wahl|Grund|Eventual|Alternativ)
 _QUANTITY = re.compile(
     rf"^(?P<quantity>{_NUMBER})\s+(?P<unit>\S+)(?P<tail>(?:(?:[ \t]{{2,}}|[ \t]+(?=\.{{3,}}))\S.*)?)$"
 )
+_OCR_BLANK_UNIT = re.compile(rf"^({_NUMBER})[ \t]{{2,}}({_NUMBER})[ \t]{{2,}}({_NUMBER})$")
 _JOINED_QUANTITY = re.compile(rf"^(?P<quantity>{_NUMBER})(?P<unit>[^\s\d]\S*)(?P<tail>[ \t]+EP\b.*)$", re.I)
 _UNIT = re.compile(r"^(?:m(?:[²³23])?(?:wo|d)?|cm[²23]?|mm|km[²2]?|kg|t|to|l|kwh|st(?:k|ck)?\.?|stwo|satz|set|pau|psch\.?|h|std\.?|wo\.?|mt\.?|mo\.?|d|j(?:r|ahre?)|lfm)$", re.I)
 _TOTAL = re.compile(rf"^\s*(?P<label>(?:Summe|Gesamt(?:betrag|summe|preis)|Angebotssumme|Übertrag|MwSt|USt|zzgl\. Mehrwertsteuer|Mehrwertsteuer|Nachlass)[^\n]*?)[ \t]{{2,}}(?:EUR\s+)?(?P<amount>{_NUMBER})\s*(?:EUR|€)?\s*$", re.I)
 _NOTE_TITLE = re.compile(r"^(?:Spezifikation\s+\S|Vorbemerkung(?:en)?\b|.{1,60}\s+-\s+Vorbemerkung(?:en)?\b)", re.I)
 _REDACTED_LINE = re.compile(r"\[(?:FIRMA|PERSON|ORT|ADRESSE|TELEFON)_\d+\]", re.I)
+_PRICE_PREFIX = re.compile(r"^(?:EP|GP)\s*", re.I)
 _PRICE_ONLY = re.compile(r"nur\s+(?:einh[. -]*pr\.?|einheitspreis|EP)\b", re.I)
 _FORM = re.compile(r"^\s*(\d{3}(?:\.[A-Z][A-Za-z]*)?)\s*$")
 _SUMMARY_TITLE = re.compile(r"^\s*(?:LV-Zusammenfassung|(?:Gesamt)?Zusammenstellung|Inhaltsverzeichnis)\s*$", re.I)
@@ -147,6 +153,346 @@ def split_layout(raw: bytes) -> list[str]:
     return pages
 
 
+OCR_PAGE_LIMIT = 8
+OCR_SECONDS = 60
+OCR_RASTER_SIZE = 2400
+OCR_DPI = 240
+OCR_UNIT_LIMIT = 8
+OCR_UNIT_PADDING = 8
+_OCR_UNIT_TOKEN = re.compile(r"(?<!\S)(?:m\?|mo)(?!\S)", re.I)
+_OCR_UNIT_ROW = re.compile(
+    rf"^[ \t]*{_NUMBER}[ \t]+(?:"
+    rf"(?P<superscript>m\?)[ \t]{{2,}}{_NUMBER}[ \t]{{2,}}{_NUMBER}"
+    r"|(?P<linear>mo)(?:[ \t]{2,}\S[^\n]*)?)[ \t]*$", re.M | re.I,
+)
+_OCR_UNIT_READINGS = {
+    "m?": {"m2": "m²", "m²": "m²", "m3": "m³", "m³": "m³"},
+    "mo": {"m": "m"},
+}
+
+
+def _reread_ocr_units(layout, boxes, render, recognize):
+    """Retry confusable units in one price column, keeping the original reading."""
+    rows = list(_OCR_UNIT_ROW.finditer(layout))
+    if not 0 < len(rows) <= OCR_UNIT_LIMIT or len(_OCR_UNIT_TOKEN.findall(layout)) != len(rows):
+        return layout, []
+
+    words = parse_xml(boxes(), generated=True)
+    scale = OCR_DPI / 72
+    unit_boxes = sorted(
+        tuple(round(float(word.get(key, "")) * scale) for key in ("yMin", "xMin", "yMax", "xMax"))
+        + (word.text,)
+        for word in words.iter() if local_name(word) == "word" and _OCR_UNIT_TOKEN.fullmatch(word.text or "")
+    )
+    originals = [row[row.lastgroup] for row in rows]
+    if [token for *_, token in unit_boxes] != originals:
+        return layout, []
+    # Both representations must describe one column of separate rows. A second
+    # column or a reference in prose makes this alignment ambiguous.
+    tops, lefts, bottoms, _, _ = zip(*unit_boxes)
+    if max(lefts) - min(lefts) > 12 or any(bottom >= top for bottom, top in zip(bottoms, tops[1:])):
+        return layout, []
+
+    rereads = []
+    for row, (top, left, bottom, right, original) in zip(rows, unit_boxes):
+        if not (0 <= left < right <= OCR_RASTER_SIZE and 0 <= top < bottom <= OCR_RASTER_SIZE):
+            continue
+        x, y = max(0, left - OCR_UNIT_PADDING), max(0, top - OCR_UNIT_PADDING)
+        w = min(OCR_RASTER_SIZE, right + OCR_UNIT_PADDING) - x
+        h = min(OCR_RASTER_SIZE, bottom + OCR_UNIT_PADDING) - y
+        image = render(["-x", str(x), "-y", str(y), "-W", str(w), "-H", str(h)])
+        readings = [recognize(image, mode).decode("utf-8", errors="replace").strip() for mode in ("7", "8")]
+        candidates = _OCR_UNIT_READINGS[original.casefold()]
+        unit = candidates.get(readings[0].casefold())
+        if unit and candidates.get(readings[1].casefold()) == unit:
+            offset = row.start(row.lastgroup)
+            rereads.append({"offset": offset, "line": layout.count("\n", 0, offset) + 1,
+                            "original": original, "readings": readings, "unit": unit,
+                            "bbox_px": [left, top, right, bottom]})
+    for reread in reversed(rereads):
+        offset = reread["offset"]
+        layout = layout[:offset] + reread["unit"] + layout[offset + len(reread["original"]):]
+    return layout, rereads
+
+
+_OCR_MEASUREMENT_HEADER = re.compile(r"\bMenge\s+ME\s+Einheitspreis\b", re.I)
+_OCR_MEASUREMENT_ROW = re.compile(
+    rf"^(?P<indent>[ \t]+)(?P<quantity>{_NUMBER})[ \t]+(?P<unit>\S+)(?P<tail>.*)$"
+)
+_OCR_MEASUREMENT_LIMIT = 12
+_OCR_NUMBER = re.compile(_NUMBER)
+_NUMERIC_PUNCTUATION = str.maketrans("", "", ".,")
+
+
+def _measurement_rows(lines, header):
+    rows = defaultdict(list)
+    for number, line in enumerate(lines[header[0]:], header[0] + 1):
+        if row := _OCR_MEASUREMENT_ROW.fullmatch(line.rstrip("\r\n")):
+            rows[(row["quantity"], row["unit"])].append((number, row))
+    return rows
+
+
+def _has_written_price(tail):
+    cells = re.split(r"[ \t]{2,}", tail.strip())
+    return any(german_decimal(_PRICE_PREFIX.sub("", cell)) is not None for cell in cells)
+
+
+def _measurement_cells(rows, boxes):
+    """Associate each raw layout row with the crop bounded by the printed column headers."""
+    xml = parse_xml(boxes(), generated=True)
+    scale = OCR_DPI / 72
+    words = sorted(
+        (tuple(round(float(word.get(key, "")) * scale) for key in ("yMin", "xMin", "yMax", "xMax")), word.text)
+        for word in xml.iter() if local_name(word) == "word" and word.text
+    )
+    headings = [bbox for bbox, word in words if word.casefold() == "menge"]
+    if len(headings) != 1:
+        return
+    top, left, bottom, _ = headings[0]
+    same_row = [(bbox, word.casefold()) for bbox, word in words if top <= bbox[0] <= bottom and bbox[1] > left]
+    columns = {word: bbox[1] for bbox, word in same_row if word in {"me", "einheitspreis"}}
+    unit_x, price_x = columns.get("me", 0), columns.get("einheitspreis", 0)
+    if not 0 < left < unit_x < price_x <= OCR_RASTER_SIZE or price_x - unit_x < 80:
+        return
+
+    coordinates = defaultdict(list)
+    for index, (quantity_box, quantity) in enumerate(words):
+        y, x, y_end, x_end = quantity_box
+        if y <= bottom or not left - 28 <= x_end < unit_x or not _OCR_NUMBER.fullmatch(quantity):
+            continue
+        candidates = [(bbox, unit) for bbox, unit in words[index + 1:] if abs(bbox[0] - y) <= 5
+                      and unit_x - 8 <= bbox[1] <= unit_x + 24]
+        if len(candidates) == 1:
+            unit_box, token = candidates[0]
+            coordinates[(quantity, token)].append((min(y, unit_box[0]), x, max(y_end, unit_box[2])))
+
+    for key, entries in rows.items():
+        matched = coordinates.get(key, [])
+        if len(matched) != len(entries):
+            continue
+        for (number, row), (y, x, bottom) in zip(entries, matched):
+            left, top = x - 8, y - 10
+            right, end = price_x - 28, bottom + 8
+            if 0 <= left < right <= OCR_RASTER_SIZE and 0 <= top < end <= OCR_RASTER_SIZE:
+                yield number, row, (left, top, right, end)
+
+
+def _verify_measurement(row, bounds, render, recognize):
+    left, top, right, end = bounds
+    image = render(["-x", str(left), "-y", str(top), "-W", str(right - left), "-H", str(end - top)])
+    readings = [recognize(image, mode).decode("utf-8", errors="replace").split() for mode in ("6", "7")]
+    if len(readings[0]) != 2 or readings[0] != readings[1]:
+        return None
+    quantity, unit = readings[0]
+    if (not _OCR_NUMBER.fullmatch(quantity) or not _UNIT.fullmatch(unit)
+            or quantity.translate(_NUMERIC_PUNCTUATION) != row["quantity"].translate(_NUMERIC_PUNCTUATION)):
+        return None
+    return {"quantity": quantity, "unit": unit, "readings": readings, "bbox_px": list(bounds)}
+
+
+def _reread_ocr_measurements(layout, boxes, render, recognize):
+    """Re-read OCR-damaged, unpriced measurement cells using the printed table columns."""
+    lines = layout.splitlines(keepends=True)
+    header = find_header(lines)
+    if not header or not _OCR_MEASUREMENT_HEADER.search(header[1].string):
+        return layout, []
+    rows = _measurement_rows(lines, header)
+
+    def eligible(row):
+        quantity, unit = row["quantity"], row["unit"].casefold()
+        suspect = not _UNIT.fullmatch(unit) or unit in {"mo", "mm"} or quantity.count(".") >= 2
+        return suspect and not _has_written_price(row["tail"])
+
+    if not any(eligible(row) for entries in rows.values() for _, row in entries):
+        return layout, []
+    evidence = []
+    attempts = 0
+    for number, row, bounds in _measurement_cells(rows, boxes):
+        if not eligible(row):
+            continue
+        if attempts >= _OCR_MEASUREMENT_LIMIT:
+            break
+        attempts += 1
+        verified = _verify_measurement(row, bounds, render, recognize)
+        if not verified:
+            continue
+        quantity, unit = verified["quantity"], verified["unit"]
+        if (quantity, unit.casefold()) == (row["quantity"], row["unit"].casefold()):
+            continue
+        new_line = f'{row["indent"]}{quantity} {unit}{row["tail"]}'
+        if read_quantity(new_line) is None:
+            continue
+        lines[number - 1] = new_line + "\n"
+        evidence.append({"line": number, "original_quantity": row["quantity"], "original_unit": row["unit"], **verified})
+    return "".join(lines), evidence
+
+
+def _missing_measurement_positions(layout):
+    page = Result("pdf")
+    extract_pdf_tables([layout], page)
+    positions = [record for record in page.records if record.kind == "item_candidate"]
+    counts = Counter(record.payload["code"] for record in positions)
+    return {record.payload["code"]: record for record in positions
+            if counts[record.payload["code"]] == 1 and record.payload.get("quantity") is None
+            and record.payload.get("unit") is None and record.payload.get("short_description")}
+
+
+def _recover_missing_measurements(missing, higher_layout, boxes, render, recognize, code_evidence):
+    lines = higher_layout.splitlines()
+    header = find_header(lines)
+    if not missing or not header or not _OCR_MEASUREMENT_HEADER.search(header[1].string):
+        return []
+    # A bare integer is accepted only for a code with pixel-backed leading punctuation.
+    dotted = {item["code"].lstrip("."): item["code"] for item in code_evidence}
+    starts = []
+    indent = len(header[1]["indent"])
+    for index, line in enumerate(lines[header[0]:], header[0] + 1):
+        if (match := _CODE.fullmatch(line)) and abs(len(match["indent"]) - indent) <= 3:
+            starts.append((index, dotted.get(match["code"], match["code"]), match["body"]))
+    counts = Counter(code for _, code, _ in starts)
+    rows = _measurement_rows(lines, header)
+    cells = sorted(_measurement_cells(rows, boxes))
+    candidates = []
+    for (start, code, title), (end, _, _) in zip(starts, [*starts[1:], (len(lines) + 1, "", "")]):
+        original = missing.get(code)
+        if not original or counts[code] != 1:
+            continue
+        old_title = original.payload["short_description"]
+        title_key = re.findall(r"\w+", title.casefold())[:2]
+        if not title_key or title_key != re.findall(r"\w+", old_title.casefold())[:2]:
+            continue
+        measurements = [(row, bounds) for line, row, bounds in cells if start < line < end]
+        if len(measurements) == 1 and not _has_written_price(measurements[0][0]["tail"]):
+            candidates.append((original, *measurements[0]))
+
+    evidence = []
+    for original, row, bounds in candidates[:_OCR_MEASUREMENT_LIMIT]:
+        if verified := _verify_measurement(row, bounds, render, recognize):
+            evidence.append({"line": original.locator["line"], "high_resolution_row": row[0].strip(), **verified})
+    return evidence
+
+
+def _ocr_layout(source, pages, result):
+    """Use optional local OCR on a bounded set of raster-only pages."""
+    if not pages or os.environ.get("PDF_OCR", "").strip().casefold() in {"0", "off", "false"}:
+        return {}
+    tesseract = shutil.which("tesseract")
+    if not tesseract:
+        return {}
+    deadline = time.monotonic() + OCR_SECONDS
+
+    def execute(arguments, *, data=None):
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise TimeoutExpired(arguments, OCR_SECONDS)
+        completed = run(arguments, input=data, capture_output=True, timeout=min(remaining, 20), check=False,
+                        env={**os.environ, "OMP_THREAD_LIMIT": "1"})
+        if completed.returncode:
+            raise ValueError("Local OCR tool did not complete")
+        return completed.stdout
+
+    try:
+        languages = set(execute([tesseract, "--list-langs"]).decode("utf-8", errors="replace").splitlines())
+        language = "+".join(name for name in ("deu", "eng") if name in languages)
+        rasterizer = poppler_program("pdftoppm")
+        text_extractor = poppler_program("pdftotext")
+    except (OSError, ValueError, TimeoutExpired):
+        return {}
+    if not language:
+        return {}
+
+    found = {}
+    for number in pages[:OCR_PAGE_LIMIT]:
+        try:
+            raster = [rasterizer, "-f", str(number), "-l", str(number), "-scale-to",
+                      str(OCR_RASTER_SIZE), "-singlefile", "-png"]
+            ocr = [tesseract, "stdin", "stdout", "-l", language, "--dpi", str(OCR_DPI)]
+            image = execute([*raster, str(source)])
+            searchable = execute([*ocr, "pdf"], data=image)
+            layouts = split_layout(execute([text_extractor, "-enc", "UTF-8", "-layout", "-", "-"],
+                                           data=searchable))
+        except TimeoutExpired:
+            result.warn("pdf_ocr_incomplete", {"page": number}, "The local OCR time limit was reached.")
+            break
+        except (OSError, ValueError):
+            result.warn("pdf_ocr_incomplete", {"page": number}, "The page could not be read by local OCR.")
+            continue
+        if len(layouts) == 1 and layouts[0].strip():
+            original = revised = measurements = codes = layouts[0]
+            unit_rereads, measurement_rereads, code_rereads = [], [], []
+
+            @cache
+            def boxes():
+                return execute([text_extractor, "-enc", "UTF-8", "-bbox", "-", "-"], data=searchable)
+
+            def render(args):
+                return execute([*raster, *args, str(source)])
+
+            def recognize(crop, mode):
+                return execute([*ocr, "--psm", mode], data=crop)
+
+            def render_codes(bounds):
+                x, y, width, height = map(str, bounds)
+                return execute([rasterizer, "-f", str(number), "-l", str(number), "-scale-to",
+                                str(OCR_RASTER_SIZE * 2), "-singlefile", "-gray", "-x", x, "-y", y,
+                                "-W", width, "-H", height, str(source)])
+
+            def recognize_codes(crop, mode):
+                return execute([*ocr, "--psm", mode, "-c", "tessedit_char_whitelist=0123456789.", "tsv"], data=crop)
+
+            try:
+                revised, unit_rereads = _reread_ocr_units(original, boxes, render, recognize)
+                measurements, measurement_rereads = _reread_ocr_measurements(original, boxes, render, recognize)
+                codes, code_rereads = reread_codes(
+                    original, find_header(original.splitlines()), boxes, render_codes, recognize_codes,
+                    dpi=OCR_DPI, raster_size=OCR_RASTER_SIZE,
+                )
+            except (OSError, SyntaxError, ValueError, TimeoutExpired):
+                # Preserve completed reads if an optional retry fails.
+                pass
+            revised_lines = revised.splitlines(keepends=True)
+            measurement_lines = measurements.splitlines(keepends=True)
+            evidence = {item["line"]: {"unit_ocr": item} for item in unit_rereads}
+            for item in measurement_rereads:
+                line = item["line"]
+                revised_lines[line - 1] = measurement_lines[line - 1]
+                evidence[line] = {"measurement_ocr": item}
+            code_lines = codes.splitlines(keepends=True)
+            for item in code_rereads:
+                line = item["line"]
+                revised_lines[line - 1] = code_lines[line - 1]
+                evidence[line] = {"code_ocr": item}
+            combined = "".join(revised_lines)
+            recovered = []
+            if missing := _missing_measurement_positions(combined):
+                try:
+                    higher = execute([rasterizer, "-f", str(number), "-l", str(number), "-scale-to",
+                                      str(OCR_RASTER_SIZE * 3 // 2), "-singlefile", "-png", str(source)])
+                    higher_pdf = execute([tesseract, "stdin", "stdout", "-l", language,
+                                          "--dpi", str(OCR_DPI * 3 // 2), "pdf"], data=higher)
+                    higher_layouts = split_layout(execute([text_extractor, "-enc", "UTF-8", "-layout", "-", "-"],
+                                                          data=higher_pdf))
+                    if len(higher_layouts) == 1:
+                        recovered = _recover_missing_measurements(
+                            missing, higher_layouts[0],
+                            lambda: execute([text_extractor, "-enc", "UTF-8", "-bbox", "-", "-"], data=higher_pdf),
+                            render, recognize, code_rereads,
+                        )
+                except (OSError, SyntaxError, ValueError, TimeoutExpired):
+                    # A failed second pass leaves the initial missing fields available for review.
+                    pass
+            for item in recovered:
+                evidence.setdefault(item["line"], {})["recovered_measurement_ocr"] = item
+            found[number] = combined, evidence
+            result.add("pdf_ocr_page", {"page": number, "ocr_pages": [number]}, layout=original,
+                       language=language, unit_rereads=unit_rereads, measurement_rereads=measurement_rereads,
+                       code_rereads=code_rereads, recovered_measurements=recovered)
+    if len(pages) > OCR_PAGE_LIMIT:
+        result.warn("pdf_ocr_page_limit", {"page": pages[OCR_PAGE_LIMIT]},
+                    f"Only the first {OCR_PAGE_LIMIT} raster-only pages are eligible for local OCR in one import.")
+    return found
+
+
 def pdf(data: bytes) -> Result:
     result = Result("pdf", needs_review=True)
     with TemporaryDirectory() as directory:
@@ -171,6 +517,7 @@ def pdf(data: bytes) -> Result:
         except (PdfReadError, ValueError, TypeError, KeyError) as exc:
             structures = []
             result.warn("pdf_structure_review", {"part": "catalog"}, str(exc))
+        raster_pages = set()
         for program, args, record_kind in [
             ("pdfinfo", ("-isodates", "-box", source), "pdf_info"),
             ("pdfinfo", ("-meta", source), "pdf_xmp"),
@@ -180,24 +527,35 @@ def pdf(data: bytes) -> Result:
             try:
                 content = poppler(program, *args).decode("utf-8", errors="replace")
                 result.add(record_kind, {"part": record_kind}, text=content)
+                if record_kind == "pdf_image_inventory":
+                    raster_pages = {int(page) for page in re.findall(r"^\s*(\d+)\s+\d+\s+image\b", content, re.M)}
             except ValueError as exc:
                 result.warn("pdf_inventory_review", {"part": record_kind}, str(exc))
 
-    page_count = max(len(layout), len(bbox_pages), len(structures))
-    result.metadata["pages"] = page_count
-    if len(layout) != len(bbox_pages) or (structures and len(structures) != page_count):
-        result.warn("pdf_page_count_mismatch", {"part": "document"}, "PDF representations returned different page counts")
-    for number in range(1, page_count + 1):
-        raw_page = layout[number - 1] if number <= len(layout) else ""
-        if not raw_page.strip():
-            result.warn("page_has_no_extractable_text", {"page": number}, "Inspect the page image or run OCR")
-        result.add(
-            "pdf_page", {"page": number}, layout=raw_page,
-            word_boxes=xml_element(bbox_pages[number - 1]) if number <= len(bbox_pages) else None,
-            structure=structures[number - 1] if number <= len(structures) else None,
-        )
-    if not extract_workspace_attachment(data, result):
-        extract_pdf_tables(layout, result)
+        page_count = max(len(layout), len(bbox_pages), len(structures))
+        result.metadata["pages"] = page_count
+        if len(layout) != len(bbox_pages) or (structures and len(structures) != page_count):
+            result.warn("pdf_page_count_mismatch", {"part": "document"}, "PDF representations returned different page counts")
+        native = [layout[index] if index < len(layout) else "" for index in range(page_count)]
+        for number, raw_page in enumerate(native, 1):
+            result.add(
+                "pdf_page", {"page": number}, layout=raw_page,
+                word_boxes=xml_element(bbox_pages[number - 1]) if number <= len(bbox_pages) else None,
+                structure=structures[number - 1] if number <= len(structures) else None,
+            )
+        if not extract_workspace_attachment(data, result):
+            scanned = [number for number, raw_page in enumerate(native, 1)
+                       if not raw_page.strip() and number in raster_pages]
+            ocr = _ocr_layout(source, scanned, result)
+            if ocr:
+                result.metadata["ocr_pages"] = sorted(ocr)
+            for number, raw_page in enumerate(native, 1):
+                if number not in ocr and not raw_page.strip():
+                    result.warn("page_has_no_extractable_text", {"page": number}, "Inspect the page image or run OCR")
+            pages = [ocr[number][0] if number in ocr else raw_page for number, raw_page in enumerate(native, 1)]
+            ocr_evidence = {(page, row): {field: {"page": page, **item} for field, item in evidence.items()}
+                            for page, (_, rows) in ocr.items() for row, evidence in rows.items()}
+            extract_pdf_tables(pages, result, ocr_pages=ocr.keys(), ocr_evidence=ocr_evidence)
     return result
 
 
@@ -237,8 +595,15 @@ def extract_workspace_attachment(data, result):
     return True
 
 
-def read_quantity(body):
+def read_quantity(body, *, ocr=False):
     stripped = body.strip()
+    if ocr and (missing_unit := _OCR_BLANK_UNIT.fullmatch(stripped)):
+        quantity, *prices = missing_unit.groups()
+        return {
+            "quantity_raw": quantity, "quantity": german_decimal(quantity), "unit": None,
+            "unit_price": german_decimal(prices[0]), "line_amount": german_decimal(prices[1]),
+            "price_cells_raw": prices, "unit_price_only": False,
+        }
     match = _QUANTITY.fullmatch(stripped) or _JOINED_QUANTITY.fullmatch(stripped)
     if not match:
         return None
@@ -246,10 +611,12 @@ def read_quantity(body):
     cells = re.split(r"[ \t]{2,}", match["tail"].strip()) if match["tail"].strip() else []
     unit = match["unit"]
     if re.fullmatch(r"\.{3,}", unit):
-        # "N  ....." has a quantity but no unit: the dots are the empty price cells.
-        cells = [unit, *cells]
+        # With both price cells present, the dots occupy the unit column. Otherwise
+        # they may be the first price placeholder on a line that has no unit at all.
+        if len(cells) < 2:
+            cells = [unit, *cells]
         unit = None
-    values =[german_decimal(re.sub(r"^(?:EP|GP)\s*", "", cell, flags=re.I)) for cell in cells]
+    values =[german_decimal(_PRICE_PREFIX.sub("", cell)) for cell in cells]
     price_only = bool(_PRICE_ONLY.search(match["tail"]))
     if unit is not None and not _UNIT.fullmatch(unit) and not (
         len(cells) >= 2 and all(value is not None or re.fullmatch(r"\.{2,}", cell) for value, cell in zip(values, cells))
@@ -355,7 +722,7 @@ def detached_note_title(line, following):
     return False
 
 
-def extract_pdf_tables(pages, result):
+def extract_pdf_tables(pages, result, *, ocr_pages=(), ocr_evidence=None):
     current = None
     note = None
     section_paths = []
@@ -366,9 +733,16 @@ def extract_pdf_tables(pages, result):
         if current is None:
             return
         locator = current.pop("locator")
+        pages_read_by_ocr = sorted(page for page in ocr_pages if locator["page"] <= page <= locator["end_page"])
+        if pages_read_by_ocr:
+            locator["ocr_pages"] = pages_read_by_ocr
+        if ocr_evidence:
+            locator.update(ocr_evidence.get((locator["page"], locator["line"]), {}))
         body = "\n".join(current.pop("description_lines")).strip()
         numbers = current.pop("amounts")
         flags = item_flags(body)
+        if not numbers and (verified := locator.get("recovered_measurement_ocr")):
+            numbers = read_quantity(f'{verified["quantity"]} {verified["unit"]}')
         if not numbers:
             numbers = fallback_quantity(body)
             if numbers:
@@ -376,6 +750,9 @@ def extract_pdf_tables(pages, result):
                             "The quantity was found by a loose scan of the item text; check it against the source")
         if numbers:
             flags["unit_price_only"] |= numbers["unit_price_only"]
+            if ocr_evidence and (quantity_locator := current.get("quantity_locator")):
+                key = (quantity_locator["page"], quantity_locator["line"])
+                locator.update(ocr_evidence.get(key, {}))
         else:
             result.warn("pdf_quantity_review", {**locator, "code": current["code"]},
                         "Review the source evidence for quantity and unit")
@@ -480,7 +857,10 @@ def extract_pdf_tables(pages, result):
             if current is not None:
                 if raw.strip().startswith(("Nr.)", "in EUR", "Alle Einzelbeträge", "Betrag in EUR")):
                     continue
-                numbers = read_quantity(raw)
+                numbers = read_quantity(
+                    raw, ocr=page_number in ocr_pages
+                    and bool(re.search(r"\bMenge\s+ME\s+Einheitspreis\s+Gesamtbetrag\b", header.string, re.I)),
+                )
                 if numbers and len(raw) - len(raw.lstrip()) >= indent + 5:
                     previous = current["amounts"]
                     if previous is None or quantity_rank(numbers) > quantity_rank(previous):

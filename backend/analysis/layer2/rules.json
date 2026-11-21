@@ -4,10 +4,10 @@
     "Category": "Floor screed and finishes",
     "TriggerRegex": "(?i)\\b([a-zäöüß]*estrich[a-zäöüß]*|hohlraumboden|doppelboden|(?:ct|ca|caf|ma|as)\\s*,\\s*\\d+\\s*mm)\\b",
     "TriggerIn": "short_text",
-    "ExcludeRegex": "(?i)\\b(abbrechen|abbruch\\w*|rückbau\\w*|zurückbauen|ausbauen|demontage|demontieren|entfernen|entsorg\\w*|aufnehmen|abtragen|stemmen|fräsen|messung\\w*|\\w*feuchte\\w*|belegreife\\w*|aussparung\\w*|zul|zulage\\w*)\\b",
+    "ExcludeRegex": "(?i)^\\s*(?:trittschall|wärme)?dämm(?:ung|platten?)\\b[^;]{0,45}\\b(?:unter|für)\\s+(?:dem\\s+)?\\w*estrich\\b|\\b(abbrechen|abbruch\\w*|rückbau\\w*|zurückbauen|ausbauen|demontage|demontieren|entfernen|entsorg\\w*|aufnehmen|abtragen|stemmen|fräsen|messung\\w*|\\w*feuchte\\w*|belegreife\\w*|aussparung\\w*|zul|zulage\\w*)\\b",
     "Required_Dependencies": [
       {"DependencyName": "Edge insulation", "Regex": "(?i)\\b(randdämmstreifen)\\b", "CheckType": "Boolean", "SuggestedText": "Randdämmstreifen", "SuggestedUnit": "m"},
-      {"DependencyName": "Underlays and insulation", "Regex": "(?i)\\b(?:trittschall)?dämmung\\b|\\b(?:eps|xps)\\b", "CheckType": "Boolean", "SuggestedText": "Trittschalldämmung unter Estrich", "SuggestedUnit": "m²"},
+      {"DependencyName": "Underlays and insulation", "Regex": "(?i)\\b(?:trittschall)?dämmung\\b|\\b(?:eps|xps)\\b", "SpecificationFamilies": ["insulation_conductivity", "insulation_thickness"], "CheckType": "Boolean", "SuggestedText": "Trittschalldämmung unter Estrich", "SuggestedUnit": "m²"},
       {"DependencyName": "Primer and leveling", "Regex": "(?i)\\b(?:tief|haft)?grund(?:ierung)?\\b|\\b(?:spachtel|nivellier|ausgleichs)masse\\b|\\bnivellierausgleich\\b", "CheckType": "QuantityMatch", "QuantityUnit": "m²", "ExcludeRegex": "(?i)(\\bauf\\s+(?:tsd|wd|tsd/wd|dämm\\w*|trennlage\\w*|trittschall\\w*)\\b|schwimmend\\w*)", "SuggestedText": "Untergrundvorbereitung / Grundierung / Ausgleichsmasse"},
       {"DependencyName": "Floor covering", "Regex": "(?i)\\b(?:pvc|vinyl|kautschuk(?:boden)?|laminat(?:böden|bodenbeläge)?|teppich(?:boden)?|kugelgarn|bodenfliesen?|naturstein(?:belag)?)\\b", "CheckType": "QuantityMatch", "QuantityUnit": "m²", "SuggestedText": "Bodenbelag, Ausführung durch Fachplanung festzulegen", "Severity": "info"},
       {"DependencyName": "Skirting", "Regex": "(?i)\\b([a-zäöüß]*sockel(?:leiste|fliese)?(?:n|s)?)\\b", "CheckType": "Boolean", "SuggestedText": "Sockelleisten", "SuggestedUnit": "m", "Severity": "info"}
@@ -56,7 +56,7 @@
     "ExcludeRegex": "(?i)\\b(abbrechen|abbruch\\w*|rückbau\\w*|zurückbauen|ausbauen|demontage|demontieren|entfernen|entsorg\\w*|aufnehmen|abtragen|stemmen|fräsen|dichtung\\w*|dichtring\\w*|\\w*manschette\\w*|\\w*rohr\\w*|muffe\\w*|\\w*kupplung\\w*|schieber\\w*|ventil\\w*)\\b",
     "Required_Dependencies": [
       {"DependencyName": "Vapor barrier", "Regex": "(?i)\\b(dampfsperre|dampfbremse)\\b", "CheckType": "QuantityMatch", "QuantityUnit": "m²", "SuggestedText": "Dampfsperre / Dampfbremse für Flachdach"},
-      {"DependencyName": "Thermal insulation", "Regex": "(?i)\\b(wärmedämmung|gefälledämmung|eps|pur)\\b", "CheckType": "QuantityMatch", "QuantityUnit": "m²", "SuggestedText": "Wärme- / Gefälledämmung für Flachdach"},
+      {"DependencyName": "Thermal insulation", "Regex": "(?i)\\b(wärmedämmung|gefälledämmung|eps|pur)\\b", "SpecificationFamilies": ["insulation_conductivity", "insulation_thickness"], "CheckType": "QuantityMatch", "QuantityUnit": "m²", "SuggestedText": "Wärme- / Gefälledämmung für Flachdach"},
       {"DependencyName": "Roof drainage", "Regex": "(?i)\\b(dachgully|notüberlauf|speier)\\b", "CheckType": "Boolean", "SuggestedText": "Dachentwässerung / Notüberlauf gemäß Planung", "SuggestedUnit": "ea"}
     ]
   },
@@ -67,7 +67,7 @@
     "TriggerIn": "short_text",
     "ExcludeRegex": "(?i)\\b(abbrechen|abbruch\\w*|rückbau\\w*|zurückbauen|ausbauen|demontage|demontieren|entfernen|entsorg\\w*|aufnehmen|abtragen|stemmen|fräsen|baustrom\\w*|baustellen\\w*|vorhalt\\w*|provisori\\w*|\\w*verteiler\\w*|thermisch\\w*|adapterstecker\\w*)\\b",
     "Required_Dependencies": [
-      {"DependencyName": "Installation cable", "Regex": "(?i)\\b(nym(?:-[ji])?|\\w*mantelleitung\\w*|installationsleitung\\w*|\\w*installationskabel\\w*|nhxmh(?:-[ji])?|nyy(?:-[ji])?|nycwy|n2xh(?:-[ji])?)\\b", "CheckType": "Boolean", "SuggestedText": "Installationsleitung NYM-J, Verlegung gemäß Planung", "SuggestedUnit": "m"},
+      {"DependencyName": "Installation cable", "Regex": "(?i)\\b(nym(?:-[ji])?|\\w*mantelleitung\\w*|installationsleitung\\w*|\\w*installationskabel\\w*|nhxmh(?:-[ji])?|nyy(?:-[ji])?|nycwy|n2xh(?:-[ji])?)\\b", "CheckType": "Boolean", "SpecificationFamilies": ["cable_conductors"], "SuggestedText": "Installationsleitung NYM-J, Verlegung gemäß Planung", "SuggestedUnit": "m"},
       {"DependencyName": "Device boxes", "Regex": "(?i)\\b(geräte(?:einbau)?dosen?|schalterdosen?|hohlwanddosen?|unterputzdosen?|up-dosen?|einbaudosen?|abzweigdosen?|verbindungsdosen?|abzweigkästen|abzweigkasten)\\b", "CheckType": "Boolean", "SuggestedText": "Schalter- und Gerätedosen", "SuggestedUnit": "ea"},
       {"DependencyName": "RCD protection", "Regex": "(?i)\\b(fehlerstrom\\w*|fi-?\\s*schutzschalter\\w*|fi/ls\\w*|fi-ls\\w*|rcd|rcbo|differenzstrom\\w*)\\b", "CheckType": "Boolean", "Severity": "info", "SuggestedText": "Fehlerstrom-Schutzeinrichtung (RCD) für Steckdosenstromkreise", "SuggestedUnit": "ea"},
       {"DependencyName": "Initial verification", "Regex": "(?i)\\b(erstprüfung\\w*|(?:din\\s*)?vde\\s*0100[- ]?600|prüfprotokoll\\w*|messprotokoll\\w*|me(?:ss|ß)-?\\s*und\\s*prüf\\w*|e-check|isolationsmessung\\w*)", "CheckType": "Boolean", "SuggestedText": "Erstprüfung nach DIN VDE 0100-600 mit Prüfprotokoll", "SuggestedUnit": "ea"},
@@ -92,8 +92,8 @@
     "TriggerIn": "short_text",
     "ExcludeRegex": "(?i)\\b(abbrechen|abbruch\\w*|rückbau\\w*|zurückbauen|ausbauen|demontage|demontieren|entfernen|entsorg\\w*|aufnehmen|abtragen|stemmen|fräsen|baustrom\\w*|baustellen\\w*|vorhalt\\w*|\\w*anschluss\\w*)\\b",
     "Required_Dependencies": [
-      {"DependencyName": "Cable routing", "Regex": "(?i)\\b(kabel(?:rinnen?|pritschen?|kanal\\w*|leiter\\w*|tragsystem\\w*|schutzrohr\\w*|halter\\w*|bahn\\w*)|installationskanal\\w*|brüstungs\\w*kanal\\w*|geräteeinbaukanal\\w*|steigeleiter\\w*|sammelhalter\\w*|leerrohr\\w*|installationsrohr\\w*|\\w*instarohr\\w*|\\w*wellrohr\\w*|isolierrohr\\w*)", "CheckType": "Boolean", "SuggestedText": "Kabeltragsysteme / Installationsrohre", "SuggestedUnit": "m", "ExcludeRegex": "(?i)\\b(\\w*einziehen|\\w*eingezogen|erd\\w*|\\w*erdverleg\\w*)"},
-      {"DependencyName": "Cable termination", "Regex": "(?i)\\b(anschluss\\s+bis|anschlie(?:ß|ss)en\\s+(?:von\\s+)?(?:kabel|leitung)\\w*|kabelanschluss\\w*|leitungsanschluss\\w*|endverschl(?:uss|üsse)\\w*|anklemmen)", "CheckType": "Boolean", "Severity": "info", "SuggestedText": "Anschluss der Kabel und Leitungen", "SuggestedUnit": "ea"}
+      {"DependencyName": "Cable routing", "Regex": "(?i)\\b(kabel(?:rinnen?|pritschen?|kanal\\w*|leiter\\w*|tragsystem\\w*|schutzrohr\\w*|halter\\w*|bahn\\w*)|installationskanal\\w*|brüstungs\\w*kanal\\w*|geräteeinbaukanal\\w*|steigeleiter\\w*|sammelhalter\\w*|leerrohr\\w*|installationsrohr\\w*|\\w*instarohr\\w*|\\w*wellrohr\\w*|isolierrohr\\w*)", "CheckType": "Boolean", "SpecificationFamilies": ["cable_conductors"], "SuggestedText": "Kabeltragsysteme / Installationsrohre", "SuggestedUnit": "m", "ExcludeRegex": "(?i)\\b(\\w*einziehen|\\w*eingezogen|erd\\w*|\\w*erdverleg\\w*)"},
+      {"DependencyName": "Cable termination", "Regex": "(?i)\\b(anschluss\\s+bis|anschlie(?:ß|ss)en\\s+(?:von\\s+)?(?:kabel|leitung)\\w*|kabelanschluss\\w*|leitungsanschluss\\w*|endverschl(?:uss|üsse)\\w*|anklemmen)", "CheckType": "Boolean", "SpecificationFamilies": ["cable_conductors"], "Severity": "info", "SuggestedText": "Anschluss der Kabel und Leitungen", "SuggestedUnit": "ea"}
     ]
   },
   {
@@ -203,7 +203,7 @@
       },
       {
         "DependencyName": "Joint sealing",
-        "Regex": "(?i)\\b(?:\\w*fugen(?:abdichtung|dichtung|versiegelung|verschluss)\\w*|\\w*fugendicht\\w*|abdichtung\\s+der\\s+(?:\\w*-)?fugen)|\\b(?:dicht\\w*|wind-\\s*und\\s*dampfdicht\\w*)[^\\n.;]{0,60}\\w*fugen\\b|\\b\\w*fugen\\b[^\\n.;]{0,60}\\bdicht\\w*|\\bdampfdicht\\w*[^\\n.;]{0,60}\\w*fugen\\b",
+        "Regex": "(?i)\\bdampfdicht\\w*\\s+Ausführung\\s+der\\s+[\\w-]*fugen\\b|\\b(?:\\w*fugen(?:abdichtung|dichtung|versiegelung|verschluss)\\w*|\\w*fugendicht\\w*|abdichtung\\s+der\\s+(?:\\w*-)?fugen)|\\b(?:dicht\\w*|wind-\\s*und\\s*dampfdicht\\w*)[^\\n.;]{0,60}\\w*fugen\\b|\\b\\w*fugen\\b[^\\n.;]{0,60}\\bdicht\\w*|\\bdampfdicht\\w*[^\\n.;]{0,60}\\w*fugen\\b",
         "CheckType": "Boolean",
         "SuggestedText": "Abdichtung der Fertigteilfugen",
         "SuggestedUnit": "m"

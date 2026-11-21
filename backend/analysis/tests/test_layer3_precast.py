@@ -1,5 +1,6 @@
 """Task 02 layer 3 checks on the LV_11 precast fixture. No network: answers come from FakeProvider."""
 
+from decimal import Decimal
 import json
 from pathlib import Path
 import re
@@ -7,12 +8,12 @@ import time
 
 import pytest
 
-from analysis import layer3
+from analysis import adapter, layer3
 from analysis.contracts import AnalysisInput, Finding, Line, Section, Target
 from analysis.layer2.adapter import from_data
 from analysis.layer3 import prompts
 from analysis.layer3.common import Session
-from analysis.layer3.provider import FakeProvider, LLMRequest, ProviderError, ResponseCache
+from analysis.layer3.provider import FakeProvider, LLMRequest, OllamaProvider, ProviderError, ResponseCache
 from analysis.layer3.schema import PRECAST_SCHEMA, QUANTITY_SCHEMA, SCOPE_SCHEMA, UNDERSPECIFIED_SCHEMA
 from analysis.registry import rules_for
 from analysis.runner import analyze
@@ -199,12 +200,23 @@ def test_lv11_rebar_scope_ambiguous_on_3_2_70_with_audit_model():
     assert {item["code"]: item["item_type"] for item in sent}["3.2.70"] == "rebar"
 
 
-def test_lv11_other_scope_findings_and_bundled_formwork():
+def test_lv11_other_scope_findings_with_unconfirmed_section_geometry():
     findings, _ = run3(lv11(), FakeProvider(fake_model))
     assert [f.target.line_code for f in by_rule(findings, SHOP)] == ["3.2.10"]
     embedded = by_rule(findings, EMBEDDED)
     assert [f.target.line_code for f in embedded] == ["3.2.90"]
     assert embedded[0].evidence["bieterfrage_de"].startswith("Zu Pos. 3.2.90: ")  # prefixed in code
+    assert by_rule(findings, BUNDLED) == []
+
+
+def test_bundling_requires_matching_height_layers_surfaces_and_colour():
+    bill = lv11()
+    bill.lines = [
+        line.model_copy(update={"long_text": f"{line.long_text}\nHöhe: 0,60 m. Farbton RAL 7032."})
+        if line.code in SANDWICH_CODES else line
+        for line in bill.lines
+    ]
+    findings, _ = run3(bill.with_hash(), FakeProvider(fake_model))
     bundled = by_rule(findings, BUNDLED)
     assert len(bundled) == 1 and bundled[0].severity == "info" and bundled[0].scope == "section"
     assert bundled[0].evidence["total_bundled_precast_length_m"] == "20.67"
@@ -249,6 +261,119 @@ def test_extracted_values_not_in_the_text_are_ignored():
     finding = {f.target.line_code: f for f in by_rule(findings, MISSING)}["3.2.30"]
     assert finding.evidence["missing_fields"] == ["height_m", "concrete_grade", "color_pigment_ral"]
     assert finding.evidence["extracted"]["height_m"] is None
+
+
+def test_explicit_dimensions_override_unsupported_model_values():
+    def wrong_units(item):
+        data = extract_like_a_model(item)
+        if data["item_type"] == "sandwich_plinth":
+            data.update(height_m=80, length_m=635, layers={"total_thickness_cm": 3},
+                        color_pigment_ral=None)
+        return data
+
+    bill = complete_precast_input()
+    line = bill.lines[0]
+    bill.lines[0] = line.model_copy(update={
+        "long_text": line.long_text.replace("d=30cm gesamt", "Gesamtdicke: 300 mm").replace("Höhe: 0,80 m.", "80 cm hoch."),
+    })
+    findings, errors = run3(bill.with_hash(), FakeProvider(lambda r: fake_model(r, extract=wrong_units)))
+    assert complete_coverage(errors)
+    finding, = by_rule(findings, MISSING)
+    assert finding.evidence["missing_fields"] == ["color_pigment_ral"]
+    measured = finding.evidence["extracted"]
+    assert (measured["height_m"], measured["length_m"], measured["layers"]["total_thickness_cm"]) == (0.8, 6.35, 30)
+
+
+@pytest.mark.parametrize("backend", ["x83", "json"])
+def test_compact_ollama_precast_seed_and_planted_faults(tmp_path, monkeypatch, backend):
+    from analysis.eval.mutate import generate
+
+    generate(out_dir=tmp_path, only={"__precast_only__"}, include_precast=True, demo=False, backends=(backend,))
+    provider = OllamaProvider()
+    def answer(request):
+        if request.prompt_version == "l3-precast-local-v1":
+            batch = payload(request)["items"]
+            schema = request.schema["properties"]["items"]
+            assert schema["maxItems"] == len(batch) <= 4
+            assert set(schema["items"]["required"]) == {
+                "line_ref", "item_type", "rebar_purpose", "color_pigment_ral",
+            }
+            return {"items": [
+                {"line_ref": item["ref"], "item_type": "embedded_part" if item["code"] == "3.2.90" else "other",
+                 "rebar_purpose": "unspecified", "color_pigment_ral": "Sichtbeton"}
+                for item in batch
+            ]}
+        if request.prompt_version == "l3-precast-local-rebar-v1":
+            assert "rebar_scope_quote" in request.schema["properties"]["items"]["items"]["required"]
+            return {"items": [
+                {"line_ref": item["ref"], "item_type": "rebar", "rebar_purpose": "factory_reinforcement",
+                 "rebar_scope_quote": "werkseitige Bewehrung" if item["code"] == "3.2.70" else "invented purpose"}
+                for item in payload(request)["items"]
+            ]}
+        if request.prompt_version == "l3-scope-local-v1":
+            data = payload(request)
+            roles = {item["code"]: item.get("rebar_purpose") for item in data["items"]}
+            assert roles["3.2.70"] == "site_connection"
+            assert roles["3.2.75"] == "unspecified"
+            return {"findings": [candidate["ref"] for candidate in data["candidates"]]}
+        return {"findings": [], "reviews": []}
+    monkeypatch.setattr(provider, "complete_json", answer)
+    monkeypatch.setattr(layer3, "provider_from_env", lambda: provider)
+    monkeypatch.setattr(layer3, "audit_provider_from_env", lambda provider: provider)
+    monkeypatch.setenv("ANALYSIS_L3_CACHE", "off")
+
+    extension = "X83" if backend == "x83" else "json"
+
+    def run_file(name):
+        path = tmp_path / "mutated" / f"{name}.{extension}"
+        result = analyze(adapter.from_file(path) if backend == "x83" else adapter.from_json(path), [1, 2, 3])
+        assert complete_coverage(result.errors)
+        return result.findings
+
+    assert run_file("precast_lv11_clean") == []
+    missing, = by_rule(run_file("PRECAST-MISSING-SPEC"), MISSING)
+    assert missing.target.line_code == "3.2.40"
+    assert missing.evidence["missing_fields"] == ["height_m", "color_pigment_ral"]
+    assert "Elementhöhe" in missing.evidence["bieterfrage_de"]
+    rebar, = by_rule(run_file("PRECAST-REBAR-SCOPE"), REBAR)
+    assert rebar.target.line_code == "3.2.75"
+    assert rebar.evidence["related_codes"] == SANDWICH_CODES
+    assert "Anschlussbewehrung" in rebar.evidence["bieterfrage_de"]
+
+
+def test_compact_provider_retries_only_omitted_positions(monkeypatch):
+    snapshot = complete_precast_input()
+    snapshot.lines[1] = snapshot.lines[1].model_copy(update={
+        "short_text": "Werkstattzeichnungen", "long_text": "Montagepläne für die Fertigteile erstellen.",
+    })
+    provider = OllamaProvider()
+    calls = []
+
+    def respond(request):
+        if request.prompt_version != "l3-precast-local-v1":
+            return {"findings": [], "reviews": []}
+        batch = payload(request)["items"]
+        calls.append([item["code"] for item in batch])
+        return {"items": [{"line_ref": item["ref"], "item_type": "other", "rebar_purpose": "unspecified",
+                           "color_pigment_ral": None}
+                          for item in (batch[:1] if len(calls) == 1 else batch)]}
+
+    monkeypatch.setattr(provider, "complete_json", respond)
+    _, errors = run3(snapshot, provider)
+    assert complete_coverage(errors)
+    assert calls == [["1.10", "1.20"], ["1.20"]]
+
+
+
+def test_model_omitting_a_position_reports_partial_coverage():
+    def incomplete(request):
+        if request.prompt_version == prompts.PRECAST_VERSION:
+            return {"items": [extract_like_a_model(item) for item in payload(request)["items"] if item["code"] != "1.20"]}
+        return fake_model(request)
+
+    findings, errors = run3(complete_precast_input(), FakeProvider(incomplete))
+    assert not by_rule(findings, MISSING)
+    assert errors == ["L3.PRECAST.EXTRACTION: no valid extraction for 1.20", "layer 3 coverage: 3/3 batches"]
 
 
 def test_audit_answers_that_break_the_preconditions_are_dropped():
@@ -373,6 +498,20 @@ def test_time_budget_stops_calls_and_is_reported():
                               "layer 3 coverage: 0/2 batches; skipped: L3.X×2"]
 
 
+def test_serial_batches_respect_deadline_after_each_request(monkeypatch):
+    monotonic = iter([0, 2])
+    monkeypatch.setattr("analysis.layer3.common.time.monotonic", lambda: next(monotonic))
+    provider = FakeProvider(lambda request: {"findings": []})
+    session = Session(provider, ResponseCache(None), [], started=0, deadline=1, concurrency=1)
+    first = LLMRequest("s", "first", {"type": "object"}, "v")
+    second = LLMRequest("s", "second", {"type": "object"}, "v")
+    assert session.ask_many("L3.X", [first, second]) == [{"findings": []}, None]
+    session.report()
+    assert provider.requests == [first]
+    assert session.errors == ["L3.X: 1 batch(es) not checked (time budget of 1 s reached)",
+                              "layer 3 coverage: 1/2 batches; skipped: L3.X×1"]
+
+
 def test_contradiction_check_skips_lines_with_l1_value_conflict():
     analysis_input = lv11()
     conflict = analysis_input.lines[1]  # 3.2.20
@@ -410,6 +549,68 @@ def test_underspecified_only_short_texts_with_verified_quote():
     assert found[0].evidence["bieterfrage_de"].startswith("Zu Pos. 3.2.80: ")
 
 
+@pytest.mark.parametrize("heading,detail,property_name,quote", [
+    ("Stahltür T30, RAL 9010", "", "fire_rating", "Stahltür"),
+    ("Stahltür T30, RAL 9010", "", "colour", "Stahltür"),
+    ("Abdeckung montieren", "Material: Edelstahl.", "material", "Abdeckung"),
+    ("Fundament aus Beton C30/37", "", "strength_class", "Fundament"),
+    ("Fundament einbauen", "Expositionsklasse: XC4.", "exposure_class", "Fundament"),
+    ("Türblatt einbauen", "Zarge aus Stahl.", "material", "Zarge"),
+])
+def test_underspecified_drops_claims_contradicted_by_a_value_for_the_quoted_part(heading, detail, property_name, quote):
+    snapshot = from_data({"lines": [{"id": "one", "code": "01.0010", "short_text": heading,
+                                   "long_text": detail, "quantity": "1", "unit": "St"}]})
+    response = {"findings": [{"line_ref": "#1", "missing_property": property_name, "quote": quote,
+                              "question_de": "Welche Vorgabe gilt?", "confidence": 0.9}]}
+    provider = FakeProvider(lambda request: fake_model(request, under=lambda _: response))
+    findings, _ = run3(snapshot, provider)
+    assert [r for r in provider.requests if r.prompt_version == prompts.UNDERSPECIFIED_VERSION]
+    assert not by_rule(findings, UNDER)
+
+
+@pytest.mark.parametrize("heading,detail,property_name,quote", [
+    ("Stahltür mit Zarge T30", "", "fire_rating", "Stahltür"),
+    ("Stahltür, Zarge T30", "", "fire_rating", "Stahltür"),
+    ("Stahltür optional T30 oder T60", "", "fire_rating", "Stahltür"),
+    ("Stahltür ohne Feuerwiderstand T30", "", "fire_rating", "Stahltür"),
+    ("Stahltür T30", "Feuerwiderstand: noch offen.", "fire_rating", "Stahltür"),
+    ("Abdeckung mit Griff aus Stahl", "", "material", "Abdeckung"),
+    ("Abdeckung montieren", "Griff: Material: Edelstahl.", "material", "Abdeckung"),
+    ("Betonfundament, Bettung C30/37", "", "strength_class", "Betonfundament"),
+    ("Betonbord TB10/25 grau Fundament Rückenstütze C20/25", "", "strength_class", "Betonbord"),
+    ("Betonbord TB10/25 grau", "Festigkeitsklasse: Fundament C20/25.", "strength_class", "Betonbord"),
+    ("Rohr DN 160", "", "dimension", "Rohr"),
+])
+def test_underspecified_keeps_unclear_requirements_and_other_components(heading, detail, property_name, quote):
+    snapshot = from_data({"lines": [{"id": "one", "code": "01.0010", "short_text": heading,
+                                   "long_text": detail, "quantity": "1", "unit": "St",
+                                   "source_locator": {"row": 2}}]})
+    response = {"findings": [{"line_ref": "#1", "missing_property": property_name, "quote": quote,
+                              "question_de": "Welche Vorgabe gilt?", "confidence": 0.9}]}
+    provider = FakeProvider(lambda request: fake_model(request, under=lambda _: response))
+    findings, _ = run3(snapshot, provider)
+    item, = by_rule(findings, UNDER)
+    assert item.evidence["missing_property"] == property_name
+    assert item.source_locator == {"row": 2}
+    assert item.evidence["bieterfrage_de"].startswith("Zu Pos. 01.0010")
+
+
+def test_underspecified_keeps_component_questions_beside_an_existing_fire_door_finding():
+    snapshot = from_data({"lines": [{"id": "door", "code": "01.0010", "short_text": "Brandschutztür aus Stahl",
+                                   "long_text": "Zarge und Beschläge inklusive.", "quantity": "1", "unit": "St"}]})
+    prior = analyze(snapshot, [1]).findings
+    response = {"findings": [
+        {"line_ref": "#1", "missing_property": "fire_rating", "quote": "Brandschutztür",
+         "question_de": "Welcher Feuerwiderstand ist für die Tür gefordert?", "confidence": 0.75},
+        {"line_ref": "#1", "missing_property": "fire_rating", "quote": "Zarge",
+         "question_de": "Welcher Feuerwiderstand ist für die Zarge gefordert?", "confidence": 0.75},
+    ]}
+    provider = FakeProvider(lambda request: fake_model(request, under=lambda _: response))
+    findings, _ = run3(snapshot, provider, prior)
+    item, = by_rule(findings, UNDER)
+    assert item.evidence["quote"] == "Zarge"
+
+
 def test_underspecified_nothing_reported_when_model_finds_nothing():
     findings, _ = run3(lv11(), FakeProvider(fake_model))
     assert by_rule(findings, UNDER) == []
@@ -422,19 +623,32 @@ def test_implausible_quantity_per_section():
     def qty(request):
         refs = {item["code"]: item["ref"] for item in payload(request)["items"]}
         return {"findings": [
-            {"line_ref": refs["3.2.90"], "reason": "15 rails for 5 elements is high.", "expected": "~5 St",
+            {"line_ref": refs["3.2.90"], "comparison_ref": refs["3.2.60"],
+             "reason": "15 rails for 5 elements is high.", "expected": "5 St",
              "confidence": 0.9},
+            {"line_ref": refs["3.2.60"], "reason": "This is one thousand pieces.",
+             "expected": "1.000 St (one thousand single labour items)", "confidence": 0.9},
+            {"line_ref": refs["3.2.30"], "reason": "This quantity differs from its siblings.",
+             "expected": "St", "confidence": 0.9},
+            {"line_ref": refs["3.2.70"], "reason": "0.7 t seems small.", "expected": "10 t", "confidence": 0.9},
             {"line_ref": "#99", "reason": "r", "expected": "", "confidence": 0.9},  # unknown ref
         ]}
 
     provider = FakeProvider(lambda r: fake_model(r, qty=qty))
-    findings, _ = run3(lv11(), provider)
+    snapshot = lv11()
+    next(item for item in snapshot.lines if item.code == "3.2.60").quantity = Decimal("5")
+    findings, _ = run3(snapshot, provider)
     quantity_requests = [r for r in provider.requests if r.prompt_version == prompts.QUANTITY_VERSION]
     assert len(quantity_requests) == 1  # one call for the section
-    assert all("long_text" not in item for item in payload(quantity_requests[0])["items"])
+    sent = {item["code"]: item for item in payload(quantity_requests[0])["items"]}
+    assert all("long_text" not in item for item in sent.values())
+    assert sent["3.2.60"]["quantity"] == "5"
+    assert sent["3.2.70"]["quantity"] == "0.7"
     found = by_rule(findings, QTY)
     assert [f.target.line_code for f in found] == ["3.2.90"]
     assert found[0].target.field == "quantity" and found[0].severity == "warning"
+    assert "takeoff" in found[0].suggested_fix.rationale
+    assert found[0].evidence["comparison"]["line_code"] == "3.2.60"
 
 
 def test_single_line_sections_are_not_sent_for_quantities():

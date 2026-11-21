@@ -69,7 +69,8 @@ class RuleContext:
                 area_id: str | None = None, field: str | None = None, title: str | None = None,
                 severity: str | None = None, evidence: dict[str, Any] | None = None,
                 related_line_ids: Iterable[str] = (), suggested_fix: Fix | None = None,
-                discriminator: str | None = None, origin: str = "rule", model: str | None = None) -> Finding:
+                discriminator: str | None = None, origin: str = "rule", model: str | None = None,
+                source_locator: dict[str, Any] | None = None) -> Finding:
         """Build a Finding with this rule's defaults. Scope is taken from the most specific target given."""
         target = Target(
             line_id=line.id if line else None, line_code=line.code if line else None,
@@ -82,7 +83,7 @@ class RuleContext:
             category=self.info.category, severity=severity or self.info.severity, scope=scope,
             related_line_ids=list(related_line_ids), title=title or self.info.title, message=message,
             evidence=_jsonable(evidence or {}), suggested_fix=suggested_fix, origin=origin, model=model,
-            source_locator=line.source_locator if line else None,
+            source_locator=source_locator if source_locator is not None else line.source_locator if line else None,
         )
 
 

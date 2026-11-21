@@ -150,8 +150,7 @@ def docx(data: bytes) -> Result:
                     info["xml"] = xml_document(root)
                     if entry.filename == "word/document.xml":
                         found_body = True
-                        extract_word_paragraphs(root, locator, result)
-                        extract_workspace_tables(root, locator, result)
+                        extract_word_body(root, locator, result)
                 except (ValueError, SyntaxError) as exc:
                     result.warn("unreadable_word_part", locator, str(exc))
             result.add("word_part", locator, **info)
@@ -160,9 +159,22 @@ def docx(data: bytes) -> Result:
     return result
 
 
-def extract_word_paragraphs(root, locator, result):
+def extract_word_body(root, locator, result):
+    start = len(result.records)
+    item_tables = extract_workspace_tables(root, locator, result)
+    extract_word_paragraphs(root, locator, result, item_tables)
+    if item_tables:
+        tree = root.getroottree()
+        order = {tree.getelementpath(node): index for index, node in enumerate(root.iter())
+                 if node.tag in {_WORD + "p", _WORD + "tr"}}
+        result.records[start:] = sorted(result.records[start:], key=lambda record: order[record.locator["xml_path"]])
+
+
+def extract_word_paragraphs(root, locator, result, item_tables):
     context = None
     connector = None
+    heading_paragraph = None
+    connector_paragraph = None
     for index, para in enumerate(root.iter(_WORD + "p"), 1):
         phrase = word_text(para)
         path = {**locator, "paragraph": index, "xml_path": root.getroottree().getelementpath(para)}
@@ -170,32 +182,84 @@ def extract_word_paragraphs(root, locator, result):
         style_id = style.get(_WORD + "val") if style is not None else None
         result.add("paragraph", path, text=phrase, style=style_id)
         match = _WORD_ITEM.fullmatch(phrase)
-        if match:
+        is_body_paragraph = para.getparent().tag == _WORD + "body"
+        if not is_body_paragraph:
+            heading_paragraph = connector_paragraph = None
+        if match and not any(table in item_tables for table in para.iterancestors(_WORD + "tbl")):
             code, description, unit = match.groups()
-            result.add("item_candidate", path, code=code, short_description=description,
+            outline = {}
+            if is_body_paragraph and heading_paragraph:
+                outline = {"outline_heading_paragraph": heading_paragraph}
+                if connector_paragraph:
+                    outline["outline_connector"] = {"paragraph": connector_paragraph, "text": connector}
+            result.add("item_candidate", {**path, **outline}, code=code, short_description=description,
                        unit=unit, quantity=None, group=context, relationship_hint=connector,
                        confidence="review")
         elif phrase.strip().casefold() in {"oder", "mit"}:
             connector = phrase.strip()
+            connector_paragraph = index if is_body_paragraph else None
         elif phrase.strip() and phrase.strip() not in {"…", "..."}:
             context, connector = phrase.strip(), None
+            heading_paragraph = index if is_body_paragraph else None
+            connector_paragraph = None
+
+
+_WORD_HEADERS = {
+    "code": {"position", "position no", "pos", "pos nr", "oz", "ordnungszahl"},
+    "description": {"description", "short description", "kurztext", "leistungsbeschreibung", "bezeichnung"},
+    "quantity": {"quantity", "qty", "menge", "anzahl"},
+    "unit": {"unit", "me", "einheit", "mengeneinheit"},
+    "rate": {"rate", "ep", "einheitspreis", "unit price"},
+    "amount": {"amount", "gp", "gb", "gesamtbetrag", "gesamtpreis", "line amount"},
+    "total_rule": {"total rule"},
+}
+
+
+def _cell_text(cell):
+    return "\n".join(word_text(para) for para in cell.findall(_WORD + "p")).strip()
+
+
+def _word_column(name):
+    name = re.sub(r"\([^)]*\)\s*$", "", name.casefold()).strip()
+    name = " ".join(re.sub(r"[.\-]", " ", name).split())
+    return next((field for field, aliases in _WORD_HEADERS.items() if name in aliases), None)
 
 
 def extract_workspace_tables(root, locator, result):
-    fields = ("Position", "Description", "Quantity", "Unit", "Rate", "Amount", "Total rule")
-    for table in root.iter(_WORD + "tbl"):
+    item_tables = set()
+    for table_number, table in enumerate(root.iter(_WORD + "tbl"), 1):
         rows = table.findall(_WORD + "tr")
-        if not rows or tuple(word_text(cell).strip() for cell in rows[0].findall(_WORD + "tc")) != fields:
+        if not rows:
             continue
-        for row in rows[1:]:
-            cells = [word_text(cell).strip() for cell in row.findall(_WORD + "tc")]
-            if len(cells) != len(fields) or not cells[1]:
+        header = [_word_column(_cell_text(cell)) for cell in rows[0].findall(_WORD + "tc")]
+        if not {"code", "description"} <= set(header) or not {"quantity", "unit"}.intersection(header):
+            continue
+        fields = [field for field in header if field is not None]
+        if len(fields) != len(set(fields)):
+            continue  # a repeated column name does not identify which value to use
+        item_tables.add(table)
+        for row_number, row in enumerate(rows[1:], 2):
+            cells = [_cell_text(cell) for cell in row.findall(_WORD + "tc")]
+            if len(cells) != len(header):
                 continue
-            code, description, qty, unit, price, amount, total_rule = cells
-            short, _, detail = description.partition("\n")
+            fields = dict(zip(header, cells))
+            code = fields.get("code")
+            description = fields.get("description")
+            if not description and not code:
+                continue
+            short, _, detail = (description or "").partition("\n")
+            total_rule = fields.get("total_rule")
             flags = {"unit_price_only": total_rule == "Unit price only", "alternative_item": total_rule == "Conditional"}
-            path = row.getroottree().getelementpath(row)
-            result.add("item_candidate", {**locator, "xml_path": path}, code=code or None,
-                       short_description=short, long_description=detail or None, unit=unit or None,
-                       quantity=german_decimal(qty), unit_price=german_decimal(price),
-                       line_amount=german_decimal(amount), flags=flags, confidence="review")
+            row_locator = {**locator, "xml_path": row.getroottree().getelementpath(row),
+                           "table": table_number, "row": row_number}
+            numbers = {}
+            for column, field in (("quantity", "quantity"), ("rate", "unit_price"), ("amount", "line_amount")):
+                raw = fields.get(column, "")
+                value = re.sub(r"\s*(?:€|EUR)$", "", raw, flags=re.I).strip()
+                numbers[field] = (german_decimal(value) or decimal_text(value)) if value else None
+                if value and numbers[field] is None:
+                    result.warn("word_number_unreadable", row_locator, f"Check the written {column} value {raw!r}")
+            result.add("item_candidate", row_locator, code=code or None, short_description=short or None,
+                       long_description=detail or None, unit=fields.get("unit") or None,
+                       quantity_raw=fields.get("quantity") or None, **numbers, flags=flags, confidence="review")
+    return item_tables

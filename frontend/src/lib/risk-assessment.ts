@@ -10,11 +10,39 @@ export const RISK_STYLE = {
   info: { label: 'Info', icon: 'info', chip: 'bg-sky-100 text-sky-800', row: 'bg-sky-50 hover:bg-sky-100/75 max-lg:bg-sky-50' },
 } as const
 
+export type CoverageCheckState = 'already_counted' | 'bundled_quantity_unknown' | 'not_a_firm_item'
+  | 'scope_unverified' | 'quantity_unverified' | 'quantity_below_shortfall' | 'quantity_candidate'
+
+export type SourceLocator = { page?: number; ocr_pages?: number[]; record?: number | string; source_id?: string; row?: number; sheet?: string; table?: number; paragraph?: number }
+
 export type Evidence = {
-  din?: { grade?: string; exposure?: string[]; required_min?: string }
+  din?: { grade?: string | null; exposure?: string[]; required_min?: string | null }
+  din_standard?: { identifier: string; edition: string; url: string }
+  declarations?: { manufacturer: string; product_code: string; document: string; revision: string; locator: string }[]
+  requirement?: { document: string; locator: string; position_locator?: SourceLocator }
+  requirements?: { document: string; locator: string; comparison: 'equal' | 'at_least' | 'at_most'; required: { value: string; unit?: string | null }; quote?: string; field?: string }[]
+  position_candidates?: { line_code: string; locator: SourceLocator }[]
+  position_candidate_count?: number
   extracted?: Record<string, unknown>
   bieterfrage_de?: string
   amount_at_stake?: string
+  family?: string
+  short_quote?: string
+  long_quote?: string
+  specification_conflicts?: {
+    finding_id: string; line_code?: string | null; source_locator?: SourceLocator | null
+    short_quote?: string | null; long_quote?: string | null
+  }[]
+  scope_statements?: { line_id: string; line_code?: string | null; role: string; quote: string }[]
+  quantity_check?: { state: CoverageCheckState; unit?: string | null; minimum_shortfall?: string | null; quantity?: string | null }
+  requirement_quote?: string
+  requirement_field?: string
+  offer_quote?: string
+  offer_field?: string
+  grade_quote?: string
+  grade_field?: string
+  exposure_quote?: string
+  exposure_field?: string
   change_order?: boolean
   [key: string]: unknown
 }
@@ -31,6 +59,7 @@ export type Finding = {
   target: { line_id: string | null; line_code?: string | null; section_id: string | null; field: string | null }
   related_line_ids: string[]
   evidence?: Evidence
+  source_locator?: SourceLocator | null
   suggested_fix: { rationale: string; operations?: FixOperation[]; confidence?: number } | null
   origin?: 'rule' | 'llm'
   model?: string | null
@@ -69,6 +98,7 @@ export type Question = { id: string; topic: string; text_de: string; line_codes:
 
 export type Report = {
   findings: Finding[]
+  product_evidence_files?: string[]
   errors: string[]
   source_notice: string | null
   layers_run?: number[]
@@ -164,7 +194,7 @@ export function matchesFindingFilter(filter: string, findings: ReviewItem[], rev
   })
 }
 
-export function useUploadAssessment(id: string | null): Assessment | null {
+export function useUploadAssessment(id: string | null, evidenceSignature = ''): Assessment | null {
   const [assessment, setAssessment] = useState<Assessment>({ state: 'waiting' })
   useEffect(() => {
     if (!id) return
@@ -183,7 +213,13 @@ export function useUploadAssessment(id: string | null): Assessment | null {
         const result = await response.json()
         if (controller.signal.aborted) return
         if (result.state === 'ready' && Array.isArray(result.report?.findings)) {
-          setAssessment({ state: 'ready', report: result.report })
+          const report: Report = result.report
+          if ([...(report.product_evidence_files ?? [])].sort().join(',') === evidenceSignature) {
+            setAssessment({ state: 'ready', report })
+          } else {
+            setAssessment({ state: 'waiting' })
+            timer = setTimeout(refresh, 2000)
+          }
         } else if (result.state === 'failed') {
           setAssessment({ state: 'failed' })
         } else if (result.state === 'queued') {
@@ -204,6 +240,10 @@ export function useUploadAssessment(id: string | null): Assessment | null {
       controller.abort()
       clearTimeout(timer)
     }
-  }, [id])
-  return id ? assessment : null
+  }, [id, evidenceSignature])
+  if (!id) return null
+  if (assessment.state === 'ready' && [...(assessment.report.product_evidence_files ?? [])].sort().join(',') !== evidenceSignature) {
+    return { state: 'waiting' }
+  }
+  return assessment
 }

@@ -11,6 +11,7 @@ from psycopg.types.json import Jsonb
 
 import workspace_analysis
 import workspace_catalogue
+from workspace_product_evidence import affected_lists
 
 WORKSPACE = "default"
 COLLECTIONS = {
@@ -74,6 +75,10 @@ def apply(connection, payload):
             if revision is None:
                 raise ValueError("The shared workspace has not been initialised. Run the database migrations.")
             revision = revision["revision"]
+            document_ids = {key for collection, key, _ in writes
+                            if collection in {"userDocuments", "documentLinks"}}
+            document_ids.update(key for collection, key in deletes if collection in {"userDocuments", "documentLinks"})
+            evidence_lists = affected_lists(connection, WORKSPACE, document_ids)
             old_folders = ()
             if workspace_catalogue.configured_model():
                 edited_lists = {key for collection, key, _ in writes if collection in {"userLists", "listPatch"}}
@@ -97,7 +102,8 @@ def apply(connection, payload):
                          for collection, key, value in writes],
                     )
             workspace_catalogue.workspace_changed(connection, WORKSPACE, writes, old_folders)
-            workspace_analysis.enqueue(connection, WORKSPACE, writes)
+            evidence_lists.update(affected_lists(connection, WORKSPACE, document_ids))
+            workspace_analysis.enqueue(connection, WORKSPACE, writes, evidence_lists)
         return state(connection)
 
 
@@ -114,13 +120,17 @@ def file_id(value):
 def save_file(connection, identifier, content_type, content):
     if content_type not in FILE_TYPES:
         content_type = "application/octet-stream"
-    connection.execute(
-        """
-        INSERT INTO workspace_file (workspace, file_id, content_type, content) VALUES (%s, %s, %s, %s)
-        ON CONFLICT (workspace, file_id) DO UPDATE SET content_type = EXCLUDED.content_type, content = EXCLUDED.content
-        """,
-        (WORKSPACE, file_id(identifier), content_type, content),
-    )
+    with connection.transaction():
+        # Synchronize file and metadata writes so one transaction always sees the other's evidence.
+        connection.execute("SELECT revision FROM workspace_sync WHERE workspace=%s FOR NO KEY UPDATE", (WORKSPACE,))
+        connection.execute(
+            """
+            INSERT INTO workspace_file (workspace, file_id, content_type, content) VALUES (%s, %s, %s, %s)
+            ON CONFLICT (workspace, file_id) DO UPDATE SET content_type = EXCLUDED.content_type, content = EXCLUDED.content
+            """,
+            (WORKSPACE, file_id(identifier), content_type, content),
+        )
+        workspace_analysis.requeue_product_evidence(connection, WORKSPACE, affected_lists(connection, WORKSPACE, [identifier]))
     return {"id": identifier, "bytes": len(content)}
 
 
@@ -139,7 +149,11 @@ def delete_files(connection, payload):
     if not isinstance(ids, list) or len(ids) > 1000:
         raise ValueError("Invalid file ids.")
     ids = [file_id(value) for value in ids]
-    connection.execute(
-        "DELETE FROM workspace_file WHERE workspace = %s AND file_id = ANY(%s)", (WORKSPACE, ids)
-    )
+    with connection.transaction():
+        # Synchronize file and metadata writes so one transaction always sees the other's evidence.
+        connection.execute("SELECT revision FROM workspace_sync WHERE workspace=%s FOR NO KEY UPDATE", (WORKSPACE,))
+        connection.execute(
+            "DELETE FROM workspace_file WHERE workspace = %s AND file_id = ANY(%s)", (WORKSPACE, ids)
+        )
+        workspace_analysis.requeue_product_evidence(connection, WORKSPACE, affected_lists(connection, WORKSPACE, ids))
     return {"deleted": len(ids)}

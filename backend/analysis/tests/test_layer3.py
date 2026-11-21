@@ -10,7 +10,7 @@ from analysis.layer2.adapter import from_data
 from analysis.layer3.provider import (
     FakeProvider, LLMRequest, OllamaProvider, ProviderError, ProviderUnavailable, ResponseCache, provider_from_env,
 )
-from analysis.layer3.prompts import CONTRADICTION_VERSION
+from analysis.layer3.prompts import CONTRADICTION_VERSION, L2_CONFIRM_VERSION, PRECAST_VERSION
 from analysis.layer3.schema import CONTRADICTION_SCHEMA, L2_CONFIRM_SCHEMA, MAX_CONFIDENCE, quote_in
 from analysis.registry import rules_for
 from analysis.runner import analyze
@@ -113,7 +113,7 @@ def test_contradiction_found_with_verified_quotes():
     assert finding.evidence["short_quote"] == "DN 150" and finding.evidence["long_quote"] == "DN 200"
     assert finding.evidence["confidence"] == MAX_CONFIDENCE
     assert finding.evidence["prompt_version"].startswith("l3-contradiction-")
-    assert finding.suggested_fix is None
+    assert finding.suggested_fix.operations == [] and "drawings" in finding.suggested_fix.rationale
 
 
 def test_prefilter_sends_only_lines_with_values_and_two_texts():
@@ -142,6 +142,21 @@ def test_hallucinated_contradictions_are_dropped(bad):
     assert by_rule(findings, CONTRA) == []
     assert complete_coverage(errors)
 
+@pytest.mark.parametrize(("detail", "reported"), [
+    ("Rückenstütze aus Beton C25/30.", False),
+    ("Fundament aus Beton C25/30.", True),
+    ("Ausführung aus Beton C25/30.", True),
+])
+def test_concrete_grade_model_quotes_must_refer_to_compatible_components(detail, reported):
+    answer = {"findings": [{
+        "line_ref": "#1", "property": "concrete grade", "short_quote": "C20/25",
+        "long_quote": "C25/30", "message": "The grades differ.", "confidence": 0.95,
+    }]}
+    analysis_input = from_data({"lines": [line("a", "Betonbord Fundament C20/25", detail)]})
+    findings, errors = run3(analysis_input, FakeProvider([answer]))
+    assert bool(by_rule(findings, CONTRA)) is reported
+    assert complete_coverage(errors)
+
 
 def test_invalid_items_dropped_but_valid_ones_kept():
     answer = {"findings": [
@@ -154,6 +169,29 @@ def test_invalid_items_dropped_but_valid_ones_kept():
     findings, _ = run3(pipe_input(), FakeProvider([answer]))
     found = by_rule(findings, CONTRA)
     assert len(found) == 1 and found[0].evidence["confidence"] == 0.5
+
+
+@pytest.mark.parametrize(("format", "detail", "severity"), [
+    ("pdf", "Hängedachrinne aus Titanzink herstellen.", "warning"),
+    ("pdf", "Hängedachrinne aus Titanzink oder Kupfer herstellen.", "info"),
+    ("docx", "Hängedachrinne aus Titanzink herstellen.", "info"),
+])
+def test_contradiction_checks_pdf_body_without_heading_echo(format, detail, severity):
+    title = "Dachrinne Kupfer halbrund"
+    snapshot = from_data({
+        "project": {"source_document": {"format": format}},
+        "lines": [line("01.0010", title, f"{title}\n{detail}", source_locator={"page": 1})],
+    })
+    answer = {"findings": [{"line_ref": "#1", "property": "material", "short_quote": "Kupfer",
+                            "long_quote": "Titanzink", "message": "The gutter materials differ.", "confidence": .95}]}
+    provider = FakeProvider(lambda request: answer if request.prompt_version == CONTRADICTION_VERSION else {"findings": []})
+    findings, errors = run3(snapshot, provider)
+    assert complete_coverage(errors)
+    found, = by_rule(findings, CONTRA)
+    assert found.severity == severity
+    assert found.source_locator == {"page": 1}
+    assert found.evidence["long_quote"] == "Titanzink"
+
 
 
 def test_value_also_in_long_text_is_downgraded_to_info():
@@ -345,6 +383,71 @@ def test_l2_confirm_included_excluded_missing():
     assert all(f.layer == 3 and f.origin == "llm" for f in confirm.values())
 
 
+@pytest.mark.parametrize("position,quote,quantity,unit,total_rule,state", [
+    ("01.0010", "Tiefspül-WC", "12", "St", "include", "bundled_quantity_unknown"),
+    ("01.0020", "WC-Sitz", "12", "St", "include", "already_counted"),
+    ("01.0030", "Sitzring aus Kunststoff", "12", "St", "conditional", "not_a_firm_item"),
+    ("01.0030", "Sitzring aus Kunststoff", "2", "St", "include", "quantity_below_shortfall"),
+    ("01.0030", "Sitzring aus Kunststoff", "12", "m", "include", "quantity_unverified"),
+    ("01.0030", "Sitzring aus Kunststoff", "12", "St", "include", "quantity_candidate"),
+    ("01.0030", "Sitzring aus Kunst", "12", "St", "include", None),
+])
+def test_l2_confirm_checks_scope_evidence_separately_from_the_original_gap(position, quote, quantity, unit,
+                                                                           total_rule, state):
+    analysis_input = from_data({"lines": [
+        line("01.0010", "Tiefspül-WC", quantity="10", unit="St"),
+        line("01.0020", "WC-Sitz", quantity="3", unit="St"),
+        line("01.0030", "Sitzring aus Kunststoff", quantity=quantity, unit=unit, total_rule=total_rule,
+             source_locator={"record": 3}),
+    ]})
+    prior = layer2_findings(analysis_input)
+    gap = next(f for f in prior if f.rule_id == "L2.SANITARY.WC_NEEDS_WC_SEAT")
+    assert gap.evidence["reason"] == "quantity_shortfall"
+    provider = FakeProvider(lambda req: answer_for(req, {gap.evidence["dependency"]: ("included", position, quote)})
+                            if req.prompt_version == L2_CONFIRM_VERSION else {"findings": []})
+    findings, _ = run3(analysis_input, provider, prior=prior)
+    reviews = by_rule(findings, CONFIRM)
+    if state is None:
+        assert reviews == []
+        return
+
+    review, = reviews
+    assert review.evidence["reviews_finding_id"] == gap.id
+    assert review.evidence["review_status"] == "advisory" and review.status == "open"
+    assert review.evidence["quote_field"] == "short_text"
+    assert review.evidence["quantity_check"]["state"] == state
+    assert review.evidence["quantity_check"]["minimum_shortfall"] == gap.evidence["shortfall_to_minimum"]
+    assert review.suggested_fix and not review.suggested_fix.operations
+    if position == "01.0030":
+        assert review.source_locator == {"record": 3}
+    if state in {"quantity_below_shortfall", "quantity_candidate"}:
+        assert review.evidence["quantity_check"]["quantity"] == quantity
+
+
+def test_l2_confirm_cannot_establish_room_coverage_from_a_different_room():
+    def located(item, room):
+        return {**item, "distributions": [{"area_id": room, "quantity": item["quantity"]}]}
+
+    analysis_input = from_data({
+        "areas": [{"id": "a", "name": "Room A"}, {"id": "b", "name": "Room B"}],
+        "lines": [
+            located(line("01.0010", "Tiefspül-WC", quantity="10", unit="St"), "a"),
+            located(line("01.0020", "WC-Sitz", quantity="3", unit="St"), "a"),
+            located(line("01.0030", "Sitzring aus Kunststoff", quantity="12", unit="St"), "b"),
+        ],
+    })
+    prior = layer2_findings(analysis_input)
+    gap = next(f for f in prior if f.rule_id == "L2.SANITARY.WC_NEEDS_WC_SEAT")
+    assert gap.target.area_id == "a" and gap.evidence["reason"] == "quantity_shortfall"
+    verdicts = {gap.evidence["dependency"]: ("included", "01.0030", "Sitzring aus Kunststoff")}
+    provider = FakeProvider(lambda req: answer_for(req, verdicts)
+                            if req.prompt_version == L2_CONFIRM_VERSION else {"findings": []})
+    findings, _ = run3(analysis_input, provider, prior=prior)
+    review, = by_rule(findings, CONFIRM)
+    assert review.evidence["reviews_finding_id"] == gap.id
+    assert review.evidence["quantity_check"]["state"] == "scope_unverified"
+
+
 def test_l2_confirm_drops_unverified_quotes_and_unknown_refs():
     analysis_input = screed_input()
     prior = layer2_findings(analysis_input)
@@ -388,6 +491,66 @@ def test_l2_confirm_sends_triggers_and_section_neighbours_only():
     assert "01.0020" in codes and "02.0010" not in codes
 
 
+@pytest.mark.parametrize("text,expected", [
+    ("Flachdecke herstellen, Beton C30/37 liefern.", False),
+    ("Flachdecke mit d = 240 mm herstellen.", False),
+    ("Flachdecke mit d = 22 cm herstellen.", True),
+])
+def test_dimension_contradiction_requires_two_different_stated_lengths(text, expected):
+    analysis_input = from_data({"lines": [
+        {"id": "a", "code": "01", "short_text": "Stahlbetondecke, d = 24 cm", "long_text": text},
+    ]})
+    findings = {"findings": [{"line_ref": "#1", "property": "thickness", "short_quote": "d = 24 cm",
+                              "long_quote": text, "message": "Thickness differs.", "confidence": 0.8}]}
+    result = by_rule(run3(analysis_input, FakeProvider([findings]))[0], CONTRA)
+    assert bool(result) is expected
+    if expected:
+        assert result[0].suggested_fix.rationale
+
+
+@pytest.mark.parametrize("text,quote,expected", [
+    ("Angebotenes Fabrikat: Hersteller: Synthetic Doors; SKU: D-24", "Synthetic Doors", False),
+    ("Angebotenes Fabrikat: Hersteller: Holz; SKU: D-24", "Holz", False),
+    ("Angebotenes Fabrikat: Hersteller: Holz; SKU: D-24; Material: Holz.", "Holz", True),
+])
+def test_manufacturer_name_alone_is_not_material_evidence(text, quote, expected):
+    analysis_input = from_data({"lines": [
+        {"id": "door", "code": "01", "short_text": "Brandschutztür aus Stahl", "long_text": text},
+    ]})
+    answer = {"findings": [{"line_ref": "#1", "property": "material", "short_quote": "Stahl",
+                            "long_quote": quote, "message": "Materials differ.", "confidence": 0.8}]}
+    actual = by_rule(run3(analysis_input, FakeProvider([answer]))[0], CONTRA)
+    assert bool(actual) is expected
+
+
+@pytest.mark.parametrize("detail,quote,expected", [
+    ("Anschluss an Wand F90.", "F90", False),
+    ("Feuerwiderstand: T90.", "T90", True),
+    ("Feuerwiderstand: T90. Zarge T60.", "T60", False),
+])
+def test_fire_contradiction_requires_quotes_for_the_same_component(detail, quote, expected):
+    analysis_input = from_data({"lines": [
+        {"id": "door", "code": "01", "short_text": "Brandschutztür T30", "long_text": detail},
+    ]})
+    answer = {"findings": [{"line_ref": "#1", "property": "fire rating", "short_quote": "T30",
+                            "long_quote": quote, "message": "Ratings differ.", "confidence": 0.8}]}
+    actual = by_rule(run3(analysis_input, FakeProvider([answer]))[0], CONTRA)
+    assert bool(actual) is expected
+
+
+@pytest.mark.parametrize("short,long,short_quote,long_quote,prop,expected", [
+    ("Ausgleichsschicht EPS WLS 035, 80 mm", "WLS: 035. Plattendicke: 8 cm.", "EPS", "WLS: 035.", "material", False),
+    ("Dämmplatten EPS, Bemessungswert: 0,035 W/(mK)", "Nennwert: 0,034 W/(mK).",
+     "Bemessungswert: 0,035 W/(mK)", "Nennwert: 0,034 W/(mK).", "bemessungswert", False),
+    ("Dämmplatten EPS (WLS 035)", "Dämmplatten aus Mineralwolle.", "EPS (WLS 035)", "Mineralwolle", "material", True),
+])
+def test_insulation_contradiction_uses_comparable_evidence(short, long, short_quote, long_quote, prop, expected):
+    analysis_input = from_data({"lines": [{"id": "plate", "code": "01", "short_text": short, "long_text": long}]})
+    answer = {"findings": [{"line_ref": "#1", "property": prop, "short_quote": short_quote,
+                            "long_quote": long_quote, "message": "Specification differs.", "confidence": 0.8}]}
+    assert bool(by_rule(run3(analysis_input, FakeProvider([answer]))[0], CONTRA)) is expected
+
+
 def test_no_l2_findings_means_no_l2_calls():
     provider = FakeProvider(lambda request: {"findings": []})
     run3(pipe_input(), provider, prior=[])
@@ -397,7 +560,14 @@ def test_no_l2_findings_means_no_l2_calls():
 def test_eval_harness_runs_offline(monkeypatch):
     from analysis.layer3.eval import evaluate
     monkeypatch.setenv("ANALYSIS_L3_CACHE", "off")
-    result = evaluate(FakeProvider(lambda request: {"findings": [], "reviews": []}))
-    assert result["model"] == "fake" and all(e.startswith("layer 3 coverage: ") for e in result["errors"])
+    def clean_answer(request):
+        if request.prompt_version == PRECAST_VERSION:
+            payload = json.loads(request.prompt.split("\n\n", 1)[1])
+            return {"items": [{"line_ref": item["ref"], "item_type": "other"} for item in payload["items"]]}
+        return {"findings": [], "reviews": []}
+
+    result = evaluate(FakeProvider(clean_answer))
+    assert result["model"] == "fake" and result["errors"]
+    assert all(re.fullmatch(r"layer 3 coverage: (\d+)/\1 batches", error) for error in result["errors"])
     assert result["contradiction"]["recall"] == 0
     assert all(row["got"] == "unclear" for row in result["l2_confirm"]["cases"])

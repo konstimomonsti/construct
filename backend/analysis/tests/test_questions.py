@@ -167,3 +167,58 @@ def test_high_value_signals_generate_formal_german_questions_without_findings():
     assert any("Baugrundgutachten" in item.text_de for item in result)
     assert any("Bereitstellung" in item.text_de for item in result)
     assert all("Bitte" in item.text_de and "Sie" in item.text_de for item in result)
+
+
+def test_written_quantity_conflict_asks_for_governing_value_without_rounding():
+    snapshot = adapter.from_data({"lines": [
+        {"id": "line", "code": "01.0010", "short_text": "Leitplanke montieren",
+         "long_text": "Abrechnungsmenge: 12,3456 m.", "quantity": "12.34", "unit": "m"},
+    ]})
+    result = analyze(snapshot, [1, 2])
+    conflict, = [f for f in result.findings if f.rule_id == "L1.QTY.WRITTEN_CONFLICT"]
+    item, = result.questions
+    assert item.finding_ids == [conflict.id] and item.topic == "Mengen"
+    assert item.text_de.startswith("Zu Pos. 01.0010: ")
+    assert "Mengenspalte sind 12,34 m" in item.text_de
+    assert "„Abrechnungsmenge: 12,3456 m“ ergibt 12,3456 m" in item.text_de
+    assert "Bitte bestätigen Sie die für die Kalkulation maßgebende Menge" in item.text_de
+    assert not q.build_questions(snapshot, [conflict.model_copy(update={"status": "rejected"})])
+
+
+def test_written_quantity_question_keeps_legacy_numeric_text_without_record_wrappers():
+    snapshot = adapter.from_data({
+        "project": {"source_document": {"format": "gaeb_1990"}},
+        "lines": [{"id": "line", "code": "01.0010", "short_text": "Rohrleitung vorhalten",
+                   "long_text": "[TA11 Positionsmenge = Produkt aus [\n30 m ] ]\n[TA12 mal [\n28 Wochen ] ].",
+                   "quantity": "800", "unit": "mWo"}],
+    })
+    result = analyze(snapshot, [1, 2])
+    item, = [question for question in result.questions if question.rule_id == "L1.QTY.WRITTEN_CONFLICT"]
+    assert "800 mWo" in item.text_de and "840 mWo" in item.text_de
+    assert "„Positionsmenge = Produkt aus 30 m mal 28 Wochen“" in item.text_de
+    assert "TA11" not in item.text_de and "TA12" not in item.text_de
+
+
+@pytest.mark.parametrize("evidence", [
+    {"quantity": "12", "unit": "m", "written_quantities": [{"quantity": "7"}]},
+    {"quantity": "12", "unit": "m", "written_quantities": [{"quantity": "12", "quote": "Positionsmenge: 12 m."}]},
+    {"quantity": "NaN", "unit": "m", "written_quantities": [{"quantity": "7", "quote": "Positionsmenge: 7 m."}]},
+    {"quantity": "12", "unit": "m", "written_quantities": 7},
+])
+def test_old_or_incomplete_quantity_evidence_does_not_invent_a_question(evidence):
+    conflict = finding("L1.QTY.WRITTEN_CONFLICT", category="arithmetic", evidence=evidence)
+    assert q.build_questions(make_input(), [conflict]) == []
+
+
+def test_quantity_questions_with_different_source_values_stay_separate():
+    snapshot = adapter.from_data({"lines": [
+        {"id": "first", "code": "01.0010", "short_text": "Leitplanke montieren",
+         "long_text": "Abrechnungsmenge: 7 m. Positionsmenge: 8 m.", "quantity": "10", "unit": "m"},
+        {"id": "second", "code": "01.0020", "short_text": "Leitplanke entfernen",
+         "long_text": "Abrechnungsmenge: 9 m.", "quantity": "10", "unit": "m"},
+    ]})
+    result = analyze(snapshot, [1, 2])
+    questions = [question for question in result.questions if question.rule_id == "L1.QTY.WRITTEN_CONFLICT"]
+    first, second = sorted(questions, key=lambda question: question.line_codes)
+    assert first.line_codes == ["01.0010"] and "7 m" in first.text_de and "8 m" in first.text_de
+    assert second.line_codes == ["01.0020"] and "9 m" in second.text_de and "7 m" not in second.text_de

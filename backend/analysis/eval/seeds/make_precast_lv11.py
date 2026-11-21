@@ -42,10 +42,10 @@ def build():
                         long_text="Zulage für Aussparungen bis zu einer Breite von 1,10 m. Abrechnung nach St.")
         elif code == "3.2.90":
             line.update(short_text="Einbauteil aus Edelstahl, Länge 150 mm",
-                        long_text="Einbauteil Typ S150 aus Edelstahl liefern und werkseitig einbauen.")
+                        long_text="Einbauteil Typ S150 aus Edelstahl für FS 01 liefern und werkseitig einbauen.")
     for code, short, detail, qty, unit in [
         ("3.2.100", "Fugenabdichtung", "Plattenfugen nach Montage mit elastischem Dichtstoff schließen.", "45", "m"),
-        ("3.2.110", "Baustellenverkehr sichern", "Verkehrsführung entlang der Zufahrt sicherstellen.", "20", "m"),
+        ("3.2.110", "Baustellenverkehr sichern", "Verkehrsführung an der südlichen Baustellenzufahrt für die Dauer der Fertigteilmontage sichern. Eine mobile Absperrung stellen, kontrollieren und nach Abschluss entfernen.", "20", "m"),
         ("3.2.120", "Transport und Montage", "Fertigteile anliefern, abladen und auf der Baustelle versetzen.", "5", "St"),
     ]:
         doc["lines"].append({

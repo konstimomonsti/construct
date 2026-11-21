@@ -145,6 +145,9 @@ class FormatTests(unittest.TestCase):
         items = [rec for rec in result.records if rec.kind == "item_candidate"]
         self.assertEqual([rec.payload["code"] for rec in items], ["1.1.1", "1.1.1"])
         self.assertEqual(items[1].payload["relationship_hint"], "oder")
+        self.assertEqual(items[0].locator["outline_heading_paragraph"], 1)
+        self.assertEqual(items[1].locator["outline_heading_paragraph"], 1)
+        self.assertEqual(items[1].locator["outline_connector"], {"paragraph": 3, "text": "oder"})
         self.assertIsNone(items[0].payload["quantity"])
         self.assertEqual(result.records[-1].locator["part"], "word/media/example.bin")
         self.assertIsNotNone(result.records[-1].payload["sha256"])

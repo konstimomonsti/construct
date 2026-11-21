@@ -6,8 +6,13 @@ export type BidPosition = {
 export type Opportunity = {
   position: string; quantity: string; title: string; rule_id: string; finding_id: string; ai_reviewed: boolean
 }
+export type QuantityConflict = {
+  position: string; quantity: string; unit: string
+  written: { quantity: string; quote: string }[]
+}
 export type PricingTender = {
   input_hash: string; currency: string; assessment_layers: number[]; positions: BidPosition[]; opportunities: Opportunity[]
+  quantity_conflicts?: QuantityConflict[]
 }
 export type Rates = { cost: string; standard: string; floor: string; ceiling: string }
 export type Market = { id: number; threshold: string; chance: string }
@@ -18,6 +23,7 @@ export type Strategy = {
 }
 export type PricingResult = {
   currency: string
+  quantity_conflicts?: QuantityConflict[]
   strategies: Record<'standard' | 'price_only' | 'quantity_aware', Strategy>
 }
 const PERCENT = 10_000
@@ -50,7 +56,9 @@ export function bidAssumptions(tender: PricingTender, rates: Record<string, Rate
     return [key, { unit_cost: cost, standard_rate: standard, min_rate: floor, max_rate: ceiling }]
   }))
   const correctionChance = changes.length ? chance(correction, 'Quantity correction chance') : 0
+  const blocked = new Set(tender.quantity_conflicts?.map(({position}) => position))
   const adjustments = Object.fromEntries(changes.map((change) => {
+    if (blocked.has(change.position)) throw new Error(`Confirm the written quantity for ${change.position} before adding a quantity change.`)
     const share = chance(change.share, `${change.position} share at bid rate`)
     const quantity = number(change.quantity, `${change.position} extra quantity`, 6)
     if (!quantity) throw new Error(`Enter a positive extra quantity for ${change.position}.`)

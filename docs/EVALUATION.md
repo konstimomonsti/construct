@@ -25,23 +25,52 @@ These figures describe the labelled fixtures replayed through Layers 1 and 2 aft
 
 | Suite per format | Caught | Missed | Known gaps | Layer not run |
 | --- | ---: | ---: | ---: | ---: |
-| Building hall | 80 | 0 | 9 | 0 |
+| Building hall without optional dictionary | 88 | 0 | 1 | 0 |
+| Building hall with optional dictionary | 89 | 0 | 0 | 0 |
 | Precast LV 11 | 6 | 0 | 0 | 2 |
 
-- Task 01 added deterministic detection for four concrete-class and nominal-diameter contradictions. The remaining building-hall gaps cover reworded duplicates, typos, and vague wording.
+- Task 01 added deterministic detection for four concrete-class and nominal-diameter contradictions. The current replay also catches the three open-effort lump sums and the three closely reworded overlap cases per format. The source-only profile catches two of the three planted title typos. The German dictionary supports the third.
 - The precast catches cover strength versus exposure class, sandwich layer sum, billing unit, a product placeholder, conflicting concrete grades, and missing workshop drawings. Missing height or colour and ambiguous rebar scope require Layer 3.
 - Both seeds and all 46 control files across the two formats produced zero findings after clarifying the fixture scope. The first replay diagnosed contextual false alarms when a protection item named adjacent embedded parts and when the long text gave only an included component's dimensions. The refreshed controls keep the included component dimensions and also state the main item's dimensions. The original wording remains a challenge for the rule engine.
-- The generated report includes recall by mutation, precision by rule, individual cases, and expected consequences such as changes in subtotals. A finding counts as a catch when its rule and affected position or scope match a label.
+- The generated report includes recall by mutation, precision by rule, individual cases, and expected consequences such as changes in subtotals. A finding counts as a catch when its rule and affected position or scope match a label. The guidance table shows whether the matched finding includes a proposed edit, a bidder question, or review guidance. All 56 source-only Layer 1 matches include guidance in each format. The dictionary adds one more proposed spelling edit per format. All 40 matched Layer 2 findings propose an edit. Some planted faults match multiple rules.
 
-The local browser upload shows the building-hall zero quantity, duplicate and missing edge insulation, and the precast billing-unit conflict. On this baseline the X83 upload check omits the source line amount. The CLI report verifies the planted arithmetic and its subtotal consequences.
+Three additional X83 mutation seeds tested five open-effort positions and five potential overlaps each.
+All 15 pricing ambiguities and 12 of 15 overlaps were caught. The other overlaps involved more extensive
+verb changes or a different named work item. The check requires comparable written rates and matching
+technical qualifiers. No false alarms were recorded on these runs.
 
-Each generated file has a `construct-eval-labels/1` sidecar with stable position codes, the expected or acceptable rule IDs, and a link to its clean baseline. A run subtracts findings already present in the corresponding baseline. This keeps synthetic measurements tied to the planted faults. The `fp` run checks the controls directly, including their clean baselines.
+The Layer 3 overlap check recovered the three misses in those alternate seeds. A targeted full-pipeline
+replay of the two distinct missed examples in X83 and JSON found all four planted positions. Both clean
+controls completed with zero findings. Three false overlap warnings on the real StBALV23040 award led to
+source checks for the named cable families and documentation deliverables. The Layer 3 rerun also keeps
+the original tender variants for concentric and eccentric reducers separate.
+
+The optional spelling profile used the LibreOffice German Hunspell dictionary. It caught all 15 title typos across three additional X83 mutation seeds with zero false alarms in those runs. Four representative
+corrections were checked against their original GAEB item, GAEB 90 record or PDF page and against the
+unchanged text carried in each proposed edit. These spot checks do not establish overall spelling
+precision. [LibreOffice German dictionaries](https://github.com/LibreOffice/dictionaries/tree/master/de)
+
+The original workspace replay caught the building-hall zero quantity, duplicate, and missing edge insulation, and the precast billing-unit conflict. The upload worker now also preserves written line amounts, section subtotals, and the net total for GAEB originals. See the upload replay below.
+
+Each generated file has a `construct-eval-labels/1` sidecar with stable position codes, the expected or acceptable rule IDs, and a link to its clean baseline. A run subtracts findings already present in the corresponding baseline. This keeps synthetic measurements tied to the planted faults. The `fp` run checks the controls directly, including their clean baselines. Controls with incomplete layer coverage remain unverified and cause a nonzero exit.
+
+## Local precast replay with Layer 3
+
+A local Qwen 7B run used Layers 1 through 3 on the clean precast seed and the missing-specification and
+ambiguous-rebar mutants in both X83 and JSON. All four planted labels matched the correct position and
+included a bidder question. Both unchanged seeds finished all three layers without a finding. The run
+used one local request at a time, four lines per batch, a 55-second request limit, and a 180-second
+deadline. This is a targeted development replay. The complete building-hall catalogue and an independent holdout still need
+separate Layer 3 scoring. The representative LV 11 PDF gives the joint-sealing requirement across
+two physical lines. The Layer 2 matcher recognizes the wrapped phrase as included scope. The local model also completed the nine-position PDF. It returned five element specification
+findings and three cross-position scope questions, each linked to its source page. These findings are
+candidates for independent review.
 
 ## Preliminary review of repository files
 
 The [real-file labels](../backend/analysis/eval/labels/real_findings.csv) cover 18 warning and error groups in the seven repository X83, D83 and D86 files. The preliminary review found one confirmed source error, five false-alarm groups, three importer consequences, and nine groups requiring more evidence. The counts cover existing findings only, and some files are versions of the same tender.
 
-In the 501-24-01 tender, two disposal surcharges refer to separate preceding root-stock positions. In StBALV23040, the malformed `TEL00009` key accounts for €982.20 missing from two nested subtotals. The correct position number needs confirmation. Four false-alarm groups flagged anonymized supplier tokens. Two text conflict groups compare the `C20/25` foundation and backing in the short description with the `C25/30` bedding in the long description. The project documents must establish which components share a grade.
+In the 501-24-01 tender, two disposal surcharges refer to separate preceding root-stock positions. The local replay recognizes the two scopes. Removing the description that identifies the second base position restores the duplicate warning, with guidance to verify the work against the takeoff before editing. The verdict counts above describe the original review. In StBALV23040, the malformed `TEL00009` key on record 3721 accounts for €982.20 missing from two nested subtotals. The finding links to that record and directs the reviewer to confirm the intended position number and section. Four false-alarm groups flagged anonymized supplier tokens. The local rerun clears those groups in their X83, D83 and D86 export variants using the example or contact context. Masked technical identifiers still produce findings. Two text conflict groups contain six positions where the short description states `C20/25` for the foundation and back support and the detail states `C25/30` for the bedding. The replay now issues an informational clarification at each original position, cites both phrases, and asks whether the foundation and bedding refer to the same component. The project documents still need to resolve that question.
 
 To prepare another group-level review:
 
@@ -50,3 +79,395 @@ python -m analysis.eval label-template 'data/tenders/StBALV23040.D86'
 ```
 
 Use `true_error`, `false_alarm`, `importer_artefact`, or `unsure`. A wildcard finding ID applies a verdict to a whole file-and-rule group. Verify the affected records before replacing an unsure verdict. Independently labelled project cases are still needed for production accuracy and clause-level DIN claims.
+
+### Source-first audit on repository bills
+
+The [position audit](../backend/analysis/eval/labels/repository_audit.json) records source observations from six bills by position, page, paragraph, or record. It includes six confirmed source defects, nine controls reviewed for particular rule families, and one unresolved duplicate in an outline with explicit alternatives. A checksum pins each original. The replay separates wrong or absent source links from missed findings and checks whether each caught defect has guidance anchored to the reviewed position.
+
+With the bundled lexicon, Layers 1 and 2 caught three of the five defects with guidance. The two missing Word quantities and the malformed GAEB award position were caught. All five scoped controls were clear, including the explicitly included screed edge strip. The optional German dictionary initially gave the same result. A new dictionary-backed check for doubled letter pairs recovered the roof-drain typo on position .1, page 2, and proposed `Befestigungsflansch`. It requires a unique recognized replacement. All 46 existing synthetic controls passed with the optional dictionary enabled. That replay still missed the Word wording `liefern/aufsetzten`. A subsequent context check now uses the slash joining standalone work actions as evidence for parallel infinitives. It quotes the phrase and proposes changing only the affected occurrence. The current audit catches five of six reviewed defects with the bundled lexicon and all six with the optional dictionary. All nine scoped controls pass and the duplicate-code question remains unresolved.
+
+The `action-spelling` suite caught two contextual typos per format in PDF, Word, GAEB X83, JSON, CSV, TSV, XLSX, and XLS. All 24 controls stayed clear, including valid past-tense wording and a masked product label. The local three-layer PDF and X83 replay caught all four planted cases and cleared all six controls after the product control specified its material and dimensions. Generate with `--suite action-spelling` and replay `action-*.{pdf,docx,X83,json,csv,tsv,xlsx,xls}` using the workspace upload tool.
+
+```sh
+ANALYSIS_SPELL_DIC=off PYTHONPATH=backend:backend/importer python -m analysis.eval real-audit
+```
+
+Run again with `ANALYSIS_SPELL_DIC` pointing to `de_DE.dic` to replay the optional profile. The command returns exit 1 for misses, false alarms, missing guidance, or unlinked cases. Its counts apply to the reviewed position and rule combinations. An independent sample of unseen bills is still needed for a production accuracy estimate.
+
+### Repeated codes in Word outline alternatives
+
+The repository Word outline repeats position 3.1.90 in paragraphs 36 and 39. Paragraph 37 separates the surrounding pipe work with `oder`. The importer retains that connector with its original paragraph. Layer 1 issues a source-linked warning asking whether the identical surcharge applies to both variants and whether it needs a shared or separate reference. Both quantity omissions remain visible. The underlying commercial scope still needs confirmation from the governing tender.
+
+The `outline-duplicates` suite exercises the same repeat with `oder`, a repeat joined by `mit`, and different work carrying the same code. The first calls for a scope review. The other two retain duplicate-code errors. All three expected classifications were found with guidance through the normal Word upload and repeated with all three layers using local Qwen. The tests also cover repeats within the same branch or across a new heading.
+
+### Quantities written into position descriptions
+
+Layer 1 compares explicit position quantities and hire formulas with the quantity column when the units are comparable. It quotes the original statement, shows both values, and asks the reviewer to confirm the takeoff or hire schedule before recalculating the amount. A confirmed conflict makes the position quantity unreliable for Layer 2, so the system withholds a measured dependency fix. Per-part wording, ranges, ambiguous numbers, and incomplete or dimensionally different formulas stay outside the comparison.
+
+The `written-quantities` suite caught all 16 planted conflicts with guidance across PDF, Word, GAEB X83, JSON, CSV, TSV, XLSX, and XLS. All 32 controls were clear. The local three-layer PDF and X83 replay caught all four expected findings and cleared all eight controls.
+
+Across four repository exports, all 56 comparable formulas agreed with their quantity columns. Some exports represent the same tender. In temporary X83 and D86 copies, changing 840 to 800 while keeping the written hire formula produced a conflict at the original position and cited source item I4 and record 395 respectively. The two copies also passed through the workspace uploader.
+
+The written-quantity replay also requires a German bidder question linked to each planted conflict. All 16 findings had one. Each draft quotes the written value or hire formula, preserves the precision of both quantities, and asks which quantity governs. Internal amount and subtotal errors stay in the assessor's report. The two modified GAEB repository copies produced linked questions through the workspace uploader. The D86 question omits legacy formatting markers while the raw finding retains that source evidence.
+
+The X83 bid-simulator replay imported a planted seat quantity conflict through the workspace uploader. The options and result both cite the issued three seats and the six stated in the description. Base pricing retained the issued quantity. A manual change was rejected, and a stale shortfall based on a conflicting trigger was withheld. The tests exercise an older stored report, review decisions, and a reconciled source.
+
+Generate with `--suite written-quantities` and replay `written-*.{pdf,docx,X83,json,csv,tsv,xlsx,xls}`.
+
+### Insulation conductivity and plate thickness
+
+Layer 1 compares WLG with WLG and WLS with WLS on the named layer. For explicit conductivity values it normalizes watts and milliwatts and compares like measurement bases, including a stated maximum. Declared and design conductivity, U-values, separate layers and multilayer thicknesses are considered separately. A source conflict quotes both values and asks which governs. Layer 2 withholds the affected screed or roof insulation proposal until its specification is resolved. [dena guidance on conductivity bases](https://www.dena.de/fileadmin/dena/Publikationen/PDFs/2023/LEITFADEN_ENERGETISCHE_GEBAEUDEBILANZIERUNG_NACH_DIN_V_18599.pdf)
+
+Generate with `--suite insulation-specifications` and upload `insulation-*.{pdf,docx,X83,json,csv,tsv,xlsx,xls}`. All 24 labelled cases matched with source-linked questions and 24 controls stayed clear. The local three-layer replay caught all nine labels and cleared nine controls after quote validation rejected a WLS label as material evidence and required the same conductivity basis.
+
+The source audit confirms a real conflict on page 4, position 11.4.10 of the repository screed bill. The heading gives 80 mm for the single-layer EPS and the detail gives 120 mm for the plate. The question cites both values and asks which thickness governs. The comparable position 11.3.20, with 80 mm in both places, stayed clear.
+
+### Comparing offered insulation conductivity
+
+Use `thermal_conductivity_design` for a design value and `thermal_conductivity_declared` for a declared value. Each property takes an explicit unit of W/(m·K) or mW/(m·K). The checker uses the exact offered manufacturer and SKU and cites the declaration document, revision and locator. It can read an explicit, attributed maximum from the tender and compare it with the same property in an attached project requirement. If the project sources specify incompatible values, the finding cites both before any product judgement. A WLG or WLS label alone leaves the product design limit unspecified. [Manufacturer example showing both bases](https://knauf.com/api/download-center/v1/assets/32534f04-4b77-4798-8b7a-a5a371ccec17?download=true)
+
+Generate with `--suite thermal-products` and upload `thermal-*.{pdf,docx,X83,json,csv,tsv,xlsx,xls}` with the generated product evidence. The eight-format replay caught 16 above-limit conflicts and 16 evidence reviews and cleared 16 controls. The local three-layer replay preserved all 12 findings and cleared six controls. A preliminary probe attached a synthetic project schedule and offer to the original screed position 11.3.20. The comparison linked to page 2. Those inputs check traceability and unit comparison.
+
+### Cable designations in electrical and roadworks bills
+
+Layer 1 compares the leading named cable in the heading and detail. It checks the written core count, nominal core cross-section, explicitly stated concentric conductor cross-section, and variant suffix. Findings quote both designations and ask which governs in the cable schedule. Equivalent notation, references to connection cables, and explicit alternatives are covered by controls. The check uses values written in the bill. Cable sizing and suitability require engineering and project evidence. [Manufacturer designation example](https://www.lapp.com/en_GB/gb/GBP/nycwy/p/15505443)
+
+Generate with `--suite cable-designations` and replay `cable-*.{pdf,docx,X83,json,csv,tsv,xlsx,xls}`. All 32 planted conflicts matched the conductor finding family and source link and produced a bidder question. All 24 controls were clear. The local three-layer PDF, X83, and XLSX replay matched all 12 planted cases and cleared all nine controls.
+
+The [source audit](../backend/analysis/eval/labels/repository_audit.json) pins two NYCWY positions on page 8 of the electrical bill and the NYY position in the roadworks award at record 4276. The original descriptions agree. Edits to the parsed detail in temporary snapshots planted a concentric-conductor conflict in the electrical bill and a core-count conflict in the award. Both findings pointed to the original locations. The three originals are controls for cable designations.
+
+## Dependency responsibility and cross-reference replay
+
+Layer 2 distinguishes counted coverage from explicit responsibility statements. A dependency stated as client-supplied, excluded, conditional, or in another position is not counted from that mention. A position reference can be verified when it resolves uniquely to a firm matching line within the assessed scope. That target counts once at its recorded quantity. An unresolved reference is visible even when other quantities look sufficient. Findings quote the source statement and ask the reviewer to confirm the responsible position and quantity before adding work.
+
+The `dependency-scope` suite caught all 20 expected findings with guidance through PDF, Word, JSON, and GAEB X83 uploads. All eight controls passed, including explicit inclusion and a valid reference. The local six-label Layer 3 replay used the PDF and X83 versions and left all four controls clear. The original 46 deterministic controls also passed.
+
+The earthworks, sanitary, and doors PDF uploads linked all 448 positions. Independent formwork and reinforcing-steel lines covered the full earthworks bill. In a replay restricted to slab positions 3.1.90 and 3.1.100, Layer 2 raised two questions from their statement that formwork and reinforcement belong in a separate position. The distinct missing clean-layer warning remained visible. This checks the scope handling of a partial bill with real text.
+
+To reproduce, use `--suite dependency-scope` with the document generator and the local workspace upload replay.
+
+### Layer 3 scope reviews and quantity checks
+
+Layer 3 cites the original position and shows how its recorded quantity relates to the Layer 2 shortfall. Eight adversarial regressions cover wording inside an unrelated word, an already counted position, a bundled item with no separate quantity, a conditional item, a different room, incompatible units, an insufficient quantity, and a candidate that meets the minimum. Even a candidate still needs scope verification. The local Qwen 2.5 7B upload replay caught all six expected findings with guidance and left all four controls clear across PDF and X83.
+
+The bid simulator reuses the stored assessment of the original tender. On the sanitary X83 example, the detected seven-seat shortfall remained available while the scope review was open. Accepting the review removed the shortfall from suggested changes. Dismissing the review restored the suggestion. The tests exercise the original upload assessment and workspace decisions.
+
+A preliminary pass on the repository sanitary and screed PDFs and the Word bill linked all 246 positions. For the screed bill, the checker asks whether skirting belongs in another package. In the Word source, paragraphs 3 and 16 specify the units for positions 1.1.20 and 2.3.10 and leave their quantities blank. Verify them against the takeoff before entering values. These observations cover selected findings. Independent review still needs to judge the full set of findings, missed errors, and applicable DIN clauses.
+
+### Unresolved cable specifications in dependency checks
+
+Layer 2 uses the Layer 1 conductor conflict when checking installation cable coverage, routing, and termination. If a contradictory position is the only candidate, the dependency review links to the conflicting heading and detail and asks the reviewer to confirm the cable schedule before adding or replacing work. A firm independent candidate can still establish coverage within the same assessment scope. An explicit position reference into a contradictory item remains open. The Layer 3 dependency review leaves these source conflicts to the estimator.
+
+Generate with `--suite dependency-specification` and replay `spec-*.{pdf,docx,X83,json,csv,tsv,xlsx,xls}`. The replay caught eight conductor conflicts and 24 dependency reviews with no proposed edits, and cleared eight controls. The local three-layer replay matched all 12 labelled findings and cleared three controls. Tests also exercise room allocations and a synthetic socket paired with the original roadworks cable wording. Changing that cable's detail kept the dependent review anchored to record 4276.
+
+### Applying dependency fixes to the editable BOM
+
+The X83 warnings panel plans bulk edits together and assigns distinct position numbers to eligible additions. Suggestions without a confirmed quantity or unit remain open for review, as do additions that need room allocations. A measured addition uses the assessed quantities, units and scope. If the working list has changed in those fields, the planner directs the reviewer to confirm the remaining work before adding a position. Direct fixes with a stale field or an incomplete set of operations also stay open.
+
+The mixed screed and potable-water fixtures replay actual assessment findings through the frontend planner. Across eight formats, each unchanged fixture yields three measured additions with distinct codes and retains both named unmeasured suggestions for review. When the pipe detail says 12 m and the quantity column says 10 m, the pipe calculation stays open and the two screed additions remain available. A later working-list quantity edit withholds measured additions based on the old takeoff. The local three-layer replay produced the same plans and withheld the same suggestions for both variants in PDF, GAEB X83, and XLSX.
+
+Use the local upload setup below to reproduce the replay.
+
+```sh
+export PYTHONPATH=backend:backend/importer
+fixture_dir=$(mktemp -d)
+python -m analysis.eval.documents "$fixture_dir" --suite fix-planning
+WORKSPACE_PARSE_ORIGIN=http://127.0.0.1:8080 \
+  frontend/node_modules/.bin/tsx frontend/tests/risk-upload-fixtures.ts "$fixture_dir"/fix-planning* \
+  | python -m analysis.eval.uploads --write-fix-input "$fixture_dir/plans.ndjson"
+frontend/node_modules/.bin/tsx frontend/tests/risk-fix-fixtures.ts "$fixture_dir/plans.ndjson"
+```
+
+## Concrete grade attribution replay
+
+Layer 1 compares concrete grades for explicitly named components. An identical grade on a second component can no longer conceal a conflict on the first. The finding quotes the heading and detail, names the affected component, and asks the reviewer to confirm the governing grade before aligning the two descriptions. Layer 3 checks the source component names when its model cites two grades. Wording that leaves a grade's component uncertain still calls for review.
+
+The `grade-scope` suite covers same-component conflicts, separate components, an explicitly acceptable grade alternative, and the unresolved foundation and bedding relationship. In the workspace replay, PDF, Word, JSON, and GAEB X83 caught eight warnings and four informational clarifications, each with guidance. All eight controls produced zero findings. A six-file replay using local Qwen 2.5 7B through all three layers kept both planted X83 and PDF conflicts and produced zero findings on its four controls. The two repository GAEB files linked all 497 positions through the upload worker.
+
+Generate and replay with the local server and disposable database used by the other upload suites.
+
+```sh
+export PYTHONPATH=backend:backend/importer
+fixture_dir=$(mktemp -d)
+python -m analysis.eval.documents "$fixture_dir" --suite grade-scope
+WORKSPACE_PARSE_ORIGIN=http://127.0.0.1:8080 \
+  frontend/node_modules/.bin/tsx frontend/tests/risk-upload-fixtures.ts \
+  "$fixture_dir"/*.pdf "$fixture_dir"/*.docx "$fixture_dir"/*.json "$fixture_dir"/*.X83 \
+  | python -m analysis.eval.uploads
+```
+
+## Concrete exposure and strength replay
+
+Layer 1 now checks a grade and exposure written together in one concrete specification. It also links a separate exposure attribute to a unique grade for the same named component. The finding drawer shows the source excerpts and whether each came from the heading or detail. If the source leaves the pairing open, BillBuild asks for the grade and exposure of the affected component. The numerical checks use the project's supplied screening matrix. Edition and clause-level compliance require the governing standard and project documents. [DIN 1045-2 publication](https://www.dinmedia.de/de/norm/din-1045-2/369550272)
+
+The `exposure-scope` upload suite caught eight below-matrix grade/exposure pairs and eight uncertain attributions across PDF, Word, JSON, and X83. All findings included guidance. The eight controls produced zero findings. A six-file replay through all three layers using local Qwen 2.5 7B caught its four labels and both controls stayed clear. The existing 46 X83 and JSON controls also passed.
+
+The real X83 and D86 curb items now attach their XF2 note to the bedding grade quoted in the detail. The repository earthworks and precast PDF samples kept their source-linked concrete checks. The four repository uploads linked all 775 positions and produced no below-matrix findings. This is a preliminary replay of the supplied screening rules.
+
+To reproduce, use `--suite exposure-scope` with the same document generator, local preview server, and upload replay command shown above.
+
+## Product declarations and published DIN scope
+
+Import [the synthetic drainage bill](../data/examples/drainage-variant-bom.json), then open the list's menu and choose **Attach product evidence** with [the matching evidence package](../data/examples/drainage-variant-evidence.json). You can also import both files together into the same folder. The offered variant is written on its own line as `Hersteller: Synthetic Works; SKU: P160-A`. The SKU must match exactly, including case. The assessment uses the original position text for the comparison.
+
+The evidence JSON contains the manufacturer, SKU, declaration title, revision, and locator. It can also link a typed property requirement to a position number and cite its own document and locator. Use the declaration's governing revision and verify the entered values against the source documents. BillBuild records the evidence attachment identifier and its SHA-256 digest. The attachment contains transcribed values, so validating it does not authenticate the underlying manufacturer document.
+
+Layer 1 compares the exact offered variant with the stated minimum SN and cited property requirements. It compares the specified or declared pipe material with the public material scope for DIN EN 1401-1, DIN EN 1852-1 and DIN EN 12666-1. Unsupported or conflicting editions need review. Clause-level compliance requires the governing text and evidence for the specific requirement. Layers 2 and 3 continue to handle cross-position dependencies and ambiguities in the tender. [DIN EN 1401-1](https://www.dinmedia.de/en/standard/din-en-1401-1/366215601), [DIN EN 1852-1](https://www.dinmedia.de/en/standard/din-en-1852-1/358909857), [DIN EN 12666-1](https://www.dinmedia.de/en/standard/din-en-12666-1/139590041)
+
+The targeted tests cover three planted conflicts, matching values in different units, variant mismatches, contradictory declarations, and an unsupported edition. They exercise both JSON and a generated X83. The PostgreSQL tests cover attachment order, moving evidence between lists, replacing its bytes, removing it, and discarding a stale result if evidence changes while the worker is running. A preliminary replay of the repository's 8209 X83 and D83 exports (159 positions each) and LV 14 sanitary PDF (168 positions) produced zero findings from the new rules. Those bills lack the paired declarations needed to measure product-check accuracy independently.
+
+
+### Separating planned products from the offered SKU
+
+The product check compares an exact offered manufacturer and SKU with the attached declaration. Use a separate `Angebotenes Fabrikat:` or `Offered product:` label when the position also names a planning reference or permits an equivalent. The findings quote the offer from its source field and link the declaration and requirement. A blank offer or a competing offered SKU leaves the identity unresolved. The evidence does not establish a selected product when the position only names a reference.
+
+Across 32 uploads in PDF, Word, JSON, GAEB X83, CSV, TSV, XLSX, and XLS, the replay caught all 24 planted material, ring-stiffness, and outside-diameter conflicts and all eight reference-only cases that require offer confirmation. Each finding pointed to the expected source locator and included guidance. The eight matching-variant controls added no findings beyond the shared reference wording. A three-layer replay with local Qwen 2.5 7B kept all 12 expected findings and passed all three matching controls in PDF, X83, and XLS.
+
+The repository sanitary PDF and both 8209 exports contained 110 "oder gleichwertig" notes across 486 positions. The preliminary rerun did not treat them as offered SKUs. Those files contain planning references and do not provide paired, independently reviewed offer declarations.
+
+Generate and replay the fixtures with the local server and disposable workspace database. In addition to the replay dependencies, the generator uses `openpyxl` and `xlwt` for spreadsheet fixtures.
+
+```sh
+export PYTHONPATH=backend:backend/importer
+fixture_dir=$(mktemp -d)
+python -m analysis.eval.documents "$fixture_dir" --suite product-offer
+WORKSPACE_PARSE_ORIGIN=http://127.0.0.1:8080 \
+  frontend/node_modules/.bin/tsx frontend/tests/risk-upload-fixtures.ts \
+  "$fixture_dir"/offer-*.{pdf,docx,json,X83,csv,tsv,xlsx,xls} \
+  | python -m analysis.eval.uploads --product-evidence "$fixture_dir/product-evidence.json"
+```
+
+### Requirements on repeated position codes
+
+A product requirement still uses the written `position_code`. Add a `position_locator` when the code repeats. Every supplied coordinate must match the same source position. Use the worksheet and row for Excel, page for PDF, table and row or paragraph for Word, and source item ID or record for GAEB. The locator supports `sheet`, `row`, `page`, `table`, `paragraph`, `source_id`, and `record`. Numbers are positive source coordinates and worksheet names and source IDs are exact. A stale locator or an ambiguous code calls for confirmation and lists the source positions with that code. Existing requirements without a locator continue to work for unique codes.
+
+The XLS and XLSX replay reused one code on two worksheets. It caught both planted diameter conflicts at the selected worksheet and row, and all four review notes for an unqualified or stale link. Both sheet-reorder controls passed. The same six-file replay with all three layers and local Qwen 2.5 7B kept those results. A separate check used a synthetic requirement to verify source links on one position each in the repository sanitary PDF, Word bill, and 8209 GAEB X83 and D83 exports. Those checks exercised the original page, paragraph, item ID, and record coordinates. The synthetic requirements were only source-link probes.
+
+Generate the workbook cases with `--suite product-position` and the same spreadsheet dependencies and upload replay as above. Pass `position-*.{xlsx,xls}` and the generated `product-evidence.json`.
+
+### Incompatible requirements from separate documents
+
+Layer 1 checks whether cited minimum, maximum, and exact requirements agree for the same property on the same resolved position. It converts comparable numeric units to a common basis. Numeric values in the same unit remain comparable even when that unit is outside the general bill vocabulary. Categorical equality uses the stated value with case and whitespace normalized. If a pair cannot be met together, the finding cites both documents and locations and asks the specification owner which one governs. Product comparison for that property resumes after the conflict is resolved.
+
+The `product-requirements` suite caught all 12 planted conflicts across PDF, Word, JSON, and GAEB X83. It covers drainage diameter, insulation compressive strength, and door colour. Each finding came with source-linked review guidance. All four compatible controls passed, including the same diameter written in millimetres and centimetres. The three-layer PDF and X83 replay with local Qwen 2.5 7B kept all six expected conflicts and passed both compatible controls. The workspace test attached two evidence packages independently, verified both attachment hashes in one finding, then removed one package and confirmed that the original product comparison resumed.
+
+A preliminary check on the repository sanitary, screed, and doors PDFs used synthetic document pairs to verify three links back to the original position and page. The unaffected bills supplied no paired requirements for this check. The probes do not identify actual project specification conflicts.
+
+Run the `product-requirements` generator through the same workspace replay setup. Replay `conflict` and `compatible` separately and pass the `product-evidence.json` from the matching directory. Include the compatible baseline files in that replay.
+
+### Written stiffness and attached schedules
+
+A directly stated drainage-pipe minimum, such as `Mindestens SN 8` or `SN ≥ 8`, participates in the same requirement check as a typed `ring_stiffness_sn` entry. Use a numeric value and omit the unit or use `SN` in the attachment. The finding quotes the tender text, names the attached schedule and row, and asks which requirement governs. Conditional wording, fitting requirements, and unclear choices remain outside this comparison. The product check reads the declaration's dedicated SN field or its typed SN property. If both disagree, it asks for the governing declaration.
+
+The `written-stiffness` suite caught one conflict per format in PDF, Word, JSON, and GAEB X83. All eight compatible and conditional controls were clear. The three-layer PDF and X83 replay kept both planted conflicts and all four controls clear. A synthetic probe on the repository sanitary PDF linked the warning to position 1.18, page 5. The sampled repository bills did not contain an explicit SN minimum with a paired conflicting schedule.
+
+Generate the suite with `--suite written-stiffness` and replay `stiffness-*.{pdf,docx,X83,json}` with the generated `product-evidence.json`.
+
+## GAEB workspace upload replay
+
+The workspace picker parses the test files. The replay saves each original file and its parsed list in PostgreSQL, runs the assessment worker, and checks the stored findings and input hash against analysis of the original file. The worker keeps the original file's quantities, prices, subtotals, flags, and source locators. Unambiguous position and section links carry those findings into the workspace. Separate draft assessments continue to use the edited values.
+
+With the optional German dictionary, the replay assessed 122 synthetic X83 uploads. All 95 planted labels applicable to Layers 1 and 2 were caught with an edit, review suggestion, or bidder question. All 23 clean controls finished without findings, and two labels required Layer 3. The local replay also linked every source position in the repository D83 (159), D84 (274), and D86 (249) samples to a workspace row. The D86 replay preserved the written amounts needed to review the known record 3721 subtotal discrepancy. The three real files provide import coverage. The planted labels establish accuracy for the tested synthetic cases.
+
+Reproduce from the repository root with frontend dependencies installed, the optional dictionary configured through `ANALYSIS_SPELL_DIC`, and `PGHOST`, `PGPORT`, `PGUSER`, and `PGDATABASE` pointing to a disposable migrated database with an empty assessment queue. The replay rolls back each fixture.
+
+```sh
+export PYTHONPATH=backend:backend/importer
+python -m analysis.eval mutate --backend x83
+frontend/node_modules/.bin/tsx frontend/tests/risk-upload-fixtures.ts \
+  eval_out/mutated/*.X83 eval_out/demo/*.X83 \
+  data/tenders/8209.003_Leistungsverzeichnis_leer.D83 \
+  'data/tenders/Angebot AN24-0305.D84' data/tenders/StBALV23040.D86 \
+  | python -m analysis.eval.uploads
+```
+
+## CSV, TSV, Excel and JSON workspace upload replay
+
+The list assessment reads the original position code, quantity, unit, rate, and written line amount from CSV, TSV, Excel, and JSON imports. The editable table can still display a starting value when the source leaves a cell blank. Findings distinguish blank quantities from explicit zero, retain malformed text, and cite the original row. Excel imports each visible sheet that contains an item table. Reviewers see the worksheet and row, and an OZ repeated on two sheets can be distinguished from a duplicate within one sheet. The check uses written values and saved formula results. A formula without a saved result needs review. Recalculation and formula validation are outside this replay.
+
+The replay covers flooring and electrical positions and seven planted defects per format. Blank and unreadable quantities, a priced zero, missing position code and unit, incorrect line amount, and missing screed edge insulation all produced a matching finding and evidence-backed guidance. All four clean controls passed. The first replay exposed a false dependency warning where a separately measured insulation item referred to the screed above it. The updated trigger distinguishes that wording from an item that supplies both the insulation and the screed. The existing 46 clean X83 and JSON controls also passed after this change.
+
+With the workspace replay database and dependencies described above:
+
+```sh
+fixture_dir=$(mktemp -d)
+frontend/node_modules/.bin/tsx frontend/tests/risk-table-fixtures.ts "$fixture_dir"
+frontend/node_modules/.bin/tsx frontend/tests/risk-upload-fixtures.ts "$fixture_dir"/* \
+  | PYTHONPATH=backend:backend/importer python -m analysis.eval.uploads
+```
+
+The same PostgreSQL replay also ran Layers 1 through 3 on JSON uploads converted from the clean precast X83, the missing height and colour variant, and the ambiguous rebar variant. Local Qwen 2.5 7B caught both labelled defects with guidance and the unchanged control produced zero findings. The run used one request at a time, four rows per batch, a 65-second request timeout, and a 210-second per-upload deadline. To reproduce with equivalent workspace JSON fixtures and their label sidecars, use the picker bridge above and pass `--local-layer3` to `analysis.eval.uploads`. The option uses Ollama on localhost. This targeted run covers those two precast ambiguities.
+
+## Ordinary PDF and Word workspace upload replay
+
+The workspace picker sends documents without embedded workspace data through the preview endpoint. Text-based tender PDFs and Word documents with recognized item tables or numbered position paragraphs produce editable rows. The upload worker checks the original file and retains the source position IDs, written rates and amounts, and page, table row, or paragraph references. Documents without identifiable positions can still be attached. Image-only pages can use the optional local OCR path described below.
+
+The labelled replay used six ordinary PDF files and six ordinary Word files without embedded workspace payloads. Layers 1 and 2 caught all ten planted defects with guidance. The two clean controls produced zero findings. The defects cover a blank quantity, a blank unit, an explicit zero, a wrong written line amount, and a missing edge-insulation position. The PDF with an omitted measurement line also raised an extraction review note. The amount test links the written €85.00 and calculated €50.00 to the affected row or page.
+
+The repository Word sample linked 40 of 40 candidate positions, and the repository screed PDF linked 38 of 38 positions. Their 45 and 38 findings are preliminary review candidates. The files do not contain independent per-finding labels.
+
+Use the disposable replay database described above and a running local backend with Poppler installed. Set `WORKSPACE_PARSE_ORIGIN` to the loopback backend address.
+
+```sh
+export PYTHONPATH=backend:backend/importer
+fixture_dir=$(mktemp -d)
+python -m analysis.eval.documents "$fixture_dir"
+WORKSPACE_PARSE_ORIGIN=http://127.0.0.1:8080 \
+  frontend/node_modules/.bin/tsx frontend/tests/risk-upload-fixtures.ts \
+  "$fixture_dir"/*.pdf "$fixture_dir"/*.docx \
+  data/tenders/LV_18_Estrich.pdf data/tenders/LV-Positionen.docx \
+  | python -m analysis.eval.uploads
+```
+
+### Scanned PDF replay
+
+Poppler and local Tesseract can transcribe raster pages that have no extractable text. Tesseract uses the installed German and English language data. BillBuild tries at most eight raster pages within a 60-second OCR budget per import. Set `PDF_OCR=off` to skip transcription. The assessment marks OCR page numbers on findings linked to transcribed positions and asks the reviewer to check quantities and specifications against the original scan. Embedded structured BOM data takes precedence when present. [Tesseract language data](https://tesseract-ocr.github.io/tessdoc/Data-Files.html)
+
+The first deterministic replay of six rasterized PDFs raised four false alarms on the clean bill. Three superscripts read as `m?`, and the unclear area unit prevented a floor-covering quantity check. The importer now re-reads an ambiguous unit cell when the page has an identifiable price column. Two focused reads must agree on the unit. A crop can recover a metre from an initial `Mo` reading, including on an unpriced row with dotted placeholders. The position locator keeps the original token, both readings, and their page coordinates. An ambiguous unit stays available for review.
+
+The latest deterministic replay linked all 35 scanned positions, caught all five planted defects with guidance, and produced zero findings on the clean scan. The 12 corresponding native PDF and Word uploads caught all ten planted defects with guidance and both native controls produced zero findings. A separate two-file replay caught the copper versus titanium-zinc contradiction with local Qwen 2.5 7B, linked the finding to OCR page 1, and left the clean counterpart without findings. The scanned replay used German and English Tesseract data. The mixed native and scan regression also passes with English data alone on the local engine.
+
+The original scan of screed position 11.3.80 read the linear metre as `Mo`. The focused reads recovered `m` directly from the unit cell. Both the literal `Mo` and the full `Monat` survived in a synthetic rental control.
+
+The following preliminary comparison rasterized the original repository page with the most positions starting on it in each trade. The reference is the import of the same page with its text layer intact. Agreement requires the same position number, quantity, and normalized unit, including fields left blank in the native import.
+
+| Repository tender | Page | Native positions | Linked scan positions | Quantity and unit agree |
+| --- | ---: | ---: | ---: | ---: |
+| LV 18 screed | 3 | 5 | 5 | 5 |
+| LV 13 electrical | 9 | 9 | 9 | 9 |
+| LV 17 drywall | 5 | 6 | 6 | 6 |
+| LV 14b roof drainage | 10 | 8 | 8 | 8 |
+| LV 11 precast | 1 | 3 | 3 | 3 |
+| LV 22 joinery | 14 | 4 | 4 | 4 |
+
+Blank price placeholders originally caused the OCR pass to concatenate text such as `Meee` into the unit. One electrical quantity came back as `1.250.000` instead of the printed `1.250,000`. For damaged rows with no readable price, the importer aligns the `Menge`, `ME`, and `Einheitspreis` headers and re-reads the first two fields in isolation. Both crop readings must agree and preserve the first pass’s quantity digits and sign. The locator keeps the original quantity and unit, both focused readings, and the crop coordinates.
+
+The measurement update increased quantity and unit agreement from 13 to 25 of 35 positions. It removed 15 false quantity, unit, and import findings on the electrical page and restored all measurements on the drywall and joinery pages. Notation checks now use directly extracted text because OCR can change the casing and spacing the checks compare.
+
+The roof drainage scan initially linked zero positions after OCR dropped leading dots and damaged two digit strings. For tables with an OZ column and possible missing codes, the importer now reads the position column twice at higher resolution. A leading dot requires separated dot-shaped ink before the digits. Compound codes such as `1.10` require agreement on the entire written code. Each recovered number must align with one description. Its locator keeps the original transcription, both digit readings, and the crop coordinates. This restored all eight roof drainage positions. When the first pass leaves both measurement fields blank, a higher-resolution pass must identify the same unique position and heading with a single measurement row. Two focused crops must agree on the unit and the quantity with the same digits and sign. The original text, recovered values, and image coordinates stay with the evidence. This pass recovers quantities and units on unpriced rows. It recovered both missing roof drainage measurements and both missing precast measurements, bringing the six-page comparison to 35 of 35 linked with quantity and unit agreement.
+
+Four additional repository pages exposed six missing position numbers on the sanitary page. The two position-column reads recovered all six complete codes from the source. On the latest replay, all 25 positions on those four pages linked and 24 matched quantities and units. The excavation page kept all eight positions, with one native quantity attached to a blank unit still unreadable in OCR. Across the ten sampled pages, all 60 positions linked and 59 matched the native quantity and unit. These rasterized repository pages provide a preliminary comparison with the native parser. Independent real scans and finding labels are still needed to measure accuracy.
+
+The `dotted` synthetic suite exercises non-consecutive position numbers. Its scanned amount error cites position .47 and the source page, and the clean control produces zero findings.
+
+Run with the local preview server and replay database. The replay returns a nonzero status when the clean scan triggers false alarms.
+
+```sh
+export PYTHONPATH=backend:backend/importer
+native_dir=$(mktemp -d)
+scan_dir=$(mktemp -d)
+python -m analysis.eval.documents "$native_dir"
+python -m analysis.eval.scans "$native_dir" "$scan_dir"
+WORKSPACE_PARSE_ORIGIN=http://127.0.0.1:8080 \
+  frontend/node_modules/.bin/tsx frontend/tests/risk-upload-fixtures.ts "$scan_dir"/*.pdf \
+  | python -m analysis.eval.uploads
+```
+
+Use `--suite dotted` on the document generator to replay the short position codes and the planted amount error.
+
+### Layer 3 on ordinary PDF and Word uploads
+
+The `precast` suite renders a five-position excerpt of the existing precast seed as text-based PDF and ordinary Word. It plants missing element height and colour in one case and unassigned reinforcement scope in another. The `gutter` suite changes the detail from copper to titanium zinc while retaining copper in the position heading. The label sidecars require the affected position and its PDF page or Word table row. The gutter label also requires warning severity. The final local run caught all six planted findings with guidance. All four clean controls produced zero findings.
+
+Two changes followed the first replay. The quantity check now verifies that a model's comparison amount matches a cited position in the same batch, subject to the explicit one-off lump-sum case. This removed a warning with no bill evidence for the model's proposed 10 t of reinforcement. Compact precast extraction retries an omitted position once within the same call and time limits. This recovered a shop-drawings position omitted from an otherwise usable PDF batch. For contradiction checks, BillBuild removes the heading copy added by the PDF extractor before comparing the two descriptions. A repeat inside the actual body still counts as body evidence.
+
+Run from the repository root with the same local backend and replay database. In this replay, Qwen 2.5 7B used four positions per batch and a 65-second request timeout.
+
+```sh
+export PYTHONPATH=backend:backend/importer
+export ANALYSIS_L3_MODEL=qwen2.5:7b-instruct ANALYSIS_L3_MAX_BATCH_LINES=4
+export ANALYSIS_L3_TIMEOUT=65 ANALYSIS_L3_DEADLINE=210
+fixture_dir=$(mktemp -d)
+python -m analysis.eval.documents "$fixture_dir" --suite precast
+python -m analysis.eval.documents "$fixture_dir" --suite gutter
+WORKSPACE_PARSE_ORIGIN=http://127.0.0.1:8080 \
+  frontend/node_modules/.bin/tsx frontend/tests/risk-upload-fixtures.ts \
+  "$fixture_dir"/*.pdf "$fixture_dir"/*.docx \
+  | python -m analysis.eval.uploads --local-layer3
+```
+
+A separate replay of the existing ten short-versus-long description cases caught four of five contradictions through the full pipeline, with zero contradiction warnings on the five controls. Layer 1 caught the nominal diameter and concrete class conflicts. Layer 3 caught board thickness and material. The site-fence height conflict was missed.
+
+### Missing specification and component scope
+
+Layer 1 flags explicit unresolved fire-resistance fields such as `Feuerwiderstand: noch offen`. The finding quotes the tender and asks the issuer to provide the requirement. The local three-layer upload replay caught all four marked cases and linked each bidder question to its original position. Four complete controls were clear in PDF, Word, X83, and JSON. Generate these fixtures with `--suite underspecification` and replay `property-*.{pdf,docx,X83,json}` using the local upload command above.
+
+Layer 3 checks a proposed missing property for a directly attributable value before showing the question. The check covers supported fire designations, concrete strength and exposure classes, RAL colours, and explicit materials. Model-response tests cover separate components, conditional values and unresolved field labels. A preliminary source check on the repository roof drainage PDF (position .28, page 7) recognized the branch fitting's stated material. In the repository roadworks award (position 03.03.0004, record 1611), the foundation and back support grade did not answer a question about the curb. These two checks passed on the original parsed wording with manually specified claims. The initial local-model run missed the silent fire-rating omission in all four formats.
+
+Layer 1 now catches that omission when the tender explicitly calls for a fire-rated door or closure. A stated classification, governing schedule reference, or applicable inherited requirement can supply the missing context. A designation written only for the frame leaves the assembly's class open. The bidder question requests the required class or the controlling schedule. When Layer 3 asks the same question about the same assembly, the report retains the Layer 1 question.
+
+The `fire-door-scope` suite caught 16 planted cases with correctly linked questions and cleared 32 controls across PDF, Word, X83, JSON, CSV, TSV, XLSX, and XLS. The matched cases are silent omissions and ratings attributed only to the frame. The controls specify the class or schedule, call for an ordinary steel door, or limit the work to removing an existing door. The local three-layer replay caught all six planted cases and cleared 12 controls in PDF, X83, and XLSX.
+
+The preliminary review of the repository door schedule used position 1.2.20 on page 4 for an ordinary steel door and position 1.2.40 on page 5 for a rated assembly with `T 30 RS` in the heading and the fire-protection field. The original bill stayed clear for this rule. Removing both statements and retaining an explicit fire-door requirement in a temporary analysis snapshot produced the expected question at the original page. These cases verify the omission check and source links. The applicability of an external schedule and product conformity still depend on the underlying project documents.
+
+### Attributing fire-resistance ratings to the correct component
+
+Layer 1 compares directly attributed door and structural classifications. It quotes the two values and asks which one governs. Ratings on an adjacent wall, frame, ceiling, or other named component are kept separate. Different classification families on the same component prompt confirmation of the governing designation. An explicit minimum is compared with the other stated limit. A conflict in the written door scope holds product selection until the source is resolved. Layer 3 validates fire-class contradiction quotes against the same attribution. [EU classification tables](https://eur-lex.europa.eu/eli/reg_del/2024/1681/oj/eng)
+
+Generate with `--suite fire-attribution` and upload `fire-scope-*.{pdf,docx,X83,json,csv,tsv,xlsx,xls}`. All 24 labelled cases produced source-linked questions, including 16 same-family conflicts and eight reviews of different classification families. All 16 controls stayed clear. In PDF, X83, and XLSX, the three-layer replay matched all nine labelled cases and cleared all six controls. The PDF test fixture writes the subscript as an ordinary digit because the fixture font omitted the glyph. Unit tests cover both spellings. In the repository drywall bill, position 10.1.30 writes F30 in both descriptions. A temporary snapshot with F60 in the detail produced the expected source-linked finding.
+
+### Fire-door product declarations
+
+BillBuild compares the class written for the door assembly with the `fire_resistance_class` property from the exact offered manufacturer and SKU. An attached door schedule can supply the same typed property and specify `equal`, `at_least`, or `at_most`. When comparable tender and schedule requirements conflict, the finding cites both and asks which requirement governs before product selection. Provide the declaration document, revision, and location through the standard product evidence package.
+
+The check normalizes spacing, subscript typography, and the order of declared qualifiers. It compares durations within the same family and qualifier set. A lower comparable class triggers a warning and requests a matching declaration or variant. Different families, missing qualifiers, or unresolved revisions prompt evidence review. A higher duration against an unqualified written class prompts confirmation. Installation conditions and regulatory acceptance require the governing classification and project evidence. The supported notation is informed by Table 4.10. [EU doorset classifications](https://eur-lex.europa.eu/eli/reg_del/2024/1681/oj/eng)
+
+Generate the BOM and attachment with `--suite fire-door-products`. Replay `door-product-*.{pdf,docx,X83,json,csv,tsv,xlsx,xls}` with `--product-evidence "$fixture_dir/product-evidence.json"`. The upload replay matched eight lower-class conflicts and 24 evidence reviews and cleared 16 controls. The local three-layer replay matched all 12 cases and cleared six controls in PDF, X83, and XLSX after the material check stopped treating a manufacturer field as material evidence. The repository door schedule remained clear without an explicit offer. Filling the existing offer field in a test snapshot for position 1.2.40 with a synthetic variant produced a review at the original page because the declaration used a different classification family.
+
+### Supporting wall scope for fire-door declarations
+
+When the position states a wall construction or thickness, the class comparison uses a declaration for the exact offered variant and the stated supporting construction. Enter `fire_door_supporting_construction` as the written wall designation and `fire_door_min_wall_thickness` as a number with a length unit. Both belong on the same declaration record as `fire_resistance_class`. Use separate records for distinct documented installation configurations. Punctuation and unit normalization preserve the declared scope.
+
+A precise wall thickness below every documented minimum for the matched construction produces a warning with both values. The review asks for an applicable declaration or a variant supported at the specified thickness. An approximate or ambiguous tender thickness or missing wall evidence prompts clarification. The check uses the attached declaration limits. Further installation conditions remain governed by the underlying approval. [DIBt worked approval example, sections 3.2.2–3.2.4](https://www.dibt.de/pdf_storage/2025/Z-6.20-2205%281.6.20-137%2123%29.pdf)
+
+Generate with `--suite fire-door-installation` and replay `door-wall-*.{pdf,docx,X83,json,csv,tsv,xlsx,xls}` with the generated evidence attachment. The eight-format run caught 16 warnings and 24 evidence reviews and cleared 16 controls. The local three-layer replay caught all 15 expected findings and cleared six controls in PDF, X83, and XLSX. The original repository door at position 1.2.40 writes `Trockenbauwand` and `ca. 125 mm`. Inserting a synthetic offer into its existing field linked the review to page 5 for both an unscoped declaration and a declaration requiring 125 mm.
+
+### Directly attributed dimension conflicts
+
+Layer 1 now compares heights attached directly to the same named component and thicknesses stated for single-layer gypsum-board cladding on stud walls. Findings quote the two original measurements, compare them in a common unit, and ask the reviewer to confirm the intended dimension before aligning the descriptions. The cases include equivalent units, separate components, ranges, alternatives, and multi-layer construction. Printed PDF detail excludes the copied item heading when the new dimension checks compare the two descriptions.
+
+The upload replay caught all 12 planted fence, guardrail, and board conflicts across PDF, Word, X83, and JSON, each with guidance and its expected source reference. All 28 controls produced zero findings. A separate scan of 3,321 repository positions found one applicable fence position with agreeing heights. Changing only the written height in that position's long text in a temporary copy produced a warning tied to position 01.01.0005. This real-file mutation verifies the source link for that position.
+
+The full three-layer replay of the ten existing description cases caught all five labelled contradictions and produced zero contradiction warnings on the five controls. Layer 1 caught diameter, concrete class, board thickness, and fence height. Layer 3 caught the material conflict. These results apply to the labelled cases and the explicit wording covered by the rules.
+
+Use the local preview server and disposable PostgreSQL database described above.
+
+```sh
+export PYTHONPATH=backend:backend/importer
+fixture_dir=$(mktemp -d)
+python -m analysis.eval.documents "$fixture_dir" --suite dimensions
+WORKSPACE_PARSE_ORIGIN=http://127.0.0.1:8080 \
+  frontend/node_modules/.bin/tsx frontend/tests/risk-upload-fixtures.ts \
+  "$fixture_dir"/*.pdf "$fixture_dir"/*.docx "$fixture_dir"/*.X83 "$fixture_dir"/*.json \
+  | python -m analysis.eval.uploads
+```
+
+## Verifying written subtotals and net totals
+
+Layer 1 uses the written line amount when available. A blank line amount can be reconstructed from the source quantity and unit price, rounded to cents before summing. When a nonzero written total depends on incomplete source prices or quantities, the finding cites the total and affected positions and asks the reviewer to retrieve the original figures. The scope checks carry explicitly stated discounted or lump-sum child totals to the parent. The child subtotal can still need review.
+
+Four synthetic GAEB X84 uploads tested identical printed subtotals and net totals with different evidence. The fully priced and reconstructed controls produced zero findings. A €25 mismatch produced two arithmetic errors. The incomplete upload produced two informational arithmetic reviews, both linked to the missing line. The original roadworks award `StBALV23040.D86` still reports the €982.20 discrepancy in section 08.01 and its parent 08 and links both to the damaged position code. The 274-position bid `Angebot AN24-0305.D84` produced zero subtotal or net-total findings.
+
+## Legacy Excel workbook replay
+
+The upload worker now assesses the original Excel 97–2003 workbook and retains its worksheet structure. It checks each printed section subtotal and worksheet net total against the positions in that worksheet, citing the worksheet and row. A single-sheet workbook retains its net total at bill level. A multi-sheet workbook keeps sheet totals at their own roots. Position codes can repeat on separate sheets, and the automatic dependency check uses each worksheet as its own bill. Explicit analysis scope overrides remain available in the standalone dependency runner.
+
+Layers 1 and 2 caught all nine labelled defects with guidance across the legacy Excel fixtures. The cases cover written line amounts, section subtotals, single-sheet net totals, totals in a multi-sheet workbook, missing quantities and units, repeated codes within one sheet, and missing screed edge insulation. One fixture puts an edge strip on the other worksheet. The flooring dependency still fires. All three controls passed, including a worksheet reorder. An existing two-sheet rehearsal workbook linked both positions and produced zero findings. This workspace did not contain a repository `.xls` tender with independently labelled errors.
+
+A separate two-sheet replay used local Qwen 2.5 7B through all three layers. The gutter material contradiction was reported with guidance and cited the Dach worksheet, row 3. The clean version with the same position number reused on the Elektro sheet produced zero findings.
+
+Generate the fixtures with the optional `xlwt` package and use the local preview server and disposable PostgreSQL database described above.
+
+```sh
+export PYTHONPATH=backend:backend/importer
+fixture_dir=$(mktemp -d)
+python -m analysis.eval.workbooks "$fixture_dir"
+WORKSPACE_PARSE_ORIGIN=http://127.0.0.1:8080 \
+  frontend/node_modules/.bin/tsx frontend/tests/risk-upload-fixtures.ts "$fixture_dir"/*.xls \
+  | python -m analysis.eval.uploads
+
+python -m analysis.eval.workbooks "$fixture_dir/model" --layer3
+WORKSPACE_PARSE_ORIGIN=http://127.0.0.1:8080 \
+  frontend/node_modules/.bin/tsx frontend/tests/risk-upload-fixtures.ts "$fixture_dir/model"/*.xls \
+  | python -m analysis.eval.uploads --local-layer3
+```

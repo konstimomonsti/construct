@@ -1,4 +1,5 @@
-import { parseTable, type ParsedList } from './gaeb'
+import { parseTable, type ParsedList, type TableRow } from './gaeb'
+import { treeFromPaths } from './cat'
 import { DOCX_LIST_NAMESPACE, DOCX_LIST_PART, PDF_LIST_ATTACHMENT } from './list-file'
 
 export async function readExcel(file: File): Promise<ParsedList> {
@@ -6,13 +7,18 @@ export async function readExcel(file: File): Promise<ParsedList> {
   const ExcelJS = (mod as unknown as { default?: typeof import('exceljs') }).default ?? mod
   const workbook = new ExcelJS.Workbook()
   await workbook.xlsx.load(await file.arrayBuffer())
+  const tables: { name: string; list: ParsedList }[] = []
   for (const sheet of workbook.worksheets) {
+    if (sheet.state !== 'visible') continue
     let header: string[] | undefined
     let categoryColumn = -1
     let title: string | undefined
-    const rows: string[][] = []
+    const rows: TableRow[] = []
     sheet.eachRow((row, number) => {
-      const values = Array.from({ length: row.cellCount }, (_, idx) => row.getCell(idx + 1).text)
+      const values = Array.from({ length: row.cellCount }, (_, idx) => {
+        const cell = row.getCell(idx + 1)
+        return cell.type === ExcelJS.ValueType.Formula && cell.result == null ? `=${cell.formula}` : cell.text
+      })
       if (!header) {
         const keys = values.map((value) => value.trim().toLowerCase())
         if (keys.some((key) => /^(kurztext|short|description|bezeichnung|name|item)$/.test(key))
@@ -23,10 +29,23 @@ export async function readExcel(file: File): Promise<ParsedList> {
         }
       } else if (!title || categoryColumn < 0 || values[categoryColumn]?.trim()) {
         // The exported LV sheet has category headings and subtotals without a category path.
-        rows.push(values)
+        rows.push({ cells: values, row: number, sheet: sheet.name })
       }
     })
-    if (header) return { ...parseTable(header, rows, 'xlsx'), title }
+    if (header && rows.length) tables.push({ name: sheet.name, list: { ...parseTable(header, rows, 'xlsx'), title } })
+  }
+  if (tables.length === 1) return tables[0].list
+  if (tables.length > 1) {
+    const positions = tables.flatMap(({ name, list }, index) => {
+      const prefix = `S${index + 1}`
+      return list.positions.map((position) => ({
+        ...position,
+        id: `${prefix}-${position.id}`,
+        group: name,
+        path: [{ oz: prefix, label: name }, ...(position.path ?? []).map(({ oz, label }) => ({ oz: `${prefix}.${oz}`, label }))],
+      }))
+    })
+    return { format: 'Excel', currency: 'EUR', positions, tree: treeFromPaths(positions), source: { kind: 'xlsx' } }
   }
   throw new Error('No item table found in the workbook.')
 }

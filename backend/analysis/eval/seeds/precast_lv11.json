@@ -237,7 +237,7 @@
       "section_id": "s-3.2",
       "sort_order": 8,
       "short_text": "Einbauteil aus Edelstahl, Länge 150 mm",
-      "long_text": "Einbauteil Typ S150 aus Edelstahl liefern und werkseitig einbauen.",
+      "long_text": "Einbauteil Typ S150 aus Edelstahl für FS 01 liefern und werkseitig einbauen.",
       "quantity": "15.000",
       "unit": "St",
       "pricing_basis": "unit_rate",
@@ -275,7 +275,7 @@
       "section_id": "s-3.2",
       "sort_order": 10,
       "short_text": "Baustellenverkehr sichern",
-      "long_text": "Verkehrsführung entlang der Zufahrt sicherstellen.",
+      "long_text": "Verkehrsführung an der südlichen Baustellenzufahrt für die Dauer der Fertigteilmontage sichern. Eine mobile Absperrung stellen, kontrollieren und nach Abschluss entfernen.",
       "quantity": "20",
       "unit": "m"
     },

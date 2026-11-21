@@ -36,6 +36,73 @@ def prior_error(line_id, field="quantity", severity="error"):
                    title="Invalid source", message="Layer 1 test error")
 
 
+class ExplicitDependencyScopeTests(unittest.TestCase):
+    def test_client_supply_is_a_scope_question_with_the_source_quote(self):
+        detail = "Rohrdämmung wird bauseits geliefert."
+        row = line("01.0010", "TW-Rohrleitung DN 20", "10", "m", long_text=detail,
+                   source_locator={"page": 3})
+        finding, = selected(input_for(row), "PIPE_INSULATION")
+        self.assertEqual(finding.severity, "info")
+        self.assertEqual(finding.evidence["reason"], "scope_not_assessable")
+        self.assertEqual(finding.evidence["dependency_quantity"], "0")
+        self.assertEqual(finding.source_locator, {"page": 3})
+        statement, = finding.evidence["scope_statements"]
+        self.assertEqual(statement["quote"], detail.removesuffix("."))
+        self.assertEqual(statement["role"], "external")
+        self.assertFalse(finding.suggested_fix.operations)
+
+    def test_excluded_work_still_needs_review_and_conditional_work_is_not_counted(self):
+        for detail, role, severity in (
+            ("Ausführung ohne Rohrdämmung.", "excluded", "warning"),
+            ("Rohrdämmung wird bauseits geliefert, sofern vereinbart.", "conditional", "info"),
+            ("Schalung und Bewehrung in gesonderter Position.", "separate", "info"),
+        ):
+            concrete = role == "separate"
+            with self.subTest(detail=detail):
+                finding, = selected(input_for(line(
+                    "01.0010", "Ortbeton Treppenlauf" if concrete else "TW-Rohrleitung DN 20",
+                    "10", "m³" if concrete else "m", long_text=detail,
+                )), "FORMWORK" if concrete else "PIPE_INSULATION")
+                self.assertEqual(finding.severity, severity)
+                self.assertEqual(finding.evidence["scope_statements"][0]["role"], role)
+                self.assertFalse(finding.suggested_fix.operations)
+
+    def test_firm_same_scope_reference_counts_the_target_once(self):
+        trigger = line("01.0010", "TW-Rohrleitung DN 20", "10", "m",
+                       long_text="Rohrdämmung ist in Pos. 01.0020 enthalten.")
+        insulation = line("01.0020", "Rohrdämmung Mineralwolle", "10", "m")
+        self.assertEqual(selected(input_for(trigger, insulation), "PIPE_INSULATION"), [])
+        shortfall, = selected(input_for(trigger, {**insulation, "quantity": "2"}), "PIPE_INSULATION")
+        self.assertEqual(shortfall.evidence["dependency_quantity"], "2")
+        self.assertEqual(shortfall.evidence["reason"], "quantity_shortfall")
+        self.assertEqual(shortfall.suggested_fix.operations[0].line.quantity, Decimal("8"))
+        for unavailable in (
+            (), ({**insulation, "total_rule": "conditional"},),
+            (insulation, {**insulation, "id": "duplicate"}),
+        ):
+            finding, = selected(input_for(trigger, *unavailable), "PIPE_INSULATION")
+            self.assertEqual(finding.evidence["reason"], "scope_not_assessable")
+            self.assertFalse(finding.evidence["scope_statements"][0]["verified_reference"])
+            self.assertFalse(finding.suggested_fix.operations)
+
+    def test_separate_scope_does_not_hide_uncovered_neighbours(self):
+        quoted = line("01.0010", "TW-Rohrleitung DN 20", "10", "m",
+                      long_text="Rohrdämmung wird bauseits geliefert.")
+        bare = line("01.0030", "TW-Rohrleitung DN 25", "10", "m")
+        finding, = selected(input_for(quoted, bare), "PIPE_INSULATION")
+        self.assertEqual(finding.severity, "warning")
+        self.assertEqual(finding.evidence["unclarified_trigger_line_ids"], ["01.0030"])
+        self.assertFalse(finding.suggested_fix.operations)
+
+    def test_explicit_inclusion_and_unrelated_client_supply(self):
+        included = line("01.0010", "TW-Rohrleitung DN 20", "10", "m",
+                        long_text="Einschließlich Rohrdämmung. Armatur wird bauseits geliefert.")
+        self.assertEqual(selected(input_for(included), "PIPE_INSULATION"), [])
+        missing, = selected(input_for({**included, "long_text": "Armatur wird bauseits geliefert."}), "PIPE_INSULATION")
+        self.assertEqual(missing.evidence["reason"], "missing")
+        self.assertEqual(len(missing.suggested_fix.operations), 1)
+
+
 class AdapterTests(unittest.TestCase):
     def test_spec_item_array_and_no_mutation(self):
         payload = [{"oz": "01.0010", "short_text": "  Zementestrich\n  C25 ", "quantity": "1.234,50",

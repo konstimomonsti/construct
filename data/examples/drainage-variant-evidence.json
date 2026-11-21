@@ -1,0 +1,27 @@
+{
+  "schema": "billbuild.product-evidence.v1",
+  "declarations": [
+    {
+      "manufacturer": "Synthetic Works",
+      "product_code": "P160-A",
+      "document": "Synthetic declaration P160-A",
+      "revision": "A",
+      "locator": "page 2, table 1",
+      "ring_stiffness_sn": 4,
+      "properties": {
+        "material": {"value": "PP"},
+        "outside_diameter": {"value": "12.5", "unit": "cm"}
+      }
+    }
+  ],
+  "product_requirements": [
+    {
+      "position_code": "01.10",
+      "property_name": "outside_diameter",
+      "comparison": "equal",
+      "required": {"value": "160", "unit": "mm"},
+      "document": "Synthetic tender drainage detail",
+      "locator": "detail 01, dimension A"
+    }
+  ]
+}

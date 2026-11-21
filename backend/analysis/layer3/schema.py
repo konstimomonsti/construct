@@ -194,6 +194,7 @@ class PrecastItem(_Answer):
     rebar_purpose: Literal["factory_reinforcement", "site_connection", "both", "unspecified",
                            "not_applicable"] = "not_applicable"
     assigned_element_codes: list[str] = Field(default_factory=list)
+    rebar_scope_quote: str | None = None
 
 
 # --------------------------------------------------------------------------- cross-item scope audit (spec Step 4)
@@ -291,11 +292,12 @@ QUANTITY_SCHEMA: dict[str, Any] = {
             "items": {
                 "type": "object",
                 "additionalProperties": False,
-                "required": ["line_ref", "reason", "expected", "confidence"],
+                "required": ["line_ref", "comparison_ref", "reason", "expected", "confidence"],
                 "properties": {
                     "line_ref": {"type": "string", "description": "ref of the item, e.g. \"#3\""},
+                    "comparison_ref": {"type": ["string", "null"], "description": "the comparable sibling ref, if any"},
                     "reason": {"type": "string", "description": "one English sentence"},
-                    "expected": {"type": "string", "description": "plausible order of magnitude, e.g. \"~1 psch\""},
+                    "expected": {"type": "string", "description": "literal source quantity or 1 psch for a one-off item"},
                     "confidence": {"type": "number", "description": "0 to 1"},
                 },
             },
@@ -306,6 +308,7 @@ QUANTITY_SCHEMA: dict[str, Any] = {
 
 class QuantityItem(_Answer):
     line_ref: str
+    comparison_ref: str | None = None
     reason: str = Field(min_length=1)
     expected: str = ""
     confidence: float

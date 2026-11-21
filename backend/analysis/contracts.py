@@ -14,7 +14,7 @@ import json
 from typing import Annotated, Any, Literal, Union
 from uuid import uuid4
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_serializer, model_validator
 
 SCHEMA_VERSION = "0.2"
 
@@ -30,6 +30,11 @@ class SourceDocument(_Model):
     id: str | None = None
     filename: str | None = None
     format: str | None = None
+    ocr_pages: list[int] = Field(default_factory=list)
+
+
+class ProjectProfile(_Model):
+    standard_editions: dict[str, str] = Field(default_factory=dict)
 
 
 class Project(_Model):
@@ -38,6 +43,7 @@ class Project(_Model):
     currency: str | None = None
     gaeb_phase: str | None = None  # "83" tender, "84" bid, "86" award
     source_document: SourceDocument = Field(default_factory=SourceDocument)
+    profile: ProjectProfile | None = None
 
 
 class Bom(_Model):
@@ -46,6 +52,7 @@ class Bom(_Model):
     title: str | None = None
     trade: str | None = None
     stated_net_total: Decimal | None = None  # total written in the source file, if any
+    stated_net_total_locator: dict[str, Any] = Field(default_factory=dict)
 
 
 class Area(_Model):
@@ -63,6 +70,7 @@ class Section(_Model):
     title: str | None = None
     sort_order: int
     stated_total: Decimal | None = None  # subtotal written in the source file, if any
+    stated_total_locator: dict[str, Any] = Field(default_factory=dict)
     # Subtotal after a section discount (GAEB XML TotAfterDisc). Parent sections add this amount, not stated_total.
     stated_total_after_discount: Decimal | None = None
     # Lump-sum price for the whole section (GAEB XML TotalLSUM). Without a discount, parents add this amount.
@@ -141,6 +149,64 @@ class ImportWarning(_Model):
     locator: dict[str, Any] = Field(default_factory=dict)
 
 
+class ProductProperty(_Model):
+    value: str | Decimal
+    unit: str | None = None
+
+
+class ProductDeclaration(_Model):
+    manufacturer: str = Field(min_length=1, max_length=200)
+    product_code: str = Field(min_length=1, max_length=120)
+    document: str = Field(min_length=1, max_length=240)
+    revision: str = Field(min_length=1, max_length=80)
+    locator: str = Field(min_length=1, max_length=240)
+    ring_stiffness_sn: int | None = Field(default=None, gt=0)
+    properties: dict[str, ProductProperty] = Field(default_factory=dict)
+    attachment_id: str | None = None
+    attachment_sha256: str | None = None
+
+
+class ProductPositionLocator(_Model):
+    """Exact source coordinates used with the written position code."""
+
+    sheet: str | None = Field(default=None, min_length=1, max_length=240)
+    row: int | None = Field(default=None, strict=True, gt=0)
+    page: int | None = Field(default=None, strict=True, gt=0)
+    table: int | None = Field(default=None, strict=True, gt=0)
+    paragraph: int | None = Field(default=None, strict=True, gt=0)
+    record: int | None = Field(default=None, strict=True, gt=0)
+    source_id: str | None = Field(default=None, min_length=1, max_length=240)
+
+    @model_validator(mode="after")
+    def populated(self):
+        fields = self.model_dump(exclude_none=True)
+        if not fields or any(isinstance(value, str) and not value.strip() for value in fields.values()):
+            raise ValueError("A position locator needs at least one source coordinate with a value")
+        return self
+
+
+class ProductRequirement(_Model):
+    position_code: str = Field(min_length=1, max_length=100)
+    position_locator: ProductPositionLocator | None = None
+    property_name: str = Field(min_length=1, max_length=100)
+    comparison: Literal["equal", "at_least", "at_most"]
+    required: ProductProperty
+    document: str = Field(min_length=1, max_length=240)
+    locator: str = Field(min_length=1, max_length=240)
+    attachment_id: str | None = None
+    attachment_sha256: str | None = None
+
+    @model_serializer(mode="wrap")
+    def serialize_position_locator(self, handler):
+        # Preserve the canonical hash of existing snapshots with unqualified requirements.
+        data = handler(self)
+        if locator := data.get("position_locator"):
+            data["position_locator"] = {field: value for field, value in locator.items() if value is not None}
+        else:
+            data.pop("position_locator", None)
+        return data
+
+
 class AnalysisInput(_Model):
     schema_version: str = SCHEMA_VERSION
     input_hash: str = ""
@@ -150,6 +216,8 @@ class AnalysisInput(_Model):
     sections: list[Section] = Field(default_factory=list)
     lines: list[Line] = Field(default_factory=list)
     import_warnings: list[ImportWarning] = Field(default_factory=list)
+    declarations: list[ProductDeclaration] = Field(default_factory=list)
+    product_requirements: list[ProductRequirement] = Field(default_factory=list)
 
     def compute_hash(self) -> str:
         payload = self.model_dump(mode="json", exclude={"input_hash"})

@@ -6,51 +6,43 @@ from __future__ import annotations
 import json
 from typing import Any
 
-CONTRADICTION_VERSION = "l3-contradiction-v1"
-L2_CONFIRM_VERSION = "l3-l2confirm-v1"
+CONTRADICTION_VERSION = "l3-contradiction-v2"
+L2_CONFIRM_VERSION = "l3-l2confirm-v2"
 
 CONTRADICTION_SYSTEM = """\
-You check German construction bills of quantities (GAEB Leistungsverzeichnis). Every item has a short
-text (Kurztext) and a long text (Langtext). The short text summarises the long text, so both must
-describe the same thing.
+Compare each Kurztext (short text) with its Langtext (long text) in a German construction tender.
+Read the explicit values in each description, then determine which component they describe.
 
-Report an item only when its short text and its long text state DIFFERENT values for the SAME property,
-for example:
-- nominal diameter: "DN 150" vs "DN 200"
-- concrete or strength class: "C25/30" vs "C30/37"
-- thickness or dimension: "12,5 mm" vs "15 mm", "H = 2,0 m" vs "Höhe 1,80 m"
-- material: "Kupfer" vs "Edelstahl", "PVC" vs "PE-HD"
-- load, fire, exposure or pressure class, colour, norm
+If both descriptions give different values for the same property of the same component, return
+a finding. Example: “Rohrschelle aus Edelstahl” versus “Rohrschelle aus verzinktem Stahl”
+is a material contradiction. Copy “Edelstahl” and “verzinktem Stahl” as the two quotes.
+Check the material, dimensions, DN, concrete class, load, fire, exposure, pressure, colour, and standard.
 
-Do NOT report:
-- the long text only adding details the short text doesn't mention;
-- values that belong to different parts of the item (a DN 150 pipe with a DN 100 branch, a wall
-  thickness next to a board thickness);
-- the same value written differently ("2,0 m" = "2 m" = "200 cm", "Stk" = "Stück");
-- a range or alternative in the long text that includes the short-text value;
-- a short text cut off in the middle of a word or sentence.
+Leave out added details, equivalent values (2 m = 200 cm), different components (a pipe and its
+branch), alternatives that include the short-text value, and text cut off mid-word or mid-sentence.
+A longer name or a descriptive qualifier can still identify the same component in both texts.
 
-For each contradiction:
-- line_ref: the item's ref exactly as given ("#3");
-- short_quote: copy the few words with the conflicting value from the SHORT text, character for character;
-- long_quote: copy the few words with the conflicting value from the LONG text, character for character;
-- property: what differs, in English;
-- message: one English sentence naming both values;
-- confidence: 0 to 1.
+For each finding return line_ref exactly as given, property in English, short_quote copied from the
+short text, long_quote copied from the long text, message naming both values, and confidence 0 to 1.
+Use {"findings": []} only if no item contradicts itself."""
 
-Most items have no contradiction. If none has one, answer {"findings": []}."""
 
 L2_CONFIRM_SYSTEM = """\
 You review automatic findings on a German construction bill of quantities (GAEB Leistungsverzeichnis).
-A keyword-based checker reported that some required related work seems to be missing, for example
-"screed requires edge insulation strips" or "in-situ concrete requires formwork". The checker only
-matches keywords, so it is often wrong. Decide each finding from the item texts you are given.
+A checker reported missing or insufficient related work. Review the quoted scope and quantities of
+the specific findings you are given. Use the trigger_refs and counted_refs for that finding.
+Only review its named scope.
 
 Verdicts:
 - included: the required work is part of one of the listed items, e.g. "inkl. Randdämmstreifen",
   "einschließlich Schalung", "mit Grundierung", or a separate item that describes it in other words.
+  For a quantitative shortfall, a position already counted by the checker, a non-firm item, or a
+  quantity below the remaining shortfall does not establish additional coverage. Use unclear when
+  measurement or scope cannot be reconciled.
 - excluded: the texts say this work is done by others or is not part of this contract, e.g. "bauseits",
   "durch den AG", "wird gesondert vergeben", "nicht im Leistungsumfang", "siehe Gewerk ...".
+  The quote must refer to the dependency or identify a location or package for that work.
+  A generic responsibility phrase about a different item is unclear.
 - missing: nothing in the texts covers or excludes the required work.
 - unclear: the texts don't let you decide.
 
@@ -63,8 +55,8 @@ Answer once for every finding ref you are given."""
 
 PRECAST_VERSION = "l3-precast-v1"
 SCOPE_VERSION = "l3-scope-v1"
-UNDERSPECIFIED_VERSION = "l3-underspecified-v1"
-QUANTITY_VERSION = "l3-quantity-v1"
+UNDERSPECIFIED_VERSION = "l3-underspecified-v2"
+QUANTITY_VERSION = "l3-quantity-v4"
 
 # Spec Step 2, extended with the fields the cross-item audit needs (rebar_purpose, assigned_element_codes)
 # and a generic precast_element type. Long enough (> 512 tokens) for the prompt cache to apply.
@@ -158,6 +150,10 @@ quantity alone. Report an item only when a property that clearly drives the pric
 - fire_rating of doors, closures, penetration seals;
 - installation_location or scope_of_work when it is unclear what work is included.
 
+Before reporting, read both descriptions. An explicit class, colour or material applying to the quoted
+part is evidence of that property. A value for a different component is separate. Quote the subject
+whose requirement still needs clarification.
+
 Do NOT report:
 - site set-up, lump sums, hourly work, surcharges (Zulagen) whose base item carries the specification;
 - items whose missing value is a pure placeholder ("[FIRMA_095]") - another check reports placeholders;
@@ -175,21 +171,19 @@ Most items are fine. If none is underspecified, answer {"findings": []}."""
 QUANTITY_SYSTEM = """\
 You check the quantities of the items of one section of a German construction bill of quantities
 (GAEB Leistungsverzeichnis). Each item has an OZ code, a short text, a quantity and a unit. Compare every
-quantity with what the item describes and with the sibling items of the same section.
+quantity with what the item describes and with the sibling items of the same section. Quantity strings use
+a decimal point and no grouping separators: "1" means one and "0.7" means seven tenths.
 
-Report an item only when its quantity is clearly implausible, for example:
-- a one-off item counted many times (50 x Baustelleneinrichtung, 12 x Werkstattzeichnungen in psch);
-- a quantity that does not fit the siblings (0.5 m² of facade next to 800 m² of plaster on the same walls,
-  10 000 h of a single labour item, 3 t of rebar for 2 m³ of concrete);
-- an amount that looks like a typo in magnitude (1500 St of large precast elements).
+Report only a discrepancy you can tie to this bill:
+- For comparable items describing the same measured scope, cite the sibling item's ref and copy its
+  written quantity and unit. Explain why the scopes are comparable and the quantities should agree.
+- For a project-wide lump-sum item such as Baustelleneinrichtung written more than once, use
+  expected "1 psch" and comparison_ref null. The item must be explicitly lump-sum.
+- Leave out quantities that merely look small or large. Do not invent a typical quantity, conversion
+  rate or engineering ratio. Missing values are handled elsewhere.
 
-Do NOT report:
-- small but plausible numbers (1 St, 0.7 t of rebar for a few precast elements);
-- quantities you only find unusual without a concrete reason;
-- missing quantities or units (other checks report those).
-
-For each finding: line_ref exactly as given ("#3"), reason (one English sentence naming the quantity and
-why it is implausible), expected (a plausible order of magnitude with unit), confidence 0 to 1.
+For each finding: line_ref and comparison_ref (e.g. "#3" and "#7"), reason (one English sentence),
+expected (the written comparison amount and unit, or "1 psch" for a one-off), confidence 0 to 1.
 Most quantities are fine. If none is implausible, answer {"findings": []}."""
 
 

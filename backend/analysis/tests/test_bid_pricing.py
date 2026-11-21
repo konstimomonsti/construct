@@ -39,7 +39,7 @@ def test_x83_benchmark_and_downside():
     assert refined["optimality_gap_bound"] == 0
 
 
-def test_saved_ai_assessment_links_confirmation_and_blocks_conflicting_scope():
+def test_saved_ai_assessment_blocks_conflicting_scope_only_after_acceptance():
     snapshot = from_file(EXAMPLES / "sanitary.X83")
     result = analyze(snapshot)
     assumptions = PricingAssumptions.model_validate_json((EXAMPLES / "sanitary.json").read_text())
@@ -53,8 +53,16 @@ def test_saved_ai_assessment_links_confirmation_and_blocks_conflicting_scope():
     assert scenarios[0].changes["01.0020"].ai_review_ids == (review.id,)
 
     review.evidence["verdict"] = "excluded"
+    _, scenarios = prepare(snapshot, result, assumptions)
+    assert scenarios[0].changes["01.0020"].ai_review_ids == (review.id,)
+
+    review.status = "accepted"
     with pytest.raises(ValueError, match="scope exclusion"):
         prepare(snapshot, result, assumptions)
+    review.status = "rejected"
+    _, scenarios = prepare(snapshot, result, assumptions)
+    assert scenarios[0].changes["01.0020"].ai_review_ids == ()
+
     snapshot.lines[0].quantity = Decimal(11)
     with pytest.raises(ValueError, match="different BoQ snapshot"):
         prepare(snapshot, result, assumptions)

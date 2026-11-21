@@ -44,6 +44,7 @@ LINKS = re.compile(r"(?<!\S)\S*@\S+|\bwww\.\S+|https?://\S+")
 MASKS = (ANONYMISED, PRODUCT_CONTEXT, QUOTED, LINKS)
 # A word broken at the line end: "Desin-" + newline + "fizierung". "Wand- und Deckenflächen" is not broken.
 BROKEN_BEFORE = re.compile(rf"[{LETTERS}]-\s+$")
+REPEATED_PAIR = re.compile(rf"([{LETTERS}]{{2}})\1")
 BROKEN_AFTER = re.compile(rf"-\s+([a-zäöüß][{LETTERS}]*)")
 CONJUNCTIONS = {"und", "oder", "bzw", "sowie", "bis", "als", "u", "o", "noch", "wie"}
 
@@ -291,6 +292,20 @@ class SpellChecker:
                     return True
         return False
 
+    def _repeated_pair_suggestion(self, word: str) -> Suggestion | None:
+        """Check an accidentally doubled pair of letters inside a long, unknown word."""
+        lower = word.lower()
+        if self.hunspell is None or len(lower) < LONG_WORD_LENGTH + 2:
+            return None
+        candidates = {lower[:match.start()] + lower[match.start() + 2:] for match in REPEATED_PAIR.finditer(lower)}
+        if not candidates or self.known(word):
+            return None
+        supported = {candidate for candidate in candidates if self.known(match_case(word, candidate))}
+        if len(supported) != 1:
+            return None
+        candidate, = supported
+        return Suggestion(word, match_case(word, candidate), 2)
+
     def suggest(self, word: str, document_index: dict[str, list[str]] | None = None,
                 weights: Counter | None = None) -> Suggestion | None:
         """The closest known word, if the word is unknown and the closest word is not just an inflection.
@@ -316,7 +331,9 @@ class SpellChecker:
                     if from_document and not self.known(candidate):
                         continue
                     found[candidate] = d
-        if not found or self.known(word):
+        if not found:
+            return self._repeated_pair_suggestion(word)
+        if self.known(word):
             return None
         umlauts = with_umlauts(word)
         if umlauts != word and self.known(umlauts):

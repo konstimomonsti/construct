@@ -67,6 +67,55 @@ def test_exposure_boundaries_and_ambiguous_classes():
     assert din("Schubsicherung mit Bild /WA/WF/") == []
 
 
+
+def test_grade_exposure_for_distinct_components_stays_local():
+    failures = [f for f in din("Fundament C20/25 XC2. Bettung C25/30 XF2. Rückenstütze C20/25 XF4.")
+                if f.rule_id == "L1.DIN.EXPOSURE_STRENGTH"]
+    finding, = failures
+    assert finding.evidence["components"] == ["rückenstütze"]
+    assert finding.evidence["grade_quote"] == "Rückenstütze C20/25"
+    assert finding.evidence["exposure_quote"] == "XF4"
+    assert finding.evidence["din"]["grade"] == "C20/25"
+    assert finding.suggested_fix.rationale and not finding.suggested_fix.operations
+
+
+def test_exposure_on_other_component_asks_for_its_grade():
+    findings = din("Fundament C20/25. Bettung: Expositionsklasse XF4.")
+    assert {f.rule_id for f in findings} == {"L1.DIN.EXPOSURE_SCOPE", "L1.DIN.NOTE"}
+    question = next(f for f in findings if f.rule_id.endswith("EXPOSURE_SCOPE"))
+    assert question.evidence["components"] == ["bettung"]
+    assert question.evidence["exposure_quote"] == "Expositionsklasse XF4"
+    assert question.evidence["din"]["grade"] is None
+    assert question.suggested_fix
+
+
+def test_separate_exposure_attribute_links_only_to_matching_component():
+    result = run(make_line(short_text="Fundament C20/25. Bettung C35/45.",
+                           long_text="Bettung: Expositionsklasse XC2. Fundament: Expositionsklasse XD3."))
+    failure, = [f for f in result.findings if f.rule_id == "L1.DIN.EXPOSURE_STRENGTH"]
+    assert failure.evidence["grade_field"] == "short_text"
+    assert failure.evidence["exposure_field"] == "long_text"
+    assert failure.evidence["components"] == ["fundament"]
+    assert failure.evidence["exposure_quote"] == "Expositionsklasse XD3"
+
+
+@pytest.mark.parametrize("text", [
+    "C35/45 C20/25 XD3",
+    "Fundament C35/45 oder C20/25 XD3.",
+    "Fundament C35/45 / C20/25 XD3.",
+])
+def test_unattributed_or_alternative_grades_do_not_produce_a_definite_failure(text):
+    assert [f.rule_id for f in din(text)] == ["L1.DIN.EXPOSURE_SCOPE"]
+
+
+def test_exposure_note_quotes_only_the_linked_component():
+    note, = din("Fundament C20/25 XC2. Bettung: 20 cm Normalbeton C25/30 (LP) XF2.")
+    assert note.rule_id == "L1.DIN.NOTE"
+    assert note.evidence["components"] == ["bettung"]
+    assert note.evidence["din"]["grade"] == "C25/30"
+    assert note.evidence["grade_quote"] == "Bettung: 20 cm Normalbeton C25/30"
+
+
 def test_lv11_golden_and_mutations():
     source = AnalysisInput.model_validate_json((Path(__file__).parent / "fixtures/lv11_precast.json").read_text(encoding="utf-8"))
     result = analyze(source, [1, 2])

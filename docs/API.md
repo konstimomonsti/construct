@@ -323,17 +323,23 @@ Records a decision. Request: `{"run_id": "…", "finding_key": "<finding id>", "
 
 ### `POST /api/workspace/parse?filename=<name>`
 
-Preview an uploaded tender PDF or legacy Excel `.xls` workbook. Send the original bytes as the request body, with the same 128 MiB maximum as the workspace file route. PDF extraction uses Poppler. `POPPLER_BIN` can identify the folder with the Poppler tools.
+Preview an uploaded tender PDF, Word `.docx` document, or legacy Excel `.xls` workbook. Send the original bytes as the request body, with the same 128 MiB maximum as the workspace file route. PDF extraction uses Poppler. `POPPLER_BIN` can identify the folder with the Poppler tools.
 
-The response includes `title`, `currency`, editable `positions`, the section `tree`, and `warnings`. Each position has a source-derived ID, position number (`oz`), description, quantity, unit, and the available unit price. Multiple spreadsheet sheets with readable positions get their own sections. A PDF with no identifiable positions can still be attached as a source document. The preview does not save the file or create a list. Use the workspace file and state routes to persist the import.
+The response includes `title`, `currency`, editable `positions`, the section `tree`, and `warnings`. Each position has a source-derived ID, position number (`oz`), description, quantity, unit, and the available unit price. Multiple spreadsheet sheets with readable positions get their own sections. A PDF or Word file with no identifiable positions can still be attached as a source document. The preview does not save the file or create a list. Use the workspace file and state routes to persist the import.
 
 ### Workspace bid simulator
 
 `GET /api/workspace/bid-pricing?id=<list_id>` returns the original X83's included
 positions, their stable workspace IDs and original quantities, the tender currency,
 the snapshot `input_hash`, and detected line-level shortfalls. A matching stored
-assessment is reused. Dismissed findings and AI reviews that identify other coverage
-or exclude the work are left out of the suggested changes.
+assessment is reused. An open AI scope review stays advisory and can accompany a
+shortfall. Dismissing the original finding or accepting a review of alternative
+coverage or exclusion removes the related shortfall from the suggested changes.
+
+The response also includes `quantity_conflicts` with the issued value and the quantified source excerpts.
+A conflicting position has `can_change_quantity: false`. The POST response repeats the conflict details.
+The endpoint uses the issued values for the base bid and rejects changes to a conflicting position or
+detected shortfalls that depend on a conflicting trigger.
 
 `POST /api/workspace/bid-pricing?id=<list_id>` takes
 `{"input_hash": "<hash from GET>", "assumptions": {...}}` and returns the three

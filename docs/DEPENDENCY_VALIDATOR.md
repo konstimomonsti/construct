@@ -119,6 +119,10 @@ LV_14 (12 WCs against 12 seats, frames and flush releases; 288 m of pipe against
 
 **Dependencies** are searched in each line's short text, long text and tags, case insensitively. A line matching several synonyms in the same dependency is counted once. A bundled description can satisfy a dependency on the same line. Multiple matching lines, including different floor covering types, are summed. Conditional positions, alternatives, unit-price-only positions, and explicitly nonpositive quantities neither trigger nor satisfy these checks. The same applies to PDF items flagged `unit_price_only`, `provisional_included` or `alternative_item` ("*** Bedarfsposition ohne/mit GB", "*** Wahlposition"): the shared adapter does not yet turn those flags into `total_rule` (NEXT_FEATURES_IMPLEMENTATION_PLAN.md §0.2), so layer 2 reads them itself.
 
+Explicit responsibility statements attached to a dependency are treated as source evidence. Client supply, exclusions, conditional inclusion, and work described as separate do not establish a measured quantity from the referring line. An explicit position reference is verified against a unique, firm matching line in the same scope. A reference to a line outside that scope, a duplicate position number, or an optional line still needs review.
+
+A finding with `evidence.reason = "scope_not_assessable"` includes the relevant excerpts under `scope_statements`. A source-qualified gap gets review guidance instead of a line addition. If the wording covers only some triggering positions, the remaining positions stay visible. Plain missing or insufficient measured work still follows the usual quantity checks and proposals.
+
 Scope options:
 
 | Option | Search boundary |

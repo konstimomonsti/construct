@@ -32,12 +32,19 @@ import io
 import json
 from pathlib import Path
 
-from ..contracts import AnalysisResult
+from ..contracts import AnalysisResult, Finding
 from ..runner import analyze
 
 SCHEMA = "construct-eval-labels/1"
 RUN_SCHEMA = "construct-eval-run/1"
 VERDICTS = ("true_error", "false_alarm", "importer_artefact", "unsure")
+
+
+def write_fixture_labels(path: Path, baseline: str, *labels: dict) -> None:
+    path.with_suffix(path.suffix + ".labels.json").write_text(json.dumps({
+        "schema": SCHEMA, "file": path.name, "suite": "catalogue",
+        "backend": path.suffix[1:], "baseline": baseline, "labels": labels,
+    }), encoding="utf-8")
 
 
 def load(path: str | Path) -> dict:
@@ -56,6 +63,19 @@ def finding_matches(label: dict, finding: dict) -> bool:
     if not rule_matches(label.get("expect", []), finding["rule_id"]):
         return False
     target = label.get("target", {})
+    if target.get("severity") and finding.get("severity") != target["severity"]:
+        return False
+    if target.get("bidder_question") and not finding.get("has_bidder_question"):
+        return False
+    if target.get("guidance") and finding.get("guidance") != target["guidance"]:
+        return False
+    if target.get("family") and finding.get("family") != target["family"]:
+        return False
+    if target.get("reason") and finding.get("reason") != target["reason"]:
+        return False
+    locator = finding.get("source_locator") or {}
+    if any(locator.get(key) != value for key, value in target.get("source_locator", {}).items()):
+        return False
     mode = label.get("match")
     if mode == "line":
         return finding["line_code"] in target.get("line_codes", [])
@@ -73,9 +93,22 @@ def finding_matches(label: dict, finding: dict) -> bool:
 # --------------------------------------------------------------------------- compact findings and runs
 
 
+def guidance_kind(finding: Finding) -> str:
+    fix = finding.suggested_fix
+    if fix and fix.operations:
+        return "patch"
+    question = finding.evidence.get("bieterfrage_de")
+    if isinstance(question, str) and question.strip():
+        return "bidder_question"
+    if fix and fix.rationale.strip():
+        return "review"
+    return "none"
+
+
 def compact(result: AnalysisResult, analysis_input) -> list[dict]:
     """Findings reduced to what labels can refer to. No ids, no hashes."""
     sections = {section.id: section.code for section in analysis_input.sections}
+    questioned = {finding_id for question in result.questions or [] for finding_id in question.finding_ids}
     codes = {line.id: line.code for line in analysis_input.lines}
     rows = []
     for finding in result.findings:
@@ -87,6 +120,11 @@ def compact(result: AnalysisResult, analysis_input) -> list[dict]:
             "trigger_codes": [code for code in triggers if code],
             "related_codes": [codes.get(line_id) for line_id in finding.related_line_ids if codes.get(line_id)],
             "title": finding.title, "message": finding.message[:300],
+            "guidance": guidance_kind(finding),
+            "has_bidder_question": finding.id in questioned,
+            "source_locator": finding.source_locator,
+            **({"family": finding.evidence["family"]} if isinstance(finding.evidence.get("family"), str) else {}),
+            **({"reason": finding.evidence["reason"]} if isinstance(finding.evidence.get("reason"), str) else {}),
         })
     return rows
 

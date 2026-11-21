@@ -23,6 +23,190 @@ def extract(*pages):
     return items, sections, result
 
 
+def test_ocr_unit_reread_requires_matching_price_rows_and_agreement():
+    layout = " 5,000   m?   10,00   50,00\n 7,000   m?   10,00   70,00\n"
+    boxes = b"""
+        <html><word xMin="300" yMin="100" xMax="309" yMax="107">m?</word>
+        <word xMin="300" yMin="131" xMax="309" yMax="138">m?</word></html>
+    """
+    render = mock.Mock(side_effect=[b"first", b"second"])
+    recognize = mock.Mock(side_effect=[b"m2", b"m2", b"m3", b"m?"])
+    revised, details = pdf_module._reread_ocr_units(layout, lambda: boxes, render, recognize)
+    assert revised == layout.replace("m?", "m²", 1)
+    assert len(details) == 1
+    assert (details[0]["line"], details[0]["original"], details[0]["readings"]) == (1, "m?", ["m2", "m2"])
+
+    multi_column = boxes.replace(b'xMin="300" yMin="131"', b'xMin="500" yMin="131"')
+    render.reset_mock()
+    assert pdf_module._reread_ocr_units(layout, lambda: multi_column, render, recognize) == (layout, [])
+    render.assert_not_called()
+
+def test_ocr_metres_recovered_from_price_placeholder_row_but_month_unit_kept():
+    unpriced = " 10,000 Mo     eeeeeeeeee   Sereeeeeee"
+    month = " 8,000 Mo     10,00   80,00"
+    layout = f"{unpriced}\n{month}\n"
+    boxes = b"""
+        <html><word xMin="300" yMin="100" xMax="308" yMax="107">Mo</word>
+        <word xMin="300" yMin="131" xMax="310" yMax="138">Mo</word></html>
+    """
+    recognize = mock.Mock(side_effect=[b"m", b"m", b"Mo", b"Mo"])
+    revised, details = pdf_module._reread_ocr_units(layout, lambda: boxes, mock.Mock(), recognize)
+    corrected, retained = revised.splitlines()
+    assert retained == month
+    assert read_quantity(corrected)["unit"] == "m"
+    assert read_quantity(corrected)["quantity"] == "10.000"
+    assert read_quantity(corrected)["unit_price"] is None
+    assert read_quantity(corrected)["line_amount"] is None
+    assert [(record["original"], record["unit"]) for record in details] == [("Mo", "m")]
+
+def test_ocr_focused_measurement_corrects_punctuation_and_unit_with_evidence():
+    header = "OZ   Leistungsbeschreibung          Menge ME       Einheitspreis   Gesamtbetrag"
+    damaged = "                          1.250.000 Meee   ....   ...."
+    priced = "                             10,000 MM   EP 12,00   GP 120,00"
+    layout = f"{header}\n01.0010   Kabel liefern\n{damaged}\n01.0020   Blech liefern\n{priced}\n"
+    boxes = b"""
+        <html>
+        <word xMin="269" yMin="106" xMax="296" yMax="114">Menge</word>
+        <word xMin="302" yMin="106" xMax="310" yMax="114">ME</word>
+        <word xMin="335" yMin="106" xMax="380" yMax="114">Einheitspreis</word>
+        <word xMin="259" yMin="180" xMax="295" yMax="188">1.250.000</word>
+        <word xMin="302" yMin="180" xMax="455" yMax="188">Meee</word>
+        <word xMin="260" yMin="201" xMax="295" yMax="209">10,000</word>
+        <word xMin="302" yMin="201" xMax="310" yMax="209">MM</word>
+        </html>
+    """
+    render = mock.Mock()
+    recognize = mock.Mock(return_value=b"1.250,000 m")
+    revised, evidence = pdf_module._reread_ocr_measurements(layout, lambda: boxes, render, recognize)
+    assert revised == layout.replace("1.250.000 Meee", "1.250,000 m")
+    [reread] = evidence
+    assert (reread["line"], reread["original_quantity"], reread["original_unit"]) == (3, "1.250.000", "Meee")
+    result = Result("pdf")
+    extract_pdf_tables([revised], result, ocr_pages=(1,), ocr_evidence={(1, 3): {"measurement_ocr": reread}})
+    recovered, unaffected = [record for record in result.records if record.kind == "item_candidate"]
+    assert recovered.payload["quantity"] == "1250.000"
+    assert recovered.payload["unit"] == "m"
+    assert recovered.payload["unit_price"] is None
+    assert recovered.payload["line_amount"] is None
+    assert recovered.locator["measurement_ocr"] == reread
+    assert unaffected.payload["unit"] == "MM"
+    assert unaffected.payload["line_amount"] == "120.00"
+    assert "measurement_ocr" not in unaffected.locator
+    render.assert_called_once()
+
+    recognize.return_value = b"1.260,000 m"
+    assert pdf_module._reread_ocr_measurements(layout, lambda: boxes, render, recognize) == (layout, [])
+
+def test_scanned_dotted_positions_require_ink_and_preserve_numeric_sections():
+    from tender_import.ocr_codes import reread_codes
+
+    layout = (
+        "OZ   Leistungsbeschreibung     Menge ME  Einheitspreis   Gesamtbetrag\n"
+        "41   Halter\n"
+        "                 2,000 St   ....   ....\n"
+        "     Spange\n"
+        "                 3,000 St   ....   ....\n"
+        "12   Abdeckungen\n"
+    )
+    boxes = b"""
+        <html>
+        <word xMin="46" yMin="22" xMax="55" yMax="31">OZ</word>
+        <word xMin="107" yMin="22" xMax="197" yMax="31">Leistungsbeschreibung</word>
+        <word xMin="107" yMin="66" xMax="132" yMax="75">Halter</word>
+        <word xMin="107" yMin="96" xMax="132" yMax="105">Spange</word>
+        <word xMin="107" yMin="126" xMax="170" yMax="135">Abdeckungen</word>
+        </html>
+    """
+    tsv = b"".join(
+        f"5\t1\t1\t1\t1\t1\t24\t{y}\t40\t20\t90\t{digits}\n".encode()
+        for y, digits in ((52, "41"), (112, "87"), (172, "12"))
+    )
+
+    def render(bounds):
+        _, _, width, height = bounds
+        pixels = bytearray(b"\xff") * (width * height)
+        for y in (52, 112, 172):
+            for row in range(y, y + 19):
+                pixels[row * width + 34:row * width + 61] = b"\x00" * 27
+        for y in (52, 112):  # Only the first two rows have a printed leading dot.
+            for row in range(y + 15, y + 19):
+                pixels[row * width + 24:row * width + 28] = b"\x00" * 4
+        return f"P5\n{width} {height}\n255\n".encode() + pixels
+
+    header = pdf_module.find_header(layout.splitlines())
+    revised, evidence = reread_codes(layout, header, lambda: boxes, render, lambda *_: tsv, dpi=72, raster_size=900)
+    assert [(item["original"], item["code"]) for item in evidence] == [("41", ".41"), (None, ".87")]
+    result = Result("pdf")
+    extract_pdf_tables([revised], result, ocr_pages=(1,),
+                       ocr_evidence={(1, item["line"]): {"code_ocr": item} for item in evidence})
+    items = [record for record in result.records if record.kind == "item_candidate"]
+    sections = [record for record in result.records if record.kind == "section_candidate"]
+    assert [(item.payload["code"], item.payload["quantity"]) for item in items] == [(".41", "2.000"), (".87", "3.000")]
+    assert items[1].locator["code_ocr"]["original"] is None
+    assert [section.payload["code"] for section in sections] == ["12"]
+
+    disagreement = tsv.replace(b"\t87\n", b"\t88\n")
+    _, partial = reread_codes(layout, header, lambda: boxes, render,
+                              lambda _, mode: tsv if mode == "6" else disagreement, dpi=72, raster_size=900)
+    assert [item["code"] for item in partial] == [".41"]
+
+    compound = (layout.replace("OZ   ", "OZ     ").replace("41   Halter", "1.41   Halter")
+                .replace("     Spange", "       Spange").replace("12   Abdeckungen", "       Abdeckungen"))
+    full_codes = tsv.replace(b"\t41\n", b"\t1.41\n").replace(b"\t87\n", b"\t1.87\n")
+    _, evidence = reread_codes(compound, pdf_module.find_header(compound.splitlines()),
+                               lambda: boxes, render, lambda *_: full_codes, dpi=72, raster_size=900)
+    assert [(item["original"], item["code"]) for item in evidence] == [(None, "1.87")]
+
+def test_missing_scanned_measurement_requires_matching_position_and_printed_digits():
+    header = "OZ   Leistungsbeschreibung        Menge ME       Einheitspreis   Gesamtbetrag\n"
+    original = header + (
+        ".44   Abdeckung liefern\n"
+        "                            GAS    eee\n"
+        ".47   Tragschale liefern\n"
+        ".87   Schelle liefern\n"
+    )
+    alternate = header + (
+        "44   Abdeckung liefern\n"
+        "                            8,000 St = eeee\n"
+        "47   Tragschale liefern\n"
+        "87   Anderer Titel\n"
+        "                            8,000 St = eeee\n"
+    )
+    boxes = b"""
+        <html>
+        <word xMin="269" yMin="106" xMax="296" yMax="114">Menge</word>
+        <word xMin="302" yMin="106" xMax="310" yMax="114">ME</word>
+        <word xMin="335" yMin="106" xMax="380" yMax="114">Einheitspreis</word>
+        <word xMin="263" yMin="180" xMax="295" yMax="188">8,000</word>
+        <word xMin="302" yMin="180" xMax="310" yMax="188">St</word>
+        <word xMin="263" yMin="201" xMax="295" yMax="209">8,000</word>
+        <word xMin="302" yMin="201" xMax="310" yMax="209">St</word>
+        </html>
+    """
+    missing = pdf_module._missing_measurement_positions(original)
+    codes = [{"code": code} for code in missing]
+    render = mock.Mock()
+    recognize = mock.Mock(return_value=b"8,000 St")
+    evidence = pdf_module._recover_missing_measurements(missing, alternate, lambda: boxes, render, recognize, codes)
+    [recovered] = evidence
+    assert (recovered["line"], recovered["quantity"], recovered["unit"]) == (2, "8,000", "St")
+    result = Result("pdf")
+    extract_pdf_tables([original], result, ocr_pages=(1,),
+                       ocr_evidence={(1, 2): {"recovered_measurement_ocr": recovered}})
+    items = [item for item in result.records if item.kind == "item_candidate"]
+    assert [(item.payload["code"], item.payload.get("quantity")) for item in items] == [
+        (".44", "8.000"), (".47", None), (".87", None),
+    ]
+    assert items[0].payload["unit_price"] is None
+    assert items[0].locator["recovered_measurement_ocr"] == recovered
+    render.assert_called_once()
+
+    recognize.return_value = b"9,000 St"
+    assert pdf_module._recover_missing_measurements(
+        missing, alternate, lambda: boxes, render, recognize, codes,
+    ) == []
+
+
 def warning_codes(result):
     return [issue["code"] for issue in result.issues]
 

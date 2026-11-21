@@ -2,7 +2,7 @@ import { clsx } from 'clsx'
 import { Icon, Menu, type MenuItem } from './ui'
 import { ToolButton } from './Kit'
 import { money } from '../lib/format'
-import { findingCategory, REASONS, SEVERITIES, type ChangeOrderSignal, type Decision, type Finding, type ReviewItem, type Severity } from '../lib/risk-assessment'
+import { findingCategory, REASONS, SEVERITIES, type ChangeOrderSignal, type CoverageCheckState, type Decision, type Finding, type ReviewItem, type Severity, type SourceLocator } from '../lib/risk-assessment'
 
 /**
  * severity colours for the risk UI, built on the themed status tokens so they hold in dark mode.
@@ -30,14 +30,61 @@ export function FindingBadge({ severity, children }: { severity: Severity; child
 }
 
 
-/** what layer 3 or a DIN rule found, shown under the message in the drawer */
+const COVERAGE_CHECK: Record<CoverageCheckState, string> = {
+  already_counted: 'This position already counts toward the required quantity.',
+  bundled_quantity_unknown: 'Verify how much of the related work is included in this position.',
+  not_a_firm_item: 'This position is outside the firm tender scope.',
+  scope_unverified: 'Verify the location or allocation of this quantity.',
+  quantity_unverified: 'Verify the quantity and unit for this position.',
+  quantity_below_shortfall: 'The cited quantity covers only part of the shortfall at most.',
+  quantity_candidate: 'The cited quantity could cover the shortfall if it applies to the same work.',
+}
+
+function sourceLabel(locator?: SourceLocator | null) {
+  if (!locator) return null
+  return [
+    locator.page ? `Source page ${locator.page}` : null,
+    locator.ocr_pages?.length ? `OCR on page ${locator.ocr_pages.join(', ')}` : null,
+    locator.sheet,
+    locator.table ? `Table ${locator.table}` : null,
+    locator.row ? `Row ${locator.row}` : null,
+    locator.paragraph ? `Paragraph ${locator.paragraph}` : null,
+    locator.record && !locator.row ? `Source record ${locator.record}` : null,
+    locator.source_id ? `Source item ${locator.source_id}` : null,
+  ].filter(Boolean).join(' · ') || null
+}
+
+/** Source references and evidence shown under the finding in the drawer. */
 function FindingEvidence({ finding }: { finding: Finding }) {
-  const din = finding.evidence?.din
+  const evidence = finding.evidence
+  const din = evidence?.din
+  const concrete = evidence?.family === 'concrete'
+  const standard = finding.evidence?.din_standard
+  const declarations = finding.evidence?.declarations ?? []
+  const requirement = finding.rule_id === 'L1.PRODUCT.DECLARED_PROPERTY' ? finding.evidence?.requirement : undefined
+  const requirements = evidence?.requirements ?? []
   const extracted = Object.entries(finding.evidence?.extracted ?? {})
-  if (!din && !extracted.length) return null
+  const source = sourceLabel(finding.source_locator)
+  const positionLink = sourceLabel(requirement?.position_locator)
+  const positionCandidates = evidence?.position_candidates ?? []
+  const candidateCount = evidence?.position_candidate_count ?? positionCandidates.length
+  const sourceField = (field?: string) => field === 'short_text' ? ' in heading' : field === 'long_text' ? ' in detail' : ''
+  const quantityCheck = evidence?.quantity_check
+  const specificationConflicts = evidence?.specification_conflicts ?? []
+  const scopeStatements = evidence?.scope_statements ?? []
+  const quotes = [
+    ['Requirement' + sourceField(evidence?.requirement_field), evidence?.requirement_quote],
+    ['Offered variant' + sourceField(evidence?.offer_field), evidence?.offer_quote],
+    ['Grade' + sourceField(evidence?.grade_field), evidence?.grade_quote],
+    ['Exposure' + sourceField(evidence?.exposure_field), evidence?.exposure_quote],
+    ['Heading', concrete ? evidence.short_quote : undefined],
+    ['Detail', concrete ? evidence.long_quote : undefined],
+  ].filter(([, quote]) => !!quote)
+  if (!source && !din && !standard && !requirement && !declarations.length && !requirements.length && !extracted.length && !quotes.length && !scopeStatements.length && !specificationConflicts.length && !quantityCheck) return null
   const show = (v: unknown) => (v === null || v === undefined || v === '' ? '—' : Array.isArray(v) ? v.join(', ') || '—' : String(v))
   return (
     <div className="mt-2 space-y-2 text-[13px]">
+      {source && !specificationConflicts.length && <p className="text-slate-700">{source}</p>}
       {din && (
         <p className="flex flex-wrap gap-x-3 gap-y-1 text-slate-700">
           <span className="font-semibold text-slate-900">DIN 1045-2</span>
@@ -45,6 +92,88 @@ function FindingEvidence({ finding }: { finding: Finding }) {
           {!!din.exposure?.length && <span>Exposure <span className="num font-medium">{din.exposure.join(', ')}</span></span>}
           {din.required_min && <span>Minimum <span className="num font-medium">{din.required_min}</span></span>}
         </p>
+      )}
+      {quotes.length > 0 && (
+        <dl className="space-y-1 text-slate-700">
+          {quotes.map(([label, quote]) => (
+            <div key={label}>
+              <dt className="inline font-medium text-slate-900">{label}</dt>
+              <dd className="ml-2 inline break-words"><q>{quote}</q></dd>
+            </div>
+          ))}
+        </dl>
+      )}
+      {specificationConflicts.length > 0 && (
+        <ul className="space-y-2 text-slate-700">
+          {specificationConflicts.map((conflict) => (
+            <li key={conflict.finding_id}>
+              {conflict.line_code && <span className="mr-2 font-medium text-slate-900">Position {conflict.line_code}</span>}
+              {sourceLabel(conflict.source_locator)}
+              {conflict.short_quote && <div>Heading <q className="break-words">{conflict.short_quote}</q></div>}
+              {conflict.long_quote && <div>Detail <q className="break-words">{conflict.long_quote}</q></div>}
+            </li>
+          ))}
+        </ul>
+      )}
+      {scopeStatements.length > 0 && (
+        <ul className="space-y-1 text-slate-700">
+          {scopeStatements.map((statement, index) => (
+            <li key={`${statement.line_id}-${index}`}>
+              {statement.line_code && <span className="mr-2 font-medium text-slate-900">Position {statement.line_code}</span>}
+              <q className="break-words">{statement.quote}</q>
+            </li>
+          ))}
+        </ul>
+      )}
+      {quantityCheck && (
+        <div className="space-y-1 text-slate-700">
+          <p>{COVERAGE_CHECK[quantityCheck.state]}</p>
+          {(quantityCheck.quantity != null || quantityCheck.minimum_shortfall != null) && (
+            <p className="flex flex-wrap gap-x-3">
+              {quantityCheck.quantity != null && <span>Cited quantity <strong>{quantityCheck.quantity} {quantityCheck.unit}</strong></span>}
+              {quantityCheck.minimum_shortfall != null && <span>Minimum shortfall <strong>{quantityCheck.minimum_shortfall} {quantityCheck.unit}</strong></span>}
+            </p>
+          )}
+        </div>
+      )}
+      {standard && /^https:\/\/www\.dinmedia\.de\//.test(standard.url) && (
+        <a className="font-medium text-brand-700 underline" href={standard.url} target="_blank" rel="noreferrer">
+          Published scope · {standard.identifier}:{standard.edition}
+        </a>
+      )}
+      {requirement && <p className="text-slate-700"><span className="font-semibold">Requirement</span> — {requirement.document} · {requirement.locator}</p>}
+      {requirements.length > 0 && (
+        <ul className="space-y-1 text-slate-700">
+          {requirements.map(({ document, locator, comparison, required, quote }, index) => (
+            <li key={index}>
+              <strong>{{ equal: 'Exactly', at_least: 'At least', at_most: 'At most' }[comparison]} {required.value}{required.unit && ` ${required.unit}`}</strong>
+              {' · '}{document}{' · '}{locator}
+              {quote && <q className="block break-words">{quote}</q>}
+            </li>
+          ))}
+        </ul>
+      )}
+      {positionLink && <p className="text-slate-700"><span className="font-semibold">Required position</span> — {positionLink}</p>}
+      {positionCandidates.length > 0 && (
+        <div className="text-slate-700">
+          <p className="font-semibold">Positions with this code</p>
+          <ul>
+            {positionCandidates.map(({ line_code, locator }, index) => {
+              const candidate = sourceLabel(locator)
+              return <li key={index}>{line_code}{candidate && ` · ${candidate}`}</li>
+            })}
+          </ul>
+          {candidateCount > positionCandidates.length && <p>{candidateCount - positionCandidates.length} more</p>}
+        </div>
+      )}
+      {declarations.length > 0 && (
+        <ul className="space-y-1 text-slate-700">
+          {declarations.map(({ manufacturer, product_code, document, revision, locator }, index) => (
+            <li key={index}>
+              <span className="font-semibold">{manufacturer} · {product_code}</span> — {document} · {revision} · {locator}
+            </li>
+          ))}
+        </ul>
       )}
       {extracted.length > 0 && (
         <table className="w-full max-w-sm text-left">
@@ -69,6 +198,8 @@ export function FindingText({ finding, reviewed, decision, changed, hideRational
 }) {
   const decided = reviewed || !!decision
   const muted = decided || changed
+  const scopeReview = finding.rule_id === 'L3.REVIEW.L2_CONFIRM'
+    && (finding.evidence?.verdict === 'included' || finding.evidence?.verdict === 'excluded')
   return (
     <div className={clsx('min-w-0 border-l-[3px] pl-3', muted ? 'border-slate-300' : RISK_UI[finding.severity].bar)}>
       <div className="flex flex-wrap items-center gap-2">
@@ -96,6 +227,7 @@ export function FindingText({ finding, reviewed, decision, changed, hideRational
         <p className="mt-1 text-sm leading-relaxed text-pretty text-slate-600">{details && <span className="font-semibold text-slate-700">Suggested fix: </span>}{finding.suggested_fix.rationale}</p>
       )}
       {details && <FindingEvidence finding={finding} />}
+      {scopeReview && !decided && <p className="mt-1 text-sm text-slate-600">Accept after verifying the scope. This removes any related quantity suggestion from the bid simulator.</p>}
       {details && finding.evidence?.amount_at_stake != null && Number.isFinite(Number(finding.evidence.amount_at_stake)) && (
         <p className="mt-1 text-sm text-slate-600">Money at stake <strong>{money(Number(finding.evidence.amount_at_stake))}</strong></p>
       )}
