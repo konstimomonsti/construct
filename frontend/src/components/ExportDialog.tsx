@@ -85,26 +85,25 @@ export function ExportDialog({
         </>
       }
     >
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+      <fieldset className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        <legend className="mb-2 text-xs font-semibold text-slate-700">Choose one format</legend>
         {FORMATS.map((f) => (
-          <button
+          <label
             key={f.id}
-            type="button"
-            onClick={() => setFormat(f.id)}
-            aria-pressed={format === f.id}
             className={clsx(
               'flex flex-col items-start gap-1 rounded-lg border p-2.5 text-left transition-colors',
               format === f.id ? 'border-brand-500 bg-brand-50 ring-1 ring-brand-500' : 'border-slate-200 bg-white hover:bg-slate-50',
             )}
           >
             <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-800">
+              <input type="radio" name="export-format" value={f.id} checked={format === f.id} onChange={() => setFormat(f.id)} />
               <Icon name={f.icon} size={16} className="text-slate-600" />
               {f.label}
             </span>
             <span className="text-xs leading-snug text-slate-600">{fidelityNote(doc, f.id, edited, !!loadOriginal && scope === 'all' && longTexts && (forcedOff || pricesOn))}</span>
-          </button>
+          </label>
         ))}
-      </div>
+      </fieldset>
 
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
         <fieldset className="space-y-1.5">

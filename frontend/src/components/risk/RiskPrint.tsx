@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { int, money } from '../../lib/format'
 import { rescore, type Decisions, type Question, type Report, type ReviewItem, type Risk } from '../../lib/risk-assessment'
 import { decisionText } from '../../lib/risk-export'
-import { partialAnalysis } from '../../lib/risk-labels'
+import { categoryLabel, categoryPoints, partialAnalysis } from '../../lib/risk-labels'
 
 /** print-only copy of the risk review (see `.risk-print` in index.css); the app UI is hidden while printing */
 export function RiskPrint({ title, report, risk, decisions, sections, questions, texts }: {
@@ -36,6 +36,8 @@ export function RiskPrint({ title, report, risk, decisions, sections, questions,
           ? money(atStake) : risk.priced ? 'Unavailable' : 'Not priced'} · {printedAt}
       </p>
       {partial && <p><b>Based on partial analysis.</b> {partial.message}</p>}
+      <h2>Risk by category (open)</h2>
+      <ul>{categoryPoints(risk, report, decisions).map(([category, points]) => <li key={category}>{categoryLabel(category)}: {int(points)} pts</li>)}</ul>
       <h2>Position review</h2>
       {[...groups].map(([section, findings]) => (
         <section key={section}>

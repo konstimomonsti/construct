@@ -1,5 +1,5 @@
 /**
- * PDF writer (pdf-lib, standard fonts) that reproduces the five printout families found in ../data/tenders:
+ * PDF writer (pdf-lib, embedded Unicode fonts) that reproduces the five printout families found in ../data/tenders:
  *   A_anfrage  (LV_*.pdf)            B_kurz_langtext (Leistungsverzeichnis.pdf)
  *   C_angebot  (Angebot AN24-0305)   D_lv_ausdruck   (LV-Ausdruck-[PROJEKT_004].pdf)
  *   E_courier  (Leistungsverzeichnis_leer.pdf)
@@ -10,7 +10,7 @@ import { documentList, PDF_LIST_ATTACHMENT } from '../list-file'
 import type { PDFFont, PDFPage } from 'pdf-lib'
 import type { ListDoc, Position } from '../types'
 import type { LayoutFile, LayoutLine } from './types'
-import { type Cat, type CatTree, catSum, deNum, deQty, foldText, gp, round2, walk } from './util'
+import { type Cat, type CatTree, catSum, deNum, deQty, gp, round2, walk } from './util'
 
 export type TemplateId = 'A_anfrage' | 'B_kurz_langtext' | 'C_angebot' | 'D_lv_ausdruck' | 'E_courier'
 
@@ -51,12 +51,10 @@ const PAGE_H = 841.89
 const BLACK: RGB = [0, 0, 0]
 const GREY: RGB = [0.3, 0.3, 0.3]
 
-const WIN_EXTRA = new Set('€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ')
-const keepWin = (ch: string) => {
-  const c = ch.charCodeAt(0)
-  return (c >= 32 && c < 127) || (c >= 0xa0 && c <= 0xff) || WIN_EXTRA.has(ch)
-}
-const clean = (s: string) => foldText(s, keepWin)
+const clean = (s: string) => [...s].map((ch) => {
+  const code = ch.codePointAt(0) ?? 0
+  return code < 32 || code === 127 ? ' ' : ch
+}).join('')
 
 /* ------------------------------------------------------------------ */
 /* helpers                                                             */
@@ -695,19 +693,29 @@ function fixTree(t: CatTree): CatTree {
 
 export async function generatePdf(opts: PdfOpts): Promise<Uint8Array> {
   let o = opts
-  const { PDFDocument, StandardFonts, rgb } = await import('pdf-lib')
+  const { PDFDocument, rgb } = await import('pdf-lib')
+  const { default: fontkit } = await import('@pdf-lib/fontkit')
   const pdf = await PDFDocument.create()
+  pdf.registerFontkit(fontkit)
   pdf.setTitle(clean(o.doc.title || 'Leistungsverzeichnis'))
   pdf.setCreator('BillBuild')
   pdf.setProducer('BillBuild / pdf-lib')
-  const fonts: Record<FontKey, PDFFont> = {
-    r: await pdf.embedFont(StandardFonts.Helvetica),
-    b: await pdf.embedFont(StandardFonts.HelveticaBold),
-    i: await pdf.embedFont(StandardFonts.HelveticaOblique),
-    bi: await pdf.embedFont(StandardFonts.HelveticaBoldOblique),
-    cr: await pdf.embedFont(StandardFonts.Courier),
-    cb: await pdf.embedFont(StandardFonts.CourierBold),
+  const fontBytes = async (name: string) => {
+    if (typeof window === 'undefined') {
+      const nodeFs = 'node:fs/promises'
+      const { readFile } = await import(/* @vite-ignore */ nodeFs)
+      return readFile(new URL(`../../../public/fonts/${name}.ttf`, import.meta.url))
+    }
+    const response = await fetch(`${import.meta.env.BASE_URL}fonts/${name}.ttf`)
+    if (!response.ok) throw new Error(`PDF font unavailable: ${name}`)
+    return response.arrayBuffer()
   }
+  const [regular, bold, mono, monoBold] = await Promise.all([
+    fontBytes('NotoSans-Regular'), fontBytes('NotoSans-Bold'),
+    fontBytes('NotoSansMono-Regular'), fontBytes('NotoSansMono-Bold'),
+  ])
+  const [r, b, cr, cb] = await Promise.all([regular, bold, mono, monoBold].map((bytes) => pdf.embedFont(bytes, { subset: true })))
+  const fonts: Record<FontKey, PDFFont> = { r, b, i: r, bi: b, cr, cb }
   const width = (t: string, f: FontKey, s: number) => fonts[f].widthOfTextAtSize(clean(t), s)
   const wrap = (t: string, f: FontKey, s: number, maxW: number): string[] => {
     const text = clean(t).replace(/\s+$/, '')
