@@ -162,7 +162,7 @@ def from_data(payload: dict | list, *, filename: str | None = None) -> AnalysisI
         if not isinstance(payload["items"], list):
             raise ValueError("'items' must be an array")
         data = _flat_input(payload["items"], filename)
-        for key in ("project", "bom", "areas", "import_warnings"):
+        for key in ("project", "bom", "areas", "import_warnings", "declarations", "product_requirements"):
             if key in payload:
                 data[key] = copy.deepcopy(payload[key])
     elif isinstance(payload, dict) and isinstance(payload.get("lines"), list):

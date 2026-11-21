@@ -11,6 +11,9 @@ export const RISK_STYLE = {
 
 export type Evidence = {
   din?: { grade?: string; exposure?: string[]; required_min?: string }
+  din_standard?: { identifier: string; edition: string; url: string }
+  declarations?: { manufacturer: string; product_code: string; document: string; revision: string; locator: string }[]
+  requirement?: { document: string; locator: string }
   extracted?: Record<string, unknown>
   bieterfrage_de?: string
   amount_at_stake?: string
@@ -68,6 +71,7 @@ export type Question = { id: string; topic: string; text_de: string; line_codes:
 
 export type Report = {
   findings: Finding[]
+  product_evidence_files?: string[]
   errors: string[]
   source_notice: string | null
   layers_run?: number[]
@@ -162,7 +166,7 @@ export function matchesFindingFilter(filter: string, findings: ReviewItem[], rev
   })
 }
 
-export function useUploadAssessment(id: string | null): Assessment | null {
+export function useUploadAssessment(id: string | null, evidenceSignature = ''): Assessment | null {
   const [assessment, setAssessment] = useState<Assessment>({ state: 'waiting' })
   useEffect(() => {
     if (!id) return
@@ -181,7 +185,13 @@ export function useUploadAssessment(id: string | null): Assessment | null {
         const result = await response.json()
         if (controller.signal.aborted) return
         if (result.state === 'ready' && Array.isArray(result.report?.findings)) {
-          setAssessment({ state: 'ready', report: result.report })
+          const report: Report = result.report
+          if ([...(report.product_evidence_files ?? [])].sort().join(',') === evidenceSignature) {
+            setAssessment({ state: 'ready', report })
+          } else {
+            setAssessment({ state: 'waiting' })
+            timer = setTimeout(refresh, 2000)
+          }
         } else if (result.state === 'failed') {
           setAssessment({ state: 'failed' })
         } else if (result.state === 'queued') {
@@ -202,6 +212,10 @@ export function useUploadAssessment(id: string | null): Assessment | null {
       controller.abort()
       clearTimeout(timer)
     }
-  }, [id])
-  return id ? assessment : null
+  }, [id, evidenceSignature])
+  if (!id) return null
+  if (assessment.state === 'ready' && [...(assessment.report.product_evidence_files ?? [])].sort().join(',') !== evidenceSignature) {
+    return { state: 'waiting' }
+  }
+  return assessment
 }

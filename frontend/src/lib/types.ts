@@ -11,6 +11,7 @@ export interface DocMeta {
   listId?: string
   stored?: boolean
   original?: boolean
+  productEvidence?: boolean
   /** session-only object URL for user uploads */
   blobUrl?: string
 }

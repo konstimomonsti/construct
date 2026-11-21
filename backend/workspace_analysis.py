@@ -18,6 +18,7 @@ from tender_import.common import detect_format
 from tender_import.legacy import gaeb_1990
 from tender_import.structured import gaeb_xml
 from workspace_parse import read_document
+from workspace_product_evidence import add_to_snapshot
 
 
 LOG = logging.getLogger(__name__)
@@ -151,6 +152,9 @@ def run(payload, connection=None, workspace=None, list_id=None, file_id=None, fi
             if used_source and source.project.source_document.format in {"xls", "pdf"}:
                 snapshot.import_warnings = source.import_warnings
             snapshot = snapshot.with_hash()
+    evidence_files = add_to_snapshot(connection, workspace, list_id, snapshot) if connection is not None and list_id else []
+    if evidence_files:
+        snapshot = snapshot.with_hash()
     try:
         result = analyze(snapshot, layers)
     except Exception:
@@ -161,7 +165,8 @@ def run(payload, connection=None, workspace=None, list_id=None, file_id=None, fi
         LOG.exception("Layer 3 failed; storing the layer 1 and 2 findings only")
         result = analyze(snapshot, [layer for layer in layers if layer != 3])
         result.errors.append("layer 3: failed unexpectedly; findings are from layers 1 and 2 only")
-    return {**result.model_dump(mode="json"), "used_source": used_source, "source_notice": source_notice}
+    return {**result.model_dump(mode="json"), "used_source": used_source, "source_notice": source_notice,
+            "product_evidence_files": evidence_files}
 
 
 def _uploaded_input(document):
@@ -220,11 +225,20 @@ def _uploaded_input(document):
     }
 
 
-def enqueue(connection, workspace, writes):
+def requeue_product_evidence(connection, workspace, list_ids):
+    if list_ids:
+        connection.execute(
+            "UPDATE workspace_assessment SET state='queued', report=NULL WHERE workspace=%s AND list_id=ANY(%s)",
+            (workspace, list(list_ids)),
+        )
+
+
+def enqueue(connection, workspace, writes, evidence_lists=()):
     list_ids = {key for collection, key, _ in writes if collection == "userLists"}
     list_ids.update(value["listId"] for collection, _, value in writes
                     if collection == "userDocuments" and isinstance(value, dict) and value.get("original") is True
                     and isinstance(value.get("listId"), str))
+    list_ids.update(evidence_lists)
     if not list_ids:
         return
     connection.execute(
@@ -244,6 +258,7 @@ def enqueue(connection, workspace, writes):
         ON CONFLICT (workspace, list_id) DO NOTHING
         """, (workspace, list(list_ids)),
     )
+    requeue_product_evidence(connection, workspace, evidence_lists)
 
 
 def status(connection, workspace, list_id):
@@ -258,11 +273,21 @@ def status(connection, workspace, list_id):
 
 def assess_next(connection):
     with connection.transaction():
+        # Claim the job without holding its row lock during analysis. A concurrent evidence
+        # update can requeue it, changing its version and invalidating this worker's result.
         job = connection.execute(
             """
-            SELECT a.workspace, a.list_id, d.value FROM workspace_assessment a
+            WITH claimed AS MATERIALIZED (
+                SELECT workspace, list_id
+                FROM workspace_assessment
+                WHERE state='queued'
+                  AND pg_try_advisory_xact_lock(hashtextextended(workspace || chr(31) || list_id, 1685013603))
+                LIMIT 1
+            )
+            SELECT a.workspace, a.list_id, a.xmin::text AS generation, d.value
+            FROM claimed c
+            JOIN workspace_assessment a USING (workspace, list_id)
             JOIN workspace_record d ON (d.workspace, d.collection, d.record_id)=(a.workspace, 'userLists', a.list_id)
-            WHERE a.state='queued' ORDER BY a.workspace, a.list_id LIMIT 1 FOR UPDATE OF a SKIP LOCKED
             """,
         ).fetchone()
         if not job:
@@ -280,8 +305,8 @@ def assess_next(connection):
         else:
             state, report = "ready", Jsonb(report)
         connection.execute(
-            "UPDATE workspace_assessment SET state=%s, report=%s WHERE workspace=%s AND list_id=%s",
-            (state, report, workspace, list_id),
+            "UPDATE workspace_assessment SET state=%s, report=%s WHERE workspace=%s AND list_id=%s AND xmin::text=%s",
+            (state, report, workspace, list_id, job["generation"]),
         )
         return True
 
