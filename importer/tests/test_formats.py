@@ -29,6 +29,35 @@ class FormatTests(unittest.TestCase):
         self.assertEqual(item.payload["code"], "01.0010")
         self.assertEqual(item.payload["quantity"], "0.000")
 
+    def test_xml_keeps_item_index_markup_items_and_stated_totals(self):
+        data = b"""<?xml version="1.0"?>
+        <GAEB xmlns="gaeb">
+          <Award><DP>84</DP><BoQ>
+            <BoQInfo><Totals><Total>1150.00</Total><VAT>19.00</VAT></Totals></BoQInfo>
+            <BoQBody><BoQCtgy RNoPart="01"><BoQBody><Itemlist>
+              <Item RNoPart="0010"><UP>10.000</UP><IT>500.00</IT></Item>
+              <Item RNoPart="0010" RNoIndex="A"><UP>5.000</UP><IT>500.00</IT></Item>
+              <MarkupItem RNoPart="0020"><ITMarkup>1000.00</ITMarkup><Markup>10.00</Markup><IT>100.00</IT></MarkupItem>
+            </Itemlist></BoQBody>
+            <Totals><Total>1100.00</Total><DiscountPcnt>10.00</DiscountPcnt><TotAfterDisc>990.00</TotAfterDisc>
+            </Totals></BoQCtgy></BoQBody>
+          </BoQ></Award>
+        </GAEB>"""
+        result = gaeb_xml(data)
+        items = [rec.payload for rec in result.records if rec.kind == "item"]
+        self.assertEqual([item["code"] for item in items], ["01.0010", "01.0010.A", "01.0020"])
+        self.assertEqual(items[1]["code_parts"], ["01", "0010", "A"])
+        markup = items[2]
+        self.assertEqual(markup["line_amount"], "100.00")
+        self.assertIsNone(markup["unit_price"])
+        self.assertEqual({key: markup["flags"][key] for key in ("MarkupItem", "Markup", "ITMarkup")},
+                         {"MarkupItem": "Yes", "Markup": "10.00", "ITMarkup": "1000.00"})
+        summary = next(rec.payload for rec in result.records if rec.kind == "summary")
+        self.assertEqual(summary["net_total"], "1150.00")
+        subtotal = next(rec.payload for rec in result.records if rec.kind == "subtotal")
+        self.assertEqual((subtotal["code_parts"], subtotal["reported_amount"], subtotal["discounted_amount"]),
+                         (["01"], "1100.00", "990.00"))
+
     def test_legacy_price_return_has_no_invented_quantity(self):
         header = b"00        84L23A0051                                          1122PPPPI90 000001"
         price = b"2301010001  0001600000  000001600000                                      000002"

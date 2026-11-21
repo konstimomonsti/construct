@@ -87,6 +87,26 @@ def test_text_missing_per_line_in_tender_once_in_bid():
     assert len(findings) == 1 and findings[0].scope == "bom" and findings[0].severity == "info"
 
 
+def test_quantity_and_unit_missing_once_in_bid():
+    lines = [make_line(n, quantity=None, quantity_raw=None, unit=None, unit_raw=None) for n in (1, 2, 3)]
+    bid = run(*lines, phase="84")
+    for rule_id in ("L1.QTY.MISSING", "L1.UNIT.MISSING"):
+        findings = only(bid, rule_id)
+        assert len(findings) == 1 and findings[0].scope == "bom" and findings[0].severity == "info"
+        assert len(findings[0].related_line_ids) == 3
+    tender = run(*lines)
+    assert len(only(tender, "L1.QTY.MISSING")) == 3 and len(only(tender, "L1.UNIT.MISSING")) == 3
+
+
+def test_markup_item_needs_no_quantity_or_unit_and_counts_in_total():
+    markup = make_line(2, quantity=None, quantity_raw=None, unit=None, unit_raw=None, pricing_basis="lump_sum",
+                       gaeb_flags={"MarkupItem": "Yes", "Markup": "10.00", "ITMarkup": "100.00"},
+                       source_amounts=SourceAmounts(unit_price=None, line_amount=D("10.00")))
+    priced = make_line(1, source_amounts=SourceAmounts(unit_price=D(10), line_amount=D(100)))
+    result = run(priced, markup, bom=Bom(stated_net_total=D("110.00")))
+    assert rules(result) == set()
+
+
 def test_code_missing_and_duplicate():
     result = run(make_line(1, code=None, code_parts=["TE", "L0"]), make_line(2, code="01.0003"), make_line(3))
     assert only(result, "L1.CODE.MISSING")[0].target.line_id == "l1"
@@ -177,6 +197,25 @@ def test_section_and_net_totals():
     assert section_finding.related_line_ids == ["l3"] and section_finding.severity == "error"
     net = only(result, "L1.ARITH.NET_TOTAL")[0]
     assert net.severity == "info" and net.evidence["computed"] == "300"
+
+
+def test_parent_totals_use_discounted_subsection_amounts():
+    # 01 contains 01.01 (200, 10 % discount -> 180) and one direct item (100): 01 and the BoQ total 280.
+    parent = Section(id="s1", code="01", code_parts=["01"], sort_order=0, stated_total=D(280))
+    child = Section(id="s2", parent_id="s1", code="01.01", code_parts=["01", "01"], sort_order=1,
+                    stated_total=D(200), stated_total_after_discount=D(180))
+    amounts = dict(source_amounts=SourceAmounts(unit_price=D(10), line_amount=D(100)))
+    lines = [make_line(n, code=f"01.01.{n:04d}", code_parts=["01", "01", f"{n:04d}"], section_id="s2", **amounts)
+             for n in (1, 2)] + [make_line(3, **amounts)]
+    result = run(*lines, sections=[parent, child], phase="84", bom=Bom(stated_net_total=D(280)))
+    assert not {"L1.ARITH.SECTION_TOTAL", "L1.ARITH.NET_TOTAL"} & rules(result)
+    wrong = run(*lines, sections=[parent.model_copy(update={"stated_total": D(300)}), child], phase="84")
+    finding = only(wrong, "L1.ARITH.SECTION_TOTAL")[0]
+    assert finding.evidence["computed"] == "280" and finding.evidence["discounted_subsections"] == ["01.01"]
+    lump = child.model_copy(update={"stated_total_after_discount": None, "stated_lump_sum_total": D(150)})
+    result = run(*lines, sections=[parent.model_copy(update={"stated_total": D(250)}), lump], phase="84",
+                 bom=Bom(stated_net_total=D(250)))
+    assert not {"L1.ARITH.SECTION_TOTAL", "L1.ARITH.NET_TOTAL"} & rules(result)
 
 
 # ---------------------------------------------------------------- pricing

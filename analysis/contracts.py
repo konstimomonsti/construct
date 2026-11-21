@@ -63,6 +63,10 @@ class Section(_Model):
     title: str | None = None
     sort_order: int
     stated_total: Decimal | None = None  # subtotal written in the source file, if any
+    # Subtotal after a section discount (GAEB XML TotAfterDisc). Parent sections add this amount, not stated_total.
+    stated_total_after_discount: Decimal | None = None
+    # Lump-sum price for the whole section (GAEB XML TotalLSUM). Without a discount, parents add this amount.
+    stated_lump_sum_total: Decimal | None = None
 
 
 class ReferenceRange(_Model):

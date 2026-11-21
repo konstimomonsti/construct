@@ -115,7 +115,7 @@ What the adapter does, so rules don't have to:
 | `project` | Project | `id`, `name`, `currency` (ISO 4217), `gaeb_phase` (`"83"` tender, `"84"` bid, `"86"` award, or null), `source_document` (`id`, `filename`, `format`) |
 | `bom` | Bom | `bom_version_id`, `package_code`, `title`, `trade` (optional, e.g. `"sanitary"`, from the LV title or user input), `stated_net_total` (total written in the file, if any) |
 | `areas` | list[Area] | `id`, `parent_id`, `name`, `kind` (`bathroom`, `kitchen`, `office`, `corridor`, `facade`, `roof`, ... or `unknown`). Often empty for GAEB, which is organized by trade. |
-| `sections` | list[Section] | `id`, `parent_id`, `code` (e.g. `"01.02"`), `code_parts`, `title`, `sort_order`, `stated_total` (subtotal written in the file, GAEB 90 bids/awards) |
+| `sections` | list[Section] | `id`, `parent_id`, `code` (e.g. `"01.02"`), `code_parts`, `title`, `sort_order`, `stated_total` (subtotal written in the file, GAEB 90 and GAEB XML bids/awards), `stated_total_after_discount` (subtotal after a section discount, GAEB XML `TotAfterDisc`; the parent section adds this amount), `stated_lump_sum_total` (lump-sum price for the whole section, GAEB XML `TotalLSUM`; without a discount, the parent adds this amount) |
 | `lines` | list[Line] | see below |
 | `import_warnings` | list[dict] | `code`, `message`, `locator` from the importer |
 

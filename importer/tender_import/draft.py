@@ -109,7 +109,9 @@ def create_draft(connection, document_id, package_code, title, boq_index, phase)
                 if parent is None and len(parts) > 1:
                     parent = sections.get(parts[:-1])
                 flags = row.get("flags", {})
-                pricing = "lump_sum" if flags.get("LumpSumItem") == "Yes" or flags.get("extra_type_flag") == "L" else "unit_rate"
+                lump = (flags.get("LumpSumItem") == "Yes" or flags.get("extra_type_flag") == "L"
+                        or flags.get("MarkupItem") == "Yes")
+                pricing = "lump_sum" if lump else "unit_rate"
                 provisional = flags.get("Provis")
                 if flags.get("unit_price_only") or flags.get("provisional_flag") == "E" or provisional == "WithoutTotal":
                     total_rule = "unit_price_only"

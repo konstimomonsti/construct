@@ -81,8 +81,10 @@ def derive_pricing(flags: dict[str, str]) -> tuple[str, str]:
     Mirrors importer/tender_import/draft.py so DB and file sources agree. GAEB 90:
     position_type N normal, G base (Grundposition), A alternative (Wahlposition);
     provisional_flag E = optional without total; extra_type_flag L = lump sum.
+    A GAEB XML MarkupItem (surcharge) has a fixed amount and no quantity, so it is priced as a lump sum.
     """
-    pricing = "lump_sum" if flags.get("LumpSumItem") == "Yes" or flags.get("extra_type_flag") == "L" else "unit_rate"
+    lump = flags.get("LumpSumItem") == "Yes" or flags.get("extra_type_flag") == "L" or flags.get("MarkupItem") == "Yes"
+    pricing = "lump_sum" if lump else "unit_rate"
     if flags.get("Provis") == "WithoutTotal" or flags.get("provisional_flag") == "E":
         total_rule = "unit_price_only"
     elif flags.get("Provis") or flags.get("AltItem") or flags.get("position_type") == "A":
@@ -285,10 +287,12 @@ def from_import(result: Any, *, document: SourceDocument | None = None, boq_inde
     sections, section_keys = _sections_from_records(records, doc_key)
     lines = _lines_from_records(records, doc_key, sections, section_keys)
 
-    subtotals = {tuple(r.payload.get("code_parts") or ()): to_decimal(r.payload.get("reported_amount"))
-                 for r in records if r.kind == "subtotal"}
+    subtotals = {tuple(r.payload.get("code_parts") or ()): r.payload for r in records if r.kind == "subtotal"}
     for section in sections:
-        section.stated_total = subtotals.get(tuple(section.code_parts))
+        subtotal = subtotals.get(tuple(section.code_parts), {})
+        section.stated_total = to_decimal(subtotal.get("reported_amount"))
+        section.stated_total_after_discount = to_decimal(subtotal.get("discounted_amount"))
+        section.stated_lump_sum_total = to_decimal(subtotal.get("lump_sum_amount"))
     summary = next((r.payload for r in records if r.kind == "summary"), {})
 
     analysis_input = AnalysisInput(

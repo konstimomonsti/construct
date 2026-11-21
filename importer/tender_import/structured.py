@@ -47,11 +47,20 @@ def gaeb_xml(data: bytes) -> Result:
         boq_title = text(child(boq_info, "LblBoQ")) if boq_info is not None else None
         document_section = {"boq_index": boq_number, "boq_code": boq_code, "boq_title": boq_title}
         result.add("boq_header", {"xml_path": paths.getelementpath(boq)}, **document_section)
+        net_total = stated_total(boq_info)
+        if net_total is not None:
+            result.add("summary", {"xml_path": paths.getelementpath(boq_info)}, **document_section, net_total=net_total)
         walk_gaeb_boq(boq, (), (), document_section, result)
 
     if not any(record.kind == "item" for record in result.records):
         result.warn("no_boq_items", {"part": "document"}, "No structured Item elements were found")
     return result
+
+
+def stated_total(node, field: str = "Total") -> str | None:
+    """An amount in <Totals> under a BoQInfo or BoQCtgy: Total (before discount) or TotAfterDisc."""
+    totals = child(node, "Totals") if node is not None else None
+    return decimal_text(text(child(totals, field))) if totals is not None else None
 
 
 def walk_gaeb_boq(node, code_parts, section_paths, boq, result):
@@ -65,15 +74,24 @@ def walk_gaeb_boq(node, code_parts, section_paths, boq, result):
             "section", locator, **boq, code_parts=list(code_parts), source_id=node.get("ID"),
             label=text(child(node, "LblTx")), parent_section=section_paths[-2] if len(section_paths) > 1 else None,
         )
-    elif tag == "Item":
-        part = node.get("RNoPart")
-        item_parts = (*code_parts, part) if part is not None else code_parts
+        subtotal = stated_total(node)
+        if subtotal is not None:
+            result.add("subtotal", locator, **boq, code_parts=list(code_parts), reported_amount=subtotal,
+                       discounted_amount=stated_total(node, "TotAfterDisc"),
+                       lump_sum_amount=stated_total(node, "TotalLSUM"))
+    elif tag in {"Item", "MarkupItem"}:
+        # RNoIndex is the index letter or digit after the item number (0010 A); like GAEB 90, it is its own part.
+        item_parts = (*code_parts, *(part for part in (node.get("RNoPart"), node.get("RNoIndex")) if part is not None))
         description = child(node, "Description")
         quantity_raw = text(child(node, "Qty"))
         quantity = decimal_text(quantity_raw)
         if quantity_raw is not None and quantity is None:
             result.warn("invalid_quantity", locator, f"Cannot decode quantity {quantity_raw!r}")
         flags = {key: text(child(node, key)) for key in ("LumpSumItem", "Provis", "UPBkdn", "AltItem", "RefDescr")}
+        if tag == "MarkupItem":
+            # A surcharge on other items: a percentage (Markup) of a base amount (ITMarkup), with no quantity or unit.
+            flags.update(MarkupItem="Yes", MarkupType=text(child(node, "MarkupType")),
+                         Markup=text(child(node, "Markup")), ITMarkup=text(child(node, "ITMarkup")))
         result.add(
             "item", locator, **boq, source_id=node.get("ID"), code=".".join(item_parts),
             code_parts=list(item_parts), section_path=section_paths[-1] if section_paths else None,

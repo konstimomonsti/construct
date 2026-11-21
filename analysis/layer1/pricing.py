@@ -8,12 +8,18 @@ from .common import THRESHOLDS, is_counted, label, phase_has_prices
 
 
 @rule("L1.PRICE.MISSING_IN_FILE", layer=1, category="price", severity="error", title="Bid item without price",
-      description="In a bid or award (GAEB 84/86) every counted item needs a unit price.")
+      description="In a bid or award (GAEB 84/86) every counted item needs a unit price. Surcharge items "
+                  "(MarkupItem) only carry an amount.")
 def missing_in_file(ctx):
     if not phase_has_prices(ctx.input):
         return
     for line in ctx.input.lines:
         amounts = line.source_amounts
+        if line.gaeb_flags.get("MarkupItem") == "Yes":
+            if amounts is None or amounts.line_amount is None:
+                yield ctx.finding(line=line, field="line_amount",
+                                  message=f"{label(line)} is a surcharge item with no amount in the file.")
+            continue
         if is_counted(line) and (amounts is None or amounts.unit_price is None):
             yield ctx.finding(line=line, field="unit_price", message=f"{label(line)} has no unit price in the file.")
 

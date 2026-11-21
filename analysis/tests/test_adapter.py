@@ -98,6 +98,32 @@ def test_bid_amounts_and_subtotals():
     assert award.project.currency == "EUR"
 
 
+def test_xml_bid_index_markup_and_totals():
+    from tender_import.structured import gaeb_xml
+    data = b"""<?xml version="1.0"?>
+    <GAEB xmlns="gaeb"><Award><DP>84</DP><BoQ>
+      <BoQInfo><Totals><Total>1200.00</Total></Totals></BoQInfo>
+      <BoQBody><BoQCtgy RNoPart="01"><BoQBody><Itemlist>
+        <Item RNoPart="0010"><UP>10.000</UP><IT>500.00</IT></Item>
+        <Item RNoPart="0010" RNoIndex="A"><UP>5.000</UP><IT>500.00</IT></Item>
+        <MarkupItem RNoPart="0020"><ITMarkup>1000.00</ITMarkup><Markup>10.00</Markup><IT>100.00</IT></MarkupItem>
+      </Itemlist></BoQBody><Totals><Total>1100.00</Total></Totals></BoQCtgy></BoQBody>
+    </BoQ></Award></GAEB>"""
+    analysis_input = adapter.from_import(gaeb_xml(data))
+    assert [line.code for line in analysis_input.lines] == ["01.0010", "01.0010.A", "01.0020"]
+    assert analysis_input.lines[2].pricing_basis == "lump_sum"
+    assert analysis_input.sections[0].stated_total == Decimal("1100.00")
+    assert analysis_input.bom.stated_net_total == Decimal("1200.00")
+    findings = analyze(analysis_input, [1]).findings
+    by_rule = Counter(f.rule_id for f in findings)
+    assert "L1.CODE.DUPLICATE" not in by_rule and "L1.ARITH.SECTION_TOTAL" not in by_rule
+    assert "L1.PRICE.MISSING_IN_FILE" not in by_rule  # the surcharge has an amount and needs no unit price
+    assert by_rule["L1.ARITH.NET_TOTAL"] == 1  # 1200 stated, items add up to 1100
+    assert by_rule["L1.QTY.MISSING"] == by_rule["L1.UNIT.MISSING"] == 1  # one bid-file note each, markup excluded
+    unit_note = next(f for f in findings if f.rule_id == "L1.UNIT.MISSING")
+    assert len(unit_note.related_line_ids) == 2
+
+
 def test_xml_currency_alias():
     assert adapter.from_file(DATA / "[NUMMER_001]_leer.X83").project.currency == "EUR"
 

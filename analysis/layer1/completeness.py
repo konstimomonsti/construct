@@ -8,14 +8,37 @@ from ..registry import rule
 from .common import BID_PHASE, label
 
 
+def is_markup(line) -> bool:
+    """A GAEB surcharge item: a percentage of other items, with no quantity or unit of its own."""
+    return line.gaeb_flags.get("MarkupItem") == "Yes"
+
+
+def bid_file_summary(ctx, missing, field: str, title: str):
+    """GAEB 84 bids carry only prices; quantities, units and texts are in the tender (GAEB 83).
+
+    Instead of one error per line, report the gap once so it doesn't bury the real findings.
+    """
+    return ctx.finding(
+        severity="info", title=title,
+        message=f"{len(missing)} of {len(ctx.input.lines)} items have no {field}. GAEB 84 bids only carry prices; "
+                f"analyze them together with the tender (GAEB 83) to check the {field}s.",
+        evidence={f"lines_without_{field}": len(missing)}, related_line_ids=[line.id for line in missing][:50],
+    )
+
+
 @rule("L1.QTY.MISSING", layer=1, category="completeness", severity="error", title="Quantity missing",
-      description="An item without quantity cannot be priced or totalled. Lump sums are checked separately.")
+      description="An item without quantity cannot be priced or totalled. Lump sums are checked separately. "
+                  "Bid files (GAEB 84) carry no quantities and are reported once.")
 def quantity_missing(ctx):
-    for line in ctx.input.lines:
-        if line.quantity is None and line.pricing_basis != "lump_sum" and line.unit != "lump_sum":
-            raw = f" The source contains {line.quantity_raw!r}, which is not a number." if line.quantity_raw else ""
-            yield ctx.finding(line=line, field="quantity", message=f"{label(line)} has no quantity.{raw}",
-                              evidence={"quantity_raw": line.quantity_raw})
+    missing = [line for line in ctx.input.lines
+               if line.quantity is None and line.pricing_basis != "lump_sum" and line.unit != "lump_sum"]
+    if missing and ctx.input.project.gaeb_phase == BID_PHASE:
+        yield bid_file_summary(ctx, missing, "quantity", "Bid file without quantities")
+        return
+    for line in missing:
+        raw = f" The source contains {line.quantity_raw!r}, which is not a number." if line.quantity_raw else ""
+        yield ctx.finding(line=line, field="quantity", message=f"{label(line)} has no quantity.{raw}",
+                          evidence={"quantity_raw": line.quantity_raw})
 
 
 @rule("L1.QTY.NEGATIVE", layer=1, category="completeness", severity="error", title="Negative quantity",
@@ -59,11 +82,14 @@ def fractional_count(ctx):
 
 
 @rule("L1.UNIT.MISSING", layer=1, category="completeness", severity="error", title="Unit missing",
-      description="Without a unit the quantity has no meaning and no price can be matched.")
+      description="Without a unit the quantity has no meaning and no price can be matched. Surcharge items have no "
+                  "unit, and bid files (GAEB 84) carry no units and are reported once.")
 def unit_missing(ctx):
-    for line in ctx.input.lines:
-        if line.unit is not None:
-            continue
+    missing = [line for line in ctx.input.lines if line.unit is None and not is_markup(line)]
+    if missing and ctx.input.project.gaeb_phase == BID_PHASE:
+        yield bid_file_summary(ctx, missing, "unit", "Bid file without units")
+        return
+    for line in missing:
         fix = None
         if line.pricing_basis == "lump_sum":
             fix = Fix(operations=[SetField(line_id=line.id, field="unit", old_value=None, new_value="lump_sum")],
@@ -88,12 +114,7 @@ def text_missing(ctx):
     if not missing:
         return
     if ctx.input.project.gaeb_phase == BID_PHASE:
-        yield ctx.finding(
-            severity="info", title="Bid file without descriptions",
-            message=f"{len(missing)} of {len(ctx.input.lines)} items have no text. GAEB 84 bids only carry prices; "
-                    f"analyze them together with the tender (GAEB 83) to check the descriptions.",
-            evidence={"lines_without_text": len(missing)}, related_line_ids=[line.id for line in missing][:50],
-        )
+        yield bid_file_summary(ctx, missing, "text", "Bid file without descriptions")
         return
     for line in missing:
         yield ctx.finding(line=line, field="short_text", message=f"{label(line)} has no description.")
