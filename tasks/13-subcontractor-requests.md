@@ -104,4 +104,35 @@ writing emails by hand. BillBuild should do it in one flow:
 
 ## Notes / blockers (fill in)
 
--
+**Built (all within the allowlist):** `lib/subcontract.ts` (package model, one-package-per-position rules, trade
+suggestions, German template), `lib/subcontract-send.ts` (request file, own Excel variant, MIME/`.eml` builder, zip),
+`components/subcontract/*` (overlay, panes, package overview), the menu item and mount in `ExportMenu.tsx`, one field
+in `ListPatch`, `tests/subcontract.test.ts` (20 tests). `npm run lint`, `npm run build`, `npm test` pass (148 tests).
+
+**Decisions**
+- **The budget cannot reach a file or an email by construction.** Both `lib/subcontract-send.ts` and the template take a
+  `PackageRequest` (`name`, `positionIds`, `dueDate`, `format`), never the full package. `tests/subcontract.test.ts` runs the
+  whole pipeline for X83, Excel and PDF with a package that has a budget, an internal note and prices on the list, then
+  searches the raw bytes, the unzipped Excel parts, the decoded email parts and the zip for every way those numbers can be
+  written. The same test proves it can find a number when one is there (a priced CSV export).
+- The list's own unit prices are internal too: they prefill the expected cost, so they are kept out of the request as well.
+- **Excel** is written in `subcontract-send.ts` (the table export has no empty-price variant). EP cells are empty and
+  highlighted, line totals are `IF(EP="","",Menge*EP)`, subtotals are `SUBTOTAL`, `fullCalcOnLoad` is set so no cached number of ours is in the file.
+- **One recipient** downloads a single `.eml` (the file is attached inside it). **Several** download one `.zip` with the
+  request file once plus one `.eml` per subcontractor (salutation per `contact_name`).
+- A subcontractor **without an email** still gets a draft, with no `To:` line, and the overlay warns about it.
+- `sent` and `sentAt` are set by "Export & draft email". "Copy email text" and the `mailto:` link do not change the status
+  (a `mailto:` link cannot carry the attachment, and the overlay says so). "Save as draft" stores the package as `draft`.
+- Moving a position to a package takes it out of the other one. A draft left with no positions is removed; a sent one is kept.
+- The sender block of the email is remembered in `localStorage` (`billbuild:subcontract-sender`), default is a placeholder.
+- Packages live in `listPatch[listId].subcontractPackages`. The backend keeps `listPatch` records as opaque JSON, so no
+  backend change is needed. The budget is therefore stored in the shared workspace (visible to everyone who can open it).
+
+**Not verified**
+- Sync to a **second browser** against the real backend (needs Postgres). The packages travel inside the `listPatch` record
+  that the existing record-level sync already hashes and pushes, but I only ran the UI against a mock of the API.
+- Opening a draft in **Apple Mail and Thunderbird**. The `.eml` follows RFC 5322/2045/2047 (CRLF, quoted-printable text,
+  base64 attachment, `X-Unsent: 1`), and the tests parse it back.
+
+**Blockers / requests**
+- The PR asks for screenshots, but the allowlist has no place for image files, so they are attached to the PR, not committed.
