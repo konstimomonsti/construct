@@ -10,6 +10,7 @@ from analysis.contracts import AnalysisInput, Finding, Line, PriceInfo, Project,
 from analysis.risk import assess
 from analysis.risk.score import score_for_points
 from analysis.risk.signals import collect, matching_families
+from analysis.runner import analyze
 
 
 def line(id="l1", text="Eine eindeutig beschriebene Leistung", **fields):
@@ -150,10 +151,10 @@ def test_related_lines_anchor_once_and_input_is_unchanged():
 def test_real_priced_stbalv_trench_and_unpriced_precast_fixture():
     root = Path(__file__).resolve().parents[3]
     priced = adapter.from_file(root / "data/tenders/StBALV23040.D86")
-    report = assess(priced, [])
+    report = analyze(priced, layers=(1, 2)).risk
     assert report.priced and report.money_at_stake is not None
     assert any("03.02.0003" in (item.line_code or "") for item in report.top_risks)
     fixture = adapter.from_json(Path(__file__).parent / "fixtures/lv11_precast.json")
-    unpriced = assess(fixture, [])
+    unpriced = analyze(fixture, layers=(1, 2)).risk
     assert not unpriced.priced and unpriced.money_at_stake is None
     assert unpriced.top_risks

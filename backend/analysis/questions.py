@@ -54,6 +54,10 @@ DEPENDENCY_DE = {
     "SAFETY_EDGE_OR_LIGHT_BARRIER": "Schaltleiste oder Lichtschranke",
     "DRIVE_POWER_SUPPLY": "Stromversorgung des Antriebs", "WINDOW_SILLS": "Fensterbänke",
     "INSTALLATION_JOINT_SEALING": "Anschlussfugenabdichtung",
+    "SHOP_DRAWINGS": "Werkstatt- und Montageplanung",
+    "TRANSPORT_AND_ASSEMBLY": "Transport und Montage",
+    "JOINT_SEALING": "Fugenabdichtung",
+    "ANCHORS_AND_EMBEDDED_PARTS": "Anker und Einbauteile",
 }
 
 
@@ -359,7 +363,7 @@ def build_questions(analysis_input: AnalysisInput, findings: list[Finding], risk
             text = TEMPLATES[group["template"]][1].format_map(_Safe({"ozs": _oz_list(refs), "n": len(refs)}))
         question = BidderQuestion(id="q_" + sha256(identity.encode()).hexdigest()[:20], rule_id=rule_id,
                                   topic=group["topic"], text_de=text, line_codes=refs, finding_ids=ids)
-        points = sum(risk.points.get(id, 0) for id in group["items"])
+        points = sum((Decimal(str(risk.points.get(id, 0))) for id in sorted(group["items"])), Decimal(0))
         ranked.append((-points, group["order"], question.id, question))
     return [item[-1] for item in sorted(ranked)[:max(0, min(limit, 25))]]
 

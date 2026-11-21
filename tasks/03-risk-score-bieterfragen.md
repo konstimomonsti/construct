@@ -85,9 +85,14 @@ the upload worker, so no new HTTP endpoint is needed.
 - Included optional stored-run recomputation in `backend/analysis_api.py`; it uses
   saved finding review states and the current input, retaining the existing
   `outdated` flag. No endpoint or migration was added.
-- CLI acceptance: StBALV23040.D86 is priced, has money_at_stake 356793.35 EUR,
+- Merged current main including task 01. Added its four new German precast dependency
+  names to the ported dictionary; no other task's implementation was modified.
+- CLI acceptance after merging task 01: StBALV23040.D86 is priced, has money_at_stake 369665.03 EUR,
   and ranks trench 03.02.0003 in its top ten. Unpriced LV_11 has
   priced=false, money_at_stake=null, and ranked positions. Both return schema
   0.2 with risk/questions and no errors. ORT_024 also runs without errors.
 - No implementation blockers. Team-chat tooling is not connected in this session;
   any blocker will be reported in the user chat immediately and recorded here.
+- Final required suite after merging current main: 315 passed, 3 skipped,
+  66 subtests passed. Changes remain inside the task allowlist and only row 03
+  of STATUS.md is edited.
