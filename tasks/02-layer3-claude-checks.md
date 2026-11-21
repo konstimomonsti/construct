@@ -70,4 +70,41 @@ Use prompt caching for the shared system prompt.
 
 ## Notes / blockers (fill in)
 
--
+**Status: PR open. Live numbers pending: no `ANTHROPIC_API_KEY` was available to this worker.**
+
+- **Built:** `checks/precast.py` (extraction + `L3.PRECAST.MISSING_SPEC` + `L3.OPT.BUNDLED_FORMWORK`),
+  `checks/scope.py` (`L3.SCOPE.REBAR_AMBIGUOUS`, `SHOP_DRAWINGS_OVERLAP`, `EMBEDDED_UNALLOCATED`, one audit
+  call per precast section with `ANALYSIS_L3_AUDIT_MODEL`), `checks/underspecified.py`, `checks/quantities.py`.
+  DEP_001/DEP_002 and the bundled length are computed in Python from the extracted fields. Extracted values
+  the text doesn't back (grade, RAL, element mark not written there; height/length without a height/length
+  word) count as missing. Scope answers must cite an item of the right type, or they are dropped.
+- **Budget / speed:** prod defaults `ANALYSIS_L3_MAX_CALLS=12`, `ANALYSIS_L3_TIMEOUT=30`,
+  `ANALYSIS_L3_DEADLINE=75` (new; later batches are reported in `errors`, not sent). Independent batches of a
+  check run 4 at a time (`ANALYSIS_L3_CONCURRENCY`). The P0 precast checks run first, so they get the budget.
+  LV_11 needs 5 calls (extraction 1, audit 1, contradiction 1, underspecified 1, quantity 1).
+- **Temperature:** Claude Haiku 5.5 and Sonnet 5.5 return HTTP 400 for a non-default `temperature`, so none
+  is sent. Repeat runs are deterministic through the disk cache (test:
+  `test_second_identical_run_is_served_from_cache`, 0 provider calls). The system prompt carries
+  `cache_control` for Anthropic prompt caching (extraction and audit prompts are > 512 tokens).
+- **Worker:** `workspace_analysis.run` already runs layers 1-3 when `ANALYSIS_L3_PROVIDER` is `anthropic`/`ollama`.
+  If layer 3 still crashes, it now re-runs layers 1-2 and stores that report with an error line.
+- **Live cost / duration (acceptance 2):** *pending*. Run
+  `$env:ANTHROPIC_API_KEY="..."; $env:PYTHONPATH="backend;backend/importer"; python -m pytest -q -s -m integration backend/analysis/tests/test_layer3_live.py`;
+  it prints seconds, tokens per model and the USD cost. Expected order of magnitude: about 9 lines -> 4 Haiku calls +
+  1 Sonnet call, well under $0.05.
+- **Eval precision (acceptance 3):** *pending a key*. `python -m analysis.layer3.eval` now also reports
+  precision/recall per (rule, OZ) on 4 task 02 cases (LV_11 + complete precast section + site connection steel
+  section + general quantities/texts). Offline with the FakeProvider it reports precision 1.0, which only
+  shows that the harness works, not how good the model is.
+- **Tests:** `python -m pytest -q backend/analysis/tests`: 222 passed, 3 skipped (the live test skips without a key).
+  `backend/tests` has 3 failures on Windows that also happen on `main` (Linux font path, JS MIME type).
+
+### Blockers / requests
+
+- Need `ANTHROPIC_API_KEY` from the lead to fill in the live cost/duration and the eval precision.
+- Please register the `integration` pytest marker in `backend/pyproject.toml`
+  (`markers = ["integration: needs ANTHROPIC_API_KEY"]`). The file is outside this task's allowlist, so pytest
+  currently warns `PytestUnknownMarkWarning`.
+- `L3.TEXT.UNDERSPECIFIED` and `L3.QTY.IMPLAUSIBLE` have no layer 1 signal from task 01 yet; once 01 merges,
+  its `L1.TEXT.SPEC_ATTRIBUTE_MISSING` / `UNCLEAR_DIMENSION` / `SPEC_PLACEHOLDER` / `REFERENCE_UNRESOLVED`
+  findings also make a line a candidate (rule IDs are matched as strings).
