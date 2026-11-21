@@ -61,6 +61,8 @@
 
   --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  /* the sidebar and the content beside it move on one curve, so the edge between them never drifts */
+  --ease-glide: cubic-bezier(0.32, 0.72, 0, 1);
 
   --animate-pulse-dot: pulse-dot 1.8s ease-in-out infinite;
   @keyframes pulse-dot {

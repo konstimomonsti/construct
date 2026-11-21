@@ -49,95 +49,111 @@ export function Sidebar() {
     }
   }, [mobileOpen, isLg, setMobile])
 
+  // [ toggles the rail on desktop, like Linear; ignored while typing or with a dialog/menu open
+  useEffect(() => {
+    if (!isLg) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== '[' || e.metaKey || e.ctrlKey || e.altKey || e.defaultPrevented) return
+      if ((e.target as HTMLElement).closest('input,textarea,select,[contenteditable=true]')) return
+      if (document.querySelector('[role=dialog],[role=menu]')) return
+      e.preventDefault()
+      toggle()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [isLg, toggle])
+
+  /*
+   * Opening and closing only changes the width. Every icon keeps its x (centred on the 72px rail at x=36), and labels
+   * clip and fade in place instead of mounting/unmounting, so nothing jumps or reflows inside the sidebar. Labels fade
+   * out fast when closing and fade in slightly late when opening, so text is never squeezed while the edge moves.
+   */
+  const label = clsx('whitespace-nowrap transition-opacity', rail ? 'opacity-0 duration-100' : 'opacity-100 delay-100 duration-200')
   const body = (
     <aside
       aria-label="Sidebar"
       inert={!isLg && !mobileOpen}
       className={clsx(
-        'fixed top-0 left-0 z-50 flex h-full w-60 flex-col justify-between border-r border-slate-200/70 bg-slate-50 transition-[transform,width] duration-200 ease-out-expo select-none',
+        'fixed top-0 left-0 z-50 flex h-full w-60 flex-col overflow-hidden border-r border-slate-200/70 bg-slate-50 transition-[transform,width] duration-[260ms] ease-glide select-none',
         rail && 'lg:w-[72px]',
         mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
       )}
     >
-      <div className="flex min-h-0 flex-col">
-        <div className={clsx('flex h-16 shrink-0 items-center border-b border-slate-200', rail ? 'justify-center px-2' : 'justify-between pr-3 pl-5')}>
-          <div className="flex items-center gap-2.5">
-            <img
-              src="/billbuild-logo.png"
-              width={32}
-              height={32}
-              alt={rail ? 'BillBuild' : ''}
-              className="size-8 shrink-0 rounded-md"
-            />
-            {!rail && <span className="display text-[17px] text-slate-900">BillBuild</span>}
-          </div>
-          {!rail && (
-            <button
-              type="button"
-              aria-label={isLg ? 'Collapse sidebar' : 'Close navigation'}
-              title={isLg ? 'Collapse sidebar' : 'Close navigation'}
-              onClick={() => (isLg ? toggle() : setMobile(false))}
-              className="flex size-9 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-200/70 hover:text-slate-900"
-            >
-              <Icon name={isLg ? 'dock_to_left' : 'close'} size={20} />
-            </button>
-          )}
-        </div>
-
-        <div className="mt-2 min-h-0 space-y-5 overflow-y-auto px-3 pb-3">
-          {NAV_GROUPS.map(({ label, links }, gi) => (
-            <nav key={label} aria-label={label} className="space-y-1">
-              {gi > 0 && (rail
-                ? <div aria-hidden className="mx-3 mb-3 border-t border-slate-300" />
-                : <h2 className="px-4 pt-1 pb-1.5 text-[13px] font-semibold text-slate-500">{label}</h2>)}
-              {links.map((n) => (
-                <NavLink
-                  key={n.to}
-                  to={n.to}
-                  end={n.end}
-                  title={n.label}
-                  aria-current={nested && n.to === '/' ? 'location' : undefined}
-                  className={({ isActive }) =>
-                    clsx(
-                      'relative flex h-11 items-center gap-3 rounded-md text-[15px] transition-colors',
-                      rail ? 'justify-center px-0' : 'px-4',
-                      isActive
-                        ? 'bg-slate-200/70 font-semibold text-slate-900 before:absolute before:inset-y-2 before:left-0 before:w-0.5 before:rounded-full before:bg-brand-600'
-                        : nested && n.to === '/'
-                          ? 'font-semibold text-slate-900 before:absolute before:inset-y-2 before:left-0 before:w-0.5 before:rounded-full before:bg-brand-600 hover:bg-slate-200/50'
-                          : 'font-medium text-slate-700 hover:bg-slate-200/50 hover:text-slate-900',
-                    )
-                  }
-                >
-                  {({ isActive: active }) => {
-                    const isActive = active || (nested && n.to === '/')
-                    return (
-                    <>
-                      <Icon name={n.icon} size={20} fill={isActive} className={isActive ? 'text-brand-700' : 'text-slate-500'} />
-                      {!rail && <span className="flex-1">{n.label}</span>}
-                    </>
-                    )
-                  }}
-                </NavLink>
-              ))}
-            </nav>
-          ))}
-        </div>
-      </div>
-
-      {rail && (
-        <div className="shrink-0 p-3">
+      <div className="relative h-16 shrink-0 border-b border-slate-200">
+        {rail ? (
           <button
             type="button"
             onClick={toggle}
             aria-label="Expand sidebar"
-            title="Expand sidebar"
-            className="flex h-11 w-full items-center justify-center rounded-md text-slate-500 hover:bg-slate-200/50 hover:text-slate-900"
+            title="Expand sidebar  ["
+            className="group/logo absolute top-3 left-4 flex size-10 items-center justify-center rounded-md hover:bg-slate-200/70 focus-visible:bg-slate-200/70"
           >
-            <Icon name="dock_to_right" size={20} />
+            <img src="/billbuild-logo.png" width={32} height={32} alt="" className="size-8 rounded-md transition-opacity duration-150 group-hover/logo:opacity-0 group-focus-visible/logo:opacity-0" />
+            <Icon name="dock_to_right" size={20} className="absolute text-slate-700 opacity-0 transition-opacity duration-150 group-hover/logo:opacity-100 group-focus-visible/logo:opacity-100" />
           </button>
-        </div>
-      )}
+        ) : (
+          <span className="absolute top-3 left-4 flex size-10 items-center justify-center">
+            <img src="/billbuild-logo.png" width={32} height={32} alt="" className="size-8 rounded-md" />
+          </span>
+        )}
+        <span aria-hidden={rail} className={clsx('display absolute top-1/2 left-[62px] -translate-y-1/2 text-[17px] text-slate-900', label)}>
+          BillBuild
+        </span>
+        <button
+          type="button"
+          inert={rail}
+          aria-label={isLg ? 'Collapse sidebar' : 'Close navigation'}
+          title={isLg ? 'Collapse sidebar  [' : 'Close navigation'}
+          onClick={() => (isLg ? toggle() : setMobile(false))}
+          className={clsx(
+            'absolute top-3.5 right-3 flex size-9 items-center justify-center rounded-md text-slate-500 transition-[color,background-color,opacity] hover:bg-slate-200/70 hover:text-slate-900',
+            rail ? 'opacity-0 duration-100' : 'opacity-100 delay-100 duration-200',
+          )}
+        >
+          <Icon name={isLg ? 'dock_to_left' : 'close'} size={20} />
+        </button>
+      </div>
+
+      <div className="mt-2 min-h-0 space-y-4 overflow-x-hidden overflow-y-auto px-3 pb-3">
+        {NAV_GROUPS.map(({ label: group, links }, gi) => (
+          <nav key={group} aria-label={group} className="space-y-1">
+            {gi > 0 && (
+              // the heading and the rail's divider share one fixed-height slot, so the links below never shift
+              <div className="relative h-8">
+                <h2 className={clsx('absolute bottom-1.5 left-[14px] text-[13px] font-semibold text-slate-500', label)}>{group}</h2>
+                <div aria-hidden className={clsx('absolute inset-x-3 top-1/2 border-t border-slate-300 transition-opacity', rail ? 'opacity-100 delay-100 duration-200' : 'opacity-0 duration-100')} />
+              </div>
+            )}
+            {links.map((n) => (
+              <NavLink
+                key={n.to}
+                to={n.to}
+                end={n.end}
+                title={rail ? n.label : undefined}
+                aria-current={nested && n.to === '/' ? 'location' : undefined}
+                className={({ isActive }) =>
+                  clsx(
+                    'relative flex h-11 items-center gap-3 overflow-hidden rounded-md pl-[14px] text-[15px] transition-colors',
+                    isActive || (nested && n.to === '/')
+                      ? clsx('font-semibold text-slate-900 before:absolute before:inset-y-2 before:left-0 before:w-0.5 before:rounded-full before:bg-brand-600', isActive ? 'bg-slate-200/70' : 'hover:bg-slate-200/50')
+                      : 'font-medium text-slate-700 hover:bg-slate-200/50 hover:text-slate-900',
+                  )
+                }
+              >
+                {({ isActive: active }) => {
+                  const isActive = active || (nested && n.to === '/')
+                  return (
+                    <>
+                      <Icon name={n.icon} size={20} fill={isActive} className={clsx('shrink-0', isActive ? 'text-brand-700' : 'text-slate-500')} />
+                      <span className={label}>{n.label}</span>
+                    </>
+                  )
+                }}
+              </NavLink>
+            ))}
+          </nav>
+        ))}
+      </div>
     </aside>
   )
 

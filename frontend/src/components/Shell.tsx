@@ -44,7 +44,7 @@ export function Shell() {
         Skip to content
       </a>
       <Sidebar />
-      <div data-shell-main className={clsx('flex min-h-screen min-w-0 flex-col transition-[padding] duration-200 ease-out-expo', collapsed ? 'lg:pl-[72px]' : 'lg:pl-60')}>
+      <div data-shell-main className={clsx('flex min-h-screen min-w-0 flex-col transition-[padding] duration-[260ms] ease-glide', collapsed ? 'lg:pl-[72px]' : 'lg:pl-60')}>
         <Header />
         <main id="main" className="relative flex min-w-0 flex-1 flex-col">
           <Suspense fallback={<div className="mx-auto w-full max-w-[1120px] px-4 pt-8 sm:px-8" role="status" aria-label="Loading page"><GridSkeleton /></div>}>
