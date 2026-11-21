@@ -57,6 +57,7 @@ export async function riskXlsx({ title, report, decisions, codes, questionTexts 
     ['List', title],
     ['Exported', now.toISOString().slice(0, 10)],
     ...(live && risk ? [['Risk score', live.score], ['Risk level', live.level], ['Score at upload', risk.score]] as [string, string | number][] : []),
+    ['Blocking status', live?.level === 'critical' || open.some((f) => f.severity === 'error') ? 'Blocked (Action required)' : 'Clear'],
     ['Money at stake', risk?.money_at_stake ? `${risk.money_at_stake} ${risk.currency}` : 'not priced'],
     ['Findings', report.findings.length],
     ['Reviewed', `${report.findings.length - open.length} of ${report.findings.length}`],
@@ -79,13 +80,14 @@ export async function riskXlsx({ title, report, decisions, codes, questionTexts 
   const lineCode = (f: Finding) => f.target.line_code ?? (f.target.line_id ? codes.get(f.target.line_id) : undefined) ?? f.target.section_id ?? ''
 
   const log = wb.addWorksheet('Findings_Log', { views: [{ state: 'frozen', ySplit: 1 }] })
-  log.columns = [14, 30, 22, 10, 14, 60, 45, 60, 22, 30].map((width) => ({ width }))
-  header(log, ['OZ', 'Rule', 'Layer / source', 'Severity', 'Category', 'Message', 'Recommended action', 'Bieterfrage', 'Decision', 'Reason / note'])
+  log.columns = [14, 30, 22, 10, 16, 14, 60, 45, 60, 22, 30].map((width) => ({ width }))
+  header(log, ['OZ', 'Rule', 'Layer / source', 'Severity', 'Priority / Action', 'Category', 'Message', 'Recommended action', 'Bieterfrage', 'Decision', 'Reason / note'])
   report.findings.forEach((f, i) => {
     const d = decisions[f.id]
     const row = log.getRow(i + 2)
     row.values = [
-      lineCode(f), f.rule_id, `${LAYER[f.layer] ?? `Layer ${f.layer}`}${f.origin === 'llm' && f.model ? ` · ${f.model}` : ''}`, f.severity, f.category ?? '',
+      lineCode(f), f.rule_id, `${LAYER[f.layer] ?? `Layer ${f.layer}`}${f.origin === 'llm' && f.model ? ` · ${f.model}` : ''}`, f.severity,
+      f.severity === 'error' ? 'Blocking' : f.severity === 'warning' ? 'High' : 'Normal', f.category ?? '',
       `${f.title}: ${f.message}`, f.suggested_fix?.rationale ?? '', questionOf.get(f.id) ?? f.evidence?.bieterfrage_de ?? '',
       decisionText(d), [d?.reason ? REASONS[d.reason] : '', d?.note ?? ''].filter(Boolean).join(' – '),
     ]

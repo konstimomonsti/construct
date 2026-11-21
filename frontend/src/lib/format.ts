@@ -88,7 +88,7 @@ export function budgetStatus(total: number, cap: number): { tone: 'ok' | 'cautio
   if (!cap) return { tone: 'none', word: 'No cap', pct: 0 }
   const pct = (total / cap) * 100
   const tone = usageTone(pct)
-  const word = tone === 'over' ? 'Over cap' : tone === 'warn' ? 'Almost at cap' : tone === 'caution' ? 'Near cap' : 'On track'
+  const word = tone === 'over' ? 'Over cap' : pct === 100 ? 'At cap' : tone === 'warn' ? 'Almost at cap' : tone === 'caution' ? 'Near cap' : 'On track'
   /* caution / warn / over all count as "needs attention" (see needsAttention) */
   return { tone, word, pct }
 }

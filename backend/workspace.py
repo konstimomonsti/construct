@@ -97,7 +97,7 @@ def apply(connection, payload):
                          for collection, key, value in writes],
                     )
             workspace_catalogue.workspace_changed(connection, WORKSPACE, writes, old_folders)
-            workspace_analysis.enqueue(connection, WORKSPACE, writes)
+            workspace_analysis.enqueue(connection, WORKSPACE, writes, revision=revision)
         return state(connection)
 
 

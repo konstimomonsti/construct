@@ -29,6 +29,11 @@ export function RiskPrint({ title, report, risk, decisions, sections, questions,
   return createPortal(
     <div className="risk-print">
       <h1>Risk review: {title}</h1>
+      {live.level === 'critical' && (
+        <p className="critical-warning" style={{ color: '#b91c1c', fontWeight: 600 }}>
+          CRITICAL PRIORITY · Action required: high-exposure items must be reviewed before tender submission.
+        </p>
+      )}
       <p>
         Risk score {int(live.score)} ({live.level}) · Money at stake {atStake != null && Number.isFinite(atStake) && risk.priced
           ? money(atStake) : risk.priced ? 'Unavailable' : 'Not priced'} · {printedAt}

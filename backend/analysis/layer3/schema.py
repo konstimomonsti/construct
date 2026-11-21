@@ -314,18 +314,44 @@ class QuantityItem(_Answer):
 # --------------------------------------------------------------------------- helpers
 
 
-def items(answer: dict[str, Any], key: str, model: type[_Answer]) -> tuple[list[Any], int]:
-    """Validate each item of answer[key]. Returns (valid items, number dropped)."""
-    raw = answer.get(key)
+def items(answer: dict[str, Any], key: str, model: type[_Answer], rule_id: str | None = None) -> tuple[list[Any], int]:
+    """Validate each item of answer[key]. Returns (valid items, number dropped).
+
+    Valid empty arrays (e.g. {"findings": []}) return ([], 0).
+    Missing envelopes, null arrays, non-dict answers return ([], 1) dropped.
+    """
+    if not isinstance(answer, dict):
+        return [], 1
+    if key not in answer or answer[key] is None:
+        _record_session(0, 1, rule_id)
+        return [], 1
+    raw = answer[key]
     if not isinstance(raw, list):
-        return [], 1 if raw is not None else 0
+        _record_session(0, 1, rule_id)
+        return [], 1
     valid, dropped = [], 0
     for entry in raw:
+        if not isinstance(entry, dict):
+            dropped += 1
+            continue
         try:
             valid.append(model.model_validate(entry))
         except ValidationError:
             dropped += 1
+    _record_session(len(valid), dropped, rule_id)
     return valid, dropped
+
+
+def _record_session(valid_count: int, dropped_count: int, rule_id: str | None = None) -> None:
+    try:
+        from .common import current
+        session = current()
+        if session is not None:
+            session.validated += valid_count
+            if dropped_count > 0:
+                session.dropped[rule_id or "validation"] += dropped_count
+    except Exception:
+        pass
 
 
 def clamp_confidence(value: float) -> float:

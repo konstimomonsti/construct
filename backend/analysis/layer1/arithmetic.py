@@ -6,6 +6,7 @@ so the corrected amount is quantity x unit price.
 
 from decimal import Decimal
 
+from ..graph import validate_graph
 from ..registry import rule
 from .common import THRESHOLDS, is_counted, label, money, section_label
 
@@ -31,9 +32,20 @@ def line_amount(ctx):
             )
 
 
+def line_effective_amount(line) -> Decimal:
+    if line.source_amounts and line.source_amounts.line_amount is not None:
+        return line.source_amounts.line_amount
+    up = line.source_amounts.unit_price if line.source_amounts else (line.price.unit_price if line.price else None)
+    if up is not None and line.quantity is not None:
+        return money(line.quantity * up)
+    if line.pricing_basis == "lump_sum" and up is not None:
+        return money(up)
+    return Decimal(0)
+
+
 def _counted_amount(lines) -> Decimal:
-    return sum((line.source_amounts.line_amount for line in lines
-                if is_counted(line) and line.source_amounts and line.source_amounts.line_amount is not None),
+    return sum((line_effective_amount(line) for line in lines
+                if is_counted(line) and line_effective_amount(line) is not None),
                Decimal(0))
 
 
@@ -51,29 +63,62 @@ class _SectionSums:
             return section.stated_total_after_discount
         return section.stated_lump_sum_total
 
-    def __init__(self, analysis_input):
-        known = {section.id for section in analysis_input.sections}
+    def __init__(self, analysis_input, graph=None):
+        if graph is None:
+            graph = validate_graph(analysis_input)
+        self.graph = graph
+        self.invalid_section_ids = graph.invalid_section_ids
+        sections_by_id = {s.id: s for s in analysis_input.sections}
+
         self.lines: dict[str | None, list] = {}
         for line in analysis_input.lines:
-            self.lines.setdefault(line.section_id if line.section_id in known else None, []).append(line)
-        self.children: dict[str | None, list] = {}
-        for section in analysis_input.sections:
-            self.children.setdefault(section.parent_id if section.parent_id in known else None, []).append(section)
-        self._computed: dict[str | None, Decimal] = {}
+            if line.section_id in self.invalid_section_ids:
+                continue
+            # Unknown non-None section_id is an invalid orphan line; only true unplaced lines (section_id is None) belong to None
+            if line.section_id is not None and line.section_id not in sections_by_id:
+                continue
+            self.lines.setdefault(line.section_id, []).append(line)
 
-    def computed(self, section_id: str | None) -> Decimal:
-        """Amount of a section (None: the whole BoQ) from its items and its child sections."""
+        self.children: dict[str | None, list] = {}
+        for parent_id, child_ids in graph.safe_section_children.items():
+            self.children[parent_id] = [sections_by_id[cid] for cid in child_ids if cid in sections_by_id]
+
+        self._computed: dict[str | None, Decimal | None] = {}
+
+    def computed(self, section_id: str | None) -> Decimal | None:
+        """Amount of a section (None: the whole BoQ) from its items and its child sections.
+
+        Returns None if section is invalid or BoQ has invalid branches.
+        """
+        if section_id in self.invalid_section_ids:
+            return None
+        if section_id is None and self.invalid_section_ids:
+            return None
         if section_id not in self._computed:
             total = _counted_amount(self.lines.get(section_id, []))
             for child in self.children.get(section_id, []):
                 carried = self.carried(child)
-                total += carried if carried is not None else self.computed(child.id)
+                child_comp = carried if carried is not None else self.computed(child.id)
+                if child_comp is None:
+                    total = None
+                    break
+                total += child_comp
             self._computed[section_id] = total
         return self._computed[section_id]
 
     def discounted_children(self, section_id: str | None) -> list[str]:
         return [section_label(child) for child in self.children.get(section_id, [])
                 if self.carried(child) is not None]
+
+    def has_missing_amounts(self, section_id: str | None) -> bool:
+        """True if any counted line in this section (or its subtree) is missing an amount."""
+        lines = self.lines.get(section_id, [])
+        if any(is_counted(l) and line_effective_amount(l) is None for l in lines):
+            return True
+        for child in self.children.get(section_id, []):
+            if self.carried(child) is None and self.has_missing_amounts(child.id):
+                return True
+        return False
 
 
 def _unplaced_match(ctx, difference: Decimal) -> list[str]:
@@ -88,16 +133,18 @@ def _unplaced_match(ctx, difference: Decimal) -> list[str]:
 def section_total(ctx):
     sums = _SectionSums(ctx.input)
     for section in ctx.input.sections:
-        if section.stated_total is None:
+        if section.stated_total is None or section.id in sums.invalid_section_ids:
             continue
         computed = sums.computed(section.id)
-        difference = section.stated_total - computed
-        if abs(difference) <= THRESHOLDS.total_tolerance:
+        if computed is None:
             continue
         if section.stated_total == 0:
             yield ctx.finding(section=section, severity="info", title="Section subtotal not filled in",
                               message=f"Section {section_label(section)} states 0.00 but its items add up to {computed}.",
                               evidence={"stated": section.stated_total, "computed": computed})
+            continue
+        difference = section.stated_total - computed
+        if abs(difference) <= THRESHOLDS.total_tolerance:
             continue
         explained = _unplaced_match(ctx, difference)
         hint = " An item outside every section has exactly the missing amount." if explained else ""
@@ -116,14 +163,19 @@ def net_total(ctx):
     stated = ctx.input.bom.stated_net_total
     if stated is None:
         return
-    computed = _SectionSums(ctx.input).computed(None)
-    difference = stated - computed
-    if abs(difference) <= THRESHOLDS.total_tolerance:
+    sums = _SectionSums(ctx.input)
+    if sums.invalid_section_ids:
+        return
+    computed = sums.computed(None)
+    if computed is None:
         return
     if stated == 0:
         yield ctx.finding(severity="info", title="Net total not filled in",
                           message=f"The file states a net total of 0.00 but its items add up to {computed}.",
                           evidence={"stated": stated, "computed": computed})
+        return
+    difference = stated - computed
+    if abs(difference) <= THRESHOLDS.total_tolerance:
         return
     yield ctx.finding(message=f"The file states a net total of {stated}, its items add up to {computed} "
                               f"(difference {difference}).",

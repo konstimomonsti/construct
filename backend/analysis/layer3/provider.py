@@ -44,6 +44,9 @@ class ProviderUnavailable(ProviderError):
     """The provider can't be used at all (not running, no credentials, unknown model). Stop calling it."""
 
 
+MAX_REQUEST_CHARS = 200_000
+
+
 @dataclass(frozen=True)
 class LLMRequest:
     system: str
@@ -52,8 +55,9 @@ class LLMRequest:
     prompt_version: str
 
     def cache_key(self, model_id: str) -> str:
+        confidential = "confidential" if os.environ.get("ANALYSIS_L3_CONFIDENTIAL", "").strip().lower() in ("1", "true", "yes", "on") else "standard"
         payload = {"model": model_id, "prompt_version": self.prompt_version, "system": self.system,
-                   "prompt": self.prompt, "schema": self.schema}
+                   "prompt": self.prompt, "schema": self.schema, "confidentiality": confidential}
         canonical = json.dumps(payload, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
         return sha256(canonical.encode("utf-8")).hexdigest()
 
@@ -77,15 +81,18 @@ class OllamaProvider:
     """Local model through Ollama's /api/chat with a JSON-schema `format` and temperature 0."""
 
     def __init__(self, model: str = DEFAULT_OLLAMA_MODEL, host: str | None = None,
-                 timeout: float = DEFAULT_TIMEOUT):
+                 timeout: float = DEFAULT_TIMEOUT, opener: Any | None = None):
         self.model = model
         self.model_id = f"ollama/{model}"
         self.host = (host or os.environ.get("OLLAMA_HOST") or "http://localhost:11434").rstrip("/")
         if "://" not in self.host:
             self.host = "http://" + self.host
         self.timeout = timeout
+        self.opener = opener
 
     def complete_json(self, request: LLMRequest, details: ResponseDetails | None = None) -> dict[str, Any]:
+        if len(request.prompt) + len(request.system) > MAX_REQUEST_CHARS:
+            raise ProviderError(f"request size ({len(request.prompt) + len(request.system)} chars) exceeds maximum allowed ({MAX_REQUEST_CHARS} chars)")
         body = {
             "model": self.model, "stream": False, "format": request.schema,
             "options": {"temperature": 0, "seed": 0},
@@ -97,7 +104,8 @@ class OllamaProvider:
             headers={"Content-Type": "application/json"}, method="POST",
         )
         try:
-            with urllib.request.urlopen(http_request, timeout=self.timeout) as response:
+            urlopen_fn = self.opener or urllib.request.urlopen
+            with urlopen_fn(http_request, timeout=self.timeout) as response:
                 raw = response.read().decode("utf-8", "replace")
                 if details is not None:
                     details.raw = raw
@@ -113,6 +121,12 @@ class OllamaProvider:
             if exc.code == 404:
                 raise ProviderUnavailable(f"Ollama model {self.model!r} not found ({detail}); "
                                           f"run `ollama pull {self.model}`") from exc
+            if exc.code in (401, 403):
+                raise ProviderUnavailable(f"Ollama authentication failed: HTTP {exc.code} ({detail})") from exc
+            if exc.code == 429:
+                raise ProviderError(f"Ollama rate limit reached: HTTP 429 ({detail})") from exc
+            if exc.code == 413:
+                raise ProviderError(f"Ollama payload too large: HTTP 413 ({detail})") from exc
             raise ProviderError(f"Ollama HTTP {exc.code}: {detail}") from exc
         except TimeoutError as exc:
             raise ProviderError(f"Ollama timed out after {self.timeout:.0f}s") from exc
@@ -124,6 +138,11 @@ class OllamaProvider:
             raise ProviderError(f"Ollama returned invalid JSON: {exc}") from exc
         message = payload.get("message") if isinstance(payload, dict) else None
         content = message.get("content") if isinstance(message, dict) else None
+        done_reason = payload.get("done_reason") if isinstance(payload, dict) else None
+        if done_reason == "length":
+            raise ProviderError("Ollama answer truncated (done_reason=length)")
+        if done_reason == "refusal":
+            raise ProviderError("Ollama declined the request (done_reason=refusal)")
         if details is not None:
             if isinstance(content, str):
                 details.raw = content
@@ -146,7 +165,7 @@ class AnthropicProvider:
     """
 
     def __init__(self, model: str = DEFAULT_ANTHROPIC_MODEL, timeout: float = DEFAULT_TIMEOUT,
-                 max_tokens: int = 16000, effort: str = "low"):
+                 max_tokens: int = 16000, effort: str = "low", client: Any | None = None):
         try:
             import anthropic
         except ImportError as exc:
@@ -159,12 +178,17 @@ class AnthropicProvider:
         self.max_tokens = max_tokens
         self.effort = effort
         self.usage: dict[str, int] = {}
-        try:
-            self._client = anthropic.Anthropic(timeout=timeout, max_retries=2)
-        except Exception as exc:  # e.g. no credentials could be resolved
-            raise ProviderUnavailable(f"Anthropic client could not be created: {exc}") from exc
+        if client is not None:
+            self._client = client
+        else:
+            try:
+                self._client = anthropic.Anthropic(timeout=timeout, max_retries=2)
+            except Exception as exc:  # e.g. no credentials could be resolved
+                raise ProviderUnavailable(f"Anthropic client could not be created: {exc}") from exc
 
     def complete_json(self, request: LLMRequest, details: ResponseDetails | None = None) -> dict[str, Any]:
+        if len(request.prompt) + len(request.system) > MAX_REQUEST_CHARS:
+            raise ProviderError(f"request size ({len(request.prompt) + len(request.system)} chars) exceeds maximum allowed ({MAX_REQUEST_CHARS} chars)")
         anthropic = self._anthropic
         client = self._client.with_options(max_retries=0) if details is not None else self._client
         try:
@@ -223,10 +247,10 @@ class FakeProvider:
         self.requests.append(request)
         if callable(self.responses):
             answer = self.responses(request)
-        elif self.responses:
-            answer = self.responses.pop(0)
+        elif isinstance(self.responses, list):
+            answer = self.responses.pop(0) if self.responses else {}
         else:
-            answer = {}
+            answer = self.responses
         if isinstance(answer, Exception):
             raise answer
         if isinstance(answer, str):
@@ -244,30 +268,63 @@ class ResponseCache:
         self.directory = Path(directory) if directory else None
         self._memory: dict[str, dict[str, Any]] = {}
 
-    def get(self, key: str) -> dict[str, Any] | None:
+    def get(self, key: str, request: LLMRequest | None = None, model_id: str | None = None) -> dict[str, Any] | None:
+        entry = None
         if key in self._memory:
-            return self._memory[key]
-        if self.directory is None:
+            entry = self._memory[key]
+        elif self.directory is not None:
+            path = self.directory / f"{key}.json"
+            try:
+                raw_entry = json.loads(path.read_text(encoding="utf-8"))
+                if isinstance(raw_entry, dict):
+                    entry = raw_entry
+            except (OSError, json.JSONDecodeError):
+                return None
+
+        if entry is None or not isinstance(entry, dict):
             return None
-        path = self.directory / f"{key}.json"
-        try:
-            entry = json.loads(path.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError):
+
+        # Revalidate cache entry against model_id, prompt_version, and request schema
+        if model_id is not None and entry.get("model") != model_id:
+            self._memory.pop(key, None)
             return None
+
+        if request is not None:
+            if entry.get("prompt_version") != request.prompt_version:
+                self._memory.pop(key, None)
+                return None
+            response = entry.get("response")
+            if not isinstance(response, dict):
+                self._memory.pop(key, None)
+                return None
+            # Validate envelope keys
+            for req_key in request.schema.get("required", []):
+                if req_key not in response or response[req_key] is None:
+                    self._memory.pop(key, None)
+                    return None
+                if request.schema.get("properties", {}).get(req_key, {}).get("type") == "array":
+                    if not isinstance(response[req_key], list):
+                        self._memory.pop(key, None)
+                        return None
+            self._memory[key] = entry
+            return response
+
         response = entry.get("response")
         if isinstance(response, dict):
-            self._memory[key] = response
+            self._memory[key] = entry
             return response
         return None
 
     def put(self, key: str, request: LLMRequest, model_id: str, response: dict[str, Any]) -> None:
-        self._memory[key] = response
+        entry = {"model": model_id, "prompt_version": request.prompt_version, "response": response}
+        self._memory[key] = entry
         if self.directory is None:
             return
+        if os.environ.get("ANALYSIS_L3_CONFIDENTIAL", "").strip().lower() in ("1", "true", "yes", "on"):
+            return  # Do not persist confidential tenders to disk!
         try:
             self.directory.mkdir(parents=True, exist_ok=True)
             tmp = self.directory / f"{key}.json.tmp"
-            entry = {"model": model_id, "prompt_version": request.prompt_version, "response": response}
             tmp.write_text(json.dumps(entry, ensure_ascii=False, indent=1), encoding="utf-8")
             tmp.replace(self.directory / f"{key}.json")
         except OSError:
@@ -275,6 +332,8 @@ class ResponseCache:
 
 
 def cache_from_env() -> ResponseCache:
+    if os.environ.get("ANALYSIS_L3_CONFIDENTIAL", "").strip().lower() in ("1", "true", "yes", "on"):
+        return ResponseCache(None)
     setting = os.environ.get("ANALYSIS_L3_CACHE", "").strip()
     if setting.lower() in ("off", "none", "0", "false"):
         return ResponseCache(None)

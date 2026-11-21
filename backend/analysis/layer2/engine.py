@@ -4,7 +4,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 from decimal import Decimal
 import re
-from typing import Literal
+from typing import Any, Literal
 
 from ..contracts import (
     AddLine, AnalysisInput, Distribution, Finding, Fix, Line, NewLine, Target, finding_key,
@@ -29,6 +29,16 @@ class Context:
     target: Target
     label: str
     entries: list[Entry]
+
+
+_L2_INDEX_CACHE: dict[tuple[Any, str], dict[str, Any]] = {}
+
+
+def _input_key(inp: AnalysisInput) -> Any:
+    if inp.input_hash:
+        return inp.input_hash
+    sample = tuple((l.id, l.code, l.short_text, l.quantity, l.unit) for l in (inp.lines[:3] + inp.lines[-3:]))
+    return (len(inp.lines), len(inp.sections), sample)
 
 
 def _text(line: Line) -> str:
@@ -301,11 +311,22 @@ def run(input: AnalysisInput, prior_findings: list[Finding], *,
     if not tolerance.is_finite() or not Decimal(0) <= tolerance < Decimal(1):
         raise ValueError("Tolerance must be a fraction >= 0 and < 1 (0.10 means 10%)")
     blocked = _blocked_lines(prior_findings)
-    contexts = _contexts(input, scope)
     rules = load_rules() if rules is None else rules
-    texts = {line.id: _text(line) for line in input.lines}
-    short_texts = {line.id: _trigger_text(line) for line in input.lines}
-    unassigned = [entry for context in contexts if context.scope == "bom" for entry in context.entries]
+
+    cache_key = (_input_key(input), scope)
+    if cache_key in _L2_INDEX_CACHE:
+        idx = _L2_INDEX_CACHE[cache_key]
+        contexts, texts, short_texts, unassigned = idx["contexts"], idx["texts"], idx["short_texts"], idx["unassigned"]
+    else:
+        contexts = _contexts(input, scope)
+        texts = {line.id: _text(line) for line in input.lines}
+        short_texts = {line.id: _trigger_text(line) for line in input.lines}
+        unassigned = [entry for context in contexts if context.scope == "bom" for entry in context.entries]
+        if len(_L2_INDEX_CACHE) > 32:
+            _L2_INDEX_CACHE.clear()
+        _L2_INDEX_CACHE[cache_key] = {
+            "contexts": contexts, "texts": texts, "short_texts": short_texts, "unassigned": unassigned
+        }
     findings = []
     for rule in rules:
         trigger_texts = short_texts if rule.trigger_in == "short_text" else texts

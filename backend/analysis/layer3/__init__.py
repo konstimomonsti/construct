@@ -26,6 +26,12 @@ from .provider import (
 
 LAYER = 3
 
+_LAST_OUTCOME: dict | None = None
+
+
+def get_last_outcome() -> dict | None:
+    return _LAST_OUTCOME
+
 
 def run(analysis_input: AnalysisInput, prior_findings: list[Finding], errors: list[str] | None = None, *,
         provider: LLMProvider | None = None, cache: ResponseCache | None = None,
@@ -34,6 +40,7 @@ def run(analysis_input: AnalysisInput, prior_findings: list[Finding], errors: li
 
     With an explicit `provider` and no `audit_provider`, audits use `provider` too (tests, eval).
     """
+    global _LAST_OUTCOME
     errors = errors if errors is not None else []
     if provider is None:
         try:
@@ -41,10 +48,36 @@ def run(analysis_input: AnalysisInput, prior_findings: list[Finding], errors: li
         except ProviderUnavailable as exc:
             errors.append(f"layer 3: {exc}")
             errors.append("layer 3 coverage: 0/0 batches")
+            _LAST_OUTCOME = {
+                "state": "unavailable",
+                "provider": None,
+                "audit_provider": None,
+                "planned": 0,
+                "attempted": 0,
+                "validated": 0,
+                "cached": 0,
+                "failed": 0,
+                "skipped": 0,
+                "dropped": 0,
+                "reasons": [str(exc)],
+            }
             return []
         if provider is None:
             errors.append("layer 3: disabled (ANALYSIS_L3_PROVIDER=none)")
             errors.append("layer 3 coverage: 0/0 batches")
+            _LAST_OUTCOME = {
+                "state": "disabled",
+                "provider": None,
+                "audit_provider": None,
+                "planned": 0,
+                "attempted": 0,
+                "validated": 0,
+                "cached": 0,
+                "failed": 0,
+                "skipped": 0,
+                "dropped": 0,
+                "reasons": ["Layer 3 disabled (ANALYSIS_L3_PROVIDER=none)"],
+            }
             return []
         if audit_provider is None:
             try:
@@ -66,4 +99,5 @@ def run(analysis_input: AnalysisInput, prior_findings: list[Finding], errors: li
     finally:
         reset_session(token)
         session.report()
+        _LAST_OUTCOME = session.outcome()
     return findings

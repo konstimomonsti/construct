@@ -106,12 +106,15 @@ def finalize(analysis_input: AnalysisInput) -> AnalysisInput:
 # --------------------------------------------------------------------------- JSON
 
 
+MAX_FINANCIAL_NUMBER = Decimal("999999999999.99")
+
+
 def parse_number(value: Any) -> Decimal | None:
     """Lenient number parsing for hand-made JSON: 1234.5, "1.234,50", "1,234.50", "4,000"."""
     if value is None or isinstance(value, bool):
         return None
     text = str(value).strip().replace(" ", "").replace(" ", "")
-    if not text:
+    if not text or text.lower() in {"nan", "infinity", "-infinity", "inf", "-inf"}:
         return None
     if "," in text and "." in text:
         if text.rfind(",") > text.rfind("."):
@@ -180,6 +183,10 @@ def from_data(payload: dict | list, *, filename: str | None = None) -> AnalysisI
         container[key] = parse_number(raw)
         if raw is not None and str(raw).strip() and container[key] is None:
             data["import_warnings"].append({"code": "INVALID_NUMBER", "message": f"Cannot parse {key}: {raw!r}",
+                                            "locator": {**locator, "raw": str(raw)}})
+        elif container[key] is not None and abs(container[key]) > MAX_FINANCIAL_NUMBER:
+            container[key] = None
+            data["import_warnings"].append({"code": "OVERSIZED_NUMBER", "message": f"Oversized number in {key}: {raw!r}",
                                             "locator": {**locator, "raw": str(raw)}})
 
     for index, line in enumerate(data["lines"]):
@@ -432,6 +439,36 @@ def from_db(connection, bom_version_id: str) -> AnalysisInput:
         )
     ]
 
+    stated_net = None
+    if document_id:
+        try:
+            subtotal_rows = connection.execute(
+                """
+                SELECT e.payload FROM source_extract e
+                JOIN source_import i ON i.id = e.import_id
+                WHERE i.source_document_id = %s AND e.kind = 'subtotal'
+                """, (document_id,),
+            ).fetchall()
+            subtotals = {tuple(p.get("code_parts") or ()): p for (p,) in subtotal_rows if isinstance(p, dict)}
+            for section in sections:
+                subtotal = subtotals.get(tuple(section.code_parts))
+                if subtotal:
+                    section.stated_total = to_decimal(subtotal.get("reported_amount"))
+                    section.stated_total_after_discount = to_decimal(subtotal.get("discounted_amount"))
+                    section.stated_lump_sum_total = to_decimal(subtotal.get("lump_sum_amount"))
+            summary_row = connection.execute(
+                """
+                SELECT e.payload FROM source_extract e
+                JOIN source_import i ON i.id = e.import_id
+                WHERE i.source_document_id = %s AND e.kind = 'summary'
+                ORDER BY e.ordinal DESC LIMIT 1
+                """, (document_id,),
+            ).fetchone()
+            if summary_row and isinstance(summary_row[0], dict):
+                stated_net = to_decimal(summary_row[0].get("net_total"))
+        except Exception:
+            pass
+
     area_rows = connection.execute(
         """
         SELECT DISTINCT a.id, a.parent_area_id, a.name, a.kind
@@ -484,7 +521,7 @@ def from_db(connection, bom_version_id: str) -> AnalysisInput:
             id=str(project_id), name=project_name, currency=currency, gaeb_phase=phase,
             source_document=SourceDocument(id=_str(document_id), filename=filename, format=document_format),
         ),
-        bom=Bom(bom_version_id=str(version_id), package_code=package_code, title=title),
+        bom=Bom(bom_version_id=str(version_id), package_code=package_code, title=title, stated_net_total=stated_net),
         areas=areas, sections=sections, lines=lines,
         import_warnings=_load_import_warnings(connection, document_id) if document_id else [],
     )

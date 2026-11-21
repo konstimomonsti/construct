@@ -50,12 +50,64 @@ class Session:
     calls: int = 0
     cache_hits: int = 0
     planned: int = 0
-    consecutive_failures: int = 0
-    unavailable: str | None = None
+    main_consecutive_failures: int = 0
+    audit_consecutive_failures: int = 0
+    main_unavailable: str | None = None
+    audit_unavailable: str | None = None
     skipped: Counter = field(default_factory=Counter)  # rule_id -> batches not sent
     dropped: Counter = field(default_factory=Counter)  # rule_id -> answer items that failed validation
     late: Counter = field(default_factory=Counter)  # rule_id -> batches not sent because time ran out
     memo: dict[str, Any] = field(default_factory=dict)  # results shared between the rules of one run
+    attempted: int = 0
+    validated: int = 0
+    failed: int = 0
+    reasons: list[str] = field(default_factory=list)
+
+    @property
+    def unavailable(self) -> str | None:
+        if self.main_unavailable:
+            return self.main_unavailable
+        return self.audit_unavailable
+
+    @unavailable.setter
+    def unavailable(self, val: str | None) -> None:
+        self.main_unavailable = val
+        self.audit_unavailable = val
+
+    @property
+    def consecutive_failures(self) -> int:
+        return max(self.main_consecutive_failures, self.audit_consecutive_failures)
+
+    @consecutive_failures.setter
+    def consecutive_failures(self, val: int) -> None:
+        self.main_consecutive_failures = val
+        self.audit_consecutive_failures = val
+
+    def _state(self) -> str:
+        if self.main_unavailable and (self.audit_unavailable or self.audit_provider is None):
+            return "unavailable"
+        if self.planned == 0:
+            return "no-candidates"
+        total_omitted = sum(self.skipped.values()) + sum(self.late.values())
+        total_dropped = sum(self.dropped.values())
+        if self.failed > 0 or total_omitted > 0 or total_dropped > 0 or self.main_unavailable or self.audit_unavailable:
+            return "degraded"
+        return "complete"
+
+    def outcome(self) -> dict[str, Any]:
+        return {
+            "state": self._state(),
+            "provider": self.provider.model_id,
+            "audit_provider": self.audit_provider.model_id if self.audit_provider else self.provider.model_id,
+            "planned": self.planned,
+            "attempted": self.attempted,
+            "validated": self.validated,
+            "cached": self.cache_hits,
+            "failed": self.failed,
+            "skipped": sum(self.skipped.values()) + sum(self.late.values()),
+            "dropped": sum(self.dropped.values()),
+            "reasons": sorted(set(self.reasons)),
+        }
 
     @property
     def model_id(self) -> str:
@@ -67,17 +119,32 @@ class Session:
     def _provider(self, audit: bool) -> LLMProvider:
         return self.audit_provider if audit and self.audit_provider is not None else self.provider
 
+    def _is_unavailable(self, audit: bool = False) -> bool:
+        return bool(self.audit_unavailable if audit else self.main_unavailable)
+
+    def _reserve(self, rule_id: str, audit: bool = False) -> bool:
+        """Spend one call of the budget, or count the batch as not checked."""
+        if self._is_unavailable(audit) or self.calls >= self.max_calls:
+            self.skipped[rule_id] += 1
+            return False
+        if self.deadline and time.monotonic() - self.started >= self.deadline:
+            self.late[rule_id] += 1
+            return False
+        self.calls += 1
+        self.attempted += 1
+        return True
+
     def ask(self, rule_id: str, request: LLMRequest, *, audit: bool = False) -> dict[str, Any] | None:
         self.planned += 1
         provider = self._provider(audit)
         key = request.cache_key(provider.model_id)
-        cached = self.cache.get(key)
+        cached = self.cache.get(key, request=request, model_id=provider.model_id)
         if cached is not None:
             self.cache_hits += 1
             return cached
-        if not self._reserve(rule_id):
+        if not self._reserve(rule_id, audit=audit):
             return None
-        return self._settle(rule_id, provider, request, key, lambda: provider.complete_json(request))
+        return self._settle(rule_id, provider, request, key, lambda: provider.complete_json(request), audit=audit)
 
     def ask_many(self, rule_id: str, requests: list[LLMRequest], *,
                  audit: bool = False) -> list[dict[str, Any] | None]:
@@ -88,52 +155,98 @@ class Session:
         pending: list[tuple[int, LLMRequest, str]] = []
         for index, request in enumerate(requests):
             key = request.cache_key(provider.model_id)
-            cached = self.cache.get(key)
+            cached = self.cache.get(key, request=request, model_id=provider.model_id)
             if cached is not None:
                 self.cache_hits += 1
                 results[index] = cached
-            elif self._reserve(rule_id):
+            elif self._reserve(rule_id, audit=audit):
                 pending.append((index, request, key))
         if len(pending) <= 1 or self.concurrency <= 1:
             for index, request, key in pending:
+                if self.deadline and time.monotonic() - self.started >= self.deadline:
+                    self.late[rule_id] += 1
+                    continue
                 results[index] = self._settle(rule_id, provider, request, key,
-                                              lambda request=request: provider.complete_json(request))
+                                              lambda request=request: provider.complete_json(request),
+                                              audit=audit)
             return results
         with ThreadPoolExecutor(max_workers=min(self.concurrency, len(pending))) as pool:
             futures = [(index, request, key, pool.submit(provider.complete_json, request))
                        for index, request, key in pending]
             for index, request, key, future in futures:
-                results[index] = self._settle(rule_id, provider, request, key, future.result)
+                if self.deadline:
+                    remaining = self.deadline - (time.monotonic() - self.started)
+                    if remaining <= 0:
+                        for _, _, _, fut in futures:
+                            fut.cancel()
+                        self.late[rule_id] += 1
+                        continue
+                    try:
+                        res_call = lambda fut=future, rem=remaining: fut.result(timeout=rem)
+                        results[index] = self._settle(rule_id, provider, request, key, res_call, audit=audit)
+                    except TimeoutError:
+                        for _, _, _, fut in futures:
+                            fut.cancel()
+                        self.late[rule_id] += 1
+                        self.errors.append(f"{rule_id}: batch timed out (deadline reached)")
+                        self.reasons.append(f"{rule_id}: deadline reached")
+                else:
+                    results[index] = self._settle(rule_id, provider, request, key, future.result, audit=audit)
         return results
 
-    def _reserve(self, rule_id: str) -> bool:
-        """Spend one call of the budget, or count the batch as not checked."""
-        if self.unavailable or self.calls >= self.max_calls:
-            self.skipped[rule_id] += 1
-            return False
-        if self.deadline and time.monotonic() - self.started >= self.deadline:
-            self.late[rule_id] += 1
-            return False
-        self.calls += 1
-        return True
-
     def _settle(self, rule_id: str, provider: LLMProvider, request: LLMRequest, key: str,
-                call: Callable[[], dict[str, Any]]) -> dict[str, Any] | None:
+                call: Callable[[], dict[str, Any]], audit: bool = False) -> dict[str, Any] | None:
         try:
             answer = call()
         except ProviderUnavailable as exc:
-            self.unavailable = str(exc)
+            if audit:
+                self.audit_unavailable = str(exc)
+            else:
+                self.main_unavailable = str(exc)
+            self.failed += 1
             self.skipped[rule_id] += 1
+            self.reasons.append(f"{rule_id}: provider unavailable: {exc}")
             return None
         except Exception as exc:  # ProviderError, or a provider bug: must not hide the other batches
+            self.failed += 1
             message = str(exc) if isinstance(exc, ProviderError) else f"{type(exc).__name__}: {exc}"
             self.errors.append(f"{rule_id}: {message}")
-            self.consecutive_failures += 1
-            if self.consecutive_failures >= MAX_CONSECUTIVE_FAILURES:
-                # A model that times out on every batch would otherwise hold the run for minutes.
-                self.unavailable = f"{self.consecutive_failures} requests failed in a row (last: {message})"
+            self.reasons.append(f"{rule_id}: {message}")
+            if audit:
+                self.audit_consecutive_failures += 1
+                if self.audit_consecutive_failures >= MAX_CONSECUTIVE_FAILURES:
+                    self.audit_unavailable = f"{self.audit_consecutive_failures} requests failed in a row (last: {message})"
+            else:
+                self.main_consecutive_failures += 1
+                if self.main_consecutive_failures >= MAX_CONSECUTIVE_FAILURES:
+                    self.main_unavailable = f"{self.main_consecutive_failures} requests failed in a row (last: {message})"
             return None
-        self.consecutive_failures = 0
+
+        if audit:
+            self.audit_consecutive_failures = 0
+        else:
+            self.main_consecutive_failures = 0
+
+        if not isinstance(answer, dict):
+            self.failed += 1
+            self.reasons.append(f"{rule_id}: malformed response: expected JSON object")
+            return None
+
+        # Validate envelope keys before caching: never cache malformed envelopes
+        has_valid_envelope = True
+        for req_key in request.schema.get("required", []):
+            if req_key not in answer or answer[req_key] is None:
+                has_valid_envelope = False
+                break
+            if request.schema.get("properties", {}).get(req_key, {}).get("type") == "array":
+                if not isinstance(answer[req_key], list):
+                    has_valid_envelope = False
+                    break
+
+        if not has_valid_envelope:
+            self.reasons.append(f"{rule_id}: malformed envelope: missing or invalid required keys")
+            return answer
+
         self.cache.put(key, request, provider.model_id, answer)
         return answer
 
@@ -145,11 +258,15 @@ class Session:
         coverage = f"layer 3 coverage: {checked}/{self.planned} batches"
         if omitted:
             coverage += "; skipped: " + ", ".join(f"{rule_id}×{count}" for rule_id, count in sorted(omitted.items()))
-        if self.unavailable:
-            line = f"layer 3: provider {self.provider.model_id} unavailable: {self.unavailable}"
-            if skipped:
-                line += f"; {skipped} batch(es) not checked"
-            self.errors.append(line)
+        if self.main_unavailable or self.audit_unavailable:
+            if self.main_unavailable:
+                line = f"layer 3: provider {self.provider.model_id} unavailable: {self.main_unavailable}"
+                if skipped:
+                    line += f"; {skipped} batch(es) not checked"
+                self.errors.append(line)
+            if self.audit_unavailable and self.audit_provider and self.audit_provider.model_id != self.provider.model_id:
+                line = f"layer 3: audit provider {self.audit_provider.model_id} unavailable: {self.audit_unavailable}"
+                self.errors.append(line)
             self.errors.append(coverage)
             return
         for rule_id, count in sorted(self.skipped.items()):

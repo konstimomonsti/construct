@@ -373,3 +373,4 @@ class AnalysisResult(_Model):
     errors: list[str] = Field(default_factory=list)  # rules that crashed, layers not available
     risk: RiskReport | None = None
     questions: list[BidderQuestion] = Field(default_factory=list)
+    l3_status: dict[str, Any] | None = None

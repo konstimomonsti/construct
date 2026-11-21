@@ -48,10 +48,31 @@ def analyze(analysis_input: AnalysisInput, layers: Iterable[int] = DEFAULT_LAYER
         except Exception as exc:
             errors.append(f"risk report: {type(exc).__name__}: {exc}")
             risk, questions = None, []
+    l3_status = None
+    if 3 in layers_run:
+        try:
+            import analysis.layer3 as layer3
+            l3_status = layer3.get_last_outcome()
+        except Exception:
+            pass
+    if l3_status is None:
+        l3_status = {
+            "state": "disabled",
+            "provider": None,
+            "audit_provider": None,
+            "planned": 0,
+            "attempted": 0,
+            "validated": 0,
+            "cached": 0,
+            "failed": 0,
+            "skipped": 0,
+            "dropped": 0,
+            "reasons": ["Layer 3 was not requested" if 3 not in layers else "Layer 3 disabled"],
+        }
     return AnalysisResult(
         bom_version_id=analysis_input.bom.bom_version_id, input_hash=analysis_input.input_hash,
         layers_run=layers_run, findings=findings, summary=summarize(findings), errors=errors,
-        risk=risk, questions=questions,
+        risk=risk, questions=questions, l3_status=l3_status,
     )
 
 

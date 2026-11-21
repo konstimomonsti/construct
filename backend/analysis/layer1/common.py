@@ -54,23 +54,9 @@ def text_of(line: Line) -> str:
 
 
 def section_subtrees(analysis_input: AnalysisInput) -> dict[str, set[str]]:
-    """Section id -> ids of the section and all its descendants."""
-    children: dict[str | None, list[str]] = {}
-    for section in analysis_input.sections:
-        children.setdefault(section.parent_id, []).append(section.id)
-    result: dict[str, set[str]] = {}
-
-    def collect(section_id: str) -> set[str]:
-        if section_id not in result:
-            ids = {section_id}
-            for child in children.get(section_id, []):
-                ids |= collect(child)
-            result[section_id] = ids
-        return result[section_id]
-
-    for section in analysis_input.sections:
-        collect(section.id)
-    return result
+    """Section id -> ids of the section and all its descendants (acyclic safe)."""
+    from ..graph import validate_graph
+    return validate_graph(analysis_input).safe_section_subtrees
 
 
 def section_label(section: Section) -> str:

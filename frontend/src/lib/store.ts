@@ -30,12 +30,16 @@ interface ListPatch {
   trashedAt?: string
   cap?: number | null
   folderId?: string
+  sourceListId?: string
   reviewedFindings?: string[]
   /** reviewer decisions on findings and change-order signals (CLAUDE.md §5.5) */
   findingDecisions?: Decisions
   /** positions whose catalogue price suggestion the user dismissed */
   dismissedPrices?: string[]
   subcontractPackages?: SubcontractPackage[]
+  x86Doc?: ListDoc
+  x86ReceivedAt?: string
+  x84SentAt?: string
 }
 export interface ListEdits {
   qty: Record<string, number>
@@ -367,6 +371,11 @@ export interface ListView extends ListMeta {
   phaseName?: string
   /** phase code of a later version of the same tender in this folder (e.g. "D86"); this one is not counted in totals */
   supersededBy?: string
+  pairedX86Id?: string
+  pairedX83Id?: string
+  isCapConfirmed?: boolean
+  capSource?: 'confirmed' | 'inferred' | 'none'
+  duplicateAwardWarning?: boolean
 }
 
 /** descriptions seeded by older builds; never shown */
@@ -377,20 +386,51 @@ export const folderDescription = (f: Pick<FolderMeta, 'description'>) =>
 const stem = (name: string) => name.replace(/\.[^.]+$/, '').trim().toLowerCase()
 
 /** mark earlier GAEB phases of the same tender (same file stem, same folder) as superseded */
-function markVersions(lists: ListView[]): ListView[] {
+export function markVersions(lists: ListView[]): ListView[] {
   const groups = new Map<string, ListView[]>()
   for (const l of lists) {
     if (l.trashedAt || !l.phaseCode) continue
-    const k = `${l.folderId}|${stem(l.fileName)}`
+    const curr = (l.currency || 'EUR').toUpperCase()
+    const k = `${l.folderId}|${stem(l.fileName)}|${curr}`
     groups.set(k, [...(groups.get(k) ?? []), l])
   }
   const latest = new Map<string, string>()
+  const pairedX86 = new Map<string, string>()
+  const pairedX83 = new Map<string, string>()
+  const duplicateAwards = new Set<string>()
+
   for (const g of groups.values()) {
     if (g.length < 2) continue
+
+    const x86Items = g.filter((l) => l.phaseCode?.endsWith("86"))
+    if (x86Items.length > 1) {
+      for (const x of x86Items) duplicateAwards.add(x.id)
+    }
+
     const top = g.reduce((a, b) => (Number(b.phaseCode!.slice(1)) > Number(a.phaseCode!.slice(1)) ? b : a))
-    for (const l of g) if (l !== top) latest.set(l.id, top.phaseCode!)
+    const topPhaseNum = Number(top.phaseCode!.slice(1))
+    const x86Item = g.find((l) => l.phaseCode?.endsWith("86"))
+    const x83Item = g.find((l) => l.phaseCode?.endsWith("83"))
+
+    for (const l of g) {
+      const lPhaseNum = Number(l.phaseCode!.slice(1))
+      // An earlier phase is superseded only when top is a strictly higher phase (phase progression)
+      if (lPhaseNum < topPhaseNum) {
+        latest.set(l.id, top.phaseCode!)
+      }
+      if (x86Item && l.id !== x86Item.id) pairedX86.set(l.id, x86Item.id)
+      if (x83Item && l.id !== x83Item.id) pairedX83.set(l.id, x83Item.id)
+    }
   }
-  return latest.size ? lists.map((l) => (latest.has(l.id) ? { ...l, supersededBy: latest.get(l.id) } : l)) : lists
+
+  return lists.map((l) => {
+    let res = l
+    if (latest.has(l.id)) res = { ...res, supersededBy: latest.get(l.id) }
+    if (pairedX86.has(l.id)) res = { ...res, pairedX86Id: pairedX86.get(l.id) }
+    if (pairedX83.has(l.id)) res = { ...res, pairedX83Id: pairedX83.get(l.id) }
+    if (duplicateAwards.has(l.id)) res = { ...res, duplicateAwardWarning: true }
+    return res
+  })
 }
 
 /** lists that count toward money totals */
@@ -421,7 +461,9 @@ function buildLists(s: State): ListView[] {
     const patch = s.listPatch[m.id] ?? {}
     const st = s.stats[m.id]
     const total = st?.total ?? m.total
-    const cap = patch.cap ?? fixedBudget(m.total)
+    const isCapConfirmed = patch.cap !== undefined && patch.cap !== null
+    const cap = (isCapConfirmed && typeof patch.cap === 'number') ? patch.cap : fixedBudget(m.total)
+    const capSource = isCapConfirmed ? 'confirmed' : (m.total ? 'inferred' : 'none')
     return {
       ...m,
       title: patch.title ?? m.title,
@@ -430,6 +472,8 @@ function buildLists(s: State): ListView[] {
       pricedCount: st?.pricedCount ?? m.pricedCount,
       positionsCount: st?.positionsCount ?? m.positionsCount,
       cap,
+      isCapConfirmed,
+      capSource,
       trashedAt: patch.trashedAt,
       phaseCode: phase?.code,
       phaseName: phase?.name,

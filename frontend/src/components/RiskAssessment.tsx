@@ -24,7 +24,7 @@ export function FindingBadge({ severity, children }: { severity: Severity; child
   return (
     <span className={clsx('inline-flex h-6 max-w-full items-center gap-1 rounded-md px-1.5 text-[13px] font-semibold', style.chip)}>
       <Icon name={style.icon} size={15} fill className="shrink-0" />
-      {children ?? style.label}
+      {children ?? (severity === 'error' ? 'Blocking Error' : style.label)}
     </span>
   )
 }
@@ -69,6 +69,7 @@ export function FindingText({ finding, reviewed, decision, changed, hideRational
 }) {
   const decided = reviewed || !!decision
   const muted = decided || changed
+  const isBlocking = finding.severity === 'error' && !decided
   return (
     <div className={clsx('min-w-0 border-l-[3px] pl-3', muted ? 'border-slate-300' : RISK_UI[finding.severity].bar)}>
       <div className="flex flex-wrap items-center gap-2">
@@ -80,7 +81,7 @@ export function FindingText({ finding, reviewed, decision, changed, hideRational
         ) : (
           <span className={clsx('inline-flex items-center gap-1 text-[13px] font-semibold', muted ? 'text-slate-600' : RISK_UI[finding.severity].ink)}>
             <Icon name={reviewed ? 'check' : changed ? 'edit' : RISK_UI[finding.severity].icon} size={15} fill={!muted} className="shrink-0" />
-            {reviewed ? 'Reviewed' : changed ? 'Changed since upload' : RISK_UI[finding.severity].label}
+            {reviewed ? 'Reviewed' : changed ? 'Changed since upload' : isBlocking ? 'Blocking Error' : RISK_UI[finding.severity].label}
           </span>
         )}
         {finding.origin === 'llm' && (

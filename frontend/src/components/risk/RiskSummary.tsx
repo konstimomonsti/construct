@@ -13,9 +13,19 @@ export function RiskSummary({ risk, decisions }: { risk: Risk; decisions: Decisi
   const live = rescore(risk, decisions)
   const level = LEVEL[live.level]
   const atStake = risk.money_at_stake == null ? null : Number(risk.money_at_stake)
+  const isBlocking = live.level === 'critical'
 
   return (
     <section aria-label="Risk summary" className="mb-5">
+      {isBlocking && (
+        <div role="alert" className="mb-3 rounded-lg border border-rose-300 bg-rose-50 px-4 py-2.5 text-sm text-rose-900">
+          <div className="flex items-center gap-2 font-semibold">
+            <span className="size-2 rounded-full bg-rose-600" />
+            Critical Priority · Action Required
+          </div>
+          <p className="mt-0.5 text-xs text-rose-700">High aggregate risk. Review or resolve open critical items before tender submission.</p>
+        </div>
+      )}
       <dl className="grid max-w-xl grid-cols-2 gap-3">
         <div className="min-w-0 rounded-lg bg-slate-50 px-4 py-3">
           <dt className="text-[13px] font-medium text-slate-600">Risk score</dt>

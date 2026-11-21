@@ -18,6 +18,13 @@ export type Evidence = {
   [key: string]: unknown
 }
 
+export type FixOperation =
+  | { op: 'set_field'; line_id: string; field: string; old_value: unknown; new_value: unknown }
+  | { op: 'add_line'; section_id: string | null; after_line_id: string | null; line: { short_text: string; long_text?: string | null; quantity?: string | number | null; unit?: string | null; pricing_basis?: string }; distributions?: unknown[] }
+  | { op: 'remove_line'; line_id: string }
+  | { op: 'merge_lines'; keep_line_id: string; remove_line_ids: string[]; new_quantity: string | number | null }
+  | { op: 'link_alternative'; line_id: string; alternative_for: string }
+
 export type Finding = {
   id: string
   layer: number
@@ -30,7 +37,7 @@ export type Finding = {
   target: { line_id: string | null; line_code?: string | null; section_id: string | null; field: string | null }
   related_line_ids: string[]
   evidence?: Evidence
-  suggested_fix: { rationale: string } | null
+  suggested_fix: { rationale: string; operations?: FixOperation[] } | null
   origin?: 'rule' | 'llm'
   model?: string | null
 }
@@ -74,15 +81,22 @@ export type Report = {
   summary?: Record<string, unknown>
   risk?: Risk | null
   questions?: Question[] | null
+  outdated?: boolean
+  assessed_revision?: number
+  target_revision?: number
+  state?: string
 }
-type Assessment = { state: 'waiting' | 'failed' | 'unavailable' } | { state: 'ready'; report: Report }
+export type AssessmentState = 'waiting' | 'ready' | 'stale' | 'partial' | 'failed' | 'unavailable'
+export type Assessment =
+  | { state: 'waiting' | 'failed' | 'unavailable'; report?: Report | null }
+  | { state: 'ready' | 'stale' | 'partial'; report: Report }
 
 /* ------------------------------------------------------------------ */
 /* Reviewer decisions (CLAUDE.md §5.5)                                 */
 /* ------------------------------------------------------------------ */
 
 export type DecisionReason = 'not_an_error' | 'covered_elsewhere' | 'by_client' | 'will_ask_client' | 'other'
-export type Decision = { status: 'accepted' | 'dismissed'; reason?: DecisionReason; note?: string; at: string }
+export type Decision = { status: 'accepted' | 'dismissed'; reason?: DecisionReason; note?: string; at: string; applied?: string }
 export type Decisions = Record<string, Decision>
 export const REASONS: Record<DecisionReason, string> = {
   not_an_error: 'Not an error',
@@ -180,12 +194,19 @@ export function useUploadAssessment(id: string | null): Assessment | null {
         if (!response.ok) throw new Error()
         const result = await response.json()
         if (controller.signal.aborted) return
-        if (result.state === 'ready' && Array.isArray(result.report?.findings)) {
-          setAssessment({ state: 'ready', report: result.report })
+        if ((result.state === 'ready' || result.state === 'partial') && Array.isArray(result.report?.findings)) {
+          setAssessment({ state: result.state, report: result.report })
+        } else if (result.state === 'stale' && Array.isArray(result.report?.findings)) {
+          setAssessment({ state: 'stale', report: result.report })
+          timer = setTimeout(refresh, 2000)
         } else if (result.state === 'failed') {
           setAssessment({ state: 'failed' })
-        } else if (result.state === 'queued') {
-          setAssessment({ state: 'waiting' })
+        } else if (result.state === 'queued' || result.state === 'running') {
+          if (Array.isArray(result.report?.findings)) {
+            setAssessment({ state: 'stale', report: result.report })
+          } else {
+            setAssessment({ state: 'waiting' })
+          }
           timer = setTimeout(refresh, 2000)
         } else {
           throw new Error()

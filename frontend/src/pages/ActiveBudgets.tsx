@@ -14,7 +14,7 @@ export function ActiveBudgets() {
   const { lists, folders } = useModel()
   const { listMenu, openLists, deleteLists } = useActions()
   const [key, setKey] = useState<Key>('usage')
-  const [view, setView] = useState<'all' | 'attention'>('all')
+  const [view, setView] = useState<'all' | 'x83' | 'x84' | 'x86' | 'attention'>('all')
   const [selectMode, setSelectMode] = useState(false)
   const [sel, setSel] = useState<Set<string>>(new Set())
 
@@ -29,7 +29,15 @@ export function ActiveBudgets() {
   const rows = useMemo(() => {
     const usage = (l: ListView) => (l.cap ? l.total / l.cap : 0)
     const name = (l: ListView) => folderById.get(l.folderId)?.name ?? ''
-    const r = view === 'attention' ? live.filter((l) => needsAttention(l.total, l.cap)) : [...live]
+    const r = view === 'attention'
+      ? live.filter((l) => needsAttention(l.total, l.cap))
+      : view === 'x83'
+      ? live.filter((l) => l.phaseCode?.endsWith('83'))
+      : view === 'x84'
+      ? live.filter((l) => l.phaseCode?.endsWith('84') || (!l.phaseCode?.endsWith('83') && !l.phaseCode?.endsWith('86')))
+      : view === 'x86'
+      ? live.filter((l) => l.phaseCode?.endsWith('86') || l.pairedX86Id)
+      : [...live]
     switch (key) {
       case 'usage': return r.sort((a, b) => usage(b) - usage(a))
       case 'title': return r.sort((a, b) => a.title.localeCompare(b.title, 'de'))
@@ -96,6 +104,9 @@ export function ActiveBudgets() {
                 onChange={setView}
                 options={[
                   { key: 'all', label: 'All' },
+                  { key: 'x83', label: 'Tenders (X83)', count: live.filter((l) => l.phaseCode?.endsWith('83')).length },
+                  { key: 'x84', label: 'Offers (X84)', count: live.filter((l) => l.phaseCode?.endsWith('84') || (!l.phaseCode?.endsWith('83') && !l.phaseCode?.endsWith('86'))).length },
+                  { key: 'x86', label: 'Awarded (X86)', count: live.filter((l) => l.phaseCode?.endsWith('86') || l.pairedX86Id).length },
                   { key: 'attention', label: 'Needs attention', count: flagged },
                 ]}
               />
@@ -127,7 +138,7 @@ export function ActiveBudgets() {
                       tone={project?.tone ?? 'slate'}
                       title={title}
                       badge={<BudgetBadge total={l.total} cap={l.cap} />}
-                      subtitle={[folder, phaseLabel(l), completeness(l)].filter(Boolean).join(' · ')}
+                      subtitle={[folder, (l.phaseCode?.endsWith('86') || l.pairedX86Id) ? 'X86 Confirmed' : l.phaseCode?.endsWith('84') ? 'X84 Offer' : 'X83 Tender', phaseLabel(l), completeness(l)].filter(Boolean).join(' · ')}
                       amount={money(l.total)}
                       meta={<BudgetMini total={l.total} cap={l.cap} priced label={`${title}: share of cap used`} />}
                       menu={<RowMenu items={listMenu(l)} label={`Options for ${title}`} />}

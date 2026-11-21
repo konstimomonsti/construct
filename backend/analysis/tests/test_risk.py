@@ -174,3 +174,39 @@ def test_real_priced_stbalv_trench_and_unpriced_precast_fixture():
     unpriced = analyze(fixture, layers=(1, 2)).risk
     assert not unpriced.priced and unpriced.money_at_stake is None
     assert unpriced.top_risks
+
+
+def test_overlapping_findings_and_derived_signals_do_not_double_charge_points():
+    """Acceptance criteria P1.6: Overlapping signals and corroborations do not double-charge exposure."""
+    inp = AnalysisInput(
+        project=Project(currency="EUR"),
+        lines=[line(quantity=10, source_amounts=SourceAmounts(unit_price=Decimal("10.00"), line_amount=Decimal("100.00")))],
+    )
+    # L2 missing dependency finding
+    l2_finding = finding(
+        id="l2_gap",
+        rule_id="L2.FLOOR.SCREED_NEEDS_SKIRTING",
+        layer=2,
+        category="dependency",
+        severity="warning",
+        evidence={"reason": "missing", "amount_at_stake": "100.00"},
+    )
+    # L3 corroboration finding referencing the L2 finding
+    l3_corroboration = finding(
+        id="l3_confirm",
+        rule_id="L3.CHECK.L2_CONFIRM",
+        layer=3,
+        category="dependency",
+        severity="info",
+        evidence={"reviews_finding_id": "l2_gap", "verdict": "really_missing"},
+    )
+
+    report = assess(inp, [l2_finding, l3_corroboration])
+    # The L2 finding carries the points (4.0 base + uplift)
+    assert report.points["l2_gap"] > 0
+    # The derived change order signal overlaps with l2_gap -> base points are 0
+    derived_signal = [s for s in report.change_order_signals if s.kind == "missing_dependency"][0]
+    assert derived_signal.id in report.points
+    assert report.points[derived_signal.id] == 0.0
+    # The L3 corroboration overlaps with l2_gap -> base points are 0
+    assert report.points["l3_confirm"] == 0.0

@@ -1,4 +1,5 @@
 import { clsx } from 'clsx'
+import { planFix } from '../lib/apply-fix'
 import { lazy, Suspense, use, useEffect, useId, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
@@ -10,7 +11,7 @@ import { phaseLabel } from '../components/ListCard'
 import { ErrorBoundary } from '../components/ErrorBoundary'
 import { LedgerTable } from '../components/LedgerTable'
 import { ChangeOrderText, FindingFilter, FindingText } from '../components/RiskAssessment'
-import { decisionsOf, indexFindings, matchesFindingFilter, SEVERITIES, useUploadAssessment, type ChangeOrderSignal, type Decision, type Report, type ReviewItem } from '../lib/risk-assessment'
+import { decisionsOf, indexFindings, matchesFindingFilter, SEVERITIES, useUploadAssessment, type ChangeOrderSignal, type Decision, type Finding, type Report, type ReviewItem } from '../lib/risk-assessment'
 import { riskXlsx, downloadBytes } from '../lib/risk-export'
 import type { RowRisk } from '../components/LedgerTable'
 import { DecisionControls, DismissMenu } from '../components/risk/DecisionControls'
@@ -30,9 +31,15 @@ import { MoveToCategory } from '../components/split/MoveToCategory'
 import { budgetStatus, fixedBudget, int, money, parseNumber, plural } from '../lib/format'
 import { positionTotal } from '../lib/money'
 import { applyMoves, globalStep, indexTree, leafOz, nextChildOz, nextPositionOz, pathOf, resolveList, treeStats, type CatStat } from '../lib/resolve'
-import { statsOf, useModel, useStore } from '../lib/store'
+import { statsOf, useModel, useStore, type ListEdits } from '../lib/store'
 import { useUi } from '../lib/ui-store'
 import type { CategoryNode, ListDoc, Position } from '../lib/types'
+import { CraneTimeline, type TimelineStage } from '../components/CraneTimeline'
+import { DocumentStageTabs, type DocumentTab } from '../components/DocumentStageTabs'
+import { diffLists } from '../lib/gaeb-diff'
+import { parseListFile } from '../lib/parse-list-file'
+import { flatTree } from '../lib/cat'
+import { SubcontractOverlay } from '../components/subcontract/SubcontractOverlay'
 
 const SplitOverlay = lazy(() => import('../components/split/SplitOverlay').then((m) => ({ default: m.SplitOverlay })))
 
@@ -287,8 +294,67 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   const folder = folders.find((f) => f.id === (view?.folderId ?? doc.folderId))
   const edits = useStore((s) => s.edits[doc.id])
   const resolved = useMemo(() => resolveList(doc, edits), [doc, edits])
-  const positions = resolved.positions
-  const tree = resolved.tree
+  const [activeTab, setActiveTab] = useState<DocumentTab>("x84")
+  const [subcontractOpen, setSubcontractOpen] = useState(false)
+  const [uploadingX86, setUploadingX86] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const listPatch = useStore((s) => s.listPatch[doc.id])
+  const subcontractPackages = listPatch?.subcontractPackages ?? []
+  const x86Doc = listPatch?.x86Doc
+
+  const x84Diff = useMemo(() => diffLists(doc.positions, resolved.positions), [doc.positions, resolved.positions])
+  const x86Diff = useMemo(() => (x86Doc ? diffLists(resolved.positions, x86Doc.positions) : null), [resolved.positions, x86Doc])
+
+  const positions = activeTab === "x83" ? doc.positions : (activeTab === "x86" && x86Doc) ? x86Doc.positions : resolved.positions
+  const tree = activeTab === "x83" ? (doc.tree ?? flatTree(doc.positions)) : (activeTab === "x86" && x86Doc) ? (x86Doc.tree ?? flatTree(x86Doc.positions)) : resolved.tree
+  const displayTotal = activeTab === "x83" ? Math.round(doc.positions.reduce((sum, p) => sum + positionTotal(p), 0) * 100) / 100 : (activeTab === "x86" && x86Doc) ? x86Doc.total : Math.round(positions.reduce((sum, p) => sum + positionTotal(p), 0) * 100) / 100
+
+  const currentStage: TimelineStage = (x86Doc || doc.phase === "86") ? "x86" : (listPatch?.x84SentAt || doc.phase === "84") ? "x84" : "x83"
+  const timelineDates = {
+    received: doc.date || "12.11.2026",
+    sent: listPatch?.x84SentAt || (doc.phase === "84" ? doc.date : undefined),
+    confirmed: listPatch?.x86ReceivedAt || (x86Doc?.date ?? (doc.phase === "86" ? "05.12.2026" : undefined)),
+  }
+  const lastUpdate = listPatch?.x86ReceivedAt || listPatch?.x84SentAt || doc.date || "Today"
+
+  const handleUploadX86 = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    try {
+      setUploadingX86(true)
+      const parsed = await parseListFile(file)
+      if (!parsed || !parsed.positions.length) {
+        toast("Could not read positions from file.", "error")
+        return
+      }
+      const newX86Doc: ListDoc = {
+        ...doc,
+        id: `x86-${doc.id}`,
+        fileName: file.name,
+        title: parsed.title || `${doc.title} (Award X86)`,
+        format: parsed.format,
+        phase: "86",
+        date: parsed.date || new Date().toLocaleDateString("de-DE"),
+        positionsCount: parsed.positions.length,
+        pricedCount: parsed.positions.filter((p) => (p.up ?? 0) > 0).length,
+        total: Math.round(parsed.positions.reduce((sum, p) => sum + positionTotal(p), 0) * 100) / 100,
+        positions: parsed.positions,
+        tree: parsed.tree ?? (parsed.positions.every((p) => p.path?.length) ? undefined : flatTree(parsed.positions)),
+      }
+      useStore.getState().patchList(doc.id, {
+        x86Doc: newX86Doc,
+        x86ReceivedAt: new Date().toLocaleDateString("de-DE"),
+      })
+      setActiveTab("x86")
+      toast("X86 Award file uploaded and linked to tender!", "ok")
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Upload failed", "error")
+    } finally {
+      setUploadingX86(false)
+      if (fileInputRef.current) fileInputRef.current.value = ""
+    }
+  }
   const catStats = useMemo(() => treeStats(positions), [positions])
   // prices proposed from matched catalogue products: pending until confirmed, never counted in totals
   const dismissedPrices = useStore((s) => s.listPatch[doc.id]?.dismissedPrices)
@@ -297,9 +363,33 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   // findings from the automatic check that runs once on upload
   const assessment = useUploadAssessment(catalogueEnabled && original ? imported.id : null)
   const fixtureReport = useFixtureReport(params.get('risk') === 'fixture')
-  const uploadReport = fixtureReport ?? (assessment?.state === 'ready' ? assessment.report : null)
+  const rawUploadReport = fixtureReport ?? (assessment && 'report' in assessment && assessment.report ? assessment.report : null)
+  const uploadReport = useMemo(() => {
+    if (!rawUploadReport) return null
+    const byCode = new Map(positions.map(p => [p.oz, p.id]))
+    return { ...rawUploadReport, findings: rawUploadReport.findings.map(finding => {
+      const ids = new Map<string, string>()
+      if (finding.target.line_id && finding.target.line_code && byCode.has(finding.target.line_code)) ids.set(finding.target.line_id, byCode.get(finding.target.line_code)!)
+      for (const key of ['trigger_items', 'dependency_items', 'unassigned_candidate_items']) {
+        const entries = finding.evidence?.[key]
+        if (Array.isArray(entries)) for (const entry of entries) {
+          if (entry && typeof entry.id === 'string' && typeof entry.code === 'string' && byCode.has(entry.code)) ids.set(entry.id, byCode.get(entry.code)!)
+        }
+      }
+      const map = (id: string) => ids.get(id) ?? id
+      const operations = finding.suggested_fix?.operations?.map(op => {
+        if (op.op === 'set_field' || op.op === 'remove_line' || op.op === 'link_alternative') return { ...op, line_id: map(op.line_id) }
+        if (op.op === 'add_line') return { ...op, after_line_id: op.after_line_id ? map(op.after_line_id) : null }
+        return { ...op, keep_line_id: map(op.keep_line_id), remove_line_ids: op.remove_line_ids.map(map) }
+      })
+      return { ...finding, target: { ...finding.target, line_id: finding.target.line_id ? map(finding.target.line_id) : null }, related_line_ids: finding.related_line_ids.map(map), suggested_fix: finding.suggested_fix ? { ...finding.suggested_fix, operations } : null }
+    }) }
+  }, [rawUploadReport, positions])
   const risk = uploadReport?.risk ?? null
-  const aiCheckSkipped = uploadReport?.layers_run != null && !uploadReport.layers_run.includes(3)
+  const aiStatus = (uploadReport as any)?.l3_status
+  const aiCheckSkipped = (uploadReport?.layers_run != null && !uploadReport.layers_run.includes(3)) || aiStatus?.state === 'disabled'
+  const aiPartial = aiStatus?.state === 'degraded' || (uploadReport?.errors ?? []).some((e: string) => e.startsWith('layer 3 coverage:') && !e.includes('0/0') && !e.match(/(\d+)\/\1/))
+  const isStale = assessment?.state === 'stale' || (uploadReport as any)?.outdated === true
   const reviewedIds = useStore((s) => s.listPatch[doc.id]?.reviewedFindings)
   const decisionMap = useStore((s) => s.listPatch[doc.id]?.findingDecisions)
   const decisions = useMemo(() => decisionsOf({ findingDecisions: decisionMap, reviewedFindings: reviewedIds }), [decisionMap, reviewedIds])
@@ -507,6 +597,33 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
     setReviewNote(`${title ?? plural(ids.length, 'item', 'items')}: ${what}`)
     if (ids.length > 1) toast(`${plural(ids.length, 'finding', 'findings')} ${what}`, 'ok', { label: 'Undo', run: () => useStore.getState().decideFindings(doc.id, ids, null) })
   }
+  const [fixQuantities, setFixQuantities] = useState<Record<string, Record<number, number>>>({})
+  const [fixSnapshots, setFixSnapshots] = useState<Record<string, { before: ListEdits | undefined; after: ListEdits | undefined }>>({})
+  const applyFix = (finding: Finding) => {
+    const store = useStore.getState()
+    const plan = planFix(finding, { positions, tree }, fixQuantities[finding.id])
+    if (!plan.steps.length) return
+    const before = store.edits[doc.id]
+    for (const step of plan.steps) {
+      if (step.kind === 'setQty') store.setQty(doc.id, step.id, step.value)
+      else if (step.kind === 'setUp') store.setUp(doc.id, step.id, step.value)
+      else if (step.kind === 'patchPosition') store.patchPosition(doc.id, step.id, step.patch)
+      else if (step.kind === 'addPosition') store.addPosition(doc.id, step.position)
+      else store.removePositions(doc.id, step.ids)
+    }
+    setFixSnapshots(current => ({ ...current, [finding.id]: { before, after: useStore.getState().edits[doc.id] } }))
+    const now = new Date().toISOString()
+    store.decideFindings(doc.id, [finding.id], { ...decisions[finding.id], status: 'accepted', at: decisions[finding.id]?.at ?? now, applied: now })
+  }
+  const undoFix = (finding: Finding) => {
+    const snapshot = fixSnapshots[finding.id]
+    const store = useStore.getState()
+    if (!snapshot || store.edits[doc.id] !== snapshot.after) return
+    store.setEdits(doc.id, snapshot.before)
+    setFixSnapshots(current => { const next = { ...current }; delete next[finding.id]; return next })
+    const decision = decisions[finding.id]
+    if (decision) { const { applied: _applied, ...rest } = decision; store.decideFindings(doc.id, [finding.id], rest) }
+  }
   const decideInDrawer = (findingId: string, title: string, decision: Decision | null) => {
     decide([findingId], decision, title)
     // after a decision, carry on with the next open finding in the drawer
@@ -645,6 +762,13 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   const more: (MenuItem | 'sep')[] = [
     { label: 'Add pricing section…', icon: 'playlist_add', onSelect: () => setAddingSection(true) },
     { label: 'Split into new list…', icon: 'call_split', onSelect: split },
+    { label: 'Save corrected version', icon: 'content_copy', onSelect: () => {
+      const id = 'l-' + crypto.randomUUID()
+      const store = useStore.getState()
+      store.addList({ ...doc, id, folderId: view?.folderId ?? doc.folderId, title: title + ' (korrigiert)', file: undefined, fileName: title + ' (korrigiert)', positions, tree, ...st, userCreated: true })
+      store.patchList(id, { sourceListId: doc.id })
+      toast('Saved corrected version', 'ok')
+    } },
     { label: 'Rename list', icon: 'edit', onSelect: () => openDialog({ kind: 'rename-list', id: doc.id }) },
     ...(editedCount ? [{ label: 'Reset all edits', icon: 'restart_alt', onSelect: resetAll }] : []),
     ...(live ? [{ label: 'Move to another project…', icon: 'drive_file_move', onSelect: () => openDialog({ kind: 'folder-target', action: 'move-list', listId: doc.id }) }] : []),
@@ -691,12 +815,25 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
       )}
 
       <Summary
-        label={pendingCount > 0 ? 'Confirmed total' : 'List total'}
+        label={activeTab === "x83" ? "Original tender total (X83)" : activeTab === "x86" ? "Awarded contract total (X86)" : pendingCount > 0 ? "Confirmed total" : "List total (X84 Offer)"}
         compact
         unpriced
         pending={pendingTotal}
-        amount={money(st.total)}
-        total={st.total}
+        amount={money(displayTotal)}
+        total={displayTotal}
+        bar={
+          <CraneTimeline
+            stage={currentStage}
+            dates={timelineDates}
+            lastUpdate={lastUpdate}
+            positionsCount={doc.positions.length}
+            pricedCount={st.pricedCount}
+            subcontractPackages={subcontractPackages}
+            onOpenSubcontract={() => setSubcontractOpen(true)}
+            hasX86={!!x86Doc}
+            onUploadX86={() => fileInputRef.current?.click()}
+          />
+        }
         cap={cap}
         onEditCap={live ? () => openDialog({ kind: 'edit-cap', target: 'list', id: doc.id }) : undefined}
         sub={pendingCount > 0 && (
@@ -758,6 +895,34 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
             )}
           </span>
         }
+      />
+
+      {/* Document Stage Tabs */}
+      <DocumentStageTabs
+        activeTab={activeTab}
+        onSelectTab={setActiveTab}
+        hasX86={!!x86Doc}
+        onUploadX86={() => fileInputRef.current?.click()}
+        x84DiffCount={x84Diff.totalChanges}
+        x86DiffCount={x86Diff?.totalChanges ?? 0}
+        className="mb-4"
+      />
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".x86,.d86,.xml,.json"
+        className="hidden"
+        onChange={handleUploadX86}
+      />
+
+      <SubcontractOverlay
+        open={subcontractOpen}
+        onClose={() => setSubcontractOpen(false)}
+        listId={doc.id}
+        doc={doc}
+        resolved={resolved}
+        selectedIds={[...selected]}
       />
 
       {risk && <RiskSummary risk={risk} decisions={decisions} />}
@@ -840,7 +1005,78 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
           </div>
         </div>
 
-        <LedgerTable
+        {activeTab === "x83" && (
+          <div role="note" className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-slate-100 border border-slate-200 px-4 py-2.5 text-xs text-slate-700">
+            <span className="flex items-center gap-2">
+              <Icon name="lock" size={16} className="text-slate-500" />
+              <span>Original parsed <strong>X83 Tender Document</strong> (Read-only client baseline). Unit prices are unpriced in the tender.</span>
+            </span>
+            <button
+              type="button"
+              onClick={() => setActiveTab("x84")}
+              className="font-semibold text-amber-900 underline underline-offset-2 hover:text-amber-950"
+            >
+              Switch to Working Offer (X84) &rarr;
+            </button>
+          </div>
+        )}
+
+        {activeTab === "x84" && (
+          <div role="note" className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-amber-50 border border-amber-200 px-4 py-2 text-xs text-amber-950">
+            <span className="flex items-center gap-2">
+              <Icon name="edit_note" size={16} className="text-amber-700" />
+              <span>Active <strong>X84 Working Offer</strong>: {x84Diff.pricesAdded} prices added, {x84Diff.qtysChanged} quantities modified vs. X83. Net offer: {money(st.total)}.</span>
+            </span>
+            {listPatch?.x84SentAt ? (
+              <span className="font-semibold text-emerald-800 flex items-center gap-1">
+                <Icon name="check" size={14} /> Sent on {listPatch.x84SentAt}
+              </span>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  useStore.getState().patchList(doc.id, { x84SentAt: new Date().toLocaleDateString("de-DE") })
+                  toast("Marked as Budget Sent (X84)!", "ok")
+                }}
+                className="rounded bg-amber-300 px-2.5 py-1 font-semibold text-amber-950 hover:bg-amber-400 transition-colors shadow-xs"
+              >
+                Mark Budget as Sent
+              </button>
+            )}
+          </div>
+        )}
+
+        {activeTab === "x86" && x86Doc && (
+          <div role="note" className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-emerald-50 border border-emerald-200 px-4 py-2 text-xs text-emerald-950">
+            <span className="flex items-center gap-2">
+              <Icon name="verified" size={16} className="text-emerald-700" />
+              <span>Awarded <strong>X86 Contract</strong>: {x86Diff ? `${x86Diff.pricesChanged} prices changed, net delta ${money(x86Diff.deltaTotal)} (${x86Diff.pctChange}%) vs. our X84 offer` : "Comparing with offer"}</span>
+            </span>
+            <span className="text-[11px] text-slate-500">Awarded on {x86Doc.date}</span>
+          </div>
+        )}
+
+        {activeTab === "x86" && !x86Doc ? (
+          <div className="my-8 flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 p-10 text-center">
+            <div className="mb-3 rounded-full bg-slate-200 p-3 text-slate-700">
+              <Icon name="upload_file" size={32} />
+            </div>
+            <h3 className="font-heading text-lg font-bold text-slate-900">No X86 Award Document Yet</h3>
+            <p className="mt-1 max-w-md text-sm text-slate-600">
+              Upload the client award file (GAEB X86 / D86 or XML) to compare awarded prices and quantities against your X84 offer.
+            </p>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploadingX86}
+              className="mt-4 inline-flex items-center gap-2 rounded-lg bg-amber-400 px-4 py-2 text-sm font-semibold text-slate-950 shadow hover:bg-amber-300"
+            >
+              <Icon name="add" size={18} />
+              <span>{uploadingX86 ? "Uploading & parsing..." : "Upload X86 Award File"}</span>
+            </button>
+          </div>
+        ) : (
+          <LedgerTable
           listId={doc.id}
           rows={rows}
           tree={tree}
@@ -860,6 +1096,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
           sortActive={sort !== 'oz'}
           selectMode={selectMode}
         />
+      )}
 
         {/* sticky footer: the running total, or the batch actions while rows are selected */}
         <div className={clsx('sticky bottom-0 z-20 -mx-4 mt-2 border-t border-slate-200 bg-white px-4 py-3 transition-opacity sm:-mx-8 sm:px-8', !(heroGone || selected.size > 0 || rows.length !== positions.length) && 'pointer-events-none opacity-0')} aria-hidden={!(heroGone || selected.size > 0 || rows.length !== positions.length) || undefined}>
@@ -914,10 +1151,12 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
       {(listWide.length > 0 || listSignals.length > 0 || uploadReport?.source_notice || !!uploadReport?.errors.length || aiCheckSkipped) && (
         <section aria-labelledby="list-findings-h" className="mt-8">
           <h2 id="list-findings-h" className="font-heading text-base font-bold text-slate-900">Upload check for the whole list</h2>
-          {(uploadReport?.source_notice || aiCheckSkipped || !!uploadReport?.errors.length) && (
+          {(uploadReport?.source_notice || aiCheckSkipped || aiPartial || isStale || !!uploadReport?.errors.length) && (
             <div className="mt-1 space-y-1 text-sm text-amber-900" role="note">
+              {isStale && <p className="font-medium text-amber-800">Assessment is outdated due to recent edits; a re-assessment is queued.</p>}
+              {aiPartial && <p className="font-medium text-amber-800">Score and risk findings are based on partial analysis (some AI checks were skipped or degraded).</p>}
               {uploadReport?.source_notice && <p>{uploadReport.source_notice}</p>}
-              {aiCheckSkipped && <p>The AI check (layer 3) did not run.</p>}
+              {aiCheckSkipped && <p>Rules-only analysis (Layer 3 AI checks disabled).</p>}
               {uploadReport?.errors.slice(0, 3).map((error, index) => <p key={index}>{error}</p>)}
             </div>
           )}
@@ -927,6 +1166,16 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
                 <li key={item.id} className="space-y-3">
                   {'severity' in item ? <FindingText finding={item} decision={decisions[item.id]} details />
                     : <ChangeOrderText signal={item} decision={decisions[item.id]} />}
+                  {'severity' in item && item.suggested_fix?.operations?.length ? (() => {
+                    const plan = planFix(item, { positions, tree }, fixQuantities[item.id])
+                    return <div className="ml-[15px] space-y-1 text-sm text-slate-700">
+                      {!decisions[item.id]?.applied && item.suggested_fix?.operations?.map((op, index) => op.op === 'add_line' && op.line.quantity == null ? <label key={index} className="block">Quantity for {op.line.short_text} ({op.line.unit ?? 'unit'}): <input type="number" min="0" step="any" className="w-28 rounded border border-slate-400 px-2 py-1" value={fixQuantities[item.id]?.[index] ?? ''} onChange={event => { const value = event.target.value; setFixQuantities(current => ({ ...current, [item.id]: { ...current[item.id], [index]: value === '' ? NaN : Number(value) } })) }} /></label> : null)}
+                      {!decisions[item.id]?.applied && plan.steps.map((step, index) => <p key={index}>{step.preview}</p>)}
+                      {!decisions[item.id]?.applied && plan.skipped.map((skip, index) => <p key={index}>Skipped {skip.op.op}: {skip.reason}</p>)}
+                      {decisions[item.id]?.applied ? <p>Applied{fixSnapshots[item.id]?.after === edits && fixSnapshots[item.id] && <> · <button type="button" className="underline" onClick={() => undoFix(item)}>Undo</button></>}</p>
+                        : plan.steps.length > 0 && <Button variant="ghost" onClick={() => applyFix(item)}>Apply fix</Button>}
+                    </div>
+                  })() : null}
                   <DecisionControls className="ml-[15px]" title={item.title} decision={decisions[item.id]}
                     onDecide={(decision) => decide([item.id], decision, item.title)} />
                 </li>
