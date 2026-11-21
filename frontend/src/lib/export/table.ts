@@ -1,4 +1,5 @@
 /** CSV, Excel, Word and JSON writers (everything that is not a GAEB / PDF notation) */
+import { documentList, DOCX_LIST_NAMESPACE, DOCX_LIST_PART } from '../list-file'
 import type { ListDoc, Position } from '../types'
 import { type Cat, type CatTree, buildCats, catCount, catSum, deDate, deNum, gp, round2, walk } from './util'
 
@@ -237,9 +238,10 @@ export async function toDocx(o: TableOpts): Promise<Uint8Array> {
       `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/></Relationships>`,
     ),
     'word/_rels/document.xml.rels': strToU8(
-      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`,
+      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/customXml" Target="../${DOCX_LIST_PART}"/></Relationships>`,
     ),
     'word/document.xml': strToU8(document),
+    [DOCX_LIST_PART]: strToU8(`<list xmlns="${DOCX_LIST_NAMESPACE}">${esc(documentList(o))}</list>`),
     'word/styles.xml': strToU8(styles),
     'docProps/core.xml': strToU8(
       `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><dc:title>${esc(o.doc.title)}</dc:title><dc:creator>BillBuild</dc:creator><dcterms:created xsi:type="dcterms:W3CDTF">${new Date().toISOString()}</dcterms:created></cp:coreProperties>`,

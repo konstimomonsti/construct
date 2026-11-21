@@ -1,7 +1,6 @@
 import { lazy, Suspense, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button, Dialog, Field, inputCls, toast } from './ui'
-import { money, moneyWhole, niceCap, parseNumber } from '../lib/format'
 import { folderPath, useModel, useStore } from '../lib/store'
 import { useUi, type DialogState } from '../lib/ui-store'
 import { makeListDoc, pickAndImport } from '../lib/import'
@@ -17,7 +16,6 @@ export function Dialogs() {
       <NewFolder open={d?.kind === 'new-folder'} parent={d?.kind === 'new-folder' ? d.parent : undefined} onClose={close} />
       {d?.kind === 'rename-folder' && <Rename key={d.id} kind="folder" id={d.id} onClose={close} />}
       {d?.kind === 'rename-list' && <Rename key={d.id} kind="list" id={d.id} onClose={close} />}
-      {d?.kind === 'cap' && <CapDialog key={`${d.target}-${d.id}`} target={d.target} id={d.id} prefill={d.prefill} onClose={close} />}
       {d?.kind === 'blank-list' && <BlankList folderId={d.folderId} onClose={close} />}
       {d?.kind === 'folder-target' && <FolderTarget dialog={d} onClose={close} />}
       {d?.kind === 'link-document' && <LinkDocument doc={d.doc} onClose={close} />}
@@ -80,18 +78,25 @@ function FolderTarget({ dialog, onClose }: { dialog: Extract<DialogState, { kind
   const [folderId, setFolderId] = useState('')
   const list = dialog.action === 'move-list' ? lists.find((item) => item.id === dialog.listId) : undefined
   const fromDocument = dialog.action === 'move-document' ? folders.find((folder) => folder.documents.some((doc) => doc.id === dialog.docId)) : undefined
-  const currentFolder = list?.folderId ?? fromDocument?.id
+  const sourceFolder = dialog.action === 'move-folder' ? folders.find((folder) => folder.id === dialog.folderId) : undefined
+  const currentFolder = sourceFolder?.parentId ?? list?.folderId ?? fromDocument?.id
   const options = folders.flatMap((folder) => {
     const path = folderPath(folders, folder.id)
-    return folder.id === currentFolder || path.some((part) => part.trashedAt) ? []
+    return folder.id === currentFolder || path.some((part) => part.trashedAt || part.id === sourceFolder?.id) ? []
       : [{ id: folder.id, name: path.map((part) => part.name).join(' / ') }]
   }).sort((a, b) => a.name.localeCompare(b.name))
+  const rootOption = 'workspace-root'
+  if (sourceFolder?.parentId) options.unshift({ id: rootOption, name: 'Workspace (top level)' })
   const move = dialog.action !== 'import'
   const submit = () => {
     const target = options.find((option) => option.id === folderId)
     if (!target) return
     onClose()
-    if (dialog.action === 'move-document') {
+    if (sourceFolder) {
+      if (useStore.getState().moveFolder(sourceFolder.id, folderId === rootOption ? null : folderId)) {
+        toast(`Moved "${sourceFolder.name}" to "${target.name}"`)
+      }
+    } else if (dialog.action === 'move-document') {
       useStore.getState().moveDocument(dialog.docId, folderId)
       toast(`Moved document to "${target.name}"`)
     } else if (list) {
@@ -109,12 +114,13 @@ function FolderTarget({ dialog, onClose }: { dialog: Extract<DialogState, { kind
       onClose={onClose}
       title={move ? 'Move to folder' : 'Choose an import folder'}
       description={dialog.action === 'move-document' ? 'The document will keep its link to the list.'
-        : move ? 'Documents stored with the list will move with it.' : 'Choose the project or folder these files belong to.'}
+        : sourceFolder ? 'Choose where to move this folder and its contents.'
+          : move ? 'Documents stored with the list will move with it.' : 'Choose the project or folder these files belong to.'}
       footer={
         <>
           <Button onClick={onClose}>Cancel</Button>
           {!move && !options.length && <Button onClick={() => openDialog({ kind: 'new-folder' })}>New project</Button>}
-          <Button variant="primary" disabled={!folderId} onClick={submit}>{move ? 'Move' : 'Choose files'}</Button>
+          <Button variant="primary" disabled={!options.some((option) => option.id === folderId)} onClick={submit}>{move ? 'Move' : 'Choose files'}</Button>
         </>
       }
     >
@@ -191,43 +197,6 @@ function Rename({ kind, id, onClose }: { kind: 'folder' | 'list'; id: string; on
       <form id="rename-form" onSubmit={submit}>
         <Field label="Name">
           <input data-autofocus className={inputCls} value={name} onChange={(e) => setName(e.target.value)} maxLength={100} />
-        </Field>
-      </form>
-    </Dialog>
-  )
-}
-
-function CapDialog({ target, id, prefill, onClose }: { target: 'folder' | 'list'; id: string; prefill?: number; onClose: () => void }) {
-  const { folders, lists } = useModel()
-  const item = target === 'folder' ? folders.find((f) => f.id === id) : lists.find((l) => l.id === id)
-  const [val, setVal] = useState(String(prefill ?? (item?.cap || (item ? niceCap(item.total) : '') || '')))
-  const submit = (e: FormEvent) => {
-    e.preventDefault()
-    const n = parseNumber(val) ?? NaN
-    if (!Number.isFinite(n) || n < 0) return
-    const cap = n === 0 ? null : n
-    if (target === 'folder') useStore.getState().patchFolder(id, { cap })
-    else useStore.getState().patchList(id, { cap })
-    toast(cap ? `Budget cap set to ${moneyWhole(n)}` : 'Budget cap reset to automatic')
-    onClose()
-  }
-  const name = item ? ('title' in item ? item.title : item.name) : ''
-  return (
-    <Dialog
-      open
-      onClose={onClose}
-      title="Set budget cap"
-      description={<>Ceiling for <span className="font-semibold text-slate-700">{name}</span> in EUR. Meters and alerts use this value. Enter 0 to reset to automatic.</>}
-      footer={
-        <>
-          <Button onClick={onClose}>Cancel</Button>
-          <Button variant="primary" type="submit" form="cap-form">Save cap</Button>
-        </>
-      }
-    >
-      <form id="cap-form" onSubmit={submit}>
-        <Field label="Budget cap (€)" hint={item ? `Current total: ${money(item.total)}` : undefined}>
-          <input data-autofocus inputMode="decimal" className={`${inputCls} num`} value={val} onChange={(e) => setVal(e.target.value)} />
         </Field>
       </form>
     </Dialog>

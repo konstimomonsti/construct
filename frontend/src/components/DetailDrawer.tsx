@@ -21,13 +21,14 @@ function Labeled({ label, children, className }: { label: string; children: Reac
 }
 
 export function DetailDrawer({
-  p, onClose, edited, added, onPatch, onQty, onUp, onReset, onMoveCategory, onRemove, onPrev, onNext, position, listTotal, cap,
+  p, catalogue, onClose, edited, added, onPatch, onQty, onUp, onReset, onMoveCategory, onRemove, onPrev, onNext, position, listTotal, cap,
 }: {
   onRemove?: () => void
   /** live list total and cap, so a price change shows its effect on the budget */
   listTotal?: number
   cap?: number | null
   p: Position | null
+  catalogue?: React.ReactNode
   onClose: () => void
   edited: boolean
   added: boolean
@@ -141,6 +142,7 @@ export function DetailDrawer({
                   />
                 </h2>
               </div>
+              {catalogue}
               <div className="rounded-3xl bg-slate-50 px-5 py-4">
                 <div className="text-sm font-medium text-slate-600">Gesamtpreis (GP)</div>
                 <div className="num mt-0.5 text-[30px] leading-tight font-semibold tracking-tight text-slate-900">{p.up == null ? 'Not priced yet' : money(positionTotal(p))}</div>

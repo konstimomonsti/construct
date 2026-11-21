@@ -8,14 +8,18 @@ import { PageFrame, PageHeader, RowMenu, SortMenu, Summary, statusText } from '.
 import { phaseLabel } from '../components/ListCard'
 import { ErrorBoundary } from '../components/ErrorBoundary'
 import { LedgerTable } from '../components/LedgerTable'
+import { AddSectionDialog, PricingLegend, PricingMeter, pricingSections } from '../components/PricingBudget'
+import { useActions } from '../lib/actions'
 import { DetailDrawer } from '../components/DetailDrawer'
 import { loadList } from '../lib/data'
 import { ExportMenu } from '../components/ExportMenu'
+import { CatalogueDetails, CatalogueOverview } from '../components/WorkspaceCatalogue'
+import { useWorkspaceCatalogue } from '../lib/workspace-catalogue'
 import { CategoryTree, useExpanded, type CheckState } from '../components/split/CategoryTree'
 import { MoveToCategory } from '../components/split/MoveToCategory'
-import { budgetStatus, int, money, niceCap, parseNumber, plural } from '../lib/format'
+import { budgetStatus, fixedBudget, int, money, parseNumber, plural } from '../lib/format'
 import { positionTotal } from '../lib/money'
-import { applyMoves, indexTree, leafOz, nextChildOz, resolveList, treeStats, type CatStat } from '../lib/resolve'
+import { applyMoves, globalStep, indexTree, leafOz, nextChildOz, nextPositionOz, pathOf, resolveList, treeStats, type CatStat } from '../lib/resolve'
 import { statsOf, useModel, useStore } from '../lib/store'
 import { useUi } from '../lib/ui-store'
 import type { CategoryNode, ListDoc, Position } from '../lib/types'
@@ -203,14 +207,21 @@ function CategoryFilter({ tree, stats, value, onChange }: { tree: CategoryNode[]
 /* Add item                                                            */
 /* ------------------------------------------------------------------ */
 
-function AddItemDialog({ open, onClose, listId, cats, nextOz }: { open: boolean; onClose: () => void; listId: string; cats: string[]; nextOz: string }) {
+function AddItemDialog({ open, onClose, listId, tree, positions }: { open: boolean; onClose: () => void; listId: string; tree: CategoryNode[]; positions: Position[] }) {
   const [f, setF] = useState({ oz: '', short: '', qty: '1', unit: 'St', up: '', cat: '' })
-  const dl = useId()
-  const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement>) => setF((s) => ({ ...s, [k]: e.target.value }))
+  const index = useMemo(() => indexTree(tree), [tree])
+  const path = pathOf(index, f.cat)
+  const taken = new Set(positions.map((position) => position.oz))
+  const nextOz = nextPositionOz(f.cat, positions.filter((position) => leafOz(position) === f.cat).map((position) => position.oz), taken, globalStep(positions))
+  const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setF((s) => ({ ...s, [k]: e.target.value }))
   const num = (s: string) => parseNumber(s) ?? NaN
   const submit = (e: FormEvent) => {
     e.preventDefault()
     if (!f.short.trim()) return
+    if (taken.has(f.oz.trim())) {
+      toast('That OZ is already in use', 'error')
+      return
+    }
     const q = f.qty.trim() === '' ? 1 : num(f.qty)
     const up = f.up.trim() === '' ? null : num(f.up)
     if (!Number.isFinite(q) || q < 0 || (up !== null && !Number.isFinite(up))) {
@@ -218,13 +229,14 @@ function AddItemDialog({ open, onClose, listId, cats, nextOz }: { open: boolean;
       return
     }
     const p: Position = {
-      id: `u${Date.now().toString(36)}`,
+      id: `u-${crypto.randomUUID()}`,
       oz: f.oz.trim() || nextOz,
       short: f.short.trim(),
       qty: q,
       unit: f.unit.trim() || 'St',
       up,
-      category: f.cat.trim() || 'Eigene Positionen',
+      category: path.at(-1)?.label ?? 'Eigene Positionen',
+      path: path.length ? path : undefined,
     }
     useStore.getState().addPosition(listId, p)
     toast(`Added ${p.oz}`)
@@ -254,8 +266,12 @@ function AddItemDialog({ open, onClose, listId, cats, nextOz }: { open: boolean;
         <Field label="Einheitspreis (EP, €)"><input inputMode="decimal" className={`${inputCls} num`} value={f.up} onChange={set('up')} placeholder="optional" /></Field>
         <div className="col-span-2">
           <Field label="Kategorie">
-            <input className={inputCls} list={dl} value={f.cat} onChange={set('cat')} placeholder="Eigene Positionen" />
-            <datalist id={dl}>{cats.map((c) => <option key={c} value={c} />)}</datalist>
+            <select className={inputCls} value={f.cat} onChange={set('cat')}>
+              <option value="">Eigene Positionen</option>
+              {[...index.node.values()].map((category) => (
+                <option key={category.oz} value={category.oz}>{pathOf(index, category.oz).map((part) => part.label || part.oz).join(' / ')}</option>
+              ))}
+            </select>
           </Field>
         </div>
       </form>
@@ -267,11 +283,26 @@ function AddItemDialog({ open, onClose, listId, cats, nextOz }: { open: boolean;
 /* Detail                                                              */
 /* ------------------------------------------------------------------ */
 
-function ListDetail({ doc }: { doc: ListDoc }) {
+function ListDetail({ doc: imported }: { doc: ListDoc }) {
   const [params] = useSearchParams()
   const { lists, folders, documents } = useModel()
-  const attached = documents.filter((document) => document.listId === doc.id)
+  const attached = documents.filter((document) => document.listId === imported.id)
+  const original = attached.find((document) => document.original && document.name === imported.fileName)
+  const catalogueEnabled = Boolean(imported.userCreated && imported.source?.kind && imported.source.kind !== 'blank' && imported.positions.length)
+  const documentVersion = useStore((state) => attached.map(({ id }) =>
+    [id, state.sync?.hashes.userDocuments?.[id], state.sync?.hashes.documentLinks?.[id]].join(':'),
+  ).join(','))
+  const { report, error, retryFailed } = useWorkspaceCatalogue(catalogueEnabled ? imported.id : null, documentVersion)
+  const doc = useMemo(() => {
+    if (!report) return imported
+    const positions = imported.positions.map((position) => {
+      const recovered = report.positions[position.id]?.recovered
+      return recovered ? { ...position, short: recovered.short, long: recovered.long || undefined } : position
+    })
+    return { ...imported, positions }
+  }, [imported, report])
   const openDialog = useUi((s) => s.openDialog)
+  const { listMenu } = useActions()
   const view = lists.find((l) => l.id === doc.id)
   const folder = folders.find((f) => f.id === (view?.folderId ?? doc.folderId))
   const edits = useStore((s) => s.edits[doc.id])
@@ -299,6 +330,8 @@ function ListDetail({ doc }: { doc: ListDoc }) {
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [detailId, setDetailId] = useState<string | null>(null)
   const [adding, setAdding] = useState(false)
+  const [addingSection, setAddingSection] = useState(false)
+  const [showSections, setShowSections] = useState(false)
   const [notesOpen, setNotesOpen] = useState(false)
   const [splitPre, setSplitPre] = useState<string[] | null>(null)
   const [splitMounted, setSplitMounted] = useState(false)
@@ -314,8 +347,7 @@ function ListDetail({ doc }: { doc: ListDoc }) {
   }, [doc.id])
 
   const title = view?.title ?? doc.title
-  const cap = view?.cap ?? niceCap(doc.total)
-  const categories = useMemo(() => [...new Set(positions.map((p) => p.category))].sort((a, b) => a.localeCompare(b, 'de')), [positions])
+  const cap = view?.cap ?? fixedBudget(doc.total)
   const editedIds = useMemo(() => new Set([...Object.keys(edits?.qty ?? {}), ...Object.keys(edits?.up ?? {}), ...Object.keys(edits?.patch ?? {}), ...Object.keys(edits?.moves ?? {})]), [edits])
   const addedIds = useMemo(() => new Set((edits?.added ?? []).map((p) => p.id)), [edits])
   const qtyEdited = useMemo(() => new Set(Object.keys(edits?.qty ?? {})), [edits])
@@ -324,7 +356,7 @@ function ListDetail({ doc }: { doc: ListDoc }) {
   const rows = useMemo(() => {
     const t = q.trim().toLowerCase()
     let r = positions.filter(
-      (p) => (!cats || cats.has(leafOz(p))) && (!onlyUnpriced || p.up == null) && (!t || p.oz.toLowerCase().includes(t) || p.short.toLowerCase().includes(t) || p.category.toLowerCase().includes(t)),
+      (p) => (!cats || cats.has(leafOz(p))) && (!onlyUnpriced || p.up == null) && (!t || p.oz.toLowerCase().includes(t) || p.short.toLowerCase().includes(t) || p.path?.some((part) => part.label.toLowerCase().includes(t))),
     )
     if (sortTotal) r = [...r].sort((a, b) => positionTotal(b) - positionTotal(a))
     return r
@@ -338,6 +370,7 @@ function ListDetail({ doc }: { doc: ListDoc }) {
 
   const detail = detailId ? positions.find((p) => p.id === detailId) ?? null : null
   const detailIdx = detailId ? rows.findIndex((r) => r.id === detailId) : -1
+  const detailCatalogue = detail && report?.positions[detail.id]
 
   const removeSelected = () => {
     const ids = [...selected]
@@ -395,14 +428,17 @@ function ListDetail({ doc }: { doc: ListDoc }) {
   const zeroQty = positions.filter((p) => p.up != null && p.qty === 0).length
   const status = budgetStatus(st.total, cap)
   const unpriced = st.positionsCount - st.pricedCount
-  const setCap = () => openDialog({ kind: 'cap', target: 'list', id: doc.id })
+  const sections = pricingSections(tree, catStats)
+  const live = view && !view.trashedAt ? view : null
   const more: (MenuItem | 'sep')[] = [
+    { label: 'Add pricing section…', icon: 'playlist_add', onSelect: () => setAddingSection(true) },
     { label: 'Split into new list…', icon: 'call_split', onSelect: split },
     { label: 'Rename list', icon: 'edit', onSelect: () => openDialog({ kind: 'rename-list', id: doc.id }) },
-    { label: cap ? 'Change budget cap' : 'Set budget cap', icon: 'tune', onSelect: setCap },
+    ...(live ? [{ label: 'Move to another project…', icon: 'drive_file_move', onSelect: () => openDialog({ kind: 'folder-target', action: 'move-list', listId: doc.id }) }] : []),
     ...(attached.length
       ? (['sep' as const, ...attached.map((d) => ({ label: d.name, icon: 'attach_file', onSelect: () => openDialog({ kind: 'doc', doc: d }) }))] as (MenuItem | 'sep')[])
       : []),
+    ...(live ? (['sep' as const, ...listMenu(live).filter((it) => it !== 'sep' && it.danger)] as (MenuItem | 'sep')[]) : []),
   ]
 
   return (
@@ -436,7 +472,15 @@ function ListDetail({ doc }: { doc: ListDoc }) {
         amount={money(st.total)}
         total={st.total}
         cap={cap}
-        onSetCap={setCap}
+        bar={sections.length > 1 ? <PricingMeter sections={sections} total={st.total} cap={cap} className="max-w-md" /> : undefined}
+        extra={sections.length > 1 && (
+          <div className="mt-2">
+            <button type="button" aria-expanded={showSections} aria-controls="pricing-legend" onClick={() => setShowSections((v) => !v)} className="-ml-1 inline-flex h-8 items-center gap-1 rounded-full px-1 text-sm font-medium text-slate-700 hover:text-slate-900">
+              Cost by section<Icon name="expand_more" size={18} className={clsx('text-slate-500 transition-transform', showSections && 'rotate-180')} />
+            </button>
+            {showSections && <PricingLegend id="pricing-legend" sections={sections} />}
+          </div>
+        )}
         meta={
           <span className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
             {unpriced > 0 ? (
@@ -467,10 +511,16 @@ function ListDetail({ doc }: { doc: ListDoc }) {
         actions={
           <>
             <Button variant="primary" size="lg" icon="add" onClick={() => setAdding(true)}>Add position</Button>
-            <ExportMenu listId={doc.id} doc={doc} selectedIds={[...selected]} />
+            <ExportMenu listId={doc.id} doc={doc} original={original} selectedIds={[...selected]} />
           </>
         }
       />
+
+      {catalogueEnabled && (
+        <div className="mb-6">
+          <CatalogueOverview report={report} error={error} retryFailed={retryFailed} positions={positions} onOpen={setDetailId} />
+        </div>
+      )}
 
       <div ref={heroEnd} aria-hidden />
       <div ref={tableRef} className="scroll-mt-20">
@@ -519,6 +569,8 @@ function ListDetail({ doc }: { doc: ListDoc }) {
         <LedgerTable
           listId={doc.id}
           rows={rows}
+          tree={tree}
+          showEmpty={!q.trim() && !cats && !onlyUnpriced}
           selected={selected}
           setSelected={setSelected}
           focusId={focusId}
@@ -592,9 +644,21 @@ function ListDetail({ doc }: { doc: ListDoc }) {
         </section>
       )}
 
-      <AddItemDialog open={adding} onClose={() => setAdding(false)} listId={doc.id} cats={categories} nextOz={String(positions.length + 1)} />
+      <AddSectionDialog open={addingSection} onClose={() => setAddingSection(false)} onAdd={(name) => {
+        addCategory(null, name)
+        setQ('')
+        setCats(null)
+        setOnlyUnpriced(false)
+        setSortTotal(false)
+        toast(`Added section "${name}"`)
+      }} />
+      <AddItemDialog open={adding} onClose={() => setAdding(false)} listId={doc.id} tree={tree} positions={positions} />
       <DetailDrawer
         p={detail}
+        catalogue={detail && detailCatalogue ? (
+          <CatalogueDetails result={detailCatalogue} position={detail}
+            onApply={(long) => useStore.getState().patchPosition(doc.id, detail.id, { long })} />
+        ) : undefined}
         onClose={() => setDetailId(null)}
         edited={!!detail && editedIds.has(detail.id)}
         added={!!detail && addedIds.has(detail.id)}

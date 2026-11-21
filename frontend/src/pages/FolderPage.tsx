@@ -4,25 +4,22 @@ import { EmptyFolder } from '../components/EmptyFolder'
 import { DropOverlay, useDropImport } from '../components/DropImport'
 import { ListGrid } from '../components/ListCard'
 import { FolderGrid } from '../components/FolderCard'
-import { EmptyState, PageFrame, PageHeader, Row, RowList, RowMenu, Section, SortMenu, Summary } from '../components/Kit'
+import { EmptyState, PageFrame, PageHeader, RowMenu, Section, SortMenu, Summary } from '../components/Kit'
 import { int, moneyWhole, needsAttention, plural } from '../lib/format'
-import { docUrl } from '../lib/data'
 import { pickAndImport } from '../lib/import'
-import { folderDescription, folderPath, SORT_LABEL, useModel, useStore, type ListView, type SortKey } from '../lib/store'
+import { folderDescription, folderPath, SORT_LABEL, useModel, useStore, type SortKey } from '../lib/store'
 import { useUi } from '../lib/ui-store'
 import { useActions } from '../lib/actions'
-import type { DocMeta } from '../lib/types'
 
 export function FolderPage() {
   const { folderId = '' } = useParams()
-  const { folders, lists: allLists } = useModel()
+  const { folders } = useModel()
   const sort = useStore((s) => s.sort)
   const setSort = useStore((s) => s.setSort)
   const openDialog = useUi((s) => s.openDialog)
   const { openLists, folderMenu } = useActions()
   const f = folders.find((x) => x.id === folderId)
   const dragging = useDropImport(folderId, !!f && !f.trashedAt)
-  const docs = (f?.documents ?? []).filter((d) => !d.original)
   const subfolders = folders.filter((item) => item.parentId === folderId && !item.trashedAt)
   const ancestors = folderPath(folders, folderId).slice(0, -1)
   const lists = [...(f?.listMetas ?? [])].sort((x, y) => {
@@ -44,7 +41,7 @@ export function FolderPage() {
     )
   }
 
-  const empty = lists.length === 0 && (f.documents ?? []).length === 0 && subfolders.length === 0
+  const empty = lists.length === 0 && subfolders.length === 0
   if (empty && !f.trashedAt) {
     return (
       <>
@@ -58,7 +55,6 @@ export function FolderPage() {
   const nested = ancestors.length > 0
   const toPrice = f.positions - f.priced
   const flaggedLists = lists.filter((l) => needsAttention(l.total, l.cap)).length
-  const listCaps = lists.reduce((x, l) => x + (l.cap || 0), 0)
   const menu = [
     ...(lists.length > 1 ? [{ label: `Open all ${lists.length} lists in tabs`, icon: 'tab_group', onSelect: () => openLists(lists.map((l) => l.id)) }] : []),
     { label: 'New folder inside', icon: 'create_new_folder', onSelect: () => openDialog({ kind: 'new-folder', parent: f.id }) },
@@ -89,7 +85,6 @@ export function FolderPage() {
         amount={moneyWhole(f.total)}
         total={f.total}
         cap={f.cap}
-        onSetCap={() => openDialog({ kind: 'cap', target: 'folder', id: f.id })}
         statusWord={flaggedLists && !needsAttention(f.total, f.cap) ? 'On track overall' : undefined}
         meta={
           f.positions || flaggedLists ? (
@@ -97,17 +92,12 @@ export function FolderPage() {
               {plural(f.positions, 'position', 'positions')}
               {toPrice > 0 ? <> · <strong className="font-semibold text-slate-900">{int(toPrice)}</strong> still to price</> : ', all priced'}
               {flaggedLists > 0 && <> · {plural(flaggedLists, 'list', 'lists')} near {flaggedLists === 1 ? 'its' : 'their'} cap</>}
-              {f.cap > 0 && listCaps > f.cap && (
-                <span className="mt-1.5 flex items-center gap-1.5 font-medium text-amber-800">
-                  <Icon name="error" size={16} fill />List caps add up to {moneyWhole(listCaps)}, more than the {nested ? 'folder' : 'project'} cap
-                </span>
-              )}
             </span>
           ) : undefined
         }
         actions={
           <>
-            <Button variant="primary" size="lg" icon="upload" onClick={() => pickAndImport(f.id)}>Upload files</Button>
+            <Button variant="primary" size="lg" icon="upload" onClick={() => pickAndImport(f.id)}>Import files</Button>
             <Button size="lg" icon="add" onClick={() => openDialog({ kind: 'blank-list', folderId: f.id })}>New list</Button>
           </>
         }
@@ -131,43 +121,8 @@ export function FolderPage() {
         </Section>
       )}
 
-      {docs.length > 0 && (
-        <Section title="Documents" count={docs.length}>
-          <RowList>
-            {docs.map((d) => (
-              <DocRow key={d.id} doc={d} list={allLists.find((item) => item.id === d.listId)} />
-            ))}
-          </RowList>
-        </Section>
-      )}
       <DropOverlay show={dragging} name={f.name} />
     </PageFrame>
   )
 }
 
-function DocRow({ doc, list }: { doc: DocMeta; list?: ListView }) {
-  const openDialog = useUi((s) => s.openDialog)
-  const open = () => openDialog({ kind: 'doc', doc })
-  const url = docUrl(doc)
-  const pdf = /\.pdf$/i.test(doc.name)
-  const actions = [
-    { label: 'Open document', icon: 'visibility', onSelect: open },
-    ...(url && pdf ? [{ label: 'Open in new tab', icon: 'open_in_new', onSelect: () => window.open(url, '_blank', 'noopener') }] : []),
-    { label: 'Move to…', icon: 'drive_file_move', onSelect: () => openDialog({ kind: 'folder-target', action: 'move-document', docId: doc.id }) },
-    ...(!doc.original ? [{ label: 'Change linked list…', icon: 'link', onSelect: () => openDialog({ kind: 'link-document', doc }) }] : []),
-  ]
-  const kind = pdf ? 'PDF' : (doc.name.split('.').pop() ?? 'File').toUpperCase()
-  return (
-    <Row
-      dataRow="doc"
-      onOpen={open}
-      label={`Open ${doc.name}`}
-      icon={pdf ? 'description' : 'draft'}
-      tone="slate"
-      title={doc.name}
-      subtitle={[kind, doc.pages ? plural(doc.pages, 'page', 'pages') : null].filter(Boolean).join(' · ')}
-      meta={list ? <span className="text-sm text-slate-600">Linked to <span className="font-medium text-slate-800">{list.title}</span></span> : <span className="text-sm text-slate-600">Not linked</span>}
-      menu={<RowMenu label={`Options for ${doc.name}`} items={actions} />}
-    />
-  )
-}

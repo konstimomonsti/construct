@@ -9,6 +9,8 @@ import re
 
 from psycopg.types.json import Jsonb
 
+import workspace_catalogue
+
 WORKSPACE = "default"
 COLLECTIONS = {
     "userFolders", "userLists", "userDocuments", "documentLinks", "documentFolders",
@@ -19,7 +21,7 @@ FILE_TYPES = {"application/pdf", "application/octet-stream"}
 MAX_STATE_BYTES = 64 * 1024 * 1024
 
 
-def _record_id(value):
+def record_id(value):
     if not isinstance(value, str) or not 1 <= len(value) <= 200:
         raise ValueError("Invalid record id.")
     return value
@@ -59,8 +61,8 @@ def apply(connection, payload):
         removed = change.get("delete", [])
         if not isinstance(values, dict) or not isinstance(removed, list):
             raise ValueError("Invalid workspace changes.")
-        writes += [(collection, _record_id(key), value) for key, value in values.items()]
-        deletes += [(collection, _record_id(key)) for key in removed]
+        writes += [(collection, record_id(key), value) for key, value in values.items()]
+        deletes += [(collection, record_id(key)) for key in removed]
     with connection.transaction():
         if writes or deletes:
             revision = connection.execute(
@@ -88,6 +90,7 @@ def apply(connection, payload):
                         [(WORKSPACE, collection, key, Jsonb(value, dumps=_dumps), revision)
                          for collection, key, value in writes],
                     )
+            workspace_catalogue.workspace_changed(connection, WORKSPACE, writes)
         return state(connection)
 
 

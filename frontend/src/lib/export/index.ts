@@ -3,7 +3,8 @@
  * Fidelity ladder: same format + unedited → original bytes; same format + edited → patch of the original;
  * otherwise → regenerate in the notation of the target format.
  */
-import type { ListDoc, Position } from '../types'
+import { loadDocument } from '../documents'
+import type { DocMeta, ListDoc, Position } from '../types'
 import type { ExportMode, ExportRequest, ExportResult, FormatId, FormatInfo, LayoutFile } from './types'
 import { baseName, buildCats, diffList, extOf } from './util'
 
@@ -23,7 +24,7 @@ export const FORMATS: FormatInfo[] = [
 ]
 export const formatInfo = (id: FormatId) => FORMATS.find((f) => f.id === id)!
 
-export type SourceKind = 'gaeb-xml' | 'gaeb90' | 'pdf' | 'docx' | 'csv' | 'json' | 'blank' | 'other'
+export type SourceKind = 'gaeb-xml' | 'gaeb90' | 'pdf' | 'docx' | 'csv' | 'xlsx' | 'json' | 'blank' | 'other'
 
 export function sourceKindOf(doc: ListDoc): SourceKind {
   if (doc.source?.kind) return doc.source.kind
@@ -32,6 +33,7 @@ export function sourceKindOf(doc: ListDoc): SourceKind {
   if (/^d\d\d$/.test(e)) return 'gaeb90'
   if (e === 'pdf') return 'pdf'
   if (e === 'docx') return 'docx'
+  if (e === 'xlsx') return 'xlsx'
   if (e === 'csv') return 'csv'
   if (e === 'json') return 'json'
   return 'other'
@@ -50,6 +52,7 @@ export function ownFormat(doc: ListDoc): FormatId | null {
   }
   if (k === 'pdf') return 'pdf'
   if (k === 'docx') return 'docx'
+  if (k === 'xlsx') return 'xlsx'
   if (k === 'csv') return 'csv'
   if (k === 'json') return 'json'
   return null
@@ -59,10 +62,10 @@ export function isEdited(doc: ListDoc, positions: Position[]): boolean {
   return diffList(doc, positions).any
 }
 
-export function fidelityNote(doc: ListDoc, format: FormatId, edited: boolean): string {
+export function fidelityNote(doc: ListDoc, format: FormatId, edited: boolean, hasOriginal: boolean): string {
   const own = ownFormat(doc)
-  if (own === format && !edited && doc.file) return 'Byte-identical to the original file'
-  if (own === format && (format.startsWith('x83') || format.startsWith('d8'))) return 'Original patched in place, untouched records stay byte-identical'
+  if (own === format && hasOriginal && !edited) return 'Byte-identical to the original file'
+  if (own === format && hasOriginal && (format.startsWith('x83') || format.startsWith('d8'))) return 'Original patched in place, untouched records stay byte-identical'
   if (format === 'pdf') return own === 'pdf' ? 'Regenerated in original layout' : 'Regenerated in the printout layout of this list'
   if (format.startsWith('x83') || format.startsWith('d8')) return 'Regenerated in original layout'
   return 'Generated from the current list'
@@ -109,6 +112,7 @@ export async function exportList(req: ExportRequest): Promise<ExportResult> {
   /* 1 + 2: original bytes / in-place patch */
   if (own === format && !subset && defaults && req.loadOriginal) {
     const orig = await req.loadOriginal()
+    if (!orig && /^(x83|d8)/.test(format)) throw new Error('The original source file is unavailable.')
     if (orig) {
       if (!edited) return mk(orig, 'original')
       if (format === 'x83' || format === 'x83-2004') {
@@ -175,8 +179,14 @@ export async function exportList(req: ExportRequest): Promise<ExportResult> {
 
 const baseUrl = (): string => (import.meta as unknown as { env?: { BASE_URL?: string } }).env?.BASE_URL ?? '/'
 
-export function originalLoader(doc: ListDoc): (() => Promise<Uint8Array | null>) | undefined {
-  if (!doc.fileName || doc.userCreated) return undefined
+export function originalLoader(doc: ListDoc, original?: DocMeta): (() => Promise<Uint8Array | null>) | undefined {
+  if (original?.stored) {
+    return async () => {
+      const blob = await loadDocument(original.id)
+      return blob ? new Uint8Array(await blob.arrayBuffer()) : null
+    }
+  }
+  if (!doc.fileName || doc.userCreated || !doc.file) return undefined
   return async () => {
     try {
       const r = await fetch(`${baseUrl()}files/${doc.fileName.split('/').map(encodeURIComponent).join('/')}`)

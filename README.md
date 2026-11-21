@@ -14,9 +14,9 @@ The database uses PostgreSQL 18 and Docker Compose locally and on a VPS. The [sc
 
 ## Web app
 
-BillBuild at `/` provides the project and budget library. Edits in this workspace are stored in
-the browser. The [HTTP API](docs/API.md) provides database-backed drafts, catalogue analytics, and
-saved risk assessments.
+BillBuild at `/` provides the project and budget library. Uploaded files, lists, and edits sync
+between browsers. The [HTTP API](docs/API.md) also provides database-backed drafts, catalogue
+analytics, and saved risk assessments.
 
 On a saved draft, **Catalogue analytics** groups existing catalogue links by product, unit and
 supply or installed scope, with source positions and included quantities. Seed the Challenge A
@@ -299,11 +299,18 @@ LEFT JOIN source_document d ON d.id = src.source_document_id
 ORDER BY c.name, p.name, d.filename, src.source_line_code;
 ```
 
-## MVP research model
+## Catalogue and web research on uploads
 
-Use GPT-6 Luna (`gpt-6-luna`) to research unmatched materials and activities and prepare cited suggestions for human approval. The planned local integration uses [Sign in with ChatGPT](https://developers.openai.com/siwc/quickstart) with eligible plan usage. Verify Luna appears in the connected account’s model list and run a web search smoke test before enabling automated research. [Web search availability](https://developers.openai.com/siwc/token-sharing-open-source/preview-limitations) depends on the model and account policy.
+BillBuild matches imported positions using existing links to the source file or a unique catalogue
+name with a compatible unit and specification. Each remaining position with a description gets a
+background research job. The worker searches German Wikipedia using keywords from the item title
+and saves a cited excerpt when it finds a relevant article. Open the list’s **Catalogue and web
+research** section to review matches, apply a suggestion to the long description, or retry a failed
+request. Sparse descriptions and inconclusive searches appear as unresolved.
 
-For VPS deployment, eligible ChatGPT Pro and Business users can link [subscription API credits](https://developers.openai.com/api/docs/guides/chatgpt-api-credits) to an API organization. Those credits cover Responses API calls and web search. The account connection and research worker are pending implementation.
+GAEB D84 offers can omit descriptions. Attach the same-name PDF printout to the list to recover
+missing text where the position number, quantity and unit agree. For a seeded offer, BillBuild can
+use its matching printout from the catalogue data.
 
 ## Quote workflow
 

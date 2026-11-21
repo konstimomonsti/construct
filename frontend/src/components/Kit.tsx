@@ -153,7 +153,7 @@ export function BudgetMini({ total, cap, label }: { total: number; cap: number; 
 /* ------------------------------------------------------------------ */
 
 export function Summary({
-  label, amount, total, cap, onSetCap, actions, meta, capLabel = 'cap', compact, statusWord,
+  label, amount, total, cap, actions, meta, capLabel = 'cap', compact, statusWord, bar, extra,
 }: {
   /** list page: actions sit to the right of the number so the table starts higher */
   compact?: boolean
@@ -163,7 +163,10 @@ export function Summary({
   amount: string
   total: number
   cap: number
-  onSetCap?: () => void
+  /** replaces the plain meter, e.g. a bar split by pricing section */
+  bar?: ReactNode
+  /** rendered under the meta line, e.g. an expandable breakdown */
+  extra?: ReactNode
   actions?: ReactNode
   meta?: ReactNode
   capLabel?: string
@@ -178,18 +181,12 @@ export function Summary({
       <div className="mt-3 max-w-xl">
         {cap ? (
           <>
-            <Meter value={st.pct} tone={st.tone} height="h-2" className="max-w-md" label={`${label}: share of ${capLabel} used`} />
+            {bar ?? <Meter value={st.pct} tone={st.tone} height="h-2" className="max-w-md" label={`${label}: share of ${capLabel} used`} />}
             <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm text-slate-700">
               <StatusTag tone={st.tone} word={statusWord ?? st.word} />
               <span className="num">
                 <strong className="font-semibold text-slate-900">{Math.round(st.pct)}%</strong> of{' '}
-                {onSetCap ? (
-                  <button type="button" onClick={onSetCap} className="rounded underline decoration-slate-500 underline-offset-4 hover:decoration-slate-800" title={`Change ${capLabel}`}>
-                    {moneyWhole(cap)} {capLabel}
-                  </button>
-                ) : (
-                  <>{moneyWhole(cap)} {capLabel}</>
-                )}
+                {moneyWhole(cap)} {capLabel}
               </span>
               <span className="num text-slate-600">{left >= 0 ? `${moneyWhole(left)} left` : `${moneyWhole(-left)} over`}</span>
             </div>
@@ -197,15 +194,11 @@ export function Summary({
         ) : (
           <div className="flex flex-wrap items-center gap-3 text-sm text-slate-700">
             <StatusTag tone="none" word="No cap set" />
-            {onSetCap && (
-              <button type="button" onClick={onSetCap} className="font-semibold text-brand-700 underline-offset-4 hover:underline">
-                Set a budget cap
-              </button>
-            )}
           </div>
         )}
       </div>
       {meta && <div className="mt-2 text-sm text-slate-600">{meta}</div>}
+      {extra}
       </div>
       {actions && <div className={clsx('flex flex-wrap items-center gap-2', compact ? 'mt-5 sm:mt-0 sm:shrink-0' : 'mt-6')}>{actions}</div>}
     </section>

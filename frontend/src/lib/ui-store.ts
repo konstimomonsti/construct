@@ -5,10 +5,10 @@ export type DialogState =
   | { kind: 'new-folder'; parent?: string }
   | { kind: 'rename-folder'; id: string }
   | { kind: 'rename-list'; id: string }
-  | { kind: 'cap'; target: 'folder' | 'list'; id: string; prefill?: number }
   | { kind: 'doc'; doc: DocMeta }
   | { kind: 'folder-target'; action: 'import' }
   | { kind: 'folder-target'; action: 'move-list'; listId: string }
+  | { kind: 'folder-target'; action: 'move-folder'; folderId: string }
   | { kind: 'folder-target'; action: 'move-document'; docId: string }
   | { kind: 'link-document'; doc: DocMeta }
   | { kind: 'blank-list'; folderId: string }

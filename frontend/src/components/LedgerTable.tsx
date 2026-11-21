@@ -1,11 +1,12 @@
 import { clsx } from 'clsx'
-import { Fragment, memo, useEffect, useMemo, useRef, useState } from 'react'
+import { memo, useEffect, useMemo, useRef, useState } from 'react'
 import { Icon, Menu, toast } from './ui'
 import { QtyInput, editableCls } from './QtyStepper'
 import { amount, nbHyphen, parseNumber } from '../lib/format'
 import { positionTotal } from '../lib/money'
 import { useStore } from '../lib/store'
-import type { Position } from '../lib/types'
+import { leafOz, treeStats } from '../lib/resolve'
+import type { CategoryNode, Position } from '../lib/types'
 
 function EditDot({ on }: { on: boolean }) {
   if (!on) return null
@@ -164,8 +165,12 @@ const Row = memo(function Row({ listId, p, showCategory, selected, flash, edited
 })
 
 export function LedgerTable({
-  listId, rows, selected, setSelected, focusId, onOpen, onMove, editedIds, qtyEdited, upEdited, sortActive, selectMode,
+  listId, rows, tree, showEmpty, selected, setSelected, focusId, onOpen, onMove, editedIds, qtyEdited, upEdited, sortActive, selectMode,
 }: {
+  /** category tree; rows are grouped under it unless a sort is active */
+  tree: CategoryNode[]
+  /** show categories with no positions (only when nothing is filtered) */
+  showEmpty: boolean
   /** touch layouts hide the checkboxes until the user turns on selection */
   selectMode?: boolean
   listId: string
@@ -182,10 +187,14 @@ export function LedgerTable({
   sortActive: boolean
 }) {
   const [flash, setFlash] = useState<string | null>(null)
+  const [collapsed, setCollapsed] = useState(() => new Set<string>())
   const headCb = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (!focusId) return
+    const target = rows.find((r) => r.id === focusId)
+    const path = new Set(target?.path?.map((part) => part.oz))
+    setCollapsed((prev) => (prev.size ? new Set([...prev].filter((oz) => !path.has(oz))) : prev))
     setFlash(focusId)
     const t = setTimeout(() => document.querySelector(`[data-pid="${CSS.escape(focusId)}"]`)?.scrollIntoView({ block: 'center', behavior: 'smooth' }), 60)
     const t2 = setTimeout(() => setFlash(null), 2600)
@@ -193,10 +202,46 @@ export function LedgerTable({
       clearTimeout(t)
       clearTimeout(t2)
     }
+    // a focus request comes from navigation; editing rows should not scroll again
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusId])
 
-  const selectedVisible = rows.reduce((n, r) => n + (selected.has(r.id) ? 1 : 0), 0)
-  const all = rows.length > 0 && selectedVisible === rows.length
+  /** one block per category: its header and the positions filed directly under it */
+  type Block = { cat?: CategoryNode; depth: number; items: Position[] }
+  const stats = useMemo(() => treeStats(rows), [rows])
+  const blocks = useMemo(() => {
+    if (sortActive) return [{ depth: 0, items: rows }] as Block[]
+    const direct = new Map<string, Position[]>()
+    for (const r of rows) {
+      const oz = leafOz(r)
+      const list = direct.get(oz)
+      if (list) list.push(r)
+      else direct.set(oz, [r])
+    }
+    const out: Block[] = []
+    const loose = direct.get('')
+    if (loose?.length) out.push({ depth: 0, items: loose })
+    const walk = (nodes: CategoryNode[], depth: number) => {
+      for (const cat of nodes) {
+        if (!showEmpty && !stats.has(cat.oz)) continue
+        const open = !collapsed.has(cat.oz)
+        out.push({ cat, depth, items: open ? direct.get(cat.oz) ?? [] : [] })
+        if (open) walk(cat.children, depth + 1)
+      }
+    }
+    walk(tree, 0)
+    return out
+  }, [rows, tree, sortActive, showEmpty, stats, collapsed])
+  const visible = useMemo(() => blocks.flatMap((b) => b.items), [blocks])
+  const toggleCat = (oz: string) => setCollapsed((prev) => {
+    const next = new Set(prev)
+    if (next.has(oz)) next.delete(oz)
+    else next.add(oz)
+    return next
+  })
+
+  const selectedVisible = visible.reduce((n, r) => n + (selected.has(r.id) ? 1 : 0), 0)
+  const all = visible.length > 0 && selectedVisible === visible.length
   const selecting = selected.size > 0
   useEffect(() => {
     if (headCb.current) headCb.current.indeterminate = selectedVisible > 0 && !all
@@ -208,12 +253,6 @@ export function LedgerTable({
     else n.add(id)
     setSelected(n)
   }
-  const groupTotals = useMemo(() => {
-    const m = new Map<string, number>()
-    for (const r of rows) m.set(r.category, (m.get(r.category) ?? 0) + positionTotal(r))
-    return m
-  }, [rows])
-
   return (
     <div>
       <table className="ledger group/table w-full table-fixed border-collapse text-left" data-selecting={selecting || selectMode ? '' : undefined}>
@@ -226,7 +265,14 @@ export function LedgerTable({
                   type="checkbox"
                   className="checkbox"
                   checked={all}
-                  onChange={() => setSelected(all ? new Set() : new Set(rows.map((r) => r.id)))}
+                  onChange={() => {
+                    const next = new Set(selected)
+                    for (const r of visible) {
+                      if (all) next.delete(r.id)
+                      else next.add(r.id)
+                    }
+                    setSelected(next)
+                  }}
                   aria-label="Select all rows"
                 />
               </label>
@@ -244,25 +290,35 @@ export function LedgerTable({
             <th scope="col" className="w-11 py-2 pr-1"><span className="sr-only">Actions</span></th>
           </tr>
         </thead>
-        <tbody>
-          {rows.map((p, i) => {
-            const head = !sortActive && (i === 0 || rows[i - 1].category !== p.category)
-            return (
-              <Fragment key={p.id}>
-                {head && (
-                  <tr data-group className="border-b border-slate-300">
-                    <th scope="colgroup" colSpan={6} className="px-2 pt-7 pb-2 text-left text-[15px] font-bold text-slate-900">
-                      <span className="block xl:truncate">
-                        {p.path?.[p.path.length - 1]?.oz && <span className="num mr-2 font-semibold text-slate-600">{p.path[p.path.length - 1].oz}</span>}
-                        {p.category}
-                      </span>
-                    </th>
-                    <td colSpan={2} className="num px-2 pt-7 pb-2 pr-[3.25rem] text-right text-base font-bold whitespace-nowrap text-slate-900">
-                      {amount(groupTotals.get(p.category) ?? 0)}<span className="xl:hidden"> €</span>
-                    </td>
-                  </tr>
-                )}
+        {blocks.map((b) => {
+          const cat = b.cat
+          const open = cat ? !collapsed.has(cat.oz) : true
+          const top = b.depth === 0
+          return (
+            <tbody key={cat ? `c-${cat.oz}` : 'loose'}>
+              {cat && (
+                <tr data-group className={clsx('border-b', top ? 'border-slate-300' : 'border-slate-200')}>
+                  <th scope="rowgroup" colSpan={6} className={clsx('py-0 pr-2 text-left', top ? 'pt-6 text-[15px] font-bold text-slate-900' : 'pt-3 text-sm font-semibold text-slate-800')}>
+                    <button
+                      type="button"
+                      aria-expanded={open}
+                      onClick={() => toggleCat(cat.oz)}
+                      className="-ml-1 flex min-h-10 max-w-full items-center gap-1.5 rounded-lg pr-2 text-left hover:bg-slate-100"
+                      style={{ marginLeft: b.depth * 20 }}
+                    >
+                      <Icon name="expand_more" size={20} className={clsx('shrink-0 text-slate-500 transition-transform', !open && '-rotate-90')} />
+                      <span className="num shrink-0 font-semibold text-slate-600">{cat.oz}</span>
+                      <span className="xl:truncate">{cat.label || cat.oz}</span>
+                    </button>
+                  </th>
+                  <td colSpan={2} className={clsx('num px-2 pr-[3.25rem] text-right whitespace-nowrap', top ? 'pt-6 text-base font-bold text-slate-900' : 'pt-3 text-sm font-semibold text-slate-800')}>
+                    {stats.has(cat.oz) ? <>{amount(stats.get(cat.oz)!.total)}<span className="xl:hidden"> €</span></> : <span className="text-sm font-normal text-slate-600">No positions yet</span>}
+                  </td>
+                </tr>
+              )}
+              {b.items.map((p) => (
                 <Row
+                  key={p.id}
                   listId={listId}
                   p={p}
                   showCategory={sortActive}
@@ -275,10 +331,10 @@ export function LedgerTable({
                   onOpen={onOpen}
                   onMove={onMove}
                 />
-              </Fragment>
-            )
-          })}
-        </tbody>
+              ))}
+            </tbody>
+          )
+        })}
       </table>
       {rows.length === 0 && (
         <div className="px-6 py-14 text-center">

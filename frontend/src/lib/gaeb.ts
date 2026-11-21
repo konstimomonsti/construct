@@ -35,7 +35,7 @@ export interface CategoryNode extends CategoryRef {
 
 /** what the exporter needs to know about the source to reproduce its notation */
 export interface SourceInfo {
-  kind: 'gaeb-xml' | 'gaeb90' | 'pdf' | 'docx' | 'csv' | 'json' | 'blank'
+  kind: 'gaeb-xml' | 'gaeb90' | 'pdf' | 'docx' | 'csv' | 'xlsx' | 'json' | 'blank'
   /** e.g. 'DA83 3.2', 'DA83 2004-07', 'D86' */
   version?: string
   /** OZ breakdown lengths root→item, e.g. [2,2,4] (+ index flag) from BoQBkdn / GAEB90 mask '1122PPPPI' */
@@ -61,7 +61,7 @@ export interface ParsedList {
 }
 
 export { newNode, flatTree } from './cat'
-import { newNode, flatTree } from './cat'
+import { newNode, treeFromPaths } from './cat'
 
 const ENTITIES: Record<string, string> = {
   amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ',
@@ -356,7 +356,14 @@ export function parseGaeb90(text: string): ParsedList {
         if (current) current._short.push(content(l).trim())
         break
       case '26':
-        if (current) current._long.push(content(l).trim())
+        if (current) current._long.push(l.slice(5, 74).trim())
+        break
+      case '20':
+      case '31':
+      case '99':
+      case 'T0':
+      case 'T9':
+        current = null
         break
       default:
         break
@@ -533,53 +540,87 @@ export function parseLvPdfText(raw: string): ParsedList {
 /* ------------------------------------------------------------------ */
 
 export function parseCsv(text: string): ParsedList {
-  const delim = (text.split('\n')[0].match(/;/g)?.length ?? 0) > (text.split('\n')[0].match(/,/g)?.length ?? 0) ? ';' : ','
-  const rows = text
-    .split(/\r?\n/)
-    .filter((r) => r.trim())
-    .map((r) => {
-      const cells: string[] = []
-      let cell = ''
-      let q = false
-      for (let i = 0; i < r.length; i++) {
-        const c = r[i]
-        if (c === '"') {
-          if (q && r[i + 1] === '"') {
-            cell += '"'
-            i++
-          } else q = !q
-        } else if (c === delim && !q) {
-          cells.push(cell)
-          cell = ''
-        } else cell += c
-      }
-      cells.push(cell)
-      return cells.map((x) => x.trim())
-    })
-  const header = (rows.shift() ?? []).map((h) => h.toLowerCase())
-  const idx = (...names: string[]) => header.findIndex((h) => names.some((nm) => h.includes(nm)))
-  const iOz = idx('oz', 'pos', 'sku')
-  const iShort = idx('kurztext', 'short', 'description', 'bezeichnung', 'name')
+  const firstLine = text.split(/\r?\n/, 1)[0]
+  const delimiters = firstLine.replace(/"(?:[^"]|"")*"/g, '')
+  const delim = ['\t', ';', ','].sort((a, b) => delimiters.split(b).length - delimiters.split(a).length)[0]
+  const rows: string[][] = []
+  let row: string[] = []
+  let cell = ''
+  let quoted = false
+  const finishRow = () => {
+    row.push(cell)
+    if (row.some((value) => value.trim())) rows.push(row)
+    row = []
+    cell = ''
+  }
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i]
+    if (c === '"') {
+      if (quoted && text[i + 1] === '"') {
+        cell += '"'
+        i++
+      } else quoted = !quoted
+    } else if (c === delim && !quoted) {
+      row.push(cell)
+      cell = ''
+    } else if ((c === '\n' || c === '\r') && !quoted) {
+      finishRow()
+      if (c === '\r' && text[i + 1] === '\n') i++
+    } else cell += c
+  }
+  if (quoted) throw new Error('Unclosed quoted field.')
+  finishRow()
+  const [header = [], ...items] = rows
+  return parseTable(header, items, 'csv')
+}
+
+export function parseTable(header: string[], rows: string[][], kind: 'csv' | 'xlsx'): ParsedList {
+  const normalized = header.map((h) => h.trim().toLowerCase().replace(/\s*\([^)]*\)$/, ''))
+  const idx = (...names: string[]) => normalized.findIndex((h) => names.includes(h))
+  const iOz = idx('oz', 'pos', 'position', 'position no.', 'sku')
+  const iShort = idx('kurztext', 'short', 'description', 'bezeichnung', 'name', 'item')
+  const iLong = idx('langtext', 'long', 'long text', 'long description')
   const iQty = idx('menge', 'qty', 'quantity')
-  const iUnit = (() => { const i = idx('einheit', 'unit'); return i >= 0 ? i : header.indexOf('me') })()
+  const iUnit = idx('einheit', 'unit', 'me')
   const iUp = idx('ep', 'einheitspreis', 'unit price', 'price')
   const iCat = idx('kategorie', 'category', 'titel')
+  if (iShort < 0 && iOz < 0) throw new Error('No item or position column found.')
   const num = (s?: string) => {
-    if (!s) return NaN
-    const t = s.replace(/[^\d,.-]/g, '')
+    const t = s?.replace(/[^\d,.-]/g, '') ?? ''
     return t.includes(',') && t.lastIndexOf(',') > t.lastIndexOf('.') ? parseFloat(t.replace(/\./g, '').replace(',', '.')) : parseFloat(t.replace(/,/g, ''))
   }
-  const positions: Position[] = rows.map((r, i) => ({
+  const categories = new Map<string, CategoryRef>()
+  const childCounts = new Map<string, number>()
+  const positions = rows.map((r, i): Position => {
+    let parent = ''
+    const labels = (r[iCat]?.trim() || 'Import').split(/\s*›\s*/).filter(Boolean)
+    const path = labels.map((label) => {
+      const key = JSON.stringify([parent, label])
+      let ref = categories.get(key)
+      if (!ref) {
+        const ordinal = (childCounts.get(parent) ?? 0) + 1
+        childCounts.set(parent, ordinal)
+        ref = { oz: parent ? `${parent}.${ordinal}` : String(ordinal), label }
+        categories.set(key, ref)
+      }
+      parent = ref.oz
+      return ref
+    })
+    const qty = num(r[iQty])
+    const up = num(r[iUp])
+    return {
       id: `p${i}`,
-      oz: iOz >= 0 ? r[iOz] : String(i + 1),
-      short: (iShort >= 0 ? r[iShort] : r[0]) || '(ohne Kurztext)',
-      qty: iQty >= 0 && Number.isFinite(num(r[iQty])) ? num(r[iQty]) : 1,
-      unit: iUnit >= 0 ? r[iUnit] : 'St',
-      up: iUp >= 0 && Number.isFinite(num(r[iUp])) ? num(r[iUp]) : null,
-      category: (iCat >= 0 && r[iCat]) || 'Import',
-    }))
-  const tree = flatTree(positions)
-  return { format: 'CSV', currency: 'EUR', positions, tree, source: { kind: 'csv' } }
+      oz: r[iOz]?.trim() || String(i + 1),
+      short: (iShort >= 0 ? r[iShort] : r[0])?.trim() || '(ohne Kurztext)',
+      long: r[iLong]?.trim() || undefined,
+      qty: Number.isFinite(qty) ? qty : 1,
+      unit: r[iUnit]?.trim() || 'St',
+      up: Number.isFinite(up) ? up : null,
+      category: path.at(-1)?.label ?? 'Import',
+      path,
+    }
+  })
+  return { format: kind === 'xlsx' ? 'Excel' : 'CSV', currency: 'EUR', positions, tree: treeFromPaths(positions), source: { kind } }
 }
 
 export { positionTotal } from './money'

@@ -6,7 +6,7 @@ import { folderDescription, type FolderView } from '../lib/store'
 import { useUi } from '../lib/ui-store'
 import { useActions } from '../lib/actions'
 
-/** one clear next step: drop or upload files; a blank list is the only alternative */
+/** one clear next step: drop or import files; a blank list is the only alternative */
 export function EmptyFolder({ folder: f, ancestors, dragging }: { folder: FolderView; ancestors: FolderView[]; dragging: boolean }) {
   const openDialog = useUi((s) => s.openDialog)
   const { folderMenu } = useActions()
@@ -43,13 +43,10 @@ export function EmptyFolder({ folder: f, ancestors, dragging }: { folder: Folder
           Drop tender files or price sheets anywhere on this page, or choose them from your computer.
         </p>
         <div className="mt-7 flex flex-wrap justify-center gap-2">
-          <Button variant="primary" size="lg" icon="upload" onClick={pick}>Upload files</Button>
+          <Button variant="primary" size="lg" icon="upload" onClick={pick}>Import files</Button>
           <Button size="lg" icon="add" onClick={() => openDialog({ kind: 'blank-list', folderId: f.id })}>Start a blank list</Button>
         </div>
-        <p className="mt-6 text-sm text-balance text-slate-600">GAEB (X81–X86, D81–D86), CSV, JSON or PDF</p>
-        <button type="button" onClick={() => openDialog({ kind: 'cap', target: 'folder', id: f.id })} className="mt-3 h-10 rounded-full px-3 text-sm font-semibold text-brand-700 hover:bg-brand-50">
-          Set a budget cap
-        </button>
+        <p className="mt-6 text-sm text-balance text-slate-600">Supports GAEB, CSV, TSV, Excel, JSON, Word and PDF</p>
       </div>
     </PageFrame>
   )
