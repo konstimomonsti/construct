@@ -164,8 +164,8 @@ def missing_spec(ctx):
             continue
         wanted = [REQUIRED_FIELDS.get(name, COLOUR_TEXT) for name in missing]
         element = f" ({data['element_code']})" if data.get("element_code") else ""
-        question = (f"Zu Pos. {line.code}{element}: Bitte teilen Sie uns {_join_de(wanted)} mit; "
-                    "die Angabe ist in der Leistungsbeschreibung nicht eindeutig belegt.")
+        question = (f"Zu Pos. {line.code}{element}: Bitte teilen Sie uns {_join_de(wanted)} mit. "
+                    "Die Angabe ist in der Leistungsbeschreibung nicht eindeutig belegt.")
         labels = ", ".join(FIELD_LABELS[name] for name in missing)
         yield ctx.finding(
             line=line, discriminator=",".join(missing), origin="llm", model=session.model_id,

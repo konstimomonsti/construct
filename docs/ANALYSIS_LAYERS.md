@@ -246,7 +246,8 @@ order in which the call budget is spent (`checks/__init__.py`):
   (checked), a draft question (`evidence.bieterfrage_de`); confidence at most 0.6.
 - **`L3.QTY.IMPLAUSIBLE`** (warning, `checks/quantities.py`). One call per section (up to 40 lines: short text,
   quantity and unit only; sections with fewer than 2 quantified lines are skipped); lines with a layer 1
-  error on quantity or unit are left out.
+  error on quantity or unit are left out. Quantities use a decimal point without grouping or padding.
+  A finding needs a numeric comparison in a compatible unit that differs from the source quantity.
 
 Infrastructure:
 

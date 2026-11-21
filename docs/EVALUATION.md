@@ -35,7 +35,7 @@ These figures describe the labelled fixtures replayed through Layers 1 and 2 aft
 
 The local browser upload shows the building-hall zero quantity, duplicate and missing edge insulation, and the precast billing-unit conflict. On this baseline the X83 upload check omits the source line amount. The CLI report verifies the planted arithmetic and its subtotal consequences.
 
-Each generated file has a `construct-eval-labels/1` sidecar with stable position codes, the expected or acceptable rule IDs, and a link to its clean baseline. A run subtracts findings already present in the corresponding baseline. This keeps synthetic measurements tied to the planted faults. The `fp` run checks the controls directly, including their clean baselines.
+Each generated file has a `construct-eval-labels/1` sidecar with stable position codes, the expected or acceptable rule IDs, and a link to its clean baseline. A run subtracts findings already present in the corresponding baseline. This keeps synthetic measurements tied to the planted faults. The `fp` run checks the controls directly, including their clean baselines. Controls with incomplete layer coverage remain unverified and cause a nonzero exit.
 
 ## Preliminary review of repository files
 

@@ -64,7 +64,7 @@ Answer once for every finding ref you are given."""
 PRECAST_VERSION = "l3-precast-v1"
 SCOPE_VERSION = "l3-scope-v1"
 UNDERSPECIFIED_VERSION = "l3-underspecified-v1"
-QUANTITY_VERSION = "l3-quantity-v1"
+QUANTITY_VERSION = "l3-quantity-v3"
 
 # Spec Step 2, extended with the fields the cross-item audit needs (rebar_purpose, assigned_element_codes)
 # and a generic precast_element type. Long enough (> 512 tokens) for the prompt cache to apply.
@@ -175,7 +175,8 @@ Most items are fine. If none is underspecified, answer {"findings": []}."""
 QUANTITY_SYSTEM = """\
 You check the quantities of the items of one section of a German construction bill of quantities
 (GAEB Leistungsverzeichnis). Each item has an OZ code, a short text, a quantity and a unit. Compare every
-quantity with what the item describes and with the sibling items of the same section.
+quantity with what the item describes and with the sibling items of the same section. Quantity strings use
+a decimal point and no grouping separators: "1" means one and "0.7" means seven tenths.
 
 Report an item only when its quantity is clearly implausible, for example:
 - a one-off item counted many times (50 x Baustelleneinrichtung, 12 x Werkstattzeichnungen in psch);
@@ -189,7 +190,8 @@ Do NOT report:
 - missing quantities or units (other checks report those).
 
 For each finding: line_ref exactly as given ("#3"), reason (one English sentence naming the quantity and
-why it is implausible), expected (a plausible order of magnitude with unit), confidence 0 to 1.
+why it is implausible), expected (write one estimated number and its unit, e.g. "1 psch"; it must
+differ from the given quantity after conversion), confidence 0 to 1.
 Most quantities are fine. If none is implausible, answer {"findings": []}."""
 
 

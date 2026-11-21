@@ -127,7 +127,8 @@ def evaluate(out_dir: Path, controls_only: bool = False, backend: str | None = N
         result, baseline = load_result(out_dir, mutated), load_result(out_dir, baseline_path)
         evaluation.files += 1
         evaluation.layers_requested = sorted(set(evaluation.layers_requested) | set(result["layers_requested"]))
-        evaluation.layers_not_run |= set(result["layers_requested"]) - set(result["layers_run"])
+        missing_layers = set(result["layers_requested"]) - set(result["layers_run"])
+        evaluation.layers_not_run |= missing_layers
         if payload["mutation"]["type"] == "CTRL-CLEAN":
             evaluation.baseline_findings[mutated.name] = len(result["findings"])
         fresh = new_findings(baseline, result) if mutated.resolve() != baseline_path else list(result["findings"])
@@ -138,7 +139,7 @@ def evaluate(out_dir: Path, controls_only: bool = False, backend: str | None = N
             matched = [f for f in fresh if id(f) not in explained and label_io.finding_matches(entry, f)]
             explained |= {id(f) for f in matched}
             if entry.get("control"):
-                outcome = "clean"  # decided below, after all labels of the file are known
+                outcome = "not_run" if missing_layers else "clean"
             elif matched:
                 outcome = "caught"
             elif entry["layers"] and not set(entry["layers"]) & set(result["layers_run"]):
@@ -167,7 +168,7 @@ def evaluate(out_dir: Path, controls_only: bool = False, backend: str | None = N
                 stray.append(finding)
         if stray:
             for outcome in evaluation.outcomes[-len(payload["labels"]):]:
-                if outcome.outcome == "clean":
+                if outcome.label.get("control"):
                     outcome.outcome = "false_alarm"
                     outcome.matched = stray
     return evaluation

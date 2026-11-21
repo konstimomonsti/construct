@@ -72,8 +72,8 @@ def control_rows(evaluation: Evaluation) -> list[list]:
             continue
         title = (catalogue.TYPES_BY_NAME[mutation_type].title if mutation_type in catalogue.TYPES_BY_NAME
                  else outcomes[0].label["description"])
-        bad = sum(1 for o in outcomes if o.outcome == "false_alarm")
-        rows.append([title, len(outcomes), len(outcomes) - bad, bad])
+        tally = _tally(outcomes)
+        rows.append([title, len(outcomes), tally["clean"], tally["false_alarm"], tally["not_run"]])
     return rows
 
 
@@ -119,7 +119,7 @@ def format_report(evaluation: Evaluation, *, seed_info: str = "") -> str:
     out.append(f"\n*n counts files: each error is written once per format ({', '.join(backends)}).*")
 
     out.append("\n### Controls (nothing may be reported)\n")
-    out.append(table(["Control", "Files", "Clean", "False alarms"], control_rows(evaluation)))
+    out.append(table(["Control", "Files", "Clean", "False alarms", "Incomplete"], control_rows(evaluation)))
 
     out.append("\n### Precision per rule (new findings on the mutated files)\n")
     out.append(table(["Rule", "Correct", "False alarm", "Consequence", "Precision"], precision_rows(evaluation)))

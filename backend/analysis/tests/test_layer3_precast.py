@@ -422,6 +422,10 @@ def test_implausible_quantity_per_section():
         return {"findings": [
             {"line_ref": refs["3.2.90"], "reason": "15 rails for 5 elements is high.", "expected": "~5 St",
              "confidence": 0.9},
+            {"line_ref": refs["3.2.60"], "reason": "This is one thousand pieces.",
+             "expected": "1.000 St (one thousand single labour items)", "confidence": 0.9},
+            {"line_ref": refs["3.2.30"], "reason": "This quantity differs from its siblings.",
+             "expected": "St", "confidence": 0.9},
             {"line_ref": "#99", "reason": "r", "expected": "", "confidence": 0.9},  # unknown ref
         ]}
 
@@ -429,10 +433,14 @@ def test_implausible_quantity_per_section():
     findings, _ = run3(lv11(), provider)
     quantity_requests = [r for r in provider.requests if r.prompt_version == prompts.QUANTITY_VERSION]
     assert len(quantity_requests) == 1  # one call for the section
-    assert all("long_text" not in item for item in payload(quantity_requests[0])["items"])
+    sent = {item["code"]: item for item in payload(quantity_requests[0])["items"]}
+    assert all("long_text" not in item for item in sent.values())
+    assert sent["3.2.60"]["quantity"] == "1"
+    assert sent["3.2.70"]["quantity"] == "0.7"
     found = by_rule(findings, QTY)
     assert [f.target.line_code for f in found] == ["3.2.90"]
     assert found[0].target.field == "quantity" and found[0].severity == "warning"
+    assert "takeoff" in found[0].suggested_fix.rationale
 
 
 def test_single_line_sections_are_not_sent_for_quantities():

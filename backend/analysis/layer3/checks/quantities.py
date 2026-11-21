@@ -7,7 +7,11 @@ with a layer 1 error on the quantity or unit are left out (their values aren't r
 
 from __future__ import annotations
 
-from ...contracts import Line
+from decimal import Decimal
+import re
+
+from ... import units
+from ...contracts import Fix, Line
 from ...registry import rule
 from .. import prompts
 from ..common import batches, current, l1_error_fields, line_label
@@ -17,6 +21,12 @@ from ..schema import QUANTITY_SCHEMA, QuantityItem, clamp_confidence, items
 RULE_ID = "L3.QTY.IMPLAUSIBLE"
 MAX_LINES = 40
 MIN_LINES = 2
+_EXPECTED_MEASURE = re.compile(r"\s*~?\s*(\d+(?:[.,]\d+)?)\s+(\S+?)(?:\s+\([^)]*\))?\s*")
+
+
+def _quantity_text(quantity: Decimal) -> str:
+    number = format(quantity, "f")
+    return number.rstrip("0").rstrip(".") if "." in number else number
 
 
 @rule(RULE_ID, layer=3, category="quantity", severity="warning", title="Quantity implausible",
@@ -40,7 +50,7 @@ def implausible_quantity(ctx):
     requests = []
     for section_id, chunk in chunks:
         payload = [{"ref": f"#{index}", "code": line.code, "short_text": line.short_text,
-                    "quantity": format(line.quantity, "f"), "unit": line.unit_raw or line.unit}
+                    "quantity": _quantity_text(line.quantity), "unit": line.unit_raw or line.unit}
                    for index, line in enumerate(chunk, start=1)]
         requests.append(LLMRequest(system=prompts.QUANTITY_SYSTEM,
                                    prompt=prompts.quantity_prompt(titles.get(section_id), payload),
@@ -57,14 +67,23 @@ def implausible_quantity(ctx):
             if line is None or line.id in seen:
                 session.dropped[RULE_ID] += 1
                 continue
+            expected = _EXPECTED_MEASURE.fullmatch(item.expected)
+            comparison = units.convert(Decimal(expected[1].replace(",", ".")),
+                                       units.normalize(expected[2]), line.unit) if expected else None
+            if comparison is None or comparison == line.quantity:
+                session.dropped[RULE_ID] += 1
+                continue
             seen.add(line.id)
-            quantity = f"{format(line.quantity, 'f')} {line.unit_raw or line.unit or ''}".strip()
+            quantity = f"{_quantity_text(line.quantity)} {line.unit_raw or line.unit or ''}".strip()
             yield ctx.finding(
                 line=line, field="quantity", origin="llm", model=session.model_id,
-                message=f"{line_label(line)}: quantity {quantity} looks implausible. {item.reason.strip()}"
-                        + (f" Expected about {item.expected.strip()}." if item.expected.strip() else ""),
+                message=f"{line_label(line)}: quantity {quantity} looks implausible. {item.reason.strip()} "
+                        f"The model compared it with {item.expected.strip()}.",
                 evidence={"quantity": format(line.quantity, "f"), "unit": line.unit_raw or line.unit,
                           "reason": item.reason.strip(), "expected": item.expected.strip(),
                           "confidence": clamp_confidence(item.confidence),
                           "prompt_version": prompts.QUANTITY_VERSION},
+                suggested_fix=Fix(operations=[], confidence=clamp_confidence(item.confidence),
+                                  rationale="Check the source quantity, billing unit, and takeoff. "
+                                            "Use the approved quantity after reconciling the scope."),
             )

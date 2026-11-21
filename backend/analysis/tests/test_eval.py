@@ -258,8 +258,10 @@ def test_a_label_whose_layer_did_not_run_counts_as_not_run(tmp_path, monkeypatch
     monkeypatch.setenv("ANALYSIS_L3_PROVIDER", "none")  # layer 3 is asked for but has no model
     run_all(tmp_path, [1, 2, 3])
     evaluation = evaluate(tmp_path)
-    assert {o.file: o.outcome for o in evaluation.outcomes}["QTY-ZERO-01.X83"] == "not_run"
+    outcomes = {o.file: o.outcome for o in evaluation.outcomes}
+    assert outcomes["QTY-ZERO-01.X83"] == outcomes["building_hall_clean.X83"] == "not_run"
     assert 3 in evaluation.layers_not_run
+    assert eval_main(["fp", "--layers", "1,2,3", "--out", str(tmp_path)]) == 2
     assert "Not run: 3" in format_report(evaluation)
 
 
