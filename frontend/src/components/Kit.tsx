@@ -1,9 +1,10 @@
 import { clsx } from 'clsx'
 import { Fragment, useId, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { Icon, Menu, Meter, type MenuItem } from './ui'
+import { Icon, kbdCls, Menu, Meter, type MenuItem } from './ui'
 import { Page } from './Page'
-import { budgetStatus, money, moneyWhole } from '../lib/format'
+import { budgetStatus, int, money, moneyWhole } from '../lib/format'
+import { MOD_KEY } from '../lib/keys'
 
 /* ------------------------------------------------------------------ */
 /* Page frame + header                                                 */
@@ -35,7 +36,7 @@ export function Crumbs({ items }: { items: Crumb[] }) {
 }
 
 export function PageHeader({
-  crumbs = [], title, subtitle, icon, tone, aside,
+  crumbs = [], title, subtitle, icon, tone, aside, wrap,
 }: {
   crumbs?: Crumb[]
   title: ReactNode
@@ -43,6 +44,8 @@ export function PageHeader({
   icon?: string
   tone?: string
   aside?: ReactNode
+  /** let a long title and subtitle take a second line instead of truncating (tender names and references) */
+  wrap?: boolean
 }) {
   return (
     <header className="mb-6">
@@ -51,8 +54,8 @@ export function PageHeader({
         <div className="flex min-w-0 items-center gap-3.5">
           {icon && <Avatar icon={icon} tone={tone} size="lg" />}
           <div className="min-w-0">
-            <h1 className="line-clamp-2 font-heading text-2xl font-extrabold tracking-tight text-balance break-words text-slate-900 sm:line-clamp-1 sm:text-[28px] sm:leading-9">{title}</h1>
-            {subtitle && <p className="mt-0.5 text-sm text-slate-600 sm:truncate">{subtitle}</p>}
+            <h1 className={clsx('line-clamp-2 font-heading text-2xl font-extrabold tracking-tight text-balance break-words text-slate-900 sm:text-[28px] sm:leading-9', !wrap && 'sm:line-clamp-1')}>{title}</h1>
+            {subtitle && <p className={clsx('mt-0.5 text-sm text-slate-600', wrap ? 'line-clamp-2 text-pretty' : 'sm:truncate')}>{subtitle}</p>}
           </div>
         </div>
         {aside && <div className="flex shrink-0 items-center gap-1">{aside}</div>}
@@ -146,12 +149,26 @@ export function StatusTag({ tone, word, small, hint }: { tone: string; word: str
 export function BudgetBadge({ total, cap }: { total: number; cap: number }) {
   const st = budgetStatus(total, cap)
   if (!total || !cap || st.tone === 'ok') return null
-  return <StatusTag small tone={st.tone} word={st.word} />
+  return <StatusTag tone={st.tone} word={st.word} />
+}
+
+/**
+ * a roll-up ("1 list almost at cap") is about the children, not the row itself, so it is quieter than the row's own
+ * filled status chip: no fill, the status icon keeps its colour, the words stay muted ink.
+ * `tinted` (the hero) sets the words in the status colour too, so the worst child state reads beside the total's chip.
+ */
+export function RollupTag({ tone, word, tinted }: { tone: string; word: string; tinted?: boolean }) {
+  return (
+    <span className={clsx('inline-flex items-center gap-1 text-[13px] font-medium whitespace-nowrap', tinted ? statusText[tone] : 'text-slate-600')}>
+      <Icon name={statusIcon[tone] ?? 'info'} size={16} fill className={statusText[tone]} />
+      {word}
+    </span>
+  )
 }
 
 /** spoken summary of a budget, used inside row link names */
 export function budgetPhrase(total: number, cap: number) {
-  if (!total) return 'not priced yet'
+  if (!total) return 'not priced'
   if (!cap) return 'no cap set'
   const st = budgetStatus(total, cap)
   return `${st.word.toLowerCase()}, ${Math.round(st.pct)}% of cap`
@@ -160,7 +177,7 @@ export function budgetPhrase(total: number, cap: number) {
 /** row right-column budget line: "75% of 2.000.000 €" plus a slim meter; the status word sits on the title line (BudgetBadge) */
 export function BudgetMini({ total, cap, label }: { total: number; cap: number; label: string }) {
   const st = budgetStatus(total, cap)
-  if (!total) return <span className="text-sm text-slate-600">Not priced yet</span>
+  if (!total) return <span className="text-sm text-slate-600">Not priced</span>
   if (!cap) return <span className="text-sm text-slate-600">No cap set</span>
   return (
     <span className="flex items-center justify-end gap-2 text-sm whitespace-nowrap text-slate-600">
@@ -191,17 +208,21 @@ export interface HeroStatus {
   word: string
 }
 
-/** the cap figure with a visible pencil: the cap is a setting, so it reads as one */
+/**
+ * "of 2.000.000 € ✎" as one button: the cap is a setting, so it reads as one. 32px tall, bleeding into the line
+ * spacing so the text keeps its place; the pencil is slate-600 at rest (3:1 against the page).
+ */
 function CapButton({ cap, capLabel, onClick }: { cap: number; capLabel: string; onClick: () => void }) {
   return (
     <button
       type="button"
       onClick={onClick}
       aria-label={`${capLabel === 'cap' ? 'Cap' : capLabel}: ${moneyWhole(cap)}. Edit budget cap`}
-      className="group/cap relative inline-flex items-center gap-1 rounded text-slate-700 hover:text-slate-900 after:absolute after:-inset-x-1 after:-inset-y-3 after:content-['']"
+      className="group/cap -mx-1.5 -my-1.5 inline-flex h-8 items-center gap-1 rounded-md px-1.5 align-middle text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
     >
-      <span className="underline decoration-slate-400 decoration-dotted underline-offset-4 group-hover/cap:decoration-slate-900">{moneyWhole(cap)}</span>
-      <Icon name="edit" size={14} className="text-slate-500 group-hover/cap:text-slate-900" />
+      of
+      <span className="num text-slate-700 underline decoration-slate-400 decoration-dotted underline-offset-4 group-hover/cap:text-slate-900 group-hover/cap:decoration-slate-900">{moneyWhole(cap)}</span>
+      <Icon name="edit" size={16} className="text-slate-600 group-hover/cap:text-slate-900" />
     </button>
   )
 }
@@ -225,8 +246,14 @@ export function InfoTip({ text }: { text: string }) {
  * The pill always shows the worst state (a project near its cap makes the whole page "1 near cap").
  */
 export function Summary({
-  label, amount, total, cap, actions, meta, capLabel = 'cap', compact, status, bar, extra, hideLeft, note, hint, onEditCap, onStatus,
+  label, amount, total, cap, actions, meta, capLabel = 'cap', compact, status, bar, extra, hideLeft, note, hint, onEditCap, onStatus, sub, capNote, unpriced,
 }: {
+  /** nothing counted yet: "On track" at 0 € would be a false all-clear, so the status says so instead */
+  unpriced?: boolean
+  /** one muted line under the cap figure saying what the cap is made of ("sum of 6 list caps") */
+  capNote?: ReactNode
+  /** one quiet line under the hero figure, e.g. money that is proposed but not counted yet */
+  sub?: ReactNode
   /** makes the flagged-children text a link, e.g. to the Needs attention filter */
   onStatus?: () => void
   /** how the figure is measured, shown on demand behind an info button */
@@ -260,12 +287,14 @@ export function Summary({
         <div className="min-w-0">
           <div className="text-sm font-medium text-slate-600">{label}</div>
           <BigMoney value={amount} className={clsx('num display mt-1 block leading-[1.05] text-slate-900', compact ? 'text-[30px] sm:text-[44px]' : 'text-[34px] sm:text-[54px]')} />
+          {sub && <div className="mt-1.5 text-sm text-slate-600">{sub}</div>}
           {/* on phones the hero states the two judging numbers in one line, so the work starts sooner */}
           {cap > 0 && (
             <p className="num mt-1 text-sm text-slate-600 sm:hidden">
-              {Math.round(st.pct)}% of {onEditCap ? <CapButton cap={cap} capLabel={capLabel} onClick={onEditCap} /> : moneyWhole(cap)} · <span className={left < 0 ? 'font-semibold text-rose-700' : undefined}>{money(Math.abs(left))} {left >= 0 ? 'left' : 'over'}</span>
+              {Math.round(st.pct)}% {onEditCap ? <CapButton cap={cap} capLabel={capLabel} onClick={onEditCap} /> : <>of {moneyWhole(cap)}</>} · <span className={left < 0 ? 'font-semibold text-rose-700' : undefined}>{money(Math.abs(left))} {left >= 0 ? 'left' : 'over'}</span>
             </p>
           )}
+          {cap > 0 && capNote && <p className="mt-0.5 text-[13px] text-slate-600 sm:hidden">{capNote}</p>}
         </div>
         {cap > 0 && (
           <dl className="flex gap-x-10 gap-y-2 pb-1 max-sm:hidden sm:text-right">
@@ -273,9 +302,9 @@ export function Summary({
               <dt className="text-sm text-slate-600">Used</dt>
               <dd className="num mt-0.5 text-xl font-semibold text-slate-900 sm:text-2xl">{Math.round(st.pct)}%</dd>
               <dd className="num text-sm text-slate-600">
-                of{' '}
-                {onEditCap ? <CapButton cap={cap} capLabel={capLabel} onClick={onEditCap} /> : moneyWhole(cap)}
+                {onEditCap ? <CapButton cap={cap} capLabel={capLabel} onClick={onEditCap} /> : <>of {moneyWhole(cap)}</>}
               </dd>
+              {capNote && <dd className="mt-0.5 text-[13px] text-slate-600">{capNote}</dd>}
             </div>
             {!hideLeft && (
               <div>
@@ -292,8 +321,13 @@ export function Summary({
           <div className={compact ? 'mt-3 sm:mt-4' : 'mt-5'}>{bar ?? <TrussMeter total={total} cap={cap} tone={st.tone} label={`${label}: share of ${capLabel} used`} />}</div>
           <div className="mt-2 flex flex-wrap items-center justify-between gap-x-6 gap-y-2 text-sm text-slate-600">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-              <StatusTag tone={st.tone} word={st.word} hint />
-              {status && (onStatus ? <MetaLink onClick={onStatus}>{status.word}</MetaLink> : <span className="font-medium text-slate-800">{status.word}</span>)}
+              {unpriced && total === 0 ? <StatusTag tone="none" word="Nothing priced yet" /> : <StatusTag tone={st.tone} word={st.word} hint />}
+              {status && (onStatus ? (
+                <button type="button" onClick={onStatus} className="relative -ml-1 inline-flex h-7 items-center gap-0.5 rounded-md pr-1 pl-1.5 after:absolute after:inset-x-0 after:-inset-y-2 after:content-[''] hover:bg-slate-100">
+                  <RollupTag tone={status.tone} word={status.word} tinted />
+                  <Icon name="chevron_right" size={18} className="text-slate-500" />
+                </button>
+              ) : <RollupTag tone={status.tone} word={status.word} tinted />)}
               {hint && <InfoTip text={hint} />}
               {note && <span>{note}</span>}
             </div>
@@ -417,15 +451,20 @@ export function MetaLink({ children, onClick, pressed }: { children: ReactNode; 
 /* Sections + rows                                                     */
 /* ------------------------------------------------------------------ */
 
-export function Section({ title, count, tools, children, className, id, focusable }: { title: string; count?: number; tools?: ReactNode; children: ReactNode; className?: string; id?: string; focusable?: boolean }) {
+/**
+ * a titled block of rows. `filters` (Chips) share the heading row with the tools on wide screens, so the first row
+ * starts sooner; on phones they take their own line under the heading.
+ */
+export function Section({ title, count, tools, filters, children, className, id, focusable }: { title: string; count?: number; tools?: ReactNode; filters?: ReactNode; children: ReactNode; className?: string; id?: string; focusable?: boolean }) {
   const hid = id ?? `sec-${title.toLowerCase().replace(/\W+/g, '-')}`
   return (
     <section aria-labelledby={hid} className={clsx('mb-8', className)}>
-      <div className="mb-2 flex min-h-10 flex-wrap items-center justify-between gap-x-3 gap-y-2">
-        <h2 id={hid} tabIndex={focusable ? -1 : undefined} className="rounded font-heading text-base font-bold text-slate-900">
+      <div className={clsx('flex min-h-10 flex-wrap items-center gap-x-2 gap-y-3', filters ? 'mb-3' : 'mb-2')}>
+        <h2 id={hid} tabIndex={focusable ? -1 : undefined} className="mr-auto rounded pr-1 font-heading text-base font-bold text-slate-900">
           {title}
           {count !== undefined && <span className="num ml-2 font-sans text-sm font-medium text-slate-600">{count}</span>}
         </h2>
+        {filters && <div className="max-md:order-last max-md:w-full md:mr-4">{filters}</div>}
         {tools && <div className="flex items-center gap-2">{tools}</div>}
       </div>
       {children}
@@ -458,6 +497,10 @@ export function RowMenu({ items, label }: { items: (MenuItem | 'sep')[]; label: 
  * The whole row is one link (stretched); the menu sits above it. The row's content lines up with
  * the page column and its hover fill bleeds 12px outside it, so every trailing control shares one edge.
  * Phones keep the same anatomy: amount right on the title line, the budget line under the subtitle.
+ *
+ * Mouse devices keep a fixed action gutter, so figures never move when the ⋯ appears on hover or focus: where the
+ * page has a wide enough margin (≥1400px) the gutter sits outside the content edge and the figures end on that edge,
+ * like the hero and the toolbars; on narrower windows the gutter is reserved inside the row.
  */
 export function Row({
   to, onOpen, label, icon, tone, title, badge, subtitle, amount, meta, menu, selectMode, selected, onToggle, dataRow,
@@ -484,6 +527,7 @@ export function Row({
       data-row={dataRow}
       className={clsx(
         'group relative flex items-start gap-3 rounded-lg px-2 py-3 transition-colors sm:items-center sm:gap-4 sm:px-3',
+        menu && !selectMode && 'sm:max-[1399px]:[@media(hover:hover)]:pr-[60px] min-[1400px]:[@media(hover:hover)]:-mr-10 min-[1400px]:[@media(hover:hover)]:pr-[52px]',
         selected ? 'bg-brand-50' : 'hover:bg-slate-100',
       )}
     >
@@ -501,14 +545,10 @@ export function Row({
       ) : (
         <Avatar icon={icon} tone={tone} />
       )}
-      {/* hover devices: the ⋯ overlays the row's right end and the figures slide over to make room,
-          so at rest money columns end on the same edge as the page header and toolbars */}
-      <div className={clsx(
-        'pointer-events-none relative grid min-w-0 flex-1 grid-cols-[auto_minmax(0,1fr)] items-baseline gap-x-3 gap-y-0.5 sm:grid-cols-[minmax(0,1fr)_auto] sm:gap-x-6',
-        menu && !selectMode && '[@media(hover:hover)]:transition-[padding] [@media(hover:hover)]:group-focus-within:pr-12 [@media(hover:hover)]:group-hover:pr-12 [@media(hover:hover)]:group-has-[[aria-expanded=true]]:pr-12',
-      )}>
-        <div className="col-span-2 row-start-1 flex min-w-0 items-center gap-2 sm:col-span-1">
-          <span lang="de" className="line-clamp-2 text-[15px] leading-snug font-semibold break-normal hyphens-auto text-slate-900 sm:line-clamp-1">{title}</span>
+      <div className="pointer-events-none relative grid min-w-0 flex-1 grid-cols-[auto_minmax(0,1fr)] items-baseline gap-x-3 gap-y-0.5 sm:grid-cols-[minmax(0,1fr)_auto] sm:gap-x-6">
+        {/* a long name takes two lines; when the status chip no longer fits beside it, the chip wraps under the name */}
+        <div className="col-span-2 row-start-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 sm:col-span-1">
+          <span lang="de" className="line-clamp-2 min-w-0 text-[15px] leading-snug font-semibold break-normal hyphens-auto text-slate-900">{title}</span>
           {badge && <span className="shrink-0 empty:hidden max-sm:hidden">{badge}</span>}
         </div>
         {(subtitle || badge) && (
@@ -521,7 +561,7 @@ export function Row({
         {meta && <div className="col-start-2 row-start-3 flex min-w-0 justify-end sm:row-start-2">{meta}</div>}
       </div>
       {menu && !selectMode && (
-        <div className="relative z-10 -my-1.5 -mr-1 transition-opacity sm:my-0 [@media(hover:hover)]:absolute [@media(hover:hover)]:top-1/2 [@media(hover:hover)]:right-1 [@media(hover:hover)]:my-0 [@media(hover:hover)]:mr-0 [@media(hover:hover)]:-translate-y-1/2 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-focus-within:opacity-100 [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:has-[[aria-expanded=true]]:opacity-100 sm:[@media(hover:hover)]:right-2">{menu}</div>
+        <div className="relative z-10 -my-1.5 -mr-1 transition-opacity sm:my-0 [@media(hover:hover)]:absolute [@media(hover:hover)]:top-1/2 [@media(hover:hover)]:right-1 [@media(hover:hover)]:my-0 [@media(hover:hover)]:mr-0 [@media(hover:hover)]:-translate-y-1/2 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-focus-within:opacity-100 [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:has-[[aria-expanded=true]]:opacity-100 sm:[@media(hover:hover)]:right-2 min-[1400px]:[@media(hover:hover)]:right-1.5">{menu}</div>
       )}
     </div>
   )
@@ -583,7 +623,7 @@ export function Chips<K extends string>({ value, options, onChange, label }: { v
             )}
           >
             {o.label}
-            {o.count !== undefined && <span className={clsx('num', on ? 'text-slate-200' : 'text-slate-600')}>{o.count}</span>}
+            {o.count !== undefined && <span className={clsx('num', on ? 'text-slate-200' : 'text-slate-600')}>{int(o.count)}</span>}
           </button>
         )
       })}
@@ -614,7 +654,7 @@ export function EmptyState({ icon, title, text, children, hint, className, activ
       <h2 className={clsx('font-heading font-bold tracking-tight text-balance text-slate-900', compact ? 'text-lg' : 'text-xl sm:text-2xl')}>{title}</h2>
       {text && <p className="mt-2 max-w-[52ch] text-[15px] leading-relaxed text-balance text-slate-600">{text}</p>}
       {children && <div className="mt-5 flex w-full flex-col items-stretch justify-center gap-2 sm:w-auto sm:flex-row sm:flex-wrap">{children}</div>}
-      {hint && <p className="mt-5 max-w-md text-sm leading-relaxed text-pretty text-slate-500">{hint}</p>}
+      {hint && <p className="mt-3 max-w-md text-sm leading-relaxed text-pretty text-slate-600">{hint}</p>}
     </div>
   )
 }
@@ -627,4 +667,14 @@ export function PillLink({ to, icon, children }: { to: string; icon?: string; ch
       {children}
     </Link>
   )
+}
+
+/** a key chip, the same one the header search shows ("⌘K") */
+export function Kbd({ children, label, className }: { children: ReactNode; label?: string; className?: string }) {
+  return <kbd aria-label={label} className={clsx(kbdCls, className)}>{children}</kbd>
+}
+
+/** the search shortcut in this platform's words: ⌘K on a Mac, Ctrl K elsewhere */
+export function PaletteKey({ className }: { className?: string }) {
+  return <Kbd className={className}>{MOD_KEY === '⌘' ? '⌘K' : 'Ctrl K'}</Kbd>
 }

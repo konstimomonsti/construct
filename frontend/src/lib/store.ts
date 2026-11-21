@@ -29,6 +29,8 @@ interface ListPatch {
   cap?: number | null
   folderId?: string
   reviewedFindings?: string[]
+  /** positions whose catalogue price suggestion the user dismissed */
+  dismissedPrices?: string[]
 }
 export interface ListEdits {
   qty: Record<string, number>

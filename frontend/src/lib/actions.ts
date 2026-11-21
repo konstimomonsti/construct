@@ -4,6 +4,7 @@ import { toast } from '../components/ui'
 import type { FolderView, ListView } from './store'
 import { useStore } from './store'
 import { useUi } from './ui-store'
+import { plural } from './format'
 
 export function unitIcon(unit: string): string {
   const u = unit.trim().toLowerCase()
@@ -23,20 +24,41 @@ export function useActions() {
   const navigate = useNavigate()
   const openDialog = useUi((s) => s.openDialog)
 
-  const trashFolder = (f: Pick<FolderView, 'id' | 'name'>, goHome = false) => {
-    useStore.getState().patchFolder(f.id, { trashedAt: new Date().toISOString() })
-    if (goHome) navigate('/')
-    toast(`Moved "${f.name}" to Trash`, 'ok', {
-      label: 'Undo',
-      run: () => useStore.getState().patchFolder(f.id, { trashedAt: undefined }),
+  /** no Trash: deleting is permanent and shared with the whole team, so it always asks first */
+  const deleteFolders = (fs: Pick<FolderView, 'id' | 'name'>[], after?: () => void) => {
+    if (!fs.length) return
+    const one = fs.length === 1
+    openDialog({
+      kind: 'confirm',
+      title: one ? `Delete "${fs[0].name}"?` : `Delete ${plural(fs.length, 'project', 'projects')}?`,
+      body: `${one ? 'The project and its lists' : 'These projects and their lists'} will be deleted for everyone in the workspace. This can't be undone.`,
+      confirmLabel: 'Delete',
+      danger: true,
+      run: () => {
+        fs.forEach((f) => useStore.getState().purgeFolder(f.id))
+        after?.()
+        toast(one ? `Deleted "${fs[0].name}"` : `Deleted ${plural(fs.length, 'project', 'projects')}`)
+      },
     })
   }
 
-  const trashList = (l: Pick<ListView, 'id' | 'title'>) => {
-    useStore.getState().patchList(l.id, { trashedAt: new Date().toISOString() })
-    toast(`Moved "${l.title}" to Trash`, 'ok', {
-      label: 'Undo',
-      run: () => useStore.getState().patchList(l.id, { trashedAt: undefined }),
+  const deleteLists = (ls: Pick<ListView, 'id' | 'title'>[], after?: () => void) => {
+    if (!ls.length) return
+    const one = ls.length === 1
+    openDialog({
+      kind: 'confirm',
+      title: one ? `Delete "${ls[0].title}"?` : `Delete ${plural(ls.length, 'list', 'lists')}?`,
+      body: `${one ? 'The list and its edits' : 'These lists and their edits'} will be deleted for everyone in the workspace. This can't be undone.`,
+      confirmLabel: 'Delete',
+      danger: true,
+      run: () => {
+        ls.forEach((l) => {
+          useStore.getState().patchList(l.id, { trashedAt: 'purged' })
+          useStore.getState().closeTab(l.id)
+        })
+        after?.()
+        toast(one ? `Deleted "${ls[0].title}"` : `Deleted ${plural(ls.length, 'list', 'lists')}`)
+      },
     })
   }
 
@@ -67,7 +89,7 @@ export function useActions() {
       },
     },
     'sep',
-    { label: 'Move to Trash', icon: 'delete', danger: true, onSelect: () => trashFolder(f) },
+    { label: 'Delete…', icon: 'delete', danger: true, onSelect: () => deleteFolders([f]) },
   ]
 
   const listMenu = (l: ListView): (MenuItem | 'sep')[] => [
@@ -77,8 +99,8 @@ export function useActions() {
     { label: 'Move…', icon: 'drive_file_move', onSelect: () => openDialog({ kind: 'folder-target', action: 'move-list', listId: l.id }) },
     { label: 'Edit budget cap…', icon: 'savings', onSelect: () => openDialog({ kind: 'edit-cap', target: 'list', id: l.id }) },
     'sep',
-    { label: 'Move to Trash', icon: 'delete', danger: true, onSelect: () => trashList(l) },
+    { label: 'Delete…', icon: 'delete', danger: true, onSelect: () => deleteLists([l]) },
   ]
 
-  return { navigate, trashFolder, trashList, openLists, folderMenu, listMenu }
+  return { navigate, deleteFolders, deleteLists, openLists, folderMenu, listMenu }
 }

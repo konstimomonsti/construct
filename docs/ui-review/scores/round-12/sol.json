@@ -1,0 +1,308 @@
+{
+  "member": "sol",
+  "screens": {
+    "S1": {
+      "scores": {
+        "hierarchy": 9,
+        "density": 8,
+        "typography": 9,
+        "consistency": 8,
+        "clarity": 7,
+        "interaction": 8,
+        "accessibility": 8,
+        "responsive": 8,
+        "wise": 8
+      },
+      "issues": [
+        "[density] Place the project filters on the Projects heading row with Sort and Select at 1440 px so the first project appears sooner.",
+        "[consistency] Reserve a fixed gutter for the project row menu so totals and cap percentages keep their alignment on hover and keyboard focus.",
+        "[clarity] Label the hero cap as the sum of project caps. Label the priced-project fraction and Not priced filter with their inclusion rules, including how projects with no lists are counted.",
+        "[interaction] Make the hero information icon toggle its explanation on click, Enter and Space, with the expanded state exposed.",
+        "[accessibility] Replace the information bubble with a keyboard-dismissible disclosure that stays visible while the pointer crosses into it and exposes the explanation as a description.",
+        "[responsive] Allow two lines for project names when warning badges and amounts compress the title column at 1280 px. Keep the badge on a separate line if it would clip the name.",
+        "[wise] Scope the hero badge to the portfolio and label the adjacent count as projects needing attention so aggregate headroom and local budget pressure read independently."
+      ]
+    },
+    "S2": {
+      "scores": {
+        "hierarchy": 9,
+        "density": 9,
+        "typography": 9,
+        "consistency": 8,
+        "clarity": 8,
+        "interaction": 8,
+        "accessibility": 8,
+        "responsive": 8,
+        "wise": 8
+      },
+      "issues": [
+        "[consistency] Keep list totals and meters in a fixed column when row menus appear, using the same reserved action gutter as the catalogue.",
+        "[clarity] Give the overallocated-cap message explicit amounts for the project cap and combined list caps, and prefix it with List caps so it reads independently of the spend badge.",
+        "[interaction] Link the cap allocation message to a compact breakdown of which list caps make up the excess, with direct access to the cap editor.",
+        "[accessibility] Expand each list link's accessible description to include the import or tender phase and any remaining position-pricing count shown in the subtitle.",
+        "[responsive] Allow the project title and reference to wrap at 1280 px while keeping Import files and New list together, so long tender references stay readable.",
+        "[wise] Anchor the cap discrepancy to the editable project cap and distinguish allocation from confirmed spend in the summary."
+      ]
+    },
+    "S3": {
+      "scores": {
+        "hierarchy": 8,
+        "density": 8,
+        "typography": 8,
+        "consistency": 8,
+        "clarity": 8,
+        "interaction": 7,
+        "accessibility": 8,
+        "responsive": 8,
+        "wise": 8
+      },
+      "issues": [
+        "[hierarchy] Visually indent nested section titles beneath their parent in the expanded ledger while keeping numeric columns aligned.",
+        "[density] Reduce the vertical gaps between list metadata, toolbar and table header so regular and expanded views expose another position before the fold.",
+        "[typography] Give expanded subsection titles a distinct weight and slightly smaller size than section titles, with a visible difference from body rows.",
+        "[consistency] Keep GP values aligned beneath the header when row actions are revealed. Reserve the same action gutter for section and position rows.",
+        "[clarity] Change the 38 zero quantity chip to 38 positions with quantity 0 and explain in its filter state that these positions contribute zero to the total.",
+        "[interaction] Keep compact position search, filters and Collapse all reachable above the sticky column headings while scrolling an expanded tender.",
+        "[accessibility] Keep the full German description on the row button, mark its visible text with lang=\"de\", and raise the muted text contrast for zero-quantity rows on the hover fill.",
+        "[responsive] At 1280 px, let long section names wrap to two lines before truncating and reserve space for position counts and totals.",
+        "[wise] Add keyboard row navigation and a documented shortcut to open the focused position or edit its unit price without tabbing through every cell."
+      ]
+    },
+    "S4": {
+      "scores": {
+        "hierarchy": 9,
+        "density": 8,
+        "typography": 9,
+        "consistency": 8,
+        "clarity": 8,
+        "interaction": 8,
+        "accessibility": 8,
+        "responsive": 9,
+        "wise": 8
+      },
+      "issues": [
+        "[density] Reduce the blank space around the Langtext heading so one more line of the source description fits at 900 px height.",
+        "[consistency] Use one category label throughout the drawer, the ledger toolbar and the move command. Keep the German tender field names and source content intact.",
+        "[clarity] Label the headroom figure as Remaining in list budget so it is clearly list-wide beside the current position's share.",
+        "[interaction] Keep focus on the Previous or Next button when navigating positions and move it to the opposite navigation button when the current one becomes disabled.",
+        "[accessibility] Name the dialog with the position code and short description, and mark the imported short and long text fields with lang=\"de\" so screen readers read them in German.",
+        "[wise] Show the existing J and K shortcuts beside the previous and next controls on keyboard focus so frequent position review is discoverable."
+      ]
+    },
+    "S5": {
+      "scores": {
+        "hierarchy": 9,
+        "density": 8,
+        "typography": 9,
+        "consistency": 8,
+        "clarity": 7,
+        "interaction": 8,
+        "accessibility": 8,
+        "responsive": 9,
+        "wise": 8
+      },
+      "issues": [
+        "[density] Put All and Needs attention on the Budgets heading row with Sort and Select at desktop widths where they fit, freeing a row of vertical space.",
+        "[consistency] Reserve a row action gutter so amount and cap columns keep their x positions while menus appear.",
+        "[clarity] Label the hero denominator as combined list caps and distinguish the capped-list count from all priced lists, including any rows without a cap.",
+        "[interaction] Make the hero breakdown control toggle details on click and keyboard activation and show the number of lists contributing to the denominator.",
+        "[accessibility] Expose each list row's parent project, cap amount and remaining pricing count as its accessible description so a link list provides the same context as the visual row.",
+        "[wise] Separate aggregate budget health from per-list exceptions in the status line with explicit labels, and keep the exception count as a shortcut to filtered rows."
+      ]
+    },
+    "S6": {
+      "scores": {
+        "hierarchy": 9,
+        "density": 9,
+        "typography": 9,
+        "consistency": 9,
+        "clarity": 8,
+        "interaction": 9,
+        "accessibility": 9,
+        "responsive": 9,
+        "wise": 9
+      },
+      "issues": [
+        "[clarity] Name the project control More actions in the empty-state instructions and make the restore guidance a separate short sentence."
+      ]
+    },
+    "S8": {
+      "scores": {
+        "hierarchy": 9,
+        "density": 8,
+        "typography": 9,
+        "consistency": 8,
+        "clarity": 8,
+        "interaction": 8,
+        "accessibility": 9,
+        "responsive": 9,
+        "wise": 8
+      },
+      "issues": [
+        "[density] Reduce the tile and row height to show another complete result above the footer at 900 px, retaining at least a 44 px row target.",
+        "[consistency] Label the two stacked money figures for priced position results EP and GP, matching the ledger headings.",
+        "[clarity] Use Search positions in the current list for the slash hint and show it only when the underlying route has a position search field.",
+        "[interaction] Page Position results in place beyond the first 50 while keeping the query, active result and arrow-key navigation intact.",
+        "[wise] Add keyboard shortcuts to jump between result groups so a workflow can move from dozens of Position hits to Lists without traversing each option."
+      ]
+    },
+    "S9": {
+      "scores": {
+        "hierarchy": 9,
+        "density": 9,
+        "typography": 9,
+        "consistency": 9,
+        "clarity": 8,
+        "interaction": 9,
+        "accessibility": 8,
+        "responsive": 9,
+        "wise": 9
+      },
+      "issues": [
+        "[clarity] Use the same tender and price-sheet terms in the empty-state drop instruction and the supported-format hint so users can tell where an Excel price sheet belongs.",
+        "[accessibility] Keep the project-creation Undo available until dismissed or superseded, and make the close button's accessible name identify the creation notification."
+      ]
+    },
+    "S10": {
+      "scores": {
+        "hierarchy": 8,
+        "density": 7,
+        "typography": 8,
+        "consistency": 8,
+        "clarity": 7,
+        "interaction": 7,
+        "accessibility": 8,
+        "responsive": 8,
+        "wise": 7
+      },
+      "issues": [
+        "[hierarchy] Turn search, lifecycle and pricing into one aligned toolbar and replace the second Products heading with a compact results count.",
+        "[density] Use compact catalogue rows around 52 px high and keep pagination visible above or beside the results so a 50-row page stays navigable.",
+        "[typography] Use two lines for product names where needed and keep duplicate identifiers in a separate muted line so long imported names stay distinct.",
+        "[consistency] Use Not priced consistently in product rows, the price filter and the ledger, including on mixed-price pages.",
+        "[clarity] When the first page has only unpriced rows, say No prices on this page beside the row count. Group indistinguishable copies and expose any supplier code or import source that differentiates them.",
+        "[interaction] Put Previous, Next and the page count above the results as well as at the bottom, then return focus to the first result or the results heading after paging.",
+        "[accessibility] Include a product row's price or unpriced status and its duplicate identifier in the edit button's accessible description alongside the name.",
+        "[responsive] At 1280 px, let supplier codes and source details wrap in the metadata line while keeping any price and currency together.",
+        "[wise] Make it possible to scan the priced catalogue directly by supplier, category and unit without paging through the alphabetical unpriced inventory."
+      ]
+    },
+    "S11": {
+      "scores": {
+        "hierarchy": 9,
+        "density": 9,
+        "typography": 9,
+        "consistency": 8,
+        "clarity": 8,
+        "interaction": 8,
+        "accessibility": 8,
+        "responsive": 8,
+        "wise": 8
+      },
+      "issues": [
+        "[consistency] Use the same right-edge alignment for the supplier's product count, catalogue prices and budget row totals, with a shared action gutter.",
+        "[clarity] Label the coverage control 17 products (17 priced) and add a navigation cue that indicates it opens the supplier's filtered catalogue.",
+        "[interaction] Make the product-count control a link to filtered Products so it can be opened in a new tab and shared.",
+        "[accessibility] Expose the visible contact summary or missing-contact state as the supplier edit button's accessible description and give the products link a distinct focus outline.",
+        "[responsive] Allow the supplier subtitle to wrap its contact name, email and phone at 1280 px so the full contact methods remain readable alongside price coverage.",
+        "[wise] Use a concise, persistent View products action on the supplier row and keep coverage beside it so the linked inventory is discoverable from the count."
+      ]
+    },
+    "S12": {
+      "scores": {
+        "hierarchy": 7,
+        "density": 8,
+        "typography": 9,
+        "consistency": 7,
+        "clarity": 9,
+        "interaction": 9,
+        "accessibility": 9,
+        "responsive": 9,
+        "wise": 8
+      },
+      "issues": [
+        "[hierarchy] Show one primary Add subcontractor action in the empty Active view, inside the framed empty state.",
+        "[density] Remove the hidden search field's reserved 288 px slot when the catalogue is empty and left-align Active and Archived with the page title.",
+        "[consistency] Match the empty project pattern by keeping creation in the empty-state panel until the catalogue contains entries, then moving Add subcontractor to the header.",
+        "[wise] Use one visible creation action and align the lifecycle switch to the content edge so the empty screen has a clear starting point."
+      ]
+    },
+    "S13": {
+      "scores": {
+        "hierarchy": 9,
+        "density": 8,
+        "typography": 9,
+        "consistency": 8,
+        "clarity": 7,
+        "interaction": 7,
+        "accessibility": 8,
+        "responsive": 9,
+        "wise": 8
+      },
+      "issues": [
+        "[density] Reduce the gap between the editor title and Product name, and group the required-field note with the first field rather than using a separate spaced row.",
+        "[consistency] Use a single Required and Optional convention across the form, including Unit price and the conditionally required Effective from field.",
+        "[clarity] Replace the empty price field's 0,00 placeholder with an explicit Leave blank to keep unpriced hint, so an empty price is distinguishable from a deliberately entered zero.",
+        "[interaction] Preserve the draft or offer a discard confirmation when Escape, Cancel, close or a backdrop click would discard edits.",
+        "[accessibility] Include the currency in the unit price field's accessible description and announce the newly revealed Effective from field when price entry makes it required.",
+        "[wise] Keep the current price and its source alongside New unit price and show what will change before saving a price revision."
+      ]
+    },
+    "S14": {
+      "scores": {
+        "hierarchy": 8,
+        "density": 7,
+        "typography": 8,
+        "consistency": 8,
+        "clarity": 6,
+        "interaction": 7,
+        "accessibility": 8,
+        "responsive": 7,
+        "wise": 7
+      },
+      "issues": [
+        "[hierarchy] Put flagged-position review first in the findings workflow and lower the emphasis of the nearby catalogue research counters.",
+        "[density] Show severity, the finding count and the first short finding title in the ledger. Keep full wording and rationale in the drawer.",
+        "[typography] Give the finding title more room to wrap cleanly or add a compact +1 more label to prevent the mid-word clipping in the warning badge.",
+        "[consistency] Use the same explicit Review upload findings wording for the ledger filter and the drawer section. Use consistent severity names in both.",
+        "[clarity] Label the toolbar count as flagged positions and the drawer count as findings. Count manually reviewed and changed-since-upload findings separately so All reviewed means the user reviewed them.",
+        "[interaction] From a ledger warning, focus the first matching finding in the drawer. After the final open finding is reviewed, focus the completion summary with a clear path to the next flagged position.",
+        "[accessibility] Include severity and the position's short description in each finding button's accessible name, alongside the code and finding count.",
+        "[responsive] At 1280 px, fit Search, Categories and Upload check on a stable row, moving Select, Collapse all and Sort into a consistently aligned secondary group if needed.",
+        "[wise] Provide a next flagged position action from the drawer so review can continue without returning to the full ledger after every position."
+      ]
+    },
+    "S15": {
+      "scores": {
+        "hierarchy": 7,
+        "density": 6,
+        "typography": 8,
+        "consistency": 7,
+        "clarity": 5,
+        "interaction": 5,
+        "accessibility": 6,
+        "responsive": 6,
+        "wise": 6
+      },
+      "issues": [
+        "[hierarchy] Lead the pending drawer with Pending confirmation and the suggested unit price, with confirmed GP and projected line total clearly subordinate and separately labeled.",
+        "[density] Keep pricing filters in one place and consolidate the repeated catalogue match, supplier and source details into the pending-price block.",
+        "[typography] Align the numeric portion of suggested and confirmed unit prices to the same EP grid line, with a fixed space for price actions.",
+        "[consistency] Use Pending confirmation and Not priced consistently across the table, section summaries, drawer and price filter. When a section has suggestions but no confirmed prices, show its pending count in the subtotal cell even while expanded.",
+        "[clarity] Label the hero Confirmed list total and show how many rows are confirmed, pending and unpriced. Use a distinct budget status when no rows contribute a confirmed price.",
+        "[interaction] Scope bulk confirmation to the filtered rows and show how many prices will be applied and the resulting change to the list total. Give the row confirm control a visible action label or route it through the review drawer.",
+        "[accessibility] After Confirm or Dismiss removes its focused button, move focus to the updated price cell or the next matching row and announce the updated pricing state and total.",
+        "[responsive] Use a single Pricing status dropdown and compact search width at 1280–1440 px so Collapse all and Sort stay with the toolbar instead of wrapping into a detached row.",
+        "[wise] Show suggested unit price × quantity, projected line total and resulting budget headroom before confirmation. Make Undo revert only the specific confirmed prices so subsequent edits survive.",
+        "[interaction] When either the catalogue or tender unit is missing, require an explicit unit check before applying the suggestion and exclude it from bulk confirmation."
+      ]
+    }
+  },
+  "global_issues": [
+    "Reserve a stable action gutter for project, budget and ledger rows so revealing row actions preserves financial column alignment.",
+    "Label portfolio, project and list budget denominators and coverage at the point of use. Use explicit wording where confirmed prices cover only part of the scope.",
+    "Use the same pricing-state vocabulary across ledger, section rollups, catalogue and global search so pending suggestions stay distinct from rows with no price.",
+    "Apply one desktop toolbar layout at 1280–1920 px with stable filter groups and a deliberate second row when controls exceed the available width.",
+    "Use the shared overlay focus handling for drawer, editor and global search. Preserve a logical focus target when navigation, saving or reviewing replaces the activated control."
+  ]
+}

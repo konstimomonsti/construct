@@ -179,6 +179,8 @@ export function Menu({
     if (e.key === 'ArrowUp') { e.preventDefault(); els[(i - 1 + els.length) % els.length]?.focus() }
     if (e.key === 'Home') { e.preventDefault(); els[0]?.focus() }
     if (e.key === 'End') { e.preventDefault(); els[els.length - 1]?.focus() }
+    // Escape closes only this menu, never the dialog or drawer that holds it.
+    if (e.key === 'Escape') { e.stopPropagation(); e.nativeEvent.stopImmediatePropagation() }
     if (e.key === 'Escape' || e.key === 'Tab') { setOpen(false); btn.current?.focus() }
   }
 
@@ -257,6 +259,11 @@ export function Dialog({
   const panel = useRef<HTMLDivElement>(null)
   const titleId = useId()
   useInertRoot(open)
+  // the latest onClose, so a parent passing a new callback each render doesn't re-run the focus effect
+  const close = useRef(onClose)
+  useEffect(() => {
+    close.current = onClose
+  })
   useEffect(() => {
     if (!open) return
     const prev = document.activeElement as HTMLElement | null
@@ -265,7 +272,7 @@ export function Dialog({
       el?.focus()
     }, 30)
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
+      if (e.key === 'Escape') close.current()
       if (e.key === 'Tab' && panel.current) {
         const f = [...panel.current.querySelectorAll<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')].filter((x) => !x.hasAttribute('disabled'))
         if (!f.length) return
@@ -279,7 +286,7 @@ export function Dialog({
       window.removeEventListener('keydown', onKey)
       prev?.focus?.()
     }
-  }, [open, onClose])
+  }, [open])
 
   return createPortal(
     <AnimatePresence>
@@ -307,9 +314,9 @@ export function Dialog({
               width,
             )}
           >
-            <div className="flex items-start justify-between gap-3 px-6 pt-6 pb-2">
+            <div className={clsx('flex justify-between gap-3 px-6 pt-6 pb-2', description ? 'items-start' : 'items-center')}>
               <div className="min-w-0">
-                <h2 id={titleId} className="font-heading text-lg font-bold tracking-tight text-slate-900">{title}</h2>
+                <h2 id={titleId} className="display text-[22px] leading-tight text-slate-900">{title}</h2>
                 {description && <div className="mt-1 text-sm text-slate-600">{description}</div>}
               </div>
               <IconButton icon="close" label="Close dialog" onClick={onClose} className="-mr-1.5" />
@@ -413,7 +420,7 @@ export function Toaster() {
     <>
       <div className="sr-only" aria-live="polite" aria-atomic="true">{polite ? `${polite.text}${polite.action ? `. ${polite.action.label} is available.` : ''}` : ''}</div>
       <div className="sr-only" aria-live="assertive" aria-atomic="true">{urgent?.text ?? ''}</div>
-      <div className="pointer-events-none fixed right-4 bottom-24 z-[90] flex w-[calc(100%-2rem)] max-w-md flex-col items-end gap-2 sm:right-8 sm:bottom-20 lg:right-[max(2rem,calc((100vw-var(--side)-1120px)/2+2rem))]">
+      <div className="pointer-events-none fixed right-4 bottom-24 z-[90] flex w-[calc(100%-2rem)] max-w-md flex-col items-end gap-2 sm:right-8 sm:bottom-20 lg:right-[max(2rem,calc((100vw-var(--side,240px)-1120px)/2+2rem))]">
         <AnimatePresence initial={false}>
           {toasts.map((t) => <ToastItem key={t.id} t={t} drop={drop} />)}
         </AnimatePresence>

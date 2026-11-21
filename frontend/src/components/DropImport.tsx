@@ -62,7 +62,7 @@ export function DropOverlay({ show, name }: { show: boolean; name: string }) {
           <div className="flex flex-col items-center gap-2 text-brand-700">
             <Icon name="cloud_upload" size={40} />
             <p className="font-heading text-base font-bold">Drop files to import into "{name}"</p>
-            <p className="text-xs text-brand-700/80">GAEB, CSV, TSV, Excel, JSON, Word or PDF</p>
+            <p className="text-[13px] text-brand-700">Tender files (GAEB, PDF, Word) or price sheets (Excel, CSV, TSV, JSON)</p>
           </div>
         </motion.div>
       )}

@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { Button, Icon } from './ui'
 import { MetaLink } from './Kit'
 import type { Position } from '../lib/types'
@@ -15,14 +14,22 @@ const labels: Record<CataloguePosition['state'], string> = {
   failed: 'Research failed',
 }
 
-export function CatalogueOverview({ report, error, retryFailed, positions, onOpen }: {
+export type ResearchView = 'suggested' | 'matched' | 'unresolved' | null
+
+/**
+ * catalogue research for a list in two parts that share one `show` state: `line` is a single status line that sits in the
+ * list hero (no band of its own), `list` is the positions behind the pressed count, shown under the hero.
+ */
+export function CatalogueOverview({ report, error, retryFailed, positions, onOpen, part, show, setShow }: {
   report: CatalogueReport | null
   error: string
   retryFailed: () => Promise<void>
   positions: Position[]
   onOpen: (id: string) => void
+  part: 'line' | 'list'
+  show: ResearchView
+  setShow: (v: ResearchView) => void
 }) {
-  const [show, setShow] = useState<'suggested' | 'matched' | 'unresolved' | null>(null)
   const rows = positions.flatMap((item) => {
     const result = report?.positions[item.id]
     return result ? [{ item, result }] : []
@@ -34,41 +41,35 @@ export function CatalogueOverview({ report, error, retryFailed, positions, onOpe
     show === 'unresolved' ? ['failed', 'no_evidence', 'needs_description'].includes(result.state) : result.state === show,
   )
 
-  return (
-    <section aria-label="Catalogue and web research" className="text-sm">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <h2 className="flex items-center gap-1.5 font-semibold text-slate-900">
-          <Icon name="inventory_2" size={18} className="text-slate-600" /> Catalogue research
-        </h2>
-        <span role="status" className="text-slate-600">
-          {error || (report?.state === 'failed' ? 'Catalogue matching failed.' :
-            !report || report.state === 'queued' || report.state === 'unstarted' ? 'Matching imported positions…' :
-              pending ? `${pending} positions queued or researching` : 'Research complete')}
+  const ready = report?.state === 'ready' && !pending && !error
+  if (part === 'line') {
+    const toggle = (v: Exclude<ResearchView, null>) => setShow(show === v ? null : v)
+    return (
+      <span className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
+        <Icon name="inventory_2" size={16} className="text-slate-500" />
+        <span role="status">
+          {error || (report?.state === 'failed' ? 'Catalogue matching failed' :
+            !report || report.state === 'queued' || report.state === 'unstarted' ? 'Matching positions to the catalogue…' :
+              pending ? `Catalogue research: ${pending} positions in progress` : 'Catalogue research')}
         </span>
         {report?.state === 'ready' && (
           <>
-            {count('matched') > 0 ? (
-              <MetaLink pressed={show === 'matched'} onClick={() => setShow(show === 'matched' ? null : 'matched')}>
-                <span className="num">{count('matched')}</span> catalogue {count('matched') === 1 ? 'match' : 'matches'}
-              </MetaLink>
-            ) : <span className="text-slate-600">No catalogue matches</span>}
-            {count('suggested') > 0 ? (
-              <MetaLink pressed={show === 'suggested'} onClick={() => setShow(show === 'suggested' ? null : 'suggested')}>
-                <span className="num">{count('suggested')}</span> web {count('suggested') === 1 ? 'suggestion' : 'suggestions'}
-              </MetaLink>
-            ) : <span className="text-slate-600">No web suggestions</span>}
-            {unresolved > 0 && (
-              <MetaLink pressed={show === 'unresolved'} onClick={() => setShow(show === 'unresolved' ? null : 'unresolved')}>
-                <span className="num">{unresolved}</span> unresolved
-              </MetaLink>
-            )}
+            {count('matched') > 0 && <><span aria-hidden>·</span><MetaLink pressed={show === 'matched'} onClick={() => toggle('matched')}><span className="num">{count('matched')}</span> {count('matched') === 1 ? 'match' : 'matches'}</MetaLink></>}
+            {count('suggested') > 0 && <><span aria-hidden>·</span><MetaLink pressed={show === 'suggested'} onClick={() => toggle('suggested')}><span className="num">{count('suggested')}</span> web {count('suggested') === 1 ? 'suggestion' : 'suggestions'}</MetaLink></>}
+            {unresolved > 0 && <><span aria-hidden>·</span><MetaLink pressed={show === 'unresolved'} onClick={() => toggle('unresolved')}><span className="num">{unresolved}</span> open</MetaLink></>}
+            {ready && !count('matched') && !count('suggested') && !unresolved && <span>· nothing found</span>}
           </>
         )}
         {(error || report?.state === 'failed' || count('failed') > 0) &&
-          <Button size="sm" onClick={() => void retryFailed()}>Retry catalogue research</Button>}
-      </div>
+          <Button size="sm" onClick={() => void retryFailed()}>Retry</Button>}
+      </span>
+    )
+  }
+
+  return (
+    <section id="research-list" aria-label="Catalogue research" className="text-sm">
       {show && (
-        <ul className="mt-3 max-h-60 divide-y divide-slate-200 overflow-y-auto border-y border-slate-200">
+        <ul className="max-h-60 divide-y divide-slate-200 overflow-y-auto border-y border-slate-200">
           {visible.map(({ item, result }) => (
             <li key={item.id}>
               <button type="button" onClick={() => onOpen(item.id)} className="flex min-h-10 w-full flex-wrap items-center justify-between gap-2 rounded-md px-2 py-2 text-left hover:bg-slate-100">
@@ -98,7 +99,7 @@ export function CatalogueDetails({ result, position, onApply }: {
       <p>
         <span className="font-medium text-slate-800">{labels[result.state]}.</span>
         {result.state === 'needs_description' && ' The imported row has no description to search for.'}
-        {result.state === 'no_evidence' && ' The web search found no source with a relevant title.'}
+        {result.state === 'no_evidence' && ' No matching product found online.'}
       </p>
       {result.recovered?.source && <p>Missing description recovered from the companion offer PDF.</p>}
       {result.product && <p><strong>{result.product.name}</strong> · {result.product.category}</p>}

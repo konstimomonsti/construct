@@ -1,5 +1,5 @@
 import { clsx } from 'clsx'
-import { lazy, Suspense, useEffect, type CSSProperties } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
 import { Outlet } from 'react-router-dom'
 import { GridSkeleton } from './Page'
 import { Sidebar } from './Sidebar'
@@ -31,17 +31,20 @@ function useRowKeys() {
   }, [])
 }
 
-/** --side on the root lets fixed layers (toasts) line up with the centred content column */
+/** --side on <html>: the Toaster portals to <body>, so it can't read a variable set on the Shell div */
 export function Shell() {
   const collapsed = useStore((s) => s.sidebarCollapsed)
   useRowKeys()
+  useEffect(() => {
+    document.documentElement.style.setProperty('--side', collapsed ? '72px' : '240px')
+  }, [collapsed])
   return (
-    <div className="min-h-screen bg-white" style={{ '--side': collapsed ? '72px' : '240px' } as CSSProperties}>
+    <div className="min-h-screen bg-white">
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:rounded-lg focus:bg-white focus:px-3 focus:py-2 focus:text-sm focus:font-semibold focus:shadow-lg">
         Skip to content
       </a>
       <Sidebar />
-      <div data-shell-main className={clsx('flex min-h-screen min-w-0 flex-col transition-[padding] duration-200 ease-out-expo', collapsed ? 'lg:pl-[72px]' : 'lg:pl-60')}>
+      <div data-shell-main className={clsx('flex min-h-screen min-w-0 flex-col transition-[padding] duration-[260ms] ease-glide', collapsed ? 'lg:pl-[72px]' : 'lg:pl-60')}>
         <Header />
         <main id="main" className="relative flex min-w-0 flex-1 flex-col">
           <Suspense fallback={<div className="mx-auto w-full max-w-[1120px] px-4 pt-8 sm:px-8" role="status" aria-label="Loading page"><GridSkeleton /></div>}>
