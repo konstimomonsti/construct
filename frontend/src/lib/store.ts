@@ -7,6 +7,7 @@ import { positionTotal } from './money'
 import { removeDocuments } from './documents'
 import { withoutLegacyImports } from './legacy'
 import { applyDecision, decisionsOf, type Decision, type Decisions } from './risk-assessment'
+import type { SubcontractPackage } from './subcontract'
 
 export type SortKey = 'cost-desc' | 'cost-asc' | 'name' | 'items'
 export const SORT_LABEL: Record<SortKey, string> = {
@@ -34,6 +35,7 @@ interface ListPatch {
   findingDecisions?: Decisions
   /** positions whose catalogue price suggestion the user dismissed */
   dismissedPrices?: string[]
+  subcontractPackages?: SubcontractPackage[]
 }
 export interface ListEdits {
   qty: Record<string, number>
