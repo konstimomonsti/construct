@@ -29,6 +29,7 @@ import { CategoryTree, useExpanded, type CheckState } from '../components/split/
 import { MoveToCategory } from '../components/split/MoveToCategory'
 import { budgetStatus, fixedBudget, int, money, parseNumber, plural } from '../lib/format'
 import { positionTotal } from '../lib/money'
+import { groupByOz, hasSectionLabel } from '../lib/oz-groups'
 import { applyMoves, globalStep, indexTree, leafOz, nextChildOz, nextPositionOz, pathOf, resolveList, treeStats, type CatStat } from '../lib/resolve'
 import { statsOf, useModel, useStore } from '../lib/store'
 import { useUi } from '../lib/ui-store'
@@ -77,7 +78,9 @@ function FilterPill({ on, onClick, children }: { on: boolean; onClick: () => voi
   )
 }
 
-function CategoryFilter({ tree, stats, value, onChange }: { tree: CategoryNode[]; stats: Map<string, CatStat>; value: Set<string> | null; onChange: (v: Set<string> | null) => void }) {
+function CategoryFilter({ tree, stats, value, onChange, byOz }: { tree: CategoryNode[]; stats: Map<string, CatStat>; value: Set<string> | null; onChange: (v: Set<string> | null) => void; byOz: boolean }) {
+  const label = byOz ? 'OZ groups' : 'Categories'
+  const filterLabel = byOz ? 'Filter by OZ group' : 'Filter by category'
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const root = useRef<HTMLDivElement>(null)
@@ -142,7 +145,7 @@ function CategoryFilter({ tree, stats, value, onChange }: { tree: CategoryNode[]
         className={pillCls(!!value)}
       >
         <Icon name="filter_list" size={18} />
-        <span>{value ? `${value.size} of ${allOz.length} categories` : 'Categories'}</span>
+        <span>{value ? `${value.size} of ${allOz.length} ${label.toLowerCase()}` : label}</span>
         <Icon name="expand_more" size={18} className={clsx('transition-transform', open && 'rotate-180')} />
       </button>
       <AnimatePresence>
@@ -150,7 +153,7 @@ function CategoryFilter({ tree, stats, value, onChange }: { tree: CategoryNode[]
           <motion.div
             id={id}
             role="dialog"
-            aria-label="Filter by category"
+            aria-label={filterLabel}
             initial={{ opacity: 0, y: -4, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, transition: { duration: 0.1 } }}
@@ -158,14 +161,14 @@ function CategoryFilter({ tree, stats, value, onChange }: { tree: CategoryNode[]
             className="absolute left-0 z-40 mt-2 w-[26rem] max-w-[calc(100vw-2rem)] rounded-lg bg-white p-2 shadow-[0_8px_20px_-8px_var(--pop-shadow)] ring-1 ring-slate-300"
           >
             <div className="flex items-center gap-2 px-1.5 py-1.5">
-              <input ref={search} aria-label="Search categories" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search categories…" className="h-10 min-w-0 flex-1 rounded-md bg-white px-4 text-sm ring-1 ring-slate-500 outline-none ring-inset placeholder:text-slate-500 hover:ring-slate-600 focus:ring-2 focus:ring-brand-600" />
+              <input ref={search} aria-label={`Search ${label.toLowerCase()}`} value={query} onChange={(e) => setQuery(e.target.value)} placeholder={`Search ${label.toLowerCase()}…`} className="h-10 min-w-0 flex-1 rounded-md bg-white px-4 text-sm ring-1 ring-slate-500 outline-none ring-inset placeholder:text-slate-500 hover:ring-slate-600 focus:ring-2 focus:ring-brand-600" />
               <span className="flex gap-1 text-sm font-semibold text-slate-800">
                 <button type="button" className="h-10 rounded-md px-3 hover:bg-slate-100" onClick={() => onChange(null)}>All</button>
                 <button type="button" className="h-10 rounded-md px-3 hover:bg-slate-100" onClick={() => onChange(new Set())}>None</button>
               </span>
             </div>
             <div className="max-h-80 overflow-y-auto">
-              <CategoryTree tree={tree} stats={stats} expanded={ex.expanded} onToggleExpand={ex.toggle} mode="check" label="Filter by category" query={query} checkState={checkState} onToggle={toggle} />
+              <CategoryTree tree={tree} stats={stats} expanded={ex.expanded} onToggleExpand={ex.toggle} mode="check" label={filterLabel} query={query} checkState={checkState} onToggle={toggle} showCategoryCode={!byOz} />
             </div>
           </motion.div>
         )}
@@ -290,6 +293,15 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   const positions = resolved.positions
   const tree = resolved.tree
   const catStats = useMemo(() => treeStats(positions), [positions])
+  const ozGroups = useMemo(() => groupByOz(positions), [positions])
+  const [grouping, setGrouping] = useState<'category' | 'oz'>(() =>
+    imported.positions.length > 0 && imported.positions.every((p) => !hasSectionLabel(p.path?.at(-1)?.label || p.category)) ? 'oz' : 'category',
+  )
+  const grouped = grouping === 'oz' ? ozGroups : null
+  const ledgerGrouping = grouped ? 'oz' : 'category'
+  const ledgerTree = grouped?.tree ?? tree
+  const ledgerPositions = grouped?.positions ?? positions
+  const ledgerStats = useMemo(() => grouped ? treeStats(grouped.positions) : catStats, [grouped, catStats])
   // prices proposed from matched catalogue products: pending until confirmed, never counted in totals
   const dismissedPrices = useStore((s) => s.listPatch[doc.id]?.dismissedPrices)
   const pending = usePriceSuggestions(report, positions, dismissedPrices)
@@ -388,7 +400,10 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   const filterFindings = useMemo(() => [...reviewByRow.values()], [reviewByRow])
 
   const [q, setQ] = useState('')
-  const [cats, setCats] = useState<Set<string> | null>(null)
+  const [categoryFilter, setCategoryFilter] = useState<Set<string> | null>(null)
+  const [ozFilter, setOzFilter] = useState<Set<string> | null>(null)
+  const cats = grouped ? ozFilter : categoryFilter
+  const setCats = grouped ? setOzFilter : setCategoryFilter
   const [sort, setSort] = useState<'oz' | 'amount' | 'risk'>('oz')
   const [onlyUnpriced, setOnlyUnpriced] = useState(false)
   const [onlyPending, setOnlyPending] = useState(false)
@@ -455,13 +470,16 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
 
   const rows = useMemo(() => {
     const t = q.trim().toLowerCase()
-    const r = positions.filter(
-      (p) => matchesFindingFilter(findingFilter, reviewByRow.get(p.id) ?? [], settled) && (!cats || cats.has(leafOz(p))) && (!onlyUnpriced || (p.up == null && !pending.has(p.id))) && (!onlyPending || (p.up == null && pending.has(p.id))) && (!onlyZero || (p.up != null && p.qty === 0)) && (!onlyEdited || editedIds.has(p.id) || addedIds.has(p.id)) && (!t || p.oz.toLowerCase().includes(t) || p.short.toLowerCase().includes(t) || p.path?.some((part) => part.label.toLowerCase().includes(t))),
+    const matchesText = (p: Position) => p.oz.toLowerCase().includes(t) || p.short.toLowerCase().includes(t)
+      || p.path?.some((part) => part.label.toLowerCase().includes(t))
+    const originalMatches = grouped && t ? new Set(positions.filter(matchesText).map((p) => p.id)) : null
+    const r = ledgerPositions.filter(
+      (p) => matchesFindingFilter(findingFilter, reviewByRow.get(p.id) ?? [], settled) && (!cats || cats.has(leafOz(p))) && (!onlyUnpriced || (p.up == null && !pending.has(p.id))) && (!onlyPending || (p.up == null && pending.has(p.id))) && (!onlyZero || (p.up != null && p.qty === 0)) && (!onlyEdited || editedIds.has(p.id) || addedIds.has(p.id)) && (!t || matchesText(p) || originalMatches?.has(p.id)),
     )
     if (sort === 'amount') r.sort((a, b) => positionTotal(b) - positionTotal(a))
     if (sort === 'risk') r.sort((a, b) => (rowPoints.get(b.id) ?? 0) - (rowPoints.get(a.id) ?? 0))
     return r
-  }, [positions, q, cats, sort, rowPoints, onlyUnpriced, onlyPending, pending, onlyZero, onlyEdited, editedIds, addedIds, findingFilter, reviewByRow, settled])
+  }, [positions, ledgerPositions, grouped, q, cats, sort, rowPoints, onlyUnpriced, onlyPending, pending, onlyZero, onlyEdited, editedIds, addedIds, findingFilter, reviewByRow, settled])
   const repeatedIds = useMemo(() => {
     if (!findingFilter.startsWith('rule:')) return []
     const ids = new Set<string>()
@@ -786,7 +804,19 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
             />
             {!q && <kbd aria-hidden className={clsx(kbdCls, 'pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 peer-focus:hidden [@media(hover:none)]:hidden')}>/</kbd>}
           </div>
-          <CategoryFilter tree={tree} stats={catStats} value={cats} onChange={setCats} />
+          {ozGroups && (
+            <label className={pillCls(false)}>
+              Group by
+              <select className="bg-transparent font-semibold" value={grouping} onChange={(e) => {
+                setGrouping(e.target.value === 'oz' ? 'oz' : 'category')
+                setSort('oz')
+              }}>
+                <option value="category">Category</option>
+                <option value="oz">Position number (OZ)</option>
+              </select>
+            </label>
+          )}
+          <CategoryFilter key={ledgerGrouping} tree={ledgerTree} stats={ledgerStats} value={cats} onChange={setCats} byOz={!!grouped} />
           <FindingFilter rows={filterFindings} reviewed={settled} value={findingFilter} onChange={setFindingFilter} />
           {repeatedIds.length > 1 && (
             <DismissMenu label={`Dismiss ${repeatedIds.length} shown findings`} onDismiss={(decision) => decide(repeatedIds, decision)}>
@@ -829,7 +859,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
             <Icon name="checklist" size={18} /><span className="max-[1399px]:sr-only">Select</span>
           </button>
           <div className="flex items-center gap-2 sm:ml-auto">
-            {sort === 'oz' && !filtered && tree.length > 0 && (
+            {sort === 'oz' && !filtered && ledgerTree.length > 0 && (
               <ToolButton icon={sectionsOpen ? 'unfold_less' : 'unfold_more'} aria-expanded={sectionsOpen} aria-keyshortcuts="e" title={`${sectionsOpen ? 'Collapse' : 'Expand'} all sections (E)`} onClick={() => setSectionsOpen((v) => !v)} className="max-[1399px]:w-10 max-[1399px]:justify-center max-[1399px]:px-0">
                 <span className="max-[1399px]:sr-only">{sectionsOpen ? 'Collapse all' : 'Expand all'}</span>
               </ToolButton>
@@ -841,9 +871,11 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
         </div>
 
         <LedgerTable
+          key={ledgerGrouping}
           listId={doc.id}
           rows={rows}
-          tree={tree}
+          tree={ledgerTree}
+          byOz={!!grouped}
           showEmpty={!filtered}
           selected={selected}
           setSelected={setSelected}
