@@ -5,7 +5,8 @@
     "LV_11_Stahlbetonfertigeile_Sandwichsockel.pdf": "6e5c272732bd896a29ee4a6fa9ca26f4ba2c87adf6391e0f107d38c4fa9e869c",
     "LV_14b_Dachentwaesserung.pdf": "3822e92a8b7061e346cc174c4c8a08480f90ca717829f8a8001645623caf4c9b",
     "StBALV23040.D86": "54f9d19788202fe3f4e1bfdbc77fa9a3bffe2fe1329d73702c25daa87de4884a",
-    "LV_18_Estrich.pdf": "d53fc3f6557f3c0540e6dbe6214480e03f5237205291135ae182611b06ac62a4"
+    "LV_18_Estrich.pdf": "d53fc3f6557f3c0540e6dbe6214480e03f5237205291135ae182611b06ac62a4",
+    "LV_13_ELT.pdf": "9c61f2eb523c7671c1d4dbf4980ad7089f175f6fee949ad1271687c6cc293a0c"
   },
   "cases": [
     {
@@ -158,6 +159,54 @@
         "L2.FLOOR.SCREED_NEEDS_EDGE_INSULATION"
       ],
       "note": "The original detail says Estrich inkl. Randdämmstreifen. The position explicitly includes edge strips."
+    },
+    {
+      "id": "elt-nycwy-50-25",
+      "file": "LV_13_ELT.pdf",
+      "code": "1.3.1.1",
+      "locator": {
+        "page": 8
+      },
+      "verdict": "control",
+      "rules": [
+        "L1.TEXT.VALUE_CONFLICT"
+      ],
+      "note": "The short and long descriptions repeat NYCWY 4 x 50/25 mm².",
+      "evidence": {
+        "family": "cable_conductors"
+      }
+    },
+    {
+      "id": "elt-nycwy-25-16",
+      "file": "LV_13_ELT.pdf",
+      "code": "1.3.1.2",
+      "locator": {
+        "page": 8
+      },
+      "verdict": "control",
+      "rules": [
+        "L1.TEXT.VALUE_CONFLICT"
+      ],
+      "note": "The short and long descriptions repeat NYCWY 4 x 25/16 mm². It is a separate position from the larger cable.",
+      "evidence": {
+        "family": "cable_conductors"
+      }
+    },
+    {
+      "id": "roadworks-nyy-cores",
+      "file": "StBALV23040.D86",
+      "code": "09.01.0009",
+      "locator": {
+        "record": 4276
+      },
+      "verdict": "control",
+      "rules": [
+        "L1.TEXT.VALUE_CONFLICT"
+      ],
+      "note": "The heading and detail both state NYY 7 x 1.5 mm². The longer text also names the installation scope.",
+      "evidence": {
+        "family": "cable_conductors"
+      }
     }
   ]
 }

@@ -67,6 +67,8 @@ def finding_matches(label: dict, finding: dict) -> bool:
         return False
     if target.get("bidder_question") and not finding.get("has_bidder_question"):
         return False
+    if target.get("family") and finding.get("family") != target["family"]:
+        return False
     if target.get("reason") and finding.get("reason") != target["reason"]:
         return False
     locator = finding.get("source_locator") or {}
@@ -119,6 +121,7 @@ def compact(result: AnalysisResult, analysis_input) -> list[dict]:
             "guidance": guidance_kind(finding),
             "has_bidder_question": finding.id in questioned,
             "source_locator": finding.source_locator,
+            **({"family": finding.evidence["family"]} if isinstance(finding.evidence.get("family"), str) else {}),
             **({"reason": finding.evidence["reason"]} if isinstance(finding.evidence.get("reason"), str) else {}),
         })
     return rows

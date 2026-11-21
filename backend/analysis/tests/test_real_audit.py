@@ -44,12 +44,14 @@ def test_audit_rejects_replaced_source(tmp_path):
 def test_repository_audit_scores_source_labels_without_assuming_unreviewed_positions_are_clean():
     tenders = Path(__file__).resolve().parents[3] / "data" / "tenders"
     result = audit(source_dir=tenders)
-    assert result["files"] == 5 and result["layers"] == [1, 2]
+    assert result["files"] == 6 and result["layers"] == [1, 2]
     by_id = {case["id"]: case for case in result["cases"]}
     assert by_id["gaeb-award-damaged-oz"]["outcome"] == "caught_with_guidance"
     assert by_id["word-setup-duration"]["outcome"] == "caught_with_guidance"
     assert by_id["word-cover-typo"]["outcome"] == "caught_with_guidance"
     assert by_id["screed-included-edge-strip"]["outcome"] == "clear_control"
     assert by_id["word-alternative-code"]["outcome"] == "unresolved"
+    for key in ("elt-nycwy-50-25", "elt-nycwy-25-16", "roadworks-nyy-cores"):
+        assert by_id[key]["outcome"] == "clear_control"
     assert "source_unlinked" not in result["counts"]
-    assert sum(result["counts"].values()) == len(result["cases"]) == 11
+    assert sum(result["counts"].values()) == len(result["cases"]) == 14

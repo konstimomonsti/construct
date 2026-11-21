@@ -3,6 +3,7 @@
 import re
 
 from ..registry import rule
+from .cable_designations import cable_conflict
 from .common import BIDDER_INPUT, OR_EQUIVALENT, excerpt, label, review_fix, source_detail, text_of
 from .concrete_scope import by_component, mentions
 from .textvalues import DIMENSIONS, GRADE, MEASURE, NUMBER, centimetres, grades, values
@@ -206,7 +207,7 @@ def _concrete_conflicts(ctx, line, detail):
 
 
 @rule("L1.TEXT.VALUE_CONFLICT", layer=1, category="text", severity="warning",
-      title="Short and long text disagree", description="Disjoint values in concrete, fire, IP, board, labelled dimensions and directly attributed item heights or board thicknesses. DN differences are informational.")
+      title="Short and long text disagree", description="Disjoint values in concrete, fire, IP, board, labelled dimensions, attributed item heights or board thicknesses, and named cable designations. DN differences are informational.")
 def value_conflict(ctx):
     source_format = ctx.input.project.source_document.format
     for line in ctx.input.lines:
@@ -240,6 +241,21 @@ def value_conflict(ctx):
                                             f"({specification}: {short_quote} / {long_quote})."},
                 suggested_fix=review_fix("Confirm the specified dimension in the drawings or tender schedule "
                                          "and align the short description and detail."),
+            )
+
+
+        if conflict := cable_conflict(line.short_text, detail):
+            brief, full, differences = conflict
+            yield ctx.finding(
+                line=line, field="long_text", discriminator="cable_conductors",
+                message=f"{label(line)} specifies {brief.quote} in the short text and {full.quote} in the detail.",
+                evidence={"family": "cable_conductors", "cable_family": brief.family, "different_fields": differences,
+                          "short_quote": brief.quote, "long_quote": full.quote,
+                          "short_cable": brief.values(), "long_cable": full.values(),
+                          "bieterfrage_de": f"Zu Pos. {line.code}: Welche Kabelausführung ist maßgebend "
+                                            f"({brief.quote} / {full.quote})? Bitte bestätigen Sie die "
+                                            "Ausführung anhand der Kabelliste und gleichen Sie die Texte ab."},
+                suggested_fix=review_fix("Confirm the specified cable in the cable schedule and align the two descriptions."),
             )
 
 

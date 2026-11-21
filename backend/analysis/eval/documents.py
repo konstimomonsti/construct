@@ -628,6 +628,34 @@ def generate_fire_door_installation(out):
             write_fixture_labels(out / f"{name}.{ext}", f"{baseline}.{ext}", label)
 
 
+def generate_cable_designations(out):
+    """Compare written cable configurations in power installation and roadworks examples."""
+    out.mkdir(parents=True, exist_ok=True)
+    for name, heading, detail, conflict in (
+        ("cable-count", "Erdverbindungskabel NYY 7 x 1,5 mm²", "ErdverbindungskabelNYY 5 x 1,5 mm².", True),
+        ("cable-section", "PVC-Mantelleitung NYM-J 3 x 1,5 mm²", "Kabeltyp: NYM-J 3 x 2,5 mm².", True),
+        ("cable-concentric", "Energiekabel NYCWY 4 x 50/25 mm²", "Energiekabel NYCWY 4 × 50 SM/16 mm².", True),
+        ("cable-suffix", "Energiekabel NYY-J 5 x 10 mm²", "Energiekabel NYY-O 5 x 10 mm².", True),
+        ("cable-equivalent", "PVC-Mantelleitung NYM-J 3 x 1,5 mm²", "Kabeltyp: NYM-J 3 × 1.50 mm².", False),
+        ("cable-connection", "Energiekabel NYCWY 4 x 50/25 mm²",
+         "Energiekabel NYCWY 4 x 50/25 mm². Anschluss an Bestandskabel NYCWY 4 x 25/16 mm².", False),
+        ("cable-alternative", "PVC-Mantelleitung NYM-J 3 x 1,5 mm²",
+         "Kabeltyp: NYM-J 3 x 1,5 mm² oder NYM-J 3 x 2,5 mm² nach Kabelliste.", False),
+    ):
+        item = Item("01.0010", heading, 80, "m", detail=f"{detail}\nInkl. Kabelrinne und Kabelanschluss.")
+        locators = _write_text_case(out, name, "Leistungsverzeichnis Elektroinstallation", item, "cable")
+        locators.update(_write_offer_tables(out, name, item, "Elektro"))
+        for ext, locator in locators.items():
+            label = {"control": not conflict, "layers": [1], "expect": []}
+            if conflict:
+                label.update(match="line", expect=["L1.TEXT.VALUE_CONFLICT"], target={
+                    "line_codes": [item.code], "severity": "warning", "source_locator": locator,
+                    "bidder_question": True, "family": "cable_conductors",
+                })
+            baseline = "cable-equivalent" if conflict else name
+            write_fixture_labels(out / f"{name}.{ext}", f"{baseline}.{ext}", label)
+
+
 def generate_grade_scope(out):
     """Test concrete grade conflicts, legitimate component differences and unclear attribution."""
     out.mkdir(parents=True, exist_ok=True)
@@ -742,7 +770,8 @@ if __name__ == "__main__":
               "action-spelling": generate_action_spelling, "outline-duplicates": generate_outline_duplicates,
               "written-quantities": generate_written_quantities, "underspecification": generate_underspecification,
               "fire-door-scope": generate_fire_door_scope, "fire-door-products": generate_fire_door_products,
-              "fire-door-installation": generate_fire_door_installation}
+              "fire-door-installation": generate_fire_door_installation,
+              "cable-designations": generate_cable_designations}
     parser.add_argument("--suite", choices=suites, default="tabular")
     args = parser.parse_args()
     suites[args.suite](args.out)
