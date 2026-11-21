@@ -18,6 +18,7 @@ import {
   removePackage, salutation, sectionLabels, setStatus, suggestSubcontractors, toRequest, upsertPackage,
   type SubcontractFormat, type SubcontractPackage,
 } from '../../lib/subcontract'
+import { endOfDay, isoInDays, logEvents, requestItems } from '../../lib/crm'
 import { copyText, exportAndDraft, loadSender, projectName, saveSender, type Recipient } from '../../lib/subcontract-send'
 import type { CategoryNode, ListDoc, Position } from '../../lib/types'
 
@@ -209,6 +210,25 @@ function Panel({ onClose, listId, doc, resolved, selectedIds }: Props) {
     setView('packages')
   }
 
+  /** the supplier log (Requests page) is a separate service: if it is down, the package still goes out */
+  const logToCrm = async (kind: 'rfq_sent' | 'offer_received', pkg: SubcontractPackage, ids: readonly string[], items: Position[] = []) => {
+    if (!ids.length) return
+    try {
+      await logEvents(ids.map((id) => ({
+        kind,
+        party_kind: 'subcontractor' as const,
+        party_id: id,
+        list_id: listId,
+        list_title: doc.title,
+        subject: emailSubject(pkg.name, project),
+        items: requestItems(items, () => null),
+        ...(kind === 'rfq_sent' ? { due_at: pkg.dueDate ? endOfDay(pkg.dueDate) : undefined, remind_at: endOfDay(isoInDays(3)) } : {}),
+      })))
+    } catch (e) {
+      toast(`Not added to the request log: ${(e as Error).message}`, 'error')
+    }
+  }
+
   const run = async () => {
     if (!canExport) return
     setBusy(true)
@@ -223,6 +243,7 @@ function Panel({ onClose, listId, doc, resolved, selectedIds }: Props) {
       downloadResult(result.download)
       saveSender(sender)
       writePackages(upsertPackage(current(), mergeSavedPackage(current().find((p) => p.id === pkg.id), pkg)))
+      void logToCrm('rfq_sent', pkg, recipients.map((r) => r.id), chosen)
       toast(`${result.download.fileName}: ${plural(recipients.length, 'draft', 'drafts')} with the request file attached`)
       reset([])
       setView('packages')
@@ -366,7 +387,10 @@ function Panel({ onClose, listId, doc, resolved, selectedIds }: Props) {
               packages={packages}
               nameOf={nameOf}
               onReexport={startEdit}
-              onReceived={(p) => writePackages(setStatus(current(), p.id, 'offer_received'))}
+              onReceived={(p) => {
+                writePackages(setStatus(current(), p.id, 'offer_received'))
+                void logToCrm('offer_received', p, p.subcontractorIds)
+              }}
               onDelete={onDelete}
               onNew={startNew}
             />

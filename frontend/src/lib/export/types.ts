@@ -59,7 +59,7 @@ export interface ExportRequest {
   format: FormatId
   scope?: Scope
   selectedIds?: string[]
-  /** top-level category OZs when scope === 'categories' */
+  /** category OZs whose positions and descendants are included when scope === 'categories' */
   categoryOzs?: string[]
   longTexts?: boolean
   prices?: boolean

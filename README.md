@@ -40,11 +40,19 @@ On planted-error tests (244 mutated tenders), layers 1 and 2 catch every planted
 
 From the Export menu, pick positions and subcontractors, set an internal budget, and export a price-free request (X83, Excel or PDF) with a ready email draft (`.eml`) per subcontractor. The budget never leaves BillBuild.
 
+### Supplier requests
+
+**Request quotes from suppliers** (Export menu) gives every position a category, with AI for the unknown ones and German keyword matching when no API key is set. It groups the positions so each supplier gets one email for all of its categories. The **Requests** page (`/requests`) lists contacts with request and answer counts, average response time, due reminders and a contact log. Subcontractor packages log to the same history.
+
+### Bid simulator
+
+On an imported GAEB X83 list, the **Bid simulator** compares standard rates, price-only optimization and quantity-aware optimization. It uses direct costs, rate limits, award scenarios and quantity shortfalls found by the risk assessment, and it shows the worst-case awarded profit and suggested unit-rate changes. Results are simulations and never change the saved quote.
+
 ## File formats
 
 | Workflow | Formats |
 | --- | --- |
-| Import editable lists | GAEB DA XML, GAEB 90, Excel (.xlsx), CSV, TSV, and JSON |
+| Import editable lists | GAEB DA XML, GAEB 90, Excel (.xlsx and legacy .xls), CSV, TSV, JSON, and tender PDFs (read on the server; needs Poppler) |
 | Attach source documents | PDF and Word (.docx). Supported documents can also supply positions or fill in missing descriptions. |
 | Export lists | GAEB DA XML X83, GAEB 90 D83/D84/D86, Excel, CSV, PDF, Word, and JSON |
 | Import tender bundles | The [backend importer](docs/OPERATIONS.md#import-a-tender-zip-or-document) accepts ZIP bundles and keeps the original files and extraction evidence. |
