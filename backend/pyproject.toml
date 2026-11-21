@@ -29,6 +29,7 @@ include = ["analysis*"]
 "analysis.layer1" = ["lexicon_de.txt", "lexicon_extra_de.txt"]
 "analysis.layer2" = ["rules.json"]
 "analysis.layer3" = ["eval_cases.json"]
+"analysis.eval.seeds" = ["*.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["analysis/tests"]

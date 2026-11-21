@@ -11,7 +11,7 @@ The lead merges PRs and resolves conflicts in this file. Contracts are in [CLAUD
 | 02 | [Layer 3 on Claude: precast extraction, scope audit, live demo](tasks/02-layer3-claude-checks.md) | `feat/task-02` | PR open | Live LV_11 layer 3 run: 24.5 s, $0.020, 5 calls (Haiku 5.5 + Sonnet 5.5 audit); MISSING_SPEC on 3.2.20-60, REBAR_AMBIGUOUS on 3.2.70; repeat run 0 calls. Eval: task 02 checks precision 1.0 / recall 1.0 (4 cases), contradiction 1.0 / 1.0, L2 review 0.75. Prod defaults: 12 calls, 30 s timeout, 75 s deadline. Request: register the `integration` pytest marker. |
 | 03 | [Risk score, change-order signals, Bieterfragen (contract v0.2)](tasks/03-risk-score-bieterfragen.md) | `feat/task-03` | PR open | [PR #12](https://github.com/konstimomonsti/construct/pull/12); 315 passed, 3 skipped; CLI acceptance verified. |
 | 04 | [Risk report UI, reviewer decisions, exports](tasks/04-risk-report-ui.md) | `feat/task-04` | todo | Uses a fixture until 03 lands |
-| 05 | [Planted-error evaluation and demo files](tasks/05-planted-error-evaluation.md) | `feat/task-05` | todo | Precast labels show "missed" until 01/02 merge |
+| 05 | [Planted-error evaluation and demo files](tasks/05-planted-error-evaluation.md) | `feat/task-05` | PR open | Task 01 replay: building hall 80/80 and precast 6/6 supported cases per format. All 46 controls clean. Nine known gaps and two Layer 3 cases per format remain. |
 | 06 | [Upload real tender PDFs and .xls (queued)](tasks/06-real-pdf-excel-upload.md) | `feat/task-06` | queued | First worker to finish takes it |
 
 Suggested merge order: 01 → 03 → 02 → 05 → 04 → 06. Each PR must pass CI (Python tests, frontend lint/build).

@@ -80,4 +80,4 @@ branch from before the repo was reorganised. **Port it first, then extend it.**
 
 ## Notes / blockers (fill in)
 
--
+- The CLI and importer detect the planted X83 line amount. The upload assessment omits it because the workspace uses estimated prices for X83 and carries stated source amounts for bid and award phases. The demo uses the CLI for that case.
