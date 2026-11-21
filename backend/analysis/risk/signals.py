@@ -34,6 +34,10 @@ TITLES = {
 }
 BASE_POINTS = {"scope_gap": 4, "provisional": 4, "hourly_work": 4, "by_client": 2,
                "vague_quantity": 2, "missing_dependency": 4, "zero_qty_priced": 4}
+WORDING_KINDS = frozenset({"scope_gap", "provisional", "hourly_work", "by_client", "vague_quantity"})
+EXTRA_SIGNALS = {"thin_lump_sum": ("scope_gap", "Pauschale mit weniger als 200 Zeichen Leistungsbeschreibung"),
+                 "placeholder_quantity": ("vague_quantity", "Menge 1 bei einer messbaren Leistung; mögliche Platzhaltermenge"),
+                 "zero_qty_priced": ("zero_qty_priced", "Einheitspreis vorhanden, aber Menge 0")}
 MEASURED_UNITS = {"m", "m²", "m³", "m2", "m3", "t", "h"}
 
 
@@ -58,6 +62,12 @@ def matching_families(line: Line) -> list[str]:
     if line.quantity == 0 and any(price and price.unit_price is not None for price in (line.price, line.source_amounts)):
         families.append("zero_qty_priced")
     return families
+
+
+def wording_families(line: Line, kind: str) -> list[str]:
+    return [family for family in matching_families(line)
+            if ((family in REGEX_SIGNALS and REGEX_SIGNALS[family][0] == kind)
+                or (family in EXTRA_SIGNALS and EXTRA_SIGNALS[family][0] == kind))]
 
 
 def anchor(finding: Finding, lines: dict[str, Line]) -> str | None:
@@ -97,12 +107,9 @@ def collect(analysis_input: AnalysisInput, findings: list[Finding]) -> list[Chan
         if finding_id:
             ids.add(finding_id)
 
-    extra = {"thin_lump_sum": ("scope_gap", "Pauschale mit weniger als 200 Zeichen Leistungsbeschreibung"),
-             "placeholder_quantity": ("vague_quantity", "Menge 1 bei einer messbaren Leistung; mögliche Platzhaltermenge"),
-             "zero_qty_priced": ("zero_qty_priced", "Einheitspreis vorhanden, aber Menge 0")}
     for line in sorted(lines.values(), key=lambda line: (line.sort_order, line.id)):
         for family in matching_families(line):
-            kind, message = REGEX_SIGNALS[family][:2] if family in REGEX_SIGNALS else extra[family]
+            kind, message = REGEX_SIGNALS[family][:2] if family in REGEX_SIGNALS else EXTRA_SIGNALS[family]
             add(line, kind, message)
     for finding in sorted(findings, key=lambda item: item.id):
         if (finding.status == "open" and finding.rule_id.startswith("L2.") and "_NEEDS_" in finding.rule_id
