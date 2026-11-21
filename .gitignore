@@ -14,6 +14,8 @@ __pycache__/
 # ...except rule sets, fixtures and examples that belong to the code
 !analysis/**/*.json
 !examples/*.json
+# ...and the hand labels of the evaluation (real_findings.csv)
+!analysis/eval/labels/*.csv
 
 # Local database files
 .env
@@ -30,3 +32,6 @@ dist/
 
 # Layer 3 LLM answer cache (may contain tender text)
 .cache/
+
+# Evaluation output: mutated copies of the seed (and of any file given to it), results, reports
+eval_out/

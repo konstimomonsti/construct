@@ -26,6 +26,7 @@ include = ["analysis*"]
 [tool.setuptools.package-data]
 "analysis.layer2" = ["rules.json"]
 "analysis.layer3" = ["eval_cases.json"]
+"analysis.eval" = ["seeds/building_hall.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["analysis/tests"]
