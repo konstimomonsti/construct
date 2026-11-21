@@ -1,62 +1,40 @@
-import { Button, toast } from '../ui'
-import { int } from '../../lib/format'
-import type { Decisions, Question } from '../../lib/risk-assessment'
+import { Button, Icon, toast } from '../ui'
+import { plural } from '../../lib/format'
+import type { Question } from '../../lib/risk-assessment'
 import { downloadBytes, questionsMarkdown } from '../../lib/risk-export'
 
-/** questions whose source findings are not all dismissed */
-export const openQuestions = (questions: Question[], decisions: Decisions) =>
-  questions.filter((q) => !q.finding_ids.length || q.finding_ids.some((id) => decisions[id]?.status !== 'dismissed'))
-
-/** Bieterfragen: numbered, editable, copied or downloaded as a German e-mail */
-export function BidderQuestions({ title, questions, texts, onEdit }: {
+/** Client-facing drafts linked to the finding the estimator is reviewing. */
+export function FindingQuestions({ title, questions }: {
   title: string
-  questions: Question[]
-  texts: Record<string, string>
-  onEdit: (id: string, text: string) => void
+  questions?: Question[]
 }) {
-  const all = questions.map((q) => texts[q.id] ?? q.text_de)
-  const email = () => questionsMarkdown(title, all)
+  if (!questions?.length) return null
+  const draft = questionsMarkdown(title, questions.map((question) => question.text_de))
   const copy = async () => {
     try {
-      await navigator.clipboard.writeText(email())
-      toast(`Copied ${int(questions.length)} questions`)
+      await navigator.clipboard.writeText(draft)
+      toast('Clarification draft copied')
     } catch {
-      toast('Copying is blocked in this browser', 'error')
+      toast('Clipboard unavailable. Download the draft instead.', 'error')
     }
   }
   const slug = title.replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-|-$/g, '') || 'liste'
   return (
-    <section aria-labelledby="questions-h" className="mt-8">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 id="questions-h" className="font-heading text-base font-bold text-slate-900">
-          Bieterfragen<span className="num ml-2 font-sans text-sm font-medium text-slate-600">{int(questions.length)}</span>
-        </h2>
-        {questions.length > 0 && (
-          <div className="flex gap-2">
-            <Button icon="content_copy" onClick={copy}>Copy all</Button>
-            <Button icon="download" onClick={() => downloadBytes(`Bieterfragen-${slug}.md`, email(), 'text/markdown;charset=utf-8')}>Download .md</Button>
-          </div>
-        )}
+    <details className="group/clarification mt-3 ml-[15px] rounded-md border border-slate-200 bg-slate-50">
+      <summary className="flex min-h-9 cursor-pointer list-none items-center gap-2 rounded-md px-3 text-sm font-semibold text-slate-800 hover:bg-slate-100 [&::-webkit-details-marker]:hidden">
+        <Icon name="chevron_right" size={17} className="shrink-0 transition-transform group-open/clarification:rotate-90" />
+        {plural(questions.length, 'client clarification draft', 'client clarification drafts')}
+      </summary>
+      <div className="space-y-3 border-t border-slate-200 px-3 py-3">
+        <ul lang="de" className="space-y-2 text-sm leading-relaxed text-slate-800">
+          {questions.map((question) => <li key={question.id}>{question.text_de}</li>)}
+        </ul>
+        <div className="flex flex-wrap gap-2">
+          <Button size="sm" icon="content_copy" onClick={copy}>Copy email draft</Button>
+          <Button size="sm" variant="ghost" icon="download"
+            onClick={() => downloadBytes(`Bieterfragen-${slug}.txt`, draft, 'text/plain;charset=utf-8')}>Download draft</Button>
+        </div>
       </div>
-      {questions.length ? (
-        <ol className="mt-3 space-y-4">
-          {questions.map((q, i) => (
-            <li key={q.id} className="flex gap-3">
-              <span className="num w-6 shrink-0 pt-2 text-sm font-semibold text-slate-600">{i + 1}.</span>
-              <label className="min-w-0 flex-1">
-                <span className="text-[13px] font-semibold text-slate-600">{q.topic} · <span className="num">{q.line_codes.join(', ')}</span></span>
-                <textarea
-                  lang="de"
-                  value={all[i]}
-                  onChange={(e) => onEdit(q.id, e.target.value)}
-                  rows={3}
-                  className="mt-1 block w-full resize-y rounded-md bg-white px-3 py-2 text-sm leading-relaxed text-slate-900 ring-1 ring-slate-400 outline-none ring-inset focus:ring-2 focus:ring-brand-600"
-                />
-              </label>
-            </li>
-          ))}
-        </ol>
-      ) : <p className="mt-2 text-sm text-slate-600">No open questions for the client.</p>}
-    </section>
+    </details>
   )
 }

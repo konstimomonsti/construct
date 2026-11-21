@@ -115,24 +115,22 @@ def test_workspace_worker_matches_an_upload_without_source_links(monkeypatch):
             assert report["positions"]["variant"]["product"] is None
 
 
-def test_research_fetches_article_evidence_and_ignores_unrelated_search_hits(monkeypatch):
+def test_research_uses_merchant_products_and_ignores_unrelated_search_hits(monkeypatch):
     paths = []
 
-    def wiki(path):
-        paths.append(path)
-        if "search/page" in path:
-            return {"pages": [{"title": "Other material", "key": "Other_material"},
-                              {"title": "Schaumglas", "key": "Schaumglas"}]}
-        assert path.endswith("/Schaumglas")
-        return {"type": "standard", "extract": "Schaumglas is manufactured from foamed glass."}
+    def products(base, path):
+        paths.append((base, path))
+        return [{"name": "Schauglas für Bierfass", "url": "/p/1/schauglas"},
+                {"name": "Schaumglas Dämmplatte", "url": "/p/2/schaumglas",
+                 "category": "Dämmstoffe", "offers": {"price": "12.50", "priceCurrency": "EUR"}}]
 
-    monkeypatch.setattr(catalogue, "wiki_json", wiki)
+    monkeypatch.setattr(catalogue, "market_products", products)
     assert catalogue.research("Schaumglas [PROJECT NAME]") == {
-        "name": "Schaumglas", "description": "Schaumglas is manufactured from foamed glass.",
-        "url": "https://de.wikipedia.org/wiki/Schaumglas", "source": "Wikipedia",
+        "name": "Schaumglas Dämmplatte", "description": "Dämmstoffe",
+        "url": "https://www.obi.de/p/2/schaumglas", "source": "OBI", "price": "12.50",
     }
-    assert len(paths) == 2 and "project" not in paths[0].lower()
-    assert catalogue.research("Unknown product") is None
+    assert len(paths) == 1 and "project" not in paths[0][1].lower()
+    assert catalogue.research("Bodenaustausch") is None
 
 
 def test_seed_matching_allows_crlf_but_not_different_source_content():
@@ -518,15 +516,45 @@ def test_aligned_copy_can_use_full_specification_when_title_is_abbreviated():
 def test_research_falls_back_to_single_words_and_compound_heads(monkeypatch):
     queries = []
 
-    def wiki(path):
-        if "search/page" in path:
-            queries.append(path)
-            if "q=zementestrich&" in path:
-                return {"pages": [{"title": "Estrich", "key": "Estrich"}]}
-            return {"pages": []}
-        return {"type": "standard", "extract": "Estrich is a floor layer."}
+    def products(base, path):
+        queries.append(path)
+        return [{"name": "Estrich", "url": "/estrich/p/123"}] if path.endswith("/zementestrich/") else []
 
-    monkeypatch.setattr(catalogue, "wiki_json", wiki)
+    monkeypatch.setattr(catalogue, "market_products", products)
     assert catalogue.research("Zementestrich Festigkeitsklasse")["name"] == "Estrich"
-    assert len(queries) == 3
+    assert len(queries) == 2
     assert catalogue.related("zementestrich", "estrich") and not catalogue.related("beton", "betonstahl")
+
+
+def test_market_products_reads_structured_product_list(monkeypatch):
+    html = b'''<script type="application/ld+json">{"@type":"ItemList","itemListElement":[
+      {"item":{"@type":"Product","name":"Geotextil Vlies","url":"/p/12/geotextil"}}]}
+      </script>'''
+
+    class Response:
+        def __enter__(self): return self
+        def __exit__(self, *_): pass
+        def read(self, size): return html
+
+    monkeypatch.setattr(catalogue, "urlopen", lambda request, timeout: Response())
+    assert catalogue.market_products("https://www.obi.de", "/search/geotextil/")[0]["name"] == "Geotextil Vlies"
+
+
+def test_research_tries_bauhaus_when_obi_has_no_product(monkeypatch):
+    def products(base, path):
+        if "obi.de" in base:
+            return []
+        return [{"name": "Geotextil Vlies", "url": "/gartenbau/geotextil-vlies/p/123"}]
+
+    monkeypatch.setattr(catalogue, "market_products", products)
+    assert catalogue.research("Geotextil") == {
+        "name": "Geotextil Vlies", "description": "Building material",
+        "url": "https://www.bauhaus.info/gartenbau/geotextil-vlies/p/123", "source": "BAUHAUS", "price": None,
+    }
+
+
+def test_research_rejects_external_product_links(monkeypatch):
+    monkeypatch.setattr(catalogue, "market_products", lambda base, path: [
+        {"name": "Geotextil Vlies", "url": "https://other.example/p/123"},
+    ])
+    assert catalogue.research("Geotextil") is None

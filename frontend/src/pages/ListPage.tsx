@@ -17,14 +17,14 @@ import { ErrorBoundary } from '../components/ErrorBoundary'
 import { LedgerTable } from '../components/LedgerTable'
 import { BidSimulator } from '../components/BidSimulator'
 import { ChangeOrderText, FindingFilter, FindingText } from '../components/RiskAssessment'
-import { analysisCoverage, assessmentMatchesEdits, canApplyAssessmentFix, currentDecisions, decisionsOf, indexFindings, matchesFindingFilter, reportRisk, SEVERITIES, useUploadAssessment, type Assessment, type ChangeOrderSignal, type Decision, type Finding, type Report, type ReviewItem } from '../lib/risk-assessment'
+import { analysisCoverage, assessmentMatchesEdits, canApplyAssessmentFix, currentDecisions, decisionsOf, indexFindings, matchesFindingFilter, openQuestions, reportRisk, SEVERITIES, useUploadAssessment, type Assessment, type ChangeOrderSignal, type Decision, type Finding, type Question, type Report, type ReviewItem } from '../lib/risk-assessment'
 import { riskXlsx, downloadBytes } from '../lib/risk-export'
 import type { RowRisk } from '../components/LedgerTable'
 import { DecisionControls, DismissMenu } from '../components/risk/DecisionControls'
 import { RiskSummary } from '../components/risk/RiskSummary'
 import { WarningsPanel, type WarningEntry } from '../components/risk/WarningsPanel'
 import { runSteps, type FixPlan } from '../lib/apply-fix'
-import { openQuestions } from '../components/risk/BidderQuestions'
+import { FindingQuestions } from '../components/risk/BidderQuestions'
 import { RiskPrint } from '../components/risk/RiskPrint'
 import { AddSectionDialog, PricingLegend, PricingBreakdown, pricingSections } from '../components/PricingSummary'
 import { useActions } from '../lib/actions'
@@ -406,6 +406,19 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   const reviewed = useMemo(() => new Set(Object.keys(decisions)), [decisions])
   const questionTexts: Record<string, string> = {}
   const questions = useMemo(() => openQuestions(uploadReport?.questions ?? [], decisions), [uploadReport, decisions])
+  const questionsByFinding = useMemo(() => {
+    const index = new Map<string, Question[]>()
+    if (isStale) return index
+    for (const question of questions) {
+      for (const id of question.finding_ids) {
+        if (decisions[id]?.status === 'dismissed') continue
+        const linked = index.get(id) ?? []
+        linked.push(question)
+        index.set(id, linked)
+      }
+    }
+    return index
+  }, [questions, decisions, isStale])
   const codes = useMemo(() => new Map(imported.positions.map((p) => [p.id, p.oz])), [imported.positions])
   const { byRow: findingsByRow, listWide } = useMemo(
     () => indexFindings(uploadReport?.findings ?? [], positions), [uploadReport, positions],
@@ -966,7 +979,8 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
       {cap && 'reason' in cap && <p role="note" className="mb-4 text-sm text-slate-600">{cap.reason}</p>}
       {uploadReport && (
         <WarningsPanel entries={warningEntries} decisions={decisions} settled={settled} positions={positions} allowFixes={fixesAvailable}
-          onOpen={(id) => openDetail(id, 'findings')} onFilter={showWarnings} onDecide={decide} onApplyFixes={applyFixes} />
+          title={title} questionsByFinding={questionsByFinding} onOpen={(id) => openDetail(id, 'findings')} onFilter={showWarnings}
+          onDecide={decide} onApplyFixes={applyFixes} />
       )}
 
       {catalogueEnabled && researchShow && (
@@ -1145,6 +1159,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
                 <li key={item.id} className="space-y-3">
                   {'severity' in item ? <FindingText finding={item} decision={decisions[item.id]} details />
                     : <ChangeOrderText signal={item} decision={decisions[item.id]} />}
+                  <FindingQuestions title={title} questions={questionsByFinding.get(item.id)} />
                   <DecisionControls className="ml-[15px]" title={item.title} decision={decisions[item.id]}
                     onDecide={(decision) => decide([item.id], decision, item.title)} />
                 </li>
@@ -1259,6 +1274,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
                   {'severity' in item
                     ? <FindingText finding={item} decision={decisions[item.id]} changed={changedFindings.has(item.id)} hideRationale={!!sharedRationale} details />
                     : <ChangeOrderText signal={item} decision={decisions[item.id]} />}
+                  <FindingQuestions title={title} questions={questionsByFinding.get(item.id)} />
                   <DecisionControls className="ml-[15px]" title={item.title} decision={decisions[item.id]}
                     onDecide={(decision) => decideInDrawer(item.id, item.title, decision)} />
                 </li>

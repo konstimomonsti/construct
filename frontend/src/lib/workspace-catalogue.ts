@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 
 type Product = { id: string; name: string; category: string }
-type Suggestion = { name: string; description: string; url: string; source: string }
+type Suggestion = { name: string; description: string; url: string; source: string; price?: string | null }
 
 export type CataloguePosition = {
   model_review?: boolean

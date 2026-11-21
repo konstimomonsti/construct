@@ -2,10 +2,11 @@ import { clsx } from 'clsx'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Button, Dialog, Icon, kbdCls } from '../ui'
 import { ChangeOrderText, FindingText, RISK_UI } from '../RiskAssessment'
+import { FindingQuestions } from './BidderQuestions'
 import { DismissMenu, accepted } from './DecisionControls'
 import { planFix, planFixAll, type FixPlan } from '../../lib/apply-fix'
 import { int, plural } from '../../lib/format'
-import { SEVERITIES, type Decision, type Decisions, type Finding, type ReviewItem, type Severity } from '../../lib/risk-assessment'
+import { SEVERITIES, type Decision, type Decisions, type Finding, type Question, type ReviewItem, type Severity } from '../../lib/risk-assessment'
 import type { Position } from '../../lib/types'
 
 export type WarningEntry = { item: ReviewItem; position: Position | null }
@@ -22,12 +23,14 @@ const KIND_PLURAL: Record<Severity | 'change', string> = { error: 'Critical', wa
  * "Fix all" for every warning that carries an applicable fix, and a one-at-a-time review that walks the open warnings
  * without scrolling the list. Nothing changes without a click; every bulk change can be undone.
  */
-export function WarningsPanel({ entries, decisions, settled, positions, allowFixes, onOpen, onFilter, onDecide, onApplyFixes }: {
+export function WarningsPanel({ entries, decisions, settled, positions, allowFixes, title, questionsByFinding, onOpen, onFilter, onDecide, onApplyFixes }: {
   entries: WarningEntry[]
   decisions: Decisions
   settled: Set<string>
   positions: Position[]
   allowFixes: boolean
+  title: string
+  questionsByFinding: ReadonlyMap<string, Question[]>
   onOpen: (positionId: string) => void
   onFilter: (filter: string) => void
   onDecide: (ids: string[], decision: Decision | null, title?: string) => void
@@ -89,8 +92,9 @@ export function WarningsPanel({ entries, decisions, settled, positions, allowFix
       </div>
 
       {reviewing && open.length > 0 ? (
-        <ReviewStepper open={open} positions={positions} decisions={decisions} allowFixes={allowFixes} onOpen={onOpen} onDecide={onDecide}
-          onApplyFixes={onApplyFixes} onClose={() => setReviewing(false)} />
+        <ReviewStepper open={open} positions={positions} decisions={decisions} allowFixes={allowFixes}
+          title={title} questionsByFinding={questionsByFinding} onOpen={onOpen} onDecide={onDecide} onApplyFixes={onApplyFixes}
+          onClose={() => setReviewing(false)} />
       ) : open.length > 0 && (
         <ul className="mt-3 divide-y divide-slate-200 border-y border-slate-200">
           {types.map(([key, group]) => {
@@ -170,11 +174,13 @@ function FixAllDialog({ open, plans, rest, onClose, onConfirm }: {
 }
 
 /** one open warning at a time; after each decision the next open one comes up. ← / → move, A accepts, F applies the fix */
-function ReviewStepper({ open, positions, decisions, allowFixes, onOpen, onDecide, onApplyFixes, onClose }: {
+function ReviewStepper({ open, positions, decisions, allowFixes, title, questionsByFinding, onOpen, onDecide, onApplyFixes, onClose }: {
   open: WarningEntry[]
   positions: Position[]
   allowFixes: boolean
   decisions: Decisions
+  title: string
+  questionsByFinding: ReadonlyMap<string, Question[]>
   onOpen: (positionId: string) => void
   onDecide: (ids: string[], decision: Decision | null, title?: string) => void
   onApplyFixes: ApplyFixes
@@ -239,6 +245,7 @@ function ReviewStepper({ open, positions, decisions, allowFixes, onOpen, onDecid
           {plan.skipped.map((skip, i) => <p key={i} className="text-slate-600">Not applied: {skip.reason}</p>)}
         </div>
       )}
+      <FindingQuestions key={item.id} title={title} questions={questionsByFinding.get(item.id)} />
       <div className="mt-3 ml-[15px] flex flex-wrap items-center gap-2">
         {!!plan?.steps.length && <Button size="sm" variant="primary" icon="auto_fix_high" onClick={fix}>Apply fix <kbd className={clsx(kbdCls, 'ml-1.5')}>F</kbd></Button>}
         <Button size="sm" icon="check" onClick={accept}>Accept <kbd className={clsx(kbdCls, 'ml-1.5')}>A</kbd></Button>
