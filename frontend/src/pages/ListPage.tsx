@@ -1261,6 +1261,64 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
                   {'severity' in item
                     ? <FindingText finding={item} decision={decisions[item.id]} changed={changedFindings.has(item.id)} hideRationale={!!sharedRationale} details />
                     : <ChangeOrderText signal={item} decision={decisions[item.id]} />}
+                  {'severity' in item && item.suggested_fix?.operations?.length ? (() => {
+                    const plan = planFix(item, { positions, tree }, fixQuantities[item.id])
+                    return (
+                      <div className="ml-[15px] space-y-1.5 rounded-lg border border-slate-200 bg-slate-50 p-2.5 text-xs text-slate-700">
+                        <div className="font-semibold text-slate-800 flex items-center gap-1.5">
+                          <Icon name="auto_fix_high" size={14} className="text-amber-600" />
+                          <span>Suggested Fix Available</span>
+                        </div>
+                        {!decisions[item.id]?.applied && item.suggested_fix?.operations?.map((op, index) => op.op === 'add_line' && op.line.quantity == null ? (
+                          <label key={index} className="block text-xs font-medium text-slate-700">
+                            Quantity for {op.line.short_text} ({op.line.unit ?? 'unit'}):
+                            <input
+                              type="number"
+                              min="0"
+                              step="any"
+                              className="w-24 ml-1.5 rounded border border-slate-300 bg-white px-2 py-0.5 text-xs font-mono"
+                              value={fixQuantities[item.id]?.[index] ?? ''}
+                              onChange={event => {
+                                const value = event.target.value
+                                setFixQuantities(current => ({ ...current, [item.id]: { ...current[item.id], [index]: value === '' ? NaN : Number(value) } }))
+                              }}
+                            />
+                          </label>
+                        ) : null)}
+                        {!decisions[item.id]?.applied && plan.steps.map((step, index) => (
+                          <p key={index} className="font-mono text-[11px] text-slate-600">• {step.preview}</p>
+                        ))}
+                        {!decisions[item.id]?.applied && plan.skipped.map((skip, index) => (
+                          <p key={index} className="text-[11px] text-amber-700">Skipped {skip.op.op}: {skip.reason}</p>
+                        ))}
+                        {decisions[item.id]?.applied ? (
+                          <div className="flex items-center gap-2 font-semibold text-emerald-800">
+                            <span className="flex items-center gap-1"><Icon name="check" size={14} /> Applied</span>
+                            {fixSnapshots[item.id]?.after === edits && fixSnapshots[item.id] && (
+                              <button
+                                type="button"
+                                className="font-normal text-slate-600 underline hover:text-slate-900 ml-1"
+                                onClick={() => undoFix(item)}
+                              >
+                                Undo
+                              </button>
+                            )}
+                          </div>
+                        ) : (
+                          plan.steps.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => applyFix(item)}
+                              className="mt-1 inline-flex items-center gap-1.5 rounded bg-amber-300 px-2.5 py-1 text-xs font-semibold text-amber-950 hover:bg-amber-400 transition-colors shadow-xs"
+                            >
+                              <Icon name="auto_fix_high" size={14} />
+                              Apply suggested fix
+                            </button>
+                          )
+                        )}
+                      </div>
+                    )
+                  })() : null}
                   <DecisionControls className="ml-[15px]" title={item.title} decision={decisions[item.id]}
                     onDecide={(decision) => decideInDrawer(item.id, item.title, decision)} />
                 </li>

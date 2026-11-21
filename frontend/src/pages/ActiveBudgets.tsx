@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { BudgetBadge, BudgetMini, Chips, EmptyState, PageFrame, PageHeader, Row, RowList, RowMenu, Section, SortMenu, Summary, ToolButton, budgetPhrase, heroStatus } from '../components/Kit'
+import { Icon } from '../components/ui'
 import { Dock } from '../components/Dock'
 import { counts, useModel, type ListView } from '../lib/store'
 import { budgetStatus, int, money, moneyWhole, needsAttention, plural } from '../lib/format'
@@ -137,7 +138,25 @@ export function ActiveBudgets() {
                       icon="request_quote"
                       tone={project?.tone ?? 'slate'}
                       title={title}
-                      badge={<BudgetBadge total={l.total} cap={l.cap} />}
+                      badge={
+                        <div className="flex items-center gap-1.5">
+                          {l.duplicateAwardWarning && (
+                            <span className="inline-flex items-center gap-1 rounded bg-rose-100 px-1.5 py-0.5 text-[11px] font-semibold text-rose-800" title="Multiple X86 award files in same project">
+                              <Icon name="warning" size={12} /> Duplicate X86
+                            </span>
+                          )}
+                          {l.capSource === 'confirmed' ? (
+                            <span className="inline-flex items-center gap-1 rounded bg-emerald-50 px-1.5 py-0.5 text-[11px] font-medium text-emerald-800 border border-emerald-200" title="Cap confirmed by reviewer">
+                              <Icon name="verified" size={12} /> Confirmed Cap
+                            </span>
+                          ) : l.capSource === 'inferred' ? (
+                            <span className="inline-flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-medium text-slate-600 border border-slate-200" title="Estimated cap based on tender total">
+                              Estimated Cap
+                            </span>
+                          ) : null}
+                          <BudgetBadge total={l.total} cap={l.cap} />
+                        </div>
+                      }
                       subtitle={[folder, (l.phaseCode?.endsWith('86') || l.pairedX86Id) ? 'X86 Confirmed' : l.phaseCode?.endsWith('84') ? 'X84 Offer' : 'X83 Tender', phaseLabel(l), completeness(l)].filter(Boolean).join(' · ')}
                       amount={money(l.total)}
                       meta={<BudgetMini total={l.total} cap={l.cap} priced label={`${title}: share of cap used`} />}
