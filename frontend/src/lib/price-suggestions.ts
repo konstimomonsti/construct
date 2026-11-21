@@ -18,6 +18,8 @@ export type PriceSuggestion = {
   product: { id: string; name: string; supplier: string | null }
   basis: CatalogueEntry['price_basis']
   validFrom: string | null
+  /** both the catalogue and the position name a unit (and they match); otherwise the user checks the unit first */
+  unitKnown: boolean
 }
 
 // one request per product for the whole session; the catalogue rarely changes while a list is open
@@ -90,6 +92,7 @@ export function usePriceSuggestions(report: CatalogueReport | null, positions: P
         product: { id: entry.id, name: entry.name, supplier: entry.supplier ?? null },
         basis: entry.price_basis ?? null,
         validFrom: entry.valid_from ?? null,
+        unitKnown: !!unitKey(entry.unit) && !!unitKey(unit),
       })
     }
     return out

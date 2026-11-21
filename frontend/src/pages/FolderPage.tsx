@@ -65,9 +65,8 @@ export function FolderPage() {
   const status = heroStatus(f, counted.map((l) => ({ tone: budgetStatus(l.total, l.cap).tone })), ['list', 'lists'])
   // list caps are set independently; say when they promise more than the project cap allows
   const listCaps = allLists.filter(counts).reduce((x, l) => x + (l.cap || 0), 0)
-  const capNote = f.cap > 0 && listCaps > f.cap ? (
-    <span>List caps exceed the project cap by <span className="num">{moneyWhole(listCaps - f.cap)}</span> (<span className="num">{moneyWhole(listCaps)}</span> in total).</span>
-  ) : undefined
+  // allocation, not spend: said under the editable project cap it is measured against
+  const capNote = f.cap > 0 && listCaps > f.cap ? <span className="num">List caps add up to {moneyWhole(listCaps)}</span> : undefined
   const toggle = (id: string) =>
     setSel((s) => {
       const n = new Set(s)
@@ -96,6 +95,7 @@ export function FolderPage() {
       )}
       <PageHeader
         crumbs={crumbs}
+        wrap
         title={f.name}
         subtitle={[folderDescription(f), f.positions ? plural(f.positions, 'position', 'positions') : ''].filter(Boolean).join(' · ') || undefined}
         aside={
@@ -115,9 +115,9 @@ export function FolderPage() {
         total={f.total}
         cap={f.cap}
         status={status}
-        note={capNote}
+        capNote={capNote}
         onEditCap={() => openDialog({ kind: 'edit-cap', target: 'folder', id: f.id })}
-        meta={toPrice > 0 ? <span className="num"><strong className="font-semibold text-slate-900">{int(toPrice)}</strong> still to price</span> : undefined}
+        meta={toPrice > 0 ? <span className="num"><strong className="font-semibold text-slate-900">{int(toPrice)}</strong> not priced</span> : undefined}
       />
 
       {subfolders.length > 0 && (
@@ -131,6 +131,17 @@ export function FolderPage() {
           title="Lists"
           count={lists.length}
           focusable
+          filters={((allLists.length > 3 && flaggedLists > 0) || view !== 'all') && (
+            <Chips
+              label="Filter lists"
+              value={view}
+              onChange={setView}
+              options={[
+                { key: 'all', label: 'All' },
+                { key: 'attention', label: 'Needs attention', count: flaggedLists },
+              ]}
+            />
+          )}
           tools={
             <>
               {allLists.length > 3 && <SortMenu value={sort} options={SORT_LABEL} onChange={(k: SortKey) => setSort(k)} noun="lists" />}
@@ -140,19 +151,6 @@ export function FolderPage() {
             </>
           }
         >
-          {((allLists.length > 3 && flaggedLists > 0) || view !== 'all') && (
-            <div className="mb-3">
-              <Chips
-                label="Filter lists"
-                value={view}
-                onChange={setView}
-                options={[
-                  { key: 'all', label: 'All' },
-                  { key: 'attention', label: 'Needs attention', count: flaggedLists },
-                ]}
-              />
-            </div>
-          )}
           <p className="sr-only" aria-live="polite">{view === 'attention' ? `Showing ${plural(lists.length, 'list', 'lists')} near cap` : ''}</p>
           {lists.length ? (
             <ListGrid lists={lists} tone={f.tone} selectMode={selectMode} selected={sel} onToggle={toggle} />

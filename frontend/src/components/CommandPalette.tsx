@@ -2,8 +2,10 @@ import { clsx } from 'clsx'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'motion/react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { Icon, kbdCls, useInertRoot } from './ui'
+import { Kbd } from './Kit'
+import { MOD_KEY } from '../lib/keys'
 import { loadList } from '../lib/data'
 import { int, money, plural } from '../lib/format'
 import { listLabel, phaseLabel } from './ListCard'
@@ -44,22 +46,21 @@ interface Result {
 }
 type Option =
   | { kind: 'result'; key: string; r: Result }
-  /** `next` more rows to show; `total` is set when expanding still stops at POS_MAX short of all matches */
+  /** `next` more rows to show; `total` is set when rows still remain after this page */
   | { kind: 'more'; key: string; group: Group; next: number; total?: number }
 interface GroupView {
   group: Group
   count: number
   options: { o: Option; i: number }[]
-  /** expanded but capped at POS_MAX: how many are listed */
-  capped?: number
-  /** none of the group's results has a price: said once in the header instead of on every row */
-  nonePriced?: boolean
+  /** how many results have a price, said once in the header instead of "Not priced" on every row; null = not a priced group */
+  priced: number | null
 }
 
 /** rows per group before the "Show N more" row */
 const CAP = 3
-/** most positions listed when the group is expanded */
-const POS_MAX = 50
+/** positions are paged in place, this many at a time (the first page tops the 3 up to 50) */
+const POS_PAGE = 50
+const ALT_KEY = MOD_KEY === '⌘' ? '⌥' : 'Alt'
 /** the same filled tile as the app's list rows; one step deeper on the selected row so it doesn't melt into the fill */
 const TILE = 'bg-brand-50 text-brand-700'
 const TILE_ON = 'bg-brand-100 text-brand-700'
@@ -73,10 +74,8 @@ function Hl({ text, q }: { text: string; q: string }) {
   return <>{text.slice(0, i)}<mark className="bg-transparent font-bold text-brand-700">{text.slice(i, i + q.length)}</mark>{text.slice(i + q.length)}</>
 }
 
-/** footer key hint, same chip as the Esc button */
-const Kbd = ({ children, label }: { children: string; label: string }) => (
-  <kbd aria-label={label} className={kbdCls}>{children}</kbd>
-)
+/** rows to show after one more "Show N more": positions page by POS_PAGE, the other groups open fully */
+const nextLimit = (g: Group, limit: number, total: number) => (g === 'Positions' ? (limit < POS_PAGE ? POS_PAGE : limit + POS_PAGE) : total)
 
 export function CommandPalette() {
   const open = useUi((s) => s.palette)
@@ -84,12 +83,14 @@ export function CommandPalette() {
   const setOpen = useUi((s) => s.setPalette)
   const { folders, lists } = useModel()
   const navigate = useNavigate()
+  const onList = useLocation().pathname.startsWith('/list/')
   const openDialog = useUi((s) => s.openDialog)
   const [theme] = useTheme()
   const [q, setQ] = useState('')
   // the option the user moved to; null = use the default (first title match)
   const [activeKey, setActiveKey] = useState<string | null>(null)
-  const [expanded, setExpanded] = useState<Set<Group>>(() => new Set())
+  // rows shown per group once the user asked for more; absent = the first CAP
+  const [limits, setLimits] = useState<Map<Group, number>>(() => new Map())
   const [index, setIndex] = useState<PosIndexEntry[] | null>(null)
   // the position index is built once, on first open
   const loading = open && index === null
@@ -136,7 +137,7 @@ export function CommandPalette() {
     if (open) {
       setQ('')
       setActiveKey(null)
-      setExpanded(new Set())
+      setLimits(new Map())
       // rebuild the position index so prices and new imports are current
       setIndex(null)
     }
@@ -222,11 +223,14 @@ export function CommandPalette() {
         else if (e.short.toLowerCase().includes(t)) hit.push({ e, s: score(e.short) })
       }
       hit.sort((a, b) => a.s - b.s)
+      // when every hit sits in one project, naming it on each row only repeats it
+      const oneProject = new Set(hit.map(({ e }) => listById.get(e.listId)?.folderId)).size <= 1
       pRes = hit.map(({ e, s }) => {
         const l = listById.get(e.listId)
-        const project = l ? folderName.get(l.folderId) : undefined
+        const project = l && !oneProject ? folderName.get(l.folderId) : undefined
         const where = l ? `in ${displayName(l)}${project ? ` (${project})` : ''}` : null
-        const ep = e.up != null && e.unit ? `EP ${money(e.up)} / ${e.unit}` : undefined
+        // labelled like the ledger's EP and GP columns, with or without a unit
+        const ep = e.up != null ? `EP ${money(e.up)}${e.unit ? ` / ${e.unit}` : ''}` : undefined
         return {
           key: `p-${e.listId}-${e.id}`,
           group: 'Positions',
@@ -235,7 +239,7 @@ export function CommandPalette() {
           // category first, then the list it lives in, so the two don't read alike
           oz: e.oz,
           sub: [e.category, where].filter(Boolean).join(' · '),
-          right: !e.priced ? undefined : ep ?? money(e.total),
+          right: !e.priced ? undefined : ep ?? `GP ${money(e.total)}`,
           rightSub: e.priced && ep ? `GP ${money(e.total)}` : undefined,
           priced: e.priced,
           score: s,
@@ -247,7 +251,7 @@ export function CommandPalette() {
   }, [q, folders, lists, index, navigate, setOpen, openDialog, theme])
 
   // groups ordered by their best match, so a query that names a position term shows Positions first;
-  // each group shows CAP rows plus a "Show all" option until expanded
+  // each group shows CAP rows plus a "Show N more" option; positions then page in place
   const { groups, options, defaultIdx } = useMemo(() => {
     const byGroup = new Map<Group, Result[]>()
     for (const r of results) byGroup.set(r.group, [...(byGroup.get(r.group) ?? []), r])
@@ -256,23 +260,19 @@ export function CommandPalette() {
     const options: Option[] = []
     const groups: GroupView[] = order.map((g) => {
       const rs = byGroup.get(g)!
-      const max = g === 'Positions' ? POS_MAX : rs.length
-      const open = expanded.has(g)
-      const limit = open || g === 'Actions' ? max : CAP
-      const shown = rs.slice(0, limit)
-      const view: GroupView = { group: g, count: rs.length, options: [], nonePriced: g !== 'Actions' && rs.every((r) => !r.priced) }
+      const limit = g === 'Actions' ? rs.length : limits.get(g) ?? CAP
+      const view: GroupView = { group: g, count: rs.length, options: [], priced: g === 'Actions' ? null : rs.filter((r) => r.priced).length }
       const push = (o: Option) => { view.options.push({ o, i: options.length }); options.push(o) }
-      shown.forEach((r) => push({ kind: 'result', key: r.key, r }))
+      rs.slice(0, limit).forEach((r) => push({ kind: 'result', key: r.key, r }))
       if (rs.length > limit) {
-        // collapsed: offer the next batch; expanded and capped: explain the rest in a note row
-        if (!open) push({ kind: 'more', key: `more-${g}`, group: g, next: Math.min(rs.length, max) - limit, total: rs.length > max ? rs.length : undefined })
-        else view.capped = limit
+        const upTo = Math.min(rs.length, nextLimit(g, limit, rs.length))
+        push({ kind: 'more', key: `more-${g}`, group: g, next: upTo - limit, total: rs.length > upTo ? rs.length : undefined })
       }
       return view
     })
     const firstTitle = options.findIndex((o) => o.kind === 'result' && o.r.score < 2)
     return { groups, options, defaultIdx: Math.max(firstTitle, 0) }
-  }, [results, expanded])
+  }, [results, limits])
 
   const found = options.findIndex((o) => o.key === activeKey)
   const active = found >= 0 ? found : defaultIdx
@@ -298,9 +298,19 @@ export function CommandPalette() {
   const choose = (o: Option | undefined) => {
     if (!o) return
     if (o.kind === 'result') { o.r.go(); return }
-    // expand in place; the active row moves to the first newly shown result
-    setExpanded((s) => new Set(s).add(o.group))
-    setActiveKey(results.filter((r) => r.group === o.group)[CAP]?.key ?? null)
+    // page in place; the active row moves to the first newly shown result, and the field keeps focus for the arrow keys
+    inputRef.current?.focus()
+    const rs = results.filter((r) => r.group === o.group)
+    const from = limits.get(o.group) ?? CAP
+    setLimits((m) => new Map(m).set(o.group, nextLimit(o.group, from, rs.length)))
+    setActiveKey(rs[from]?.key ?? null)
+  }
+  // Alt+arrow jumps to the first row of the next or previous group
+  const jumpGroup = (dir: 1 | -1) => {
+    const at = groups.findIndex((g) => g.options.some(({ i }) => i === active))
+    const g = groups[Math.min(Math.max(at + dir, 0), groups.length - 1)]
+    const o = g?.options[0]?.o
+    if (o) setActiveKey(o.key)
   }
 
   const onKey = (e: React.KeyboardEvent) => {
@@ -311,15 +321,14 @@ export function CommandPalette() {
       else inputRef.current?.focus()
     } else if (e.key === 'Escape') { e.preventDefault(); close() }
     else if (e.target !== inputRef.current) return
+    else if (e.altKey && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) { e.preventDefault(); jumpGroup(e.key === 'ArrowDown' ? 1 : -1) }
     else if (e.key === 'ArrowDown') { e.preventDefault(); const o = options[Math.min(active + 1, options.length - 1)]; if (o) setActiveKey(o.key) }
     else if (e.key === 'ArrowUp') { e.preventDefault(); const o = options[Math.max(active - 1, 0)]; if (o) setActiveKey(o.key) }
     else if (e.key === 'Enter') { e.preventDefault(); choose(options[active]) }
   }
 
   const needle = q.trim().toLowerCase()
-  const cappedNote = (g: GroupView) => `Showing ${int(g.capped ?? 0)} of ${int(g.count)}. Type more to narrow the search.`
-  const status = !needle ? '' : !results.length ? 'No matches'
-    : [plural(results.length, 'result', 'results'), ...groups.filter((g) => g.capped).map((g) => `${NOUN[g.group][1]}: ${cappedNote(g)}`)].join('. ')
+  const status = !needle ? '' : !results.length ? 'No matches' : plural(results.length, 'result', 'results')
   return createPortal(
     <AnimatePresence>
       {open && (
@@ -350,7 +359,7 @@ export function CommandPalette() {
                 ref={inputRef}
                 autoFocus
                 value={q}
-                onChange={(e) => { setQ(e.target.value); setActiveKey(null); setExpanded(new Set()) }}
+                onChange={(e) => { setQ(e.target.value); setActiveKey(null); setLimits(new Map()) }}
                 role="combobox"
                 aria-expanded="true"
                 aria-controls="palette-list"
@@ -378,7 +387,11 @@ export function CommandPalette() {
                     {/* labels the group below; hidden from browse mode so it isn't read twice */}
                     <div id={headingId} aria-hidden="true" className="flex items-baseline gap-2 px-3 pt-5 pb-2 text-xs text-slate-600">
                       <span className="font-semibold text-slate-800">{g.group}</span>
-                      {g.group !== 'Actions' && <span className="num font-medium">{int(g.count)}{g.nonePriced && ' · none priced'}</span>}
+                      {g.priced != null && (
+                        <span className="num font-medium">
+                          {int(g.count)}{g.priced === 0 ? ' · none priced' : g.priced < g.count ? ` · ${int(g.priced)} priced` : ''}
+                        </span>
+                      )}
                     </div>
                     <div role="group" aria-labelledby={headingId}>
                       {g.options.map(({ o, i }) => {
@@ -386,7 +399,7 @@ export function CommandPalette() {
                         const rowCls = clsx(
                           'relative flex w-full items-center gap-3.5 rounded-md px-3 text-left',
                           // the bar sits inside the rounded fill, never on the panel edge
-                          on && 'bg-brand-50 before:absolute before:inset-y-3 before:left-1 before:w-[3px] before:rounded-full before:bg-brand-600',
+                          on && 'bg-brand-50 before:absolute before:inset-y-2.5 before:left-1 before:w-[3px] before:rounded-full before:bg-brand-600',
                         )
                         if (o.kind === 'more') {
                           return (
@@ -400,16 +413,14 @@ export function CommandPalette() {
                               aria-selected={on}
                               onMouseMove={() => setActiveKey(o.key)}
                               onClick={() => choose(o)}
-                              className={clsx(rowCls, 'py-2 text-sm font-medium text-brand-700')}
+                              className={clsx(rowCls, 'min-h-11 py-1.5 text-sm font-medium text-brand-700')}
                             >
-                              <span className="flex w-10 shrink-0 justify-center"><Icon name="expand_more" size={20} /></span>
-                              {o.total ? (
-                                // capped: say how many will show out of how many match, and how to reach the rest
-                                <span className="min-w-0">
-                                  <span className="block">{`Show first ${int(o.next + CAP)} of ${int(o.total)} ${NOUN[o.group][1]}`}</span>
-                                  <span className="block text-xs font-normal text-slate-600">Type more to narrow the search and see the rest</span>
-                                </span>
-                              ) : `Show ${int(o.next)} more ${NOUN[o.group][o.next === 1 ? 0 : 1]}`}
+                              <span className="flex w-9 shrink-0 justify-center"><Icon name="expand_more" size={20} /></span>
+                              <span className="min-w-0">
+                                <span className="block">{`Show ${int(o.next)} more ${NOUN[o.group][o.next === 1 ? 0 : 1]}`}</span>
+                                {/* rows remain after this page: say how many match and how to reach them faster */}
+                                {o.total && <span className="num block text-[13px] font-normal text-slate-600">{int(o.total)} in total · type more to narrow the search</span>}
+                              </span>
                             </button>
                           )
                         }
@@ -425,47 +436,37 @@ export function CommandPalette() {
                             aria-selected={on}
                             onMouseMove={() => setActiveKey(o.key)}
                             onClick={r.go}
-                            className={clsx(rowCls, 'py-2.5')}
+                            className={clsx(rowCls, 'py-1.5')}
                           >
-                            <span className={clsx('flex size-10 shrink-0 items-center justify-center rounded-md', on ? TILE_ON : TILE)}>
+                            <span className={clsx('flex size-9 shrink-0 items-center justify-center rounded-md', on ? TILE_ON : TILE)}>
                               <Icon name={r.icon} size={20} />
                             </span>
                             <span className="min-w-0 flex-1">
-                              <span className="block truncate text-[15px] font-medium text-slate-900"><Hl text={r.title} q={needle} /></span>
-                              <span className="block truncate text-sm text-slate-600 max-sm:line-clamp-2 max-sm:whitespace-normal">
+                              <span className="block truncate text-[15px] leading-5 font-medium text-slate-900"><Hl text={r.title} q={needle} /></span>
+                              <span className="block truncate text-sm leading-5 text-slate-600 max-sm:line-clamp-2 max-sm:whitespace-normal">
                                 {r.oz && <span className="font-mono text-[13px] text-slate-700">{r.oz}</span>}
                                 {r.oz && r.sub && <span aria-hidden> · </span>}
                                 {r.sub}
                               </span>
                               {/* phones: the figures go under the title instead of squeezing it */}
-                              {r.right ? (
+                              {r.right && (
                                 <span className="num mt-0.5 block truncate text-sm sm:hidden">
                                   <span className="font-semibold text-slate-900">{r.right}</span>
                                   {r.rightSub && <span className="text-slate-600"> · {r.rightSub}</span>}
                                 </span>
-                              ) : r.group !== 'Actions' && !g.nonePriced && (
-                                <span className="mt-0.5 block text-sm text-slate-600 sm:hidden">Not priced</span>
                               )}
                             </span>
-                            {r.right ? (
+                            {/* an empty column means not priced; the group header says how many are */}
+                            {r.right && (
                               <span className="flex shrink-0 flex-col items-end max-sm:hidden">
-                                <span className="num text-sm font-semibold text-slate-900">{r.right}</span>
-                                {r.rightSub && <span className="num text-xs text-slate-600">{r.rightSub}</span>}
+                                <span className="num text-sm leading-5 font-semibold text-slate-900">{r.right}</span>
+                                {r.rightSub && <span className="num text-[13px] leading-5 text-slate-600">{r.rightSub}</span>}
                               </span>
-                            ) : r.group !== 'Actions' && !g.nonePriced && (
-                              <span className="shrink-0 text-sm text-slate-600 max-sm:hidden">Not priced</span>
                             )}
                           </button>
                         )
                       })}
                     </div>
-                    {g.capped != null && (
-                      // explains the hidden rest; not an option, so the arrow keys skip it (announced via the status region)
-                      <div aria-hidden="true" className="flex items-center gap-3.5 px-3 py-2 text-sm text-slate-600">
-                        <span className="flex w-10 shrink-0 justify-center"><Icon name="info" size={18} /></span>
-                        {cappedNote(g)}
-                      </div>
-                    )}
                   </div>
                 )
               })}
@@ -475,7 +476,9 @@ export function CommandPalette() {
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-slate-200 px-5 py-3 text-[13px] text-slate-600 max-sm:hidden [@media(hover:none)]:hidden">
               <span className="flex items-center gap-1.5"><Kbd label="Up arrow">↑</Kbd><Kbd label="Down arrow">↓</Kbd> to move</span>
               <span className="flex items-center gap-1.5"><Kbd label="Enter">↵</Kbd> to open</span>
-              <span className="ml-auto flex items-center gap-1.5"><Kbd label="Slash">/</Kbd> search a list</span>
+              {groups.length > 1 && <span className="flex items-center gap-1.5"><Kbd label={`${ALT_KEY === '⌥' ? 'Option' : 'Alt'} and arrow keys`}>{ALT_KEY} ↑↓</Kbd> to jump between groups</span>}
+              {/* the list page's own position search; elsewhere there is nothing for the slash to open */}
+              {onList && <span className="ml-auto flex items-center gap-1.5"><Kbd label="Slash">/</Kbd> search positions in this list</span>}
             </div>
           </motion.div>
         </div>

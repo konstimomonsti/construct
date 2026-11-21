@@ -179,6 +179,8 @@ export function Menu({
     if (e.key === 'ArrowUp') { e.preventDefault(); els[(i - 1 + els.length) % els.length]?.focus() }
     if (e.key === 'Home') { e.preventDefault(); els[0]?.focus() }
     if (e.key === 'End') { e.preventDefault(); els[els.length - 1]?.focus() }
+    // Escape closes only this menu, never the dialog or drawer that holds it.
+    if (e.key === 'Escape') { e.stopPropagation(); e.nativeEvent.stopImmediatePropagation() }
     if (e.key === 'Escape' || e.key === 'Tab') { setOpen(false); btn.current?.focus() }
   }
 

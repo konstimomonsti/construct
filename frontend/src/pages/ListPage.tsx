@@ -15,7 +15,7 @@ import { useActions } from '../lib/actions'
 import { DetailDrawer } from '../components/DetailDrawer'
 import { loadList } from '../lib/data'
 import { ExportMenu } from '../components/ExportMenu'
-import { CatalogueDetails, CatalogueOverview } from '../components/WorkspaceCatalogue'
+import { CatalogueDetails, CatalogueOverview, type ResearchView } from '../components/WorkspaceCatalogue'
 import { useWorkspaceCatalogue } from '../lib/workspace-catalogue'
 import { usePriceSuggestions, type PriceSuggestion } from '../lib/price-suggestions'
 import { CategoryTree, useExpanded, type CheckState } from '../components/split/CategoryTree'
@@ -329,6 +329,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   const [sortTotal, setSortTotal] = useState(false)
   const [onlyUnpriced, setOnlyUnpriced] = useState(false)
   const [onlyPending, setOnlyPending] = useState(false)
+  const [researchShow, setResearchShow] = useState<ResearchView>(null)
   const [onlyZero, setOnlyZero] = useState(false)
   const [onlyEdited, setOnlyEdited] = useState(false)
   const [selectMode, setSelectMode] = useState(false)
@@ -360,14 +361,15 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   const [movePids, setMovePids] = useState<string[] | null>(null)
   const tableRef = useRef<HTMLDivElement>(null)
   const searchRef = useRef<HTMLInputElement>(null)
-  // "/" jumps to position search from anywhere on the page, as in most keyboard-first tools
+  // "/" jumps to position search from anywhere on the page, as in most keyboard-first tools; "e" expands or collapses every section
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== '/' || e.metaKey || e.ctrlKey || e.altKey) return
+      if ((e.key !== '/' && e.key !== 'e') || e.metaKey || e.ctrlKey || e.altKey) return
       const t = e.target as HTMLElement
       if (t.closest('input,textarea,select,[contenteditable=true],[role=dialog],[role=menu]')) return
       e.preventDefault()
-      searchRef.current?.focus()
+      if (e.key === 'e') setSectionsOpen((v) => !v)
+      else searchRef.current?.focus()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -408,6 +410,15 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   const detailCatalogue = detail && report?.positions[detail.id]
   const detailFindings = detail ? findingsByRow.get(detail.id) : undefined
   const detailOpen = detailFindings?.filter((finding) => !settled.has(finding.id)).length ?? 0
+  // the next row (in table order, wrapping) that still has an open finding, so review can run row to row
+  const nextFlagged = useMemo(() => {
+    if (detailIdx < 0) return null
+    for (let step = 1; step < rows.length; step++) {
+      const row = rows[(detailIdx + step) % rows.length]
+      if (findingsByRow.get(row.id)?.some((finding) => !settled.has(finding.id))) return row
+    }
+    return null
+  }, [rows, detailIdx, findingsByRow, settled])
   // several findings often carry the same advice; say it once under the heading instead of under each
   const rationales = detailFindings?.map((finding) => finding.suggested_fix?.rationale ?? '') ?? []
   const sharedRationale = rationales.length > 1 && rationales[0] && rationales.every((note) => note === rationales[0]) ? rationales[0] : ''
@@ -498,11 +509,22 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
       return s ? [[id, s] as [string, PriceSuggestion]] : []
     })
     if (!picks.length) return
-    const prev = useStore.getState().edits[doc.id]
+    const before = useStore.getState().edits[doc.id]?.up ?? {}
     for (const [id, s] of picks) useStore.getState().setUp(doc.id, id, s.price)
     const oz = positions.find((p) => p.id === picks[0][0])?.oz
-    toast(picks.length === 1 ? `Confirmed ${money(picks[0][1].price)} for position ${oz}` : `Confirmed ${plural(picks.length, 'price', 'prices')}`, 'ok', {
-      label: 'Undo', run: () => useStore.getState().setEdits(doc.id, prev),
+    // undo puts back only these prices, so edits made after confirming survive
+    const undo = () => {
+      const e = useStore.getState().edits[doc.id]
+      if (!e) return
+      const up = { ...e.up }
+      for (const [id] of picks) {
+        if (id in before) up[id] = before[id]
+        else delete up[id]
+      }
+      useStore.getState().setEdits(doc.id, { ...e, up })
+    }
+    toast(picks.length === 1 ? `Confirmed ${money(picks[0][1].price)} for position ${oz}` : `Confirmed ${plural(picks.length, 'price', 'prices')}, ${money(picks.reduce((sum, [id, s]) => sum + s.price * (positions.find((p) => p.id === id)?.qty ?? 0), 0))} added`, 'ok', {
+      label: 'Undo', run: undo,
     })
   }
   const dismissPrice = (id: string) => {
@@ -522,6 +544,11 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   const status = budgetStatus(st.total, cap)
   const pendingCount = pending.size
   const unpriced = st.positionsCount - st.pricedCount - pendingCount
+  // what the pending suggestions would add; shown beside the total, never inside it
+  const pendingTotal = positions.reduce((sum, p) => sum + (pending.get(p.id)?.price ?? 0) * p.qty, 0)
+  // bulk confirm covers the rows on screen whose units are known; the rest are checked one by one in the drawer
+  const confirmable = rows.filter((p) => p.up == null && pending.get(p.id)?.unitKnown).map((p) => p.id)
+  const confirmableTotal = confirmable.reduce((sum, id) => sum + (pending.get(id)?.price ?? 0) * (positions.find((p) => p.id === id)?.qty ?? 0), 0)
   const editedCount = [...editedIds].filter((x) => !addedIds.has(x)).length
   const filtered = !!q.trim() || !!cats || onlyUnpriced || onlyPending || onlyZero || onlyEdited || findingFilter !== 'all'
   const sections = pricingSections(tree, catStats)
@@ -572,10 +599,24 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
       <Summary
         label="List total"
         compact
+        unpriced
         amount={money(st.total)}
         total={st.total}
         cap={cap}
         onEditCap={live ? () => openDialog({ kind: 'edit-cap', target: 'list', id: doc.id }) : undefined}
+        sub={(pendingCount > 0 || catalogueEnabled) && (
+          <span className="flex flex-col items-start gap-1.5">
+            {pendingCount > 0 && (
+              <span className="inline-flex items-center gap-1.5">
+                <Icon name="schedule" size={16} className="text-slate-500" />
+                <span><span className="num font-medium text-slate-800">+ {money(pendingTotal)}</span> pending confirmation, not in the total</span>
+              </span>
+            )}
+            {catalogueEnabled && (
+              <CatalogueOverview part="line" show={researchShow} setShow={setResearchShow} report={report} error={error} retryFailed={retryFailed} positions={positions} onOpen={openDetail} />
+            )}
+          </span>
+        )}
         extra={sections.length > 1 && showSections && (
           <div id="pricing-legend" className="mt-4 max-w-xl rounded-lg bg-slate-50 p-4">
             <PricingMeter sections={sections} total={st.total} cap={cap || st.total} className="max-w-md" />
@@ -588,7 +629,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
             {unpriced > 0 && (
               <span className="inline-flex items-center gap-x-1.5">
                 <span aria-hidden className="max-sm:hidden">·</span>
-                <MetaLink onClick={() => only('unpriced')} pressed={onlyUnpriced}><span className="num">{int(unpriced)}</span> still to price</MetaLink>
+                <MetaLink onClick={() => only('unpriced')} pressed={onlyUnpriced}><span className="num">{int(unpriced)}</span> not priced</MetaLink>
               </span>
             )}
             {pendingCount > 0 && (
@@ -600,7 +641,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
             {zeroQty > 0 && (
               <span className="inline-flex items-center gap-x-1.5">
                 <span aria-hidden className="max-sm:hidden">·</span>
-                <MetaLink onClick={() => only('zero')} pressed={onlyZero}><span className="num">{int(zeroQty)}</span> zero quantity</MetaLink>
+                <MetaLink onClick={() => only('zero')} pressed={onlyZero}><span className="num">{int(zeroQty)}</span> with quantity 0</MetaLink>
               </span>
             )}
             {editedCount > 0 && (
@@ -627,16 +668,16 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
         }
       />
 
-      {catalogueEnabled && (
+      {catalogueEnabled && researchShow && (
         <div className="mb-6">
-          <CatalogueOverview report={report} error={error} retryFailed={retryFailed} positions={positions} onOpen={openDetail} />
+          <CatalogueOverview part="list" show={researchShow} setShow={setResearchShow} report={report} error={error} retryFailed={retryFailed} positions={positions} onOpen={openDetail} />
         </div>
       )}
 
       <div ref={heroEnd} aria-hidden />
       <div ref={tableRef} className="scroll-mt-20">
         <div className="mb-3 flex flex-wrap items-center gap-2">
-          <div className="relative w-full sm:w-72">
+          <div className="relative w-full sm:w-60 xl:w-72">
             <Icon name="search" size={20} className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-slate-600" />
             <input
               ref={searchRef}
@@ -646,7 +687,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Search positions"
-              className="peer h-10 w-full rounded-md bg-slate-100 pr-10 pl-11 text-sm text-slate-900 ring-1 ring-slate-400 transition-[background-color,box-shadow] outline-none ring-inset placeholder:text-slate-600 hover:bg-slate-200/70 focus:bg-white focus:ring-2 focus:ring-brand-700"
+              className="peer h-10 w-full rounded-md bg-slate-100 pr-10 pl-11 text-sm text-slate-900 ring-1 ring-transparent transition-[background-color,box-shadow] outline-none ring-inset placeholder:text-slate-600 hover:bg-slate-200/70 hover:ring-slate-400 focus:bg-white focus:ring-2 focus:ring-brand-700"
             />
             {!q && <kbd aria-hidden className={clsx(kbdCls, 'pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 peer-focus:hidden [@media(hover:none)]:hidden')}>/</kbd>}
           </div>
@@ -662,19 +703,13 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
               <Icon name="error" size={18} />Upload check unavailable
             </span>
           )}
-          {(unpriced > 0 || onlyUnpriced) && (
-            <FilterPill on={onlyUnpriced} onClick={() => setOnlyUnpriced((v) => !v)}>
-              Not priced <span className="num">{int(unpriced)}</span>
-            </FilterPill>
-          )}
-          {(pendingCount > 0 || onlyPending) && (
-            <FilterPill on={onlyPending} onClick={() => setOnlyPending((v) => !v)}>
-              Pending <span className="num">{int(pendingCount)}</span>
-            </FilterPill>
-          )}
-          {onlyPending && pendingCount > 0 && (
-            <button type="button" onClick={() => confirmPrices([...pending.keys()])} className="inline-flex h-10 items-center gap-1.5 rounded-md px-3 text-sm font-semibold text-slate-800 hover:bg-slate-100">
-              <Icon name="done_all" size={18} />Confirm all
+          {/* the status line above offers these filters; the toolbar only shows the one that is on, with a way out */}
+          {onlyUnpriced && <FilterPill on onClick={() => setOnlyUnpriced(false)}>Not priced <span className="num">{int(unpriced)}</span></FilterPill>}
+          {onlyPending && <FilterPill on onClick={() => setOnlyPending(false)}>Pending <span className="num">{int(pendingCount)}</span></FilterPill>}
+          {onlyPending && confirmable.length > 0 && (
+            <button type="button" onClick={() => confirmPrices(confirmable)} title={`Adds ${money(confirmableTotal)} to the list total`} aria-label={`Confirm ${plural(confirmable.length, 'shown price', 'shown prices')}, adds ${money(confirmableTotal)} to the list total`} className="inline-flex h-10 items-center gap-1.5 rounded-md px-3 text-sm font-semibold text-slate-800 hover:bg-slate-100">
+              <Icon name="done_all" size={18} />Confirm {plural(confirmable.length, 'price', 'prices')}
+              <span className="num font-medium text-slate-600">+{money(confirmableTotal)}</span>
             </button>
           )}
           {onlyZero && <FilterPill on onClick={() => setOnlyZero(false)}>Quantity 0 <span className="num">{int(zeroQty)}</span></FilterPill>}
@@ -687,14 +722,15 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
           <button
             type="button"
             aria-pressed={selectMode || selected.size > 0}
+            title="Select positions"
             onClick={() => { if (selectMode) setSelected(new Set()); setSelectMode((v) => !v) }}
             className={pillCls(selectMode || selected.size > 0)}
           >
-            <Icon name="checklist" size={18} /><span className="max-sm:sr-only">Select</span>
+            <Icon name="checklist" size={18} /><span className="max-2xl:sr-only">Select</span>
           </button>
           <div className="flex items-center gap-2 sm:ml-auto">
             {!sortTotal && !filtered && tree.length > 0 && (
-              <ToolButton icon={sectionsOpen ? 'unfold_less' : 'unfold_more'} aria-expanded={sectionsOpen} onClick={() => setSectionsOpen((v) => !v)} className="max-sm:w-10 max-sm:justify-center max-sm:px-0">
+              <ToolButton icon={sectionsOpen ? 'unfold_less' : 'unfold_more'} aria-expanded={sectionsOpen} aria-keyshortcuts="e" title={`${sectionsOpen ? 'Collapse' : 'Expand'} all sections (E)`} onClick={() => setSectionsOpen((v) => !v)} className="max-sm:w-10 max-sm:justify-center max-sm:px-0">
                 <span className="max-sm:sr-only">{sectionsOpen ? 'Collapse all' : 'Expand all'}</span>
               </ToolButton>
             )}
@@ -824,11 +860,13 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
       <AddItemDialog open={adding} onClose={() => setAdding(false)} listId={doc.id} tree={tree} positions={positions} />
       <DetailDrawer
         p={detail}
+        pendingPrice={detail && detail.up == null ? pending.get(detail.id)?.price ?? null : null}
         suggestion={detail && detail.up == null && pending.get(detail.id) ? (
           <PriceSuggestionNote s={pending.get(detail.id)!} unit={detail.unit}
             onConfirm={() => confirmPrices([detail.id])} onDismiss={() => dismissPrice(detail.id)} />
         ) : undefined}
-        catalogue={detail && detailCatalogue ? (
+        // while a suggestion waits, its note already names the matched product; the research block would repeat it
+        catalogue={detail && detailCatalogue && !(detail.up == null && pending.has(detail.id)) ? (
           <CatalogueDetails result={detailCatalogue} position={detail}
             onApply={(long) => useStore.getState().patchPosition(doc.id, detail.id, { long })} />
         ) : undefined}
@@ -863,6 +901,13 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
               })}
             </ul>
             <p className="sr-only" aria-live="polite">{reviewNote}</p>
+            {nextFlagged && (
+              <button type="button" onClick={() => openDetail(nextFlagged.id)}
+                className="mt-5 inline-flex min-h-9 max-w-full items-center gap-1.5 rounded text-sm font-semibold text-slate-700 underline decoration-slate-400 underline-offset-4 hover:text-slate-900 hover:decoration-slate-700">
+                <span className="truncate">Next open finding: <span className="num font-mono font-medium">{nextFlagged.oz}</span> {nextFlagged.short}</span>
+                <Icon name="arrow_downward" size={16} className="shrink-0" />
+              </button>
+            )}
           </section>
         ) : undefined}
         focusField={detailField}
@@ -941,8 +986,14 @@ function PriceSuggestionNote({ s, unit, onConfirm, onDismiss }: { s: PriceSugges
         <span className="num text-[15px] font-semibold text-slate-900">{money(s.price)}<span className="font-normal text-slate-600">{(unit || s.unit) && ` / ${unit || s.unit}`}</span></span>
       </p>
       <p className="mt-1 text-sm leading-relaxed text-slate-700">
-        Suggested from the catalogue match <span lang="de" className="font-medium">{s.product.name}</span>{source && <> ({source})</>}. It doesn't count toward the list total until you confirm it.
+        From the catalogue match <span lang="de" className="font-medium">{s.product.name}</span>{source && <> ({source})</>}.
       </p>
+      {!s.unitKnown && (
+        <p className="mt-2 flex items-start gap-1.5 text-sm font-medium text-amber-900">
+          <Icon name="warning" size={16} className="mt-0.5 shrink-0" />
+          {s.unit ? 'This position has no unit. Check it matches the catalogue unit before confirming.' : 'The catalogue price has no unit. Check it is per ' + (unit || 'unit') + ' before confirming.'}
+        </p>
+      )}
       <div className="mt-3 flex flex-wrap gap-2">
         <Button variant="primary" icon="check" onClick={onConfirm}>Confirm price</Button>
         <Button onClick={onDismiss}>Dismiss</Button>

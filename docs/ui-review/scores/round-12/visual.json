@@ -1,0 +1,280 @@
+{
+ "member": "visual",
+ "screens": {
+  "S1": {
+   "scores": {
+    "hierarchy": 9,
+    "density": 8,
+    "typography": 9,
+    "consistency": 9,
+    "clarity": 8,
+    "interaction": 8,
+    "accessibility": 8,
+    "responsive": 9,
+    "wise": 8
+   },
+   "issues": [
+    "Clarity: the hero status row still puts a yellow 'On track' chip next to a neutral '1 project almost at cap · 2 near cap' MetaLink with no icon or colour, so 'On track' reads as the verdict. Give the MetaLink the worst tone's icon and text colour (orange warning triangle + orange-800), or let the leading chip show the worst state.",
+    "Density/Interaction: that hero MetaLink and the 'Needs attention 3' chip 110px below filter the same rows. Keep one control: make the hero text plain status, or have it scroll to and press 'Needs attention'.",
+    "Clarity: on 'Site', the roll-up '1 list almost at cap' is a red filled badge in the same style as own-status 'Near cap' badges, next to a 2% meter. Render roll-ups as muted slate-600 text with a list icon and no fill.",
+    "Accessibility: row status badges use the small StatusBadge variant (Kit.tsx:134, text-xs, about 12px semibold coloured text). Use the 13px variant on rows."
+   ]
+  },
+  "S2": {
+   "scores": {
+    "hierarchy": 8,
+    "density": 9,
+    "typography": 9,
+    "consistency": 9,
+    "clarity": 9,
+    "interaction": 8,
+    "accessibility": 8,
+    "responsive": 9,
+    "wise": 8
+   },
+   "issues": [
+    "Hierarchy: 'List caps exceed the project cap by 100.000 € (2.100.000 € in total).' runs across the status row beside the 'Near cap' chip and pulls the eye from the hero. Move it to a muted one-liner under 'of 2.000.000 €' in the Used block ('Lists: 2.100.000 €'), or put it behind an info icon.",
+    "Interaction/Accessibility: the cap pencil beside 'of 2.000.000 €' is a 14px slate-500 glyph with a dotted underline as the only affordance. Make the pencil slate-600 at rest (3:1 non-text) and give the whole 'of 2.000.000 € ✎' a 32px-tall hit area."
+   ]
+  },
+  "S3": {
+   "scores": {
+    "hierarchy": 9,
+    "density": 8,
+    "typography": 9,
+    "consistency": 8,
+    "clarity": 9,
+    "interaction": 8,
+    "accessibility": 8,
+    "responsive": 9,
+    "wise": 8
+   },
+   "issues": [
+    "Consistency: the GP column and 'GP (€)' header end at x≈1360, while the 'Sort: Position order' button and the hero 'Left' figure end at 1368. Remove the right padding on the last ledger column (pr-2 → pr-0) so the money edge is one line.",
+    "Consistency: the positions search is a white/tint field with a 1px slate-400 ring (ListPage.tsx:649), while the header search and every neighbouring toolbar control are borderless tinted fills. Drop the ring at rest (keep it on hover/focus) or give the header search the same ring, so one search style exists.",
+    "Craft (04 expanded): Menge digits ('1', '200', '10') sit about 1px below the Kurztext/Einheit/EP baseline. Give the QtyInput the same line-height as the text cells or align the row cells on baseline.",
+    "Interaction: 'Expand all'/'Collapse all' has no keyboard hint. Add a shortcut (e.g. E) and show it in the tooltip ('Expand all (E)') to carry the keyboard-first story into the ledger.",
+    "Accessibility: the collapsed section-row chevrons are 16px slate-500 glyphs with no visible boundary. Make them slate-600 and the whole section row the toggle target (it may already be; show a hover fill on the row to make that visible).",
+    "Density/Wise: the collapsed ledger shows only OZ, Kurztext and GP, so each section row is 45px of one line across 1056px. Add a slim share bar or '% of list' in slate-600 next to each section total so the collapsed view answers 'where is the money' at a glance."
+   ]
+  },
+  "S4": {
+   "scores": {
+    "hierarchy": 9,
+    "density": 8,
+    "typography": 9,
+    "consistency": 8,
+    "clarity": 9,
+    "interaction": 8,
+    "accessibility": 8,
+    "responsive": 9,
+    "wise": 8
+   },
+   "issues": [
+    "Density/Consistency: Menge, EP and Kategorie are tinted fills with a 1px ring, while secondary buttons are borderless tints. Drop the ring at rest on drawer inputs (show it on hover/focus) so the form reads lighter under the GP hero.",
+    "Interaction: the Langtext 'Edit' control is ~14px text + icon about 20px tall. Give it h-8 px-2 with a hover fill like other text buttons so its target matches.",
+    "Accessibility: the faded last Langtext line (gradient into white at y≈895) falls below 4.5:1. End the fade above real text or add a 'Show more' button so no visible copy is under AA.",
+    "Wise: the GP hero has no context for whether this position is unusual. Add the catalogue reference price under '1 psch × 5.700,00 €' when one exists ('Catalogue: 5.200,00 € · +9,6%') in slate-600."
+   ]
+  },
+  "S5": {
+   "scores": {
+    "hierarchy": 9,
+    "density": 8,
+    "typography": 9,
+    "consistency": 9,
+    "clarity": 8,
+    "interaction": 8,
+    "accessibility": 8,
+    "responsive": 9,
+    "wise": 8
+   },
+   "issues": [
+    "Clarity: as on S1, the neutral '1 list almost at cap · 2 near cap' MetaLink next to the yellow 'On track' chip has no status colour or icon. Tint it by the worst tone (icon + orange-800 text).",
+    "Density/Interaction: the hero MetaLink and the 'Needs attention 3' chip filter the same rows. Keep one: plain hero text, or wire it to press 'Needs attention'.",
+    "Clarity: the total equals All Projects (2.945.090,49 €) but the cap is 4.407.000 € instead of 4.356.000 €, explained only by an 18px info icon. Write 'sum of list caps' as the muted line under 'of 4.407.000 €' instead of a tooltip.",
+    "Accessibility: 'Almost at cap' / 'Near cap' row badges are text-xs coloured text; use the 13px badge size."
+   ]
+  },
+  "S6": {
+   "scores": {
+    "hierarchy": 9,
+    "density": 9,
+    "typography": 9,
+    "consistency": 9,
+    "clarity": 9,
+    "interaction": 9,
+    "accessibility": 9,
+    "responsive": 9,
+    "wise": 8
+   },
+   "issues": [
+    "Wise/Theo: the empty state offers only a mouse path back. Add a muted line under 'Go to All Projects': 'or press ⌘K to jump to a project', using the header Kbd chip."
+   ]
+  },
+  "S8": {
+   "scores": {
+    "hierarchy": 9,
+    "density": 8,
+    "typography": 9,
+    "consistency": 8,
+    "clarity": 8,
+    "interaction": 9,
+    "accessibility": 9,
+    "responsive": 9,
+    "wise": 8
+   },
+   "issues": [
+    "Density/Consistency: every position row still ends with 'Not priced', while the Lists header already says '5 · none priced'. Apply the same rule to Positions: 'Positions 106 · none priced' and leave the right column empty.",
+    "Clarity: 'Show first 50 of 106 positions' reads as a limit, not an action. Write 'Show 47 more' (or 'Show up to 50') and keep the 'Type more to narrow' hint.",
+    "Wise: each position meta line repeats '(Ausbildungszentrum und Bürogebäude)' in full. Drop the project in parentheses when all results share it, or show it once as a group subheader."
+   ]
+  },
+  "S9": {
+   "scores": {
+    "hierarchy": 9,
+    "density": 9,
+    "typography": 9,
+    "consistency": 9,
+    "clarity": 9,
+    "interaction": 9,
+    "accessibility": 9,
+    "responsive": 9,
+    "wise": 8
+   },
+   "issues": [
+    "Wise/Density: the formats line 'GAEB, CSV, TSV, Excel, JSON, Word or PDF' floats about 30px below the CTAs, so it reads as a separate footer. Tighten it to mt-3 under the buttons, and add a muted '⌘K' hint for the keyboard path."
+   ]
+  },
+  "S10": {
+   "scores": {
+    "hierarchy": 8,
+    "density": 8,
+    "typography": 9,
+    "consistency": 8,
+    "clarity": 8,
+    "interaction": 8,
+    "accessibility": 9,
+    "responsive": 9,
+    "wise": 8
+   },
+   "issues": [
+    "Hierarchy/Consistency: two inverted-ink selected chips are on screen at once ('Active' beside the search and 'All' on the Products line), 60px apart, in two different rows. Put Active/Archived and All/Priced/Not priced in one toolbar row (search · Active/Archived | price filter right-aligned), or turn Active/Archived into a select so only one ink chip shows.",
+    "Density: rows are about 67px pitch with nothing in the right 700px when the price is hidden. Tighten the row to py-2 (≈56px) and, when a product has a unit, show 'per m²' or 'No price' in slate-600 on the right so the column is not dead space.",
+    "Clarity: 'Copy 1 of 2' / 'Copy 2 of 3' says the rows are duplicates but not what to do. Add a 'Duplicate' muted tag that opens a merge action, or group copies under one row with a '3 copies' disclosure.",
+    "Wise/Theo: there is no keyboard path into the list. Bind '/' to the products search and show the Kbd hint inside it, as the ledger search does."
+   ]
+  },
+  "S11": {
+   "scores": {
+    "hierarchy": 8,
+    "density": 8,
+    "typography": 9,
+    "consistency": 8,
+    "clarity": 9,
+    "interaction": 8,
+    "accessibility": 9,
+    "responsive": 9,
+    "wise": 8
+   },
+   "issues": [
+    "Consistency: the '17 products · 17 priced' figure ends at x≈1318 because of the fixed ⋯ gutter, 50px short of the 1368 content edge where every other page's right figures end. Overlay the ⋯ on hover (as project rows do) or right-align the figure to 1368 and place the ⋯ outside it.",
+    "Hierarchy: one row on a blank 1056×600 page. Show the supplier's top 3 products inline under the name (or a 'Last quote 01.09.2026' line) so the page earns its space.",
+    "Interaction: the figure is a tinted MetaLink chip, a different look from the plain right-aligned figures on Products and project rows. Render it as plain ink text with an underline on hover, keeping the whole row as the edit target."
+   ]
+  },
+  "S12": {
+   "scores": {
+    "hierarchy": 9,
+    "density": 9,
+    "typography": 9,
+    "consistency": 7,
+    "clarity": 9,
+    "interaction": 9,
+    "accessibility": 9,
+    "responsive": 9,
+    "wise": 8
+   },
+   "issues": [
+    "Consistency: with the search hidden, an invisible 288px spacer (CataloguePage.tsx:339) leaves the 'Active / Archived' chips floating at x=608 with nothing to their left, which reads as a missing element. Render the search disabled (slate-500 text, ≥3:1) instead of invisible, or left-align the chips when there is no search.",
+    "Density: the header 'Add subcontractor' and the empty-state 'Add subcontractor' are the same action 370px apart. Keep the empty-state button only as text ('Add your first subcontractor') or drop it now that the header primary is consistent across tabs.",
+    "Wise/Theo: the empty state gives no keyboard path. Add a muted 'or press N' (or ⌘K) hint under the button and bind it."
+   ]
+  },
+  "S13": {
+   "scores": {
+    "hierarchy": 9,
+    "density": 8,
+    "typography": 9,
+    "consistency": 8,
+    "clarity": 8,
+    "interaction": 9,
+    "accessibility": 9,
+    "responsive": 9,
+    "wise": 8
+   },
+   "issues": [
+    "Consistency/Clarity: Unit is a free-text field with the placeholder 'm², Stk, h...' and Category is a free-text field, while the drawer uses a unit picker and a category picker. Reuse the drawer's unit select and category picker here.",
+    "Density: 'Supplier item code' sits alone in a half-width row, leaving a 256px hole. Put Supplier and Supplier item code on one row and Category on the Unit/Unit price row (or full width), so no row is half empty.",
+    "Density: the '* Required' legend takes its own 40px row under the title. Move it into the footer beside '⌘↵ to save', or drop it and mark only the required fields.",
+    "Wise: the Unit price field has no context. Show 'per {unit}' as the suffix once a unit is chosen ('0,00 € / m²') so the price reads the way the drawer's pending note does."
+   ]
+  },
+  "S14": {
+   "scores": {
+    "hierarchy": 8,
+    "density": 7,
+    "typography": 8,
+    "consistency": 7,
+    "clarity": 7,
+    "interaction": 8,
+    "accessibility": 8,
+    "responsive": 7,
+    "wise": 7
+   },
+   "issues": [
+    "Density: four bands sit above the ledger (hero, status/meta, Catalogue research, toolbar). Fold the research row ('Catalogue research · Research complete · No catalogue matches · 1 web suggestion · 4 unresolved') into the status/meta line as one MetaLink 'Research: 1 suggestion · 4 open' that opens a popover.",
+    "Consistency: findings use an orange-outlined white chip (row 'Warning · 2 Missing formwork…', the 'Upload check 2' count, drawer 'Warning' tags) next to the filled status chips ('Near cap'). Use the filled status chip (tint + icon + word, no ring) for FindingBadge (RiskAssessment.tsx:20).",
+    "Craft: on flagged rows 02.0001/02.0002, OZ, Menge, Einheit, EP and GP are vertically centred on the two-line block (y≈758) instead of on the Kurztext line (y≈742). Align those cells to the top/first baseline.",
+    "Clarity: the row chip truncates 'Missing reinfor…'. Show 'Warning · 2 findings' on the row and leave the titles to the drawer.",
+    "Responsive: the toolbar (search 288 + Categories + Upload check + Select | Collapse all + Sort) fills exactly 1056px at 1440 and wraps inside the 896px column at 1280. Move 'Upload check' into the Categories menu as a 'Flagged only' option, or icon-only Select/Collapse below 1440.",
+    "Clarity (drawer): 'in Entire BoQ' is capitalised internal jargon; write 'anywhere in this list'. 'The web search found no source with a relevant title.' → 'No matching product found online.'",
+    "Density (drawer): each finding stacks an orange left rule, an outlined 'Warning' tag and a title. Drop the tag; put the flag icon + 'Warning' inline before the title in orange-800 and keep the left rule as the only colour block."
+   ]
+  },
+  "S15": {
+   "scores": {
+    "hierarchy": 7,
+    "density": 7,
+    "typography": 8,
+    "consistency": 7,
+    "clarity": 7,
+    "interaction": 8,
+    "accessibility": 8,
+    "responsive": 6,
+    "wise": 7
+   },
+   "issues": [
+    "Responsive: at 1440 the toolbar already wraps ('Collapse all' and 'Sort: Position order' drop to a second row at y≈511) because 'Not priced 1' and 'Pending 2' pills join search + Categories + Select. Fold Not priced / Pending (and Upload check) into one 'Filter' menu or into the status chips, so the toolbar is one row from 1280 up.",
+    "Density/Interaction: the status line chips '1 still to price' and '2 pending confirmation' and the toolbar pills 'Not priced 1' and 'Pending 2' are the same two filters, 110px apart. Keep one set: make the status chips the filters and drop the toolbar pills.",
+    "Clarity: the unpriced state has four wordings on one screen: '1 still to price', 'Not priced 1', 'Set price', 'Not priced', plus 'Not priced yet' in the drawer. Use 'Not priced' for the state everywhere and 'Set price' only for the action.",
+    "Consistency/Craft: the dashed pending EP box ends at x≈1202 because the 32px ✓ button follows it, so '1.850,00' and '64,80' are 26px left of the EP column edge (1228) where 'Set price' and every priced EP end. Keep the dashed amount flush with the EP edge and move the ✓ into the gap on its left, or reserve the 32px gutter on every EP cell.",
+    "Wise/Hierarchy: the hero shows 0,00 € 'On track' with the hook at 0 while 2.627,60 € of prices wait for confirmation, so the screen's one number hides the pending work. Add a muted line under 'List total' ('+ 2.627,60 € pending') or a dashed slate ghost segment on the jib.",
+    "Clarity: section 1 'Site setup' shows 'Not priced' in its GP while its only position shows '⏱ Pending'. Roll pending up: show '⏱ Pending' (slate) on a section whose unpriced positions all have suggestions, or '1 pending' when mixed.",
+    "Hierarchy (drawer): 'Not priced yet' is set in the heavy display cut at hero size, the loudest thing in the drawer, for an absence. Set it in slate-500 at the same size, or show the would-be GP '777,60 €' dashed in slate with 'pending' under it.",
+    "Density (drawer): 'Catalogue research · Catalogue match. Schaumglasplatte 120 mm · Insulation' repeats the product already named in the Pending confirmation note 150px above. Hide the research block while a pending note shows, or fold it into the note's source line.",
+    "Consistency (drawer): the 'Edited' tag top right is an outlined chip, another chip style. Use the filled slate tint chip.",
+    "Clarity (drawer): the EP field shows the placeholder 'Not priced' followed by the '€' suffix, which reads as 'Not priced €'. Use '0,00' or '—' as the placeholder.",
+    "Accessibility: the pending amount's only boundary is a dashed slate-400 border (LedgerTable.tsx:93). Use slate-500 so the interactive outline reaches 3:1 against white."
+   ]
+  }
+ },
+ "global_issues": [
+  "Duplicate filter controls: the status line repeats filters that the toolbar or list header already offers (S1/S5 hero MetaLink vs 'Needs attention'; S15 '1 still to price'/'2 pending confirmation' vs 'Not priced'/'Pending' pills). Pick one place for each filter.",
+  "Toolbar overflow at desktop widths: the list toolbar wraps at 1280 on S14 and already at 1440 on S15. Collapse conditional pills (Upload check, Not priced, Pending) into one Filter menu.",
+  "Money right edge: ledger GP ends at 1360 (S3, S14, S15) and catalogue figures at 1318 (S11), while heroes, buttons and project rows end at 1368. Align every right-aligned figure to the content edge.",
+  "Chip styles: filled status chips, tinted MetaLinks, orange-outlined finding chips (S14) and an outlined 'Edited' tag (S15) coexist. Settle on filled tint + icon + word.",
+  "Wording for unpriced varies ('still to price', 'Not priced', 'Not priced yet', 'No price'). Use 'Not priced' for the state and 'Set price' for the action.",
+  "Row status badges on S1/S5 use the 12px small badge; use 13px on list rows."
+ ]
+}

@@ -14,8 +14,10 @@ import type { CategoryNode, Position } from '../lib/types'
 export type RowRisk = { severity: Severity; count: number; label?: string }
 
 /** why a section adds up to nothing, in the words the rows use */
-function zeroWhy(s: CatStat) {
-  if (s.unpriced === s.count) return 'Not priced'
+function zeroWhy(s: CatStat, waiting: number) {
+  // every position waits on a suggested price: say so in the words the rows use
+  if (waiting > 0 && waiting === s.count) return <><Icon name="schedule" size={16} className="mr-1 align-[-3px] text-slate-500" />Pending</>
+  if (s.unpriced === s.count) return waiting > 0 ? <><Icon name="schedule" size={16} className="mr-1 align-[-3px] text-slate-500" />{int(waiting)} pending</> : 'Not priced'
   return amount(0)
 }
 
@@ -87,21 +89,21 @@ function PendingPrice({ s, oz, onConfirm, onReview, className }: { s: PriceSugge
     <span className={clsx('flex h-9 items-center justify-end gap-0.5', className ?? 'w-full')}>
       <button
         type="button"
-        onClick={onReview}
-        title={`Suggested from the catalogue: ${s.product.name}`}
-        aria-label={`Suggested unit price ${amount(s.price)} € for ${oz}, pending confirmation. Review`}
-        className="num h-8 rounded-md border border-dashed border-slate-400 px-2 text-right text-sm text-slate-700 hover:border-slate-500 hover:bg-slate-100 hover:text-slate-900"
-      >
-        {amount(s.price)}
-      </button>
-      <button
-        type="button"
         onClick={onConfirm}
-        title="Confirm price"
-        aria-label={`Confirm ${amount(s.price)} € for ${oz}`}
+        title={s.unitKnown ? 'Confirm price' : 'Check the unit, then confirm'}
+        aria-label={s.unitKnown ? `Confirm ${amount(s.price)} € for ${oz}` : `Check the unit of the suggested ${amount(s.price)} € for ${oz}`}
         className="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-brand-700 hover:bg-brand-50"
       >
         <Icon name="check" size={18} />
+      </button>
+      <button
+        type="button"
+        onClick={onReview}
+        title={`Suggested from the catalogue: ${s.product.name}`}
+        aria-label={`Suggested unit price ${amount(s.price)} € for ${oz}, pending confirmation. Review`}
+        className="num h-8 rounded-md border border-dashed border-slate-500 px-2 text-right text-sm text-slate-700 hover:bg-slate-100 hover:text-slate-900"
+      >
+        {amount(s.price)}
       </button>
     </span>
   )
@@ -136,7 +138,13 @@ const Row = memo(function Row({ listId, p, showCategory, selected, flash, edited
   const setUp = (v: number | null) => useStore.getState().setUp(listId, p.id, v)
   const suggested = p.up == null ? pending : undefined
   const price = (className?: string) => suggested
-    ? <PendingPrice s={suggested} oz={p.oz} onConfirm={() => onConfirmPrice?.(p.id)} onReview={() => onOpen(p)} className={className} />
+    ? <PendingPrice s={suggested} oz={p.oz} onConfirm={() => {
+        // a price without a unit on one side is checked in the drawer first
+        if (!suggested.unitKnown) return onOpen(p)
+        onConfirmPrice?.(p.id)
+        // the confirm button is gone now; keep focus on the same row's price
+        requestAnimationFrame(() => document.querySelector<HTMLElement>(`tr[data-pid="${CSS.escape(p.id)}"] td[data-a=hide] button`)?.focus())
+      }} onReview={() => onOpen(p)} className={className} />
     : <PriceCell value={p.up} oz={p.oz} edited={upEdited} muted={zero} onSave={setUp} className={className} />
   return (
     <tr
@@ -146,7 +154,7 @@ const Row = memo(function Row({ listId, p, showCategory, selected, flash, edited
       className={clsx(
         'group transition-colors lg:relative',
         selected ? 'bg-brand-50/70' : 'hover:bg-slate-100',
-        risk && RISK_UI[risk.severity].row,
+        risk && [RISK_UI[risk.severity].row, 'lg:[&>td]:align-top'],
         flash && 'bg-brand-50 outline-2 -outline-offset-2 outline-brand-300',
       )}
     >
@@ -155,7 +163,7 @@ const Row = memo(function Row({ listId, p, showCategory, selected, flash, edited
           <input type="checkbox" className="checkbox" checked={selected} onChange={() => onToggle(p.id)} aria-label={`Select ${p.oz} ${p.short}`} />
         </label>
       </td>
-      <td data-a="hide" className="w-[88px] px-2 py-1 font-mono text-[13px] whitespace-nowrap text-slate-600 tabular-nums">{p.oz}</td>
+      <td data-a="hide" className="w-[88px] px-2 py-1 font-mono text-[13px] leading-9 whitespace-nowrap text-slate-600 tabular-nums">{p.oz}</td>
       <td data-a="title" className="min-w-0 px-2 py-1">
         <button
           type="button"
@@ -163,7 +171,7 @@ const Row = memo(function Row({ listId, p, showCategory, selected, flash, edited
           onClick={() => onOpen(p)}
           aria-haspopup="dialog"
           title="Show full description"
-          className={clsx('block max-w-full text-left text-[15px] underline-offset-4 hover:underline max-lg:line-clamp-2 max-lg:font-medium lg:truncate', zero ? 'text-slate-500' : 'text-slate-900')}
+          className={clsx('block max-w-full text-left text-[15px] underline-offset-4 hover:underline max-lg:line-clamp-2 max-lg:font-medium lg:truncate lg:leading-9', zero ? 'text-slate-500' : 'text-slate-900')}
         >
           {/* cards lead with the OZ, the way the group headers do */}
           <span className="mr-1.5 font-mono text-[13px] font-normal text-slate-600 lg:hidden">{p.oz}</span>
@@ -176,12 +184,13 @@ const Row = memo(function Row({ listId, p, showCategory, selected, flash, edited
             type="button"
             onClick={() => onOpen(p, true)}
             title={risk.label}
-            aria-label={`Review ${risk.count === 1 ? 'finding' : `${risk.count} findings`} for ${p.oz}${risk.label ? `: ${risk.label}` : ''}`}
-            className="mt-1 mb-0.5 block rounded-md"
+            aria-label={`${RISK_UI[risk.severity].label}: review ${risk.count === 1 ? '1 finding' : `${risk.count} findings`} for ${p.oz} ${hasShort ? p.short : ''}${risk.label ? `, ${risk.label}` : ''}`}
+            className="mb-1.5 block rounded-md max-lg:mt-1"
           >
+            {/* the row says how much; the titles live in the drawer, so nothing here gets clipped */}
             <FindingBadge severity={risk.severity}>
-              {RISK_UI[risk.severity].label}{risk.count > 1 ? ` · ${risk.count}` : ''}
-              {risk.label && <span className="max-w-[28ch] truncate font-normal max-sm:hidden">{risk.label}</span>}
+              {RISK_UI[risk.severity].label}
+              <span className="font-normal">· {risk.count === 1 ? '1 finding' : `${risk.count} findings`}</span>
             </FindingBadge>
           </button>
         )}
@@ -197,13 +206,13 @@ const Row = memo(function Row({ listId, p, showCategory, selected, flash, edited
           {edited && <span className="size-1.5 shrink-0 rounded-md bg-brand-600 lg:hidden" aria-hidden title="Edited" />}
         </div>
       </td>
-      <td data-a="hide" className={clsx('w-16 py-1 pr-2 pl-1 text-sm whitespace-nowrap', zero ? 'text-slate-500' : 'text-slate-600')}>{p.unit || <span aria-label="no unit">—</span>}</td>
+      <td data-a="hide" className={clsx('w-16 py-1 pr-2 pl-1 text-sm leading-9 whitespace-nowrap', zero ? 'text-slate-500' : 'text-slate-600')}>{p.unit || <span aria-label="no unit">—</span>}</td>
       <td data-a="hide" className="relative w-[120px] py-1 pr-1 pl-2 text-right">
         <EditDot on={upEdited} />
         {price()}
       </td>
       {/* desktop GP sits under the "GP (€)" header; cards have no header, so they carry the € */}
-      <td data-a="total" className={clsx('num w-32 px-2 py-1 text-right text-sm whitespace-nowrap lg:[@media(hover:hover)]:transition-[padding] lg:[@media(hover:hover)]:group-focus-within:pr-12 lg:[@media(hover:hover)]:group-hover:pr-12 lg:[@media(hover:hover)]:group-has-[[aria-expanded=true]]:pr-12', suggested ? 'text-slate-600' : p.up == null || zero ? 'text-slate-500' : 'font-medium text-slate-900')}>
+      <td data-a="total" className={clsx('num w-32 py-1 pr-2 pl-2 text-right lg:pr-0 text-sm whitespace-nowrap lg:[@media(hover:hover)]:transition-[padding] lg:[@media(hover:hover)]:group-focus-within:pr-12 lg:[@media(hover:hover)]:group-hover:pr-12 lg:[@media(hover:hover)]:group-has-[[aria-expanded=true]]:pr-12', suggested ? 'text-slate-600' : p.up == null || zero ? 'text-slate-500' : 'font-medium text-slate-900')}>
         <span className="inline-flex h-9 items-center justify-end">
           {suggested ? <><Icon name="schedule" size={16} className="mr-1 text-slate-500" />Pending</> : p.up == null ? 'Not priced' : zero ? <>{amount(0)}<span className="lg:hidden">&nbsp;€</span></> : <>{amount(total)}<span className="lg:hidden">&nbsp;€</span></>}
         </span>
@@ -299,6 +308,7 @@ export function LedgerTable({
   /** one block per category: its header and the positions filed directly under it */
   type Block = { cat?: CategoryNode; depth: number; items: Position[] }
   const stats = useMemo(() => treeStats(rows), [rows])
+  const listTotal = useMemo(() => rows.reduce((sum, p) => sum + positionTotal(p), 0), [rows])
   const blocks = useMemo(() => {
     if (sortActive) return [{ depth: 0, items: rows }] as Block[]
     const direct = new Map<string, Position[]>()
@@ -389,7 +399,7 @@ Menge
             <th scope="col" className={clsx('w-[120px] py-2 pr-3 pl-2 text-right font-medium', !visible.length && 'text-transparent')}>
 EP (€)
             </th>
-            <th scope="col" className="w-32 px-2 py-2 text-right font-medium">GP (€)</th>
+            <th scope="col" className="w-32 py-2 pr-2 pl-2 text-right font-medium lg:pr-0">GP (€)</th>
             <th scope="col" className="w-11 py-2 pr-1 lg:[@media(hover:hover)]:w-0 lg:[@media(hover:hover)]:p-0"><span className="sr-only">Actions</span></th>
           </tr>
         </thead>
@@ -418,7 +428,7 @@ EP (€)
                         className="flex min-h-11 w-full items-center text-left outline-none focus-visible:ring-2 focus-visible:ring-brand-700 focus-visible:ring-inset max-lg:min-h-10"
                       >
                         <span className="flex w-10 shrink-0 justify-center pl-2 max-lg:w-7 max-lg:justify-start max-lg:pl-0">
-                          <Icon name="chevron_right" size={18} className={clsx('text-slate-500 transition-transform', open && 'rotate-90')} />
+                          <Icon name="chevron_right" size={18} className={clsx('text-slate-600 transition-transform', open && 'rotate-90')} />
                         </span>
                         <span className="w-[88px] shrink-0 px-2 font-mono text-[13px] text-slate-600 tabular-nums max-lg:w-auto max-lg:pr-2 max-lg:pl-0">{cat.oz}</span>
                         <span className="flex min-w-0 flex-1 items-baseline gap-2.5 px-2 max-lg:flex-col max-lg:items-start max-lg:gap-0 max-lg:pl-0">
@@ -426,6 +436,8 @@ EP (€)
                           {!open && st && (
                             <span className="num shrink-0 text-[13px] text-slate-500">
                               {plural(st.count, 'position', 'positions')}
+                              {/* where the money is, without expanding: each top section's share of the list */}
+                              {top && showEmpty && listTotal > 0 && st.total > 0 && <span className="ml-2 text-slate-600">{st.total / listTotal < 0.01 ? '< 1' : Math.round((st.total / listTotal) * 100)}% of list</span>}
                               {waiting > 0 && <span className="ml-2 font-medium text-slate-700">{int(waiting)} pending</span>}
                             </span>
                           )}
@@ -437,11 +449,11 @@ EP (€)
                         </span>
                       )}
                     </th>
-                    <td colSpan={2} className={clsx('num px-2 pr-[3.25rem] text-right whitespace-nowrap lg:[@media(hover:hover)]:pr-2', top ? 'text-[15px] font-semibold text-slate-900' : 'text-sm font-medium text-slate-700')}>
+                    <td colSpan={2} className={clsx('num px-2 pr-[3.25rem] text-right whitespace-nowrap lg:[@media(hover:hover)]:pr-0', top ? 'text-[15px] font-semibold text-slate-900' : 'text-sm font-medium text-slate-700')}>
                       {!st ? (
                         <span className="text-sm font-normal text-slate-500">No positions yet</span>
                       ) : st.total === 0 ? (
-                        <span className="text-sm font-normal text-slate-500">{zeroWhy(st)}</span>
+                        <span className="text-sm font-normal text-slate-600">{zeroWhy(st, waiting)}</span>
                       ) : (
                         <>{amount(st.total)}<span className="lg:hidden">&nbsp;€</span></>
                       )}

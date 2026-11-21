@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
-import { clsx } from 'clsx'
-import { Icon, kbdCls, Menu, toast } from './ui'
+import { Icon, Menu, toast } from './ui'
+import { PaletteKey } from './Kit'
 import { useStore } from '../lib/store'
 import { useUi } from '../lib/ui-store'
 import { clearDocuments } from '../lib/documents'
@@ -36,7 +36,7 @@ export function Header() {
         >
           <Icon name="search" size={20} className="text-slate-600" />
           <span className="flex-1 truncate"><span className="sm:hidden">Search</span><span className="max-sm:hidden">Search projects, lists, positions</span></span>
-          <kbd className={clsx(kbdCls, 'max-sm:hidden')}>{MOD_KEY === '⌘' ? '⌘K' : 'Ctrl K'}</kbd>
+          <PaletteKey className="max-sm:hidden" />
         </button>
       </div>
 
@@ -55,7 +55,7 @@ export function Header() {
           width="w-56"
           items={[
             { label: 'Acme Workspace', icon: 'corporate_fare', onSelect: () => navigate('/') },
-            { label: 'Search (Cmd+K)', icon: 'search', onSelect: () => setPalette(true) },
+            { label: `Search (${MOD_KEY === '⌘' ? '⌘K' : 'Ctrl K'})`, icon: 'search', onSelect: () => setPalette(true) },
             'sep',
             {
               label: 'Reload shared workspace',

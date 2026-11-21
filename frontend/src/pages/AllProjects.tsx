@@ -1,6 +1,6 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import { Button, toast } from '../components/ui'
-import { Chips, EmptyState, PageFrame, PageHeader, PillLink, RowMenu, Section, SortMenu, Summary, ToolButton, heroStatus, worstTone } from '../components/Kit'
+import { Chips, EmptyState, PageFrame, PageHeader, PaletteKey, PillLink, RowMenu, Section, SortMenu, Summary, ToolButton, heroStatus, worstTone } from '../components/Kit'
 import { FolderGrid } from '../components/FolderCard'
 import { Dock } from '../components/Dock'
 import { SORT_LABEL, counts, portfolioBudget, useModel, useStore, type FolderView, type SortKey } from '../lib/store'
@@ -103,10 +103,8 @@ export function FolderCollection({
           total={budget.total}
           cap={budget.cap}
           capLabel="in project caps"
+          capNote={<span className="num">caps of {plural(budget.projects, 'priced project', 'priced projects')}</span>}
           status={heroStatus(budget, flagged.map((f) => ({ tone: projectTone(f) })), ['project', 'projects'])}
-          meta={unpriced.length > 0 && <span className="num">{budget.projects} of {plural(scoped.length, 'project', 'projects')} priced</span>}
-          onStatus={() => { setView('attention'); requestAnimationFrame(() => document.getElementById('sec-projects')?.focus()) }}
-          hint="Measured against project caps. List caps are on Active Budgets."
         />
       )}
 
@@ -115,6 +113,18 @@ export function FolderCollection({
           title="Projects"
           count={folders.length}
           focusable
+          filters={((scoped.length > 3 && (flagged.length > 0 || unpriced.length > 0)) || view !== 'all') && (
+            <Chips
+              label="Filter projects"
+              value={view}
+              onChange={setView}
+              options={[
+                { key: 'all', label: 'All' },
+                ...(flagged.length ? [{ key: 'attention' as const, label: 'Needs attention', count: flagged.length }] : []),
+                ...(unpriced.length ? [{ key: 'unpriced' as const, label: 'Not priced', count: unpriced.length }] : []),
+              ]}
+            />
+          )}
           tools={
             <>
               {scoped.length > 3 && <SortMenu value={sort} options={SORT_LABEL} onChange={(k: SortKey) => setSort(k)} noun="projects" />}
@@ -124,22 +134,8 @@ export function FolderCollection({
             </>
           }
         >
-          {((scoped.length > 3 && (flagged.length > 0 || unpriced.length > 0)) || view !== 'all') && (
-            <div className="mb-3">
-              <Chips
-                label="Filter projects"
-                value={view}
-                onChange={setView}
-                options={[
-                  { key: 'all', label: 'All' },
-                  ...(flagged.length ? [{ key: 'attention' as const, label: 'Needs attention', count: flagged.length }] : []),
-                  ...(unpriced.length ? [{ key: 'unpriced' as const, label: 'Not priced', count: unpriced.length }] : []),
-                ]}
-              />
-            </div>
-          )}
           <p className="sr-only" aria-live="polite">
-            {view === 'all' ? '' : `Showing ${plural(folders.length, 'project', 'projects')} ${view === 'attention' ? 'that need attention' : 'not priced yet'}`}
+            {view === 'all' ? '' : `Showing ${plural(folders.length, 'project', 'projects')} ${view === 'attention' ? 'that need attention' : 'not priced'}`}
           </p>
           {selectMode && (
             <div className="mb-2 flex justify-end">
@@ -155,7 +151,7 @@ export function FolderCollection({
           )}
         </Section>
       ) : (
-        <EmptyState icon={emptyIcon} title={emptyTitle} text={emptyText}>
+        <EmptyState icon={emptyIcon} title={emptyTitle} text={emptyText} hint={withOpenAll ? undefined : <span className="inline-flex flex-wrap items-center justify-center gap-1.5">or press <PaletteKey /> to jump to a project</span>}>
           {withOpenAll ? (
             <Button variant="primary" size="lg" icon="add" onClick={newProject}>New project</Button>
           ) : (

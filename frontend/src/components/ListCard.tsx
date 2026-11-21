@@ -1,5 +1,5 @@
 import { Row, RowList, RowMenu, BudgetBadge, BudgetMini, budgetPhrase } from './Kit'
-import { money, plural } from '../lib/format'
+import { int, money, plural } from '../lib/format'
 import { useActions } from '../lib/actions'
 import type { ListView } from '../lib/store'
 
@@ -22,11 +22,11 @@ export function phaseLabel(l: ListView) {
   return SOURCES[ext] ?? (l.fileName ? 'Import' : 'Blank list')
 }
 
-/** only the exception ("12 to price", "no positions yet"); a fully priced list says nothing */
+/** only the exception ("12 not priced", "no positions yet"); a fully priced list says nothing */
 export function completeness(l: ListView) {
   const unpriced = l.positionsCount - l.pricedCount
   if (!l.positionsCount) return 'no positions yet'
-  if (unpriced > 0) return `${unpriced} to price`
+  if (unpriced > 0) return `${int(unpriced)} not priced`
   return ''
 }
 
@@ -53,7 +53,7 @@ export function ListRow({
     <Row
       dataRow="list"
       to={`/list/${l.id}`}
-      label={`${title}, ${plural(l.positionsCount, 'position', 'positions')}, ${money(l.total)}, ${l.supersededBy ? 'earlier version, not counted' : budgetPhrase(l.total, l.cap)}`}
+      label={[title, phaseLabel(l), plural(l.positionsCount, 'position', 'positions'), l.total > 0 ? completeness(l) : null, money(l.total), l.supersededBy ? 'earlier version, not counted' : budgetPhrase(l.total, l.cap)].filter(Boolean).join(', ')}
       icon="request_quote"
       tone={l.supersededBy ? 'slate' : tone}
       title={title}

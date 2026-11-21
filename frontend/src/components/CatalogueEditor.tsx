@@ -7,8 +7,8 @@ import {
   type CatalogueEntry, type CatalogueKind, type ProductOptions,
 } from '../lib/catalogues'
 
-/** where the editor puts the cursor when it opens: the name (default) or the contact fields */
-export type EditorFocus = 'contact'
+/** where the editor puts the cursor when it opens: the name (default), the contact fields or the unit price */
+export type EditorFocus = 'contact' | 'price'
 
 /** placeholders one step darker than the shared field, so they keep 4.5:1 on the field fill; a server error rings it red */
 const fieldCls = clsx(inputCls.replace('placeholder:text-slate-500', 'placeholder:text-slate-600'), 'aria-invalid:ring-2 aria-invalid:ring-rose-600')
@@ -62,7 +62,78 @@ function EditorField({ label, name, required, hint, describedBy, children }: {
   )
 }
 
-function ProductFields({ entry, options }: { entry: CatalogueEntry | null; options: ProductOptions }) {
+/** the trigger of a Menu drawn as a field, like a native select: the arrow keys open the list too */
+function SelectButton({ t, control, disabled, label, value, placeholder, className }: {
+  t: Parameters<Parameters<typeof Menu>[0]['trigger']>[0]
+  control: ControlProps
+  disabled?: boolean
+  label: string
+  value?: string
+  placeholder: string
+  className?: string
+}) {
+  return (
+    <button {...t} type="button" disabled={disabled} aria-label={label} {...control}
+      onKeyDown={(event) => {
+        if ((event.key === 'ArrowDown' || event.key === 'ArrowUp') && !t['aria-expanded']) { event.preventDefault(); t.onClick() }
+      }}
+      className={clsx(fieldCls, 'flex h-10 items-center justify-between gap-2 text-left disabled:opacity-60', className)}>
+      <span className={clsx('truncate', !value && 'text-slate-600')}>{value || placeholder}</span>
+      <Icon name="expand_more" size={20} className="shrink-0 text-slate-600" />
+    </button>
+  )
+}
+
+/**
+ * the unit as a picker of the usual units (CATALOGUE_UNITS), like a select; "Other unit…" turns it into a text field
+ * for anything else. A stored unit that is not in the list stays in it, so editing never changes it by accident.
+ */
+function UnitPicker({ value, onChange, disabled, control }: { value: string; onChange: (unit: string) => void; disabled?: boolean; control: ControlProps }) {
+  const listed = (CATALOGUE_UNITS as readonly string[]).includes(value)
+  const [typing, setTyping] = useState(false)
+  // switching between the list and the text field keeps the cursor on the unit, whichever control is showing
+  const switched = useRef(false)
+  const box = useRef<HTMLSpanElement>(null)
+  const choose = (next: boolean) => { switched.current = true; setTyping(next) }
+  useEffect(() => {
+    if (!switched.current) return
+    switched.current = false
+    box.current?.querySelector<HTMLElement>(typing ? 'input:not([type=hidden])' : 'button')?.focus()
+  }, [typing])
+  const units = [...(value && !listed ? [value] : []), ...CATALOGUE_UNITS]
+  return (
+    <span ref={box} className="block">
+      <input type="hidden" name="unit" value={value} />
+      {typing ? (
+        <span className="relative block">
+          <input aria-label="Unit" maxLength={64} value={value} onChange={(e) => onChange(e.target.value)} placeholder="Type a unit" autoComplete="off"
+            onKeyDown={(e) => { if (e.key === 'Escape' && value === '') { e.stopPropagation(); choose(false) } }}
+            {...control} className={clsx(fieldCls, 'pr-11')} />
+          <button type="button" onClick={() => choose(false)} aria-label="Choose from the usual units" title="Choose from the usual units"
+            className="absolute top-0 right-0 bottom-0 flex w-10 items-center justify-center rounded-r-md text-slate-600 hover:bg-slate-200 hover:text-slate-900">
+            <Icon name="list" size={20} />
+          </button>
+        </span>
+      ) : (
+        <Menu
+          label="Choose a unit"
+          align="start"
+          width="w-48"
+          items={[
+            { label: 'No unit', checked: !value, onSelect: () => onChange('') },
+            'sep' as const,
+            ...units.map((unit) => ({ label: unit, checked: value === unit, onSelect: () => onChange(unit) })),
+            'sep' as const,
+            { label: 'Other unit…', icon: 'edit', onSelect: () => choose(true) },
+          ]}
+          trigger={(t) => <SelectButton t={t} control={control} disabled={disabled} label={`Unit: ${value || 'No unit'}`} value={value} placeholder="No unit" />}
+        />
+      )}
+    </span>
+  )
+}
+
+function ProductFields({ entry, options, priceRef }: { entry: CatalogueEntry | null; options: ProductOptions; priceRef: Ref<HTMLInputElement> }) {
   const ids = useId()
   const locked = entry?.review_status === 'approved'
   // dates are typed and shown the German way (21.11.2026); submit turns them back into ISO
@@ -78,29 +149,34 @@ function ProductFields({ entry, options }: { entry: CatalogueEntry | null; optio
   const currency = entry?.currency ?? 'EUR'
   const symbol = currency === 'EUR' ? '€' : currency
   const stored = entry?.unit_price != null
-  const perUnit = unit.trim() ? `per ${unit.trim()}` : undefined
+  const perUnit = unit.trim()
+  // the price field's suffix says what the number is: "€" until there is a unit, then "€ / m²"
+  const suffix = perUnit ? `${symbol} / ${perUnit}` : symbol
+  // the currency spelled out for screen readers ("in euros per m²"), where the visible suffix is only a symbol
+  const currencyName = currency === 'EUR' ? 'euros' : (new Intl.DisplayNames('en', { type: 'currency' }).of(currency) ?? currency)
+  const dated = !!price.trim()
   return (
     <>
       {/* what a price means comes first: the unit, then the price per unit and the date it applies from */}
       <div className="grid items-start gap-4 sm:grid-cols-2">
         <EditorField label="Unit" name="unit" hint={locked ? 'Fixed for approved products' : undefined}>
-          {(control) => <>
-            <input name="unit" list={`${ids}-units`} disabled={locked} maxLength={64} value={unit} onChange={(e) => setUnit(e.target.value)} placeholder="m², Stk, h…" autoComplete="off" {...control} className={fieldCls} />
-            <datalist id={`${ids}-units`}>
-              {CATALOGUE_UNITS.map((u) => <option key={u} value={u} />)}
-            </datalist>
-          </>}
+          {(control) => <UnitPicker value={unit} onChange={setUnit} disabled={locked} control={control} />}
         </EditorField>
-        <EditorField label={stored ? 'New unit price' : 'Unit price'} name="unit_price" hint={perUnit} describedBy={stored ? `${ids}-current` : undefined}>
+        {/* blank means not priced (or, with a stored price, keep it); a hint says so instead of a 0,00 that reads like a price */}
+        <EditorField label={stored ? 'New unit price' : 'Unit price'} name="unit_price" hint={stored ? undefined : 'Leave blank if not priced'}
+          describedBy={[`${ids}-per`, stored && `${ids}-current`].filter(Boolean).join(' ')}>
           {(control) => (
             <span className="relative block">
-              <input name="unit_price" inputMode="decimal" maxLength={24} placeholder="0,00" value={price} onChange={(e) => setPrice(e.target.value)} {...control} className={clsx(fieldCls, 'num pr-9 text-right')} />
-              <span aria-hidden className="pointer-events-none absolute top-1/2 right-3.5 -translate-y-1/2 text-sm text-slate-600">{symbol}</span>
+              <input ref={priceRef} name="unit_price" inputMode="decimal" maxLength={24} value={price} onChange={(e) => setPrice(e.target.value)} {...control}
+                style={{ paddingRight: `calc(${Math.min(suffix.length, 14)}ch + 1.25rem)` }}
+                className={clsx(fieldCls, 'num text-right')} />
+              <span aria-hidden className="pointer-events-none absolute top-1/2 right-3.5 max-w-[60%] -translate-y-1/2 truncate text-sm text-slate-600">{suffix}</span>
+              <span id={`${ids}-per`} hidden>{perUnit ? `in ${currencyName} per ${perUnit}` : `in ${currencyName}`}</span>
             </span>
           )}
         </EditorField>
-        {/* asked for only once there is a new price to date */}
-        {price.trim() && (
+        {/* asked for only once there is a new price to date; the live region below says so when it appears */}
+        {dated && (
           <div className="sm:col-start-2">
             <EditorField label="Effective from" name="valid_from" required hint="DD.MM.YYYY">
               {(control) => <input required name="valid_from" inputMode="numeric" pattern="\d{1,2}\.\d{1,2}\.\d{4}" title="DD.MM.YYYY" defaultValue={today} {...control} className={clsx(fieldCls, 'num')} />}
@@ -109,6 +185,7 @@ function ProductFields({ entry, options }: { entry: CatalogueEntry | null; optio
         )}
       </div>
       <input type="hidden" name="currency" value={currency} />
+      <span role="status" className="sr-only">{dated ? 'Effective from is now required, after the price.' : ''}</span>
       {stored && (
         <p id={`${ids}-current`} className="text-sm text-slate-600">
           Current price <strong className="num font-semibold text-slate-900">{formatCataloguePrice(entry)}</strong>
@@ -121,16 +198,16 @@ function ProductFields({ entry, options }: { entry: CatalogueEntry | null; optio
         <EditorField label="Description" name="description" required>
           {(control) => <textarea required name="description" rows={4} maxLength={250000} defaultValue={entry?.description} {...control} className={`${fieldCls} h-auto resize-y py-2`} />}
         </EditorField>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <EditorField label="Category" name="category" required>
-            {(control) => <>
-              <input required name="category" list={`${ids}-categories`} maxLength={160} defaultValue={entry?.category} {...control} className={fieldCls} />
-              <datalist id={`${ids}-categories`}>
-                {options.categories.map(({ name }) => <option key={name} value={name} />)}
-              </datalist>
-            </>}
-          </EditorField>
-          {/* the same field as Category, so both labels and controls share one baseline */}
+        <EditorField label="Category" name="category" required>
+          {(control) => <>
+            <input required name="category" list={`${ids}-categories`} maxLength={160} defaultValue={entry?.category} {...control} className={fieldCls} />
+            <datalist id={`${ids}-categories`}>
+              {options.categories.map(({ name }) => <option key={name} value={name} />)}
+            </datalist>
+          </>}
+        </EditorField>
+        {/* who sells it and under which code, side by side */}
+        <div className="grid items-start gap-4 sm:grid-cols-2">
           <EditorField label="Supplier" name="supplier_id" hint={locked ? 'Fixed for approved products' : undefined}>
             {(control) => <>
               <input type="hidden" name="supplier_id" value={supplierId} />
@@ -143,17 +220,7 @@ function ProductFields({ entry, options }: { entry: CatalogueEntry | null; optio
                   ...(suppliers.length ? ['sep' as const] : []),
                   ...suppliers.map(({ id, name }) => ({ label: name, checked: supplierId === id, onSelect: () => setSupplierId(id) })),
                 ]}
-                trigger={(t) => (
-                  <button {...t} type="button" disabled={locked} aria-label={`Supplier: ${supplierName ?? 'No supplier'}`} {...control}
-                    // like a native select: the arrow keys open the list too (Enter and Space already do)
-                    onKeyDown={(event) => {
-                      if ((event.key === 'ArrowDown' || event.key === 'ArrowUp') && !t['aria-expanded']) { event.preventDefault(); t.onClick() }
-                    }}
-                    className={clsx(fieldCls, 'flex h-10 items-center justify-between gap-2 text-left disabled:opacity-60')}>
-                    <span className={clsx('truncate', !supplierName && 'text-slate-600')}>{supplierName ?? 'No supplier'}</span>
-                    <Icon name="expand_more" size={20} className="shrink-0 text-slate-600" />
-                  </button>
-                )}
+                trigger={(t) => <SelectButton t={t} control={control} disabled={locked} label={`Supplier: ${supplierName ?? 'No supplier'}`} value={supplierName} placeholder="No supplier" />}
               />
             </>}
           </EditorField>
@@ -221,13 +288,58 @@ export function CatalogueEditor({ kind, entry, focus, onClose, onSaved }: {
   const current = isProduct ? product?.detail : entry
   const nameRef = useRef<HTMLInputElement>(null)
   const contactRef = useRef<HTMLInputElement>(null)
+  const priceRef = useRef<HTMLInputElement>(null)
   const submitting = useRef(false)
 
   // Dialog re-runs its focus effect whenever onClose changes, which sends focus back to its close button; a stable
   // callback keeps focus where the editor puts it (in a rejected field after a failed save, for one)
   const onCloseRef = useRef(onClose)
   useEffect(() => { onCloseRef.current = onClose })
-  const close = useCallback(() => { if (!submitting.current) onCloseRef.current() }, [])
+
+  // closing with edits asks first. Escape, Cancel, the close button and a backdrop click all come through close():
+  // an untouched form closes at once; a changed one turns the footer into "Discard your changes?"
+  const [confirming, setConfirming] = useState(false)
+  const confirmingRef = useRef(false)
+  useEffect(() => { confirmingRef.current = confirming }, [confirming])
+  const snapshot = useRef<string | null>(null)
+  const returnFocus = useRef<HTMLElement | null>(null)
+  const keepRef = useRef<HTMLButtonElement>(null)
+  const formState = useCallback(() => {
+    const form = document.getElementById(formId)
+    return form instanceof HTMLFormElement ? JSON.stringify([...new FormData(form).entries()].map(([k, v]) => [k, String(v)])) : null
+  }, [formId])
+  // what the form held when it opened, to tell a changed form from an untouched one
+  useEffect(() => { if (ready && snapshot.current === null) snapshot.current = formState() }, [ready, formState])
+  // Escape inside an open menu (the unit or supplier list) only closes that menu; the shared Menu lets it bubble on
+  // to the dialog, so note it in the capture phase and let close() skip it
+  const menuEscape = useRef(false)
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || !(event.target instanceof Element) || !event.target.closest('[role=menu]')) return
+      menuEscape.current = true
+      setTimeout(() => { menuEscape.current = false })
+    }
+    window.addEventListener('keydown', onKey, true)
+    return () => window.removeEventListener('keydown', onKey, true)
+  }, [])
+  const keepEditing = useCallback(() => {
+    setConfirming(false)
+    const target = returnFocus.current
+    setTimeout(() => (target?.isConnected ? target : document.getElementById(formId)?.querySelector<HTMLElement>('input:not([type=hidden]), textarea'))?.focus())
+  }, [formId])
+  const close = useCallback(() => {
+    if (submitting.current || menuEscape.current) return
+    // Escape (or the backdrop) while asking means keep editing
+    if (confirmingRef.current) { keepEditing(); return }
+    const now = formState()
+    if (snapshot.current !== null && now !== null && now !== snapshot.current) {
+      returnFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+      setConfirming(true)
+      return
+    }
+    onCloseRef.current()
+  }, [formState, keepEditing])
+  useEffect(() => { if (confirming) keepRef.current?.focus() }, [confirming])
 
   // the dialog focuses its first control (the close button, which stays first in the tab order); the name field
   // (or the contact fields, when the editor was opened to add them) takes focus once the form is there, unless the
@@ -248,7 +360,9 @@ export function CatalogueEditor({ kind, entry, focus, onClose, onSaved }: {
     // after the dialog's own initial focus (30 ms), so it doesn't take focus back to the close button
     const timer = setTimeout(() => {
       focused.current = true
-      if (!moved.current) (focus === 'contact' && contactRef.current ? contactRef : nameRef).current?.focus()
+      if (moved.current) return
+      const target = focus === 'contact' ? contactRef.current : focus === 'price' ? priceRef.current : null
+      ;(target ?? nameRef.current)?.focus()
     }, 60)
     return () => clearTimeout(timer)
   }, [ready, focus])
@@ -308,9 +422,17 @@ export function CatalogueEditor({ kind, entry, focus, onClose, onSaved }: {
       onClose={close}
       title={`${entry ? 'Edit' : 'Add'} ${CATALOGUES[kind].item}`}
       width={clsx(isProduct ? 'max-w-xl' : 'max-w-md', SHEET)}
-      footer={<>
-        <span className="mr-auto text-[13px] text-slate-500 max-sm:hidden"><kbd className={kbdCls}>{MOD_KEY}</kbd> <kbd className={kbdCls}>↵</kbd> to save</span>
-        <Button size="lg" disabled={saving} onClick={onClose}>Cancel</Button>
+      footer={confirming ? <>
+        <span id={`${formId}-discard`} className="mr-auto text-sm font-semibold text-slate-900">Discard your changes?</span>
+        <Button ref={keepRef} size="lg" onClick={keepEditing} aria-describedby={`${formId}-discard`}>Keep editing</Button>
+        <Button size="lg" variant="danger" onClick={() => onCloseRef.current()}>Discard</Button>
+      </> : <>
+        {/* the legend for the asterisks, then the save shortcut, so neither takes a row of the form */}
+        <span className="mr-auto flex items-center gap-3 text-[13px] text-slate-600">
+          <span><span aria-hidden className="text-rose-700">*</span> Required</span>
+          <span className="max-sm:hidden"><kbd className={kbdCls}>{MOD_KEY}</kbd> <kbd className={kbdCls}>↵</kbd> to save</span>
+        </span>
+        <Button size="lg" disabled={saving} onClick={close}>Cancel</Button>
         <Button size="lg" variant="primary" type="submit" form={formId} disabled={saving || !ready}>{saving ? 'Saving…' : 'Save'}</Button>
       </>}
     >
@@ -325,12 +447,11 @@ export function CatalogueEditor({ kind, entry, focus, onClose, onSaved }: {
             // editing the rejected field clears its message
             onChange={(event) => { if (error?.field && (event.target as Element).getAttribute('name') === error.field) setError(null) }}
             className="space-y-4">
-            <p className="text-xs text-slate-600"><span aria-hidden className="text-rose-700">*</span> Required</p>
             <EditorField label={isProduct ? 'Product name' : 'Company name'} name="name" required>
               {(control) => <input ref={nameRef} data-autofocus required name="name" maxLength={isProduct ? 300 : 160} defaultValue={current?.name} {...control} className={fieldCls} />}
             </EditorField>
             {isProduct && product
-              ? <ProductFields options={product.options} entry={product.detail} />
+              ? <ProductFields options={product.options} entry={product.detail} priceRef={priceRef} />
               : <CompanyFields kind={kind} entry={entry} contactRef={contactRef} />}
             {error && !error.field && <p id={errorId} role="alert" className="text-sm font-medium text-rose-800">{error.message}</p>}
           </form>

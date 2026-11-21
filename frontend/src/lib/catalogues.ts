@@ -15,7 +15,7 @@ export const CATALOGUE_PAGE_SIZE = 50
  */
 export const CATALOGUE_SCAN_PAGES = 100
 
-/** the units products are usually priced in, offered in the editor; any other unit can still be typed */
+/** the units products are usually priced in, offered by the editor's unit picker; any other unit can still be typed */
 export const CATALOGUE_UNITS = ['m', 'm²', 'm³', 'Stk', 'St', 'h', 'kg', 't', 'psch', 'lfm'] as const
 
 export type CatalogueEntry = {
@@ -125,8 +125,10 @@ export function formatCataloguePrice(entry: CatalogueEntry) {
   }).format(Number(entry.unit_price))
 }
 
+/** a price date the German way (25.11.2024); the API sends plain ISO dates, read as UTC so they never shift a day */
+export const catalogueDate = (iso: string) => new Intl.DateTimeFormat('de-DE', { timeZone: 'UTC' }).format(new Date(iso))
+
 export function cataloguePriceSource(entry: CatalogueEntry) {
   if (!entry.valid_from) return ''
-  const date = new Intl.DateTimeFormat('de-DE', { timeZone: 'UTC' }).format(new Date(entry.valid_from))
-  return `${date} · ${entry.price_basis === 'tender_offer' ? 'Tender offer' : 'Supplier quote'}`
+  return `${catalogueDate(entry.valid_from)} · ${entry.price_basis === 'tender_offer' ? 'Tender offer' : 'Supplier quote'}`
 }
