@@ -105,9 +105,9 @@ export function PhaseHeader({
       </div>
 
       {(meta || note) && (
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-x-6 gap-y-2 text-sm text-slate-600">
-          {note ? <span>{note}</span> : <span />}
-          {meta && <div>{meta}</div>}
+        <div className="mt-3 flex flex-col gap-1 text-sm text-slate-600">
+          {meta}
+          {note}
         </div>
       )}
       {extra}
