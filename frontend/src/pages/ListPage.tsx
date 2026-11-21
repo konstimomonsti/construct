@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import { Button, Dialog, Field, Icon, inputCls, kbdCls, toast, type MenuItem } from '../components/ui'
 import { raisedCls } from '../lib/cls'
 import { TableSkeleton } from '../components/Page'
-import { EmptyState, MetaLink, PageFrame, PageHeader, RowMenu, SortMenu, ToolButton, statusText } from '../components/Kit'
+import { EmptyState, MetaLink, PageFrame, PageHeader, RowMenu, SortMenu, ToolButton } from '../components/Kit'
 import { PhaseHeader, PhasePanel, isPhase, type Phase } from '../components/project/PhaseHeader'
 import { SubcontractorsTab } from '../components/project/SubcontractorsTab'
 import { OfferTab } from '../components/project/OfferTab'
@@ -25,7 +25,7 @@ import { RiskSummary } from '../components/risk/RiskSummary'
 import { partialAnalysis } from '../lib/risk-labels'
 import { BidderQuestions, openQuestions } from '../components/risk/BidderQuestions'
 import { RiskPrint } from '../components/risk/RiskPrint'
-import { AddSectionDialog, PricingLegend, PricingMeter, pricingSections } from '../components/PricingBudget'
+import { AddSectionDialog, PricingLegend, PricingBreakdown, pricingSections } from '../components/PricingSummary'
 import { useActions } from '../lib/actions'
 import { DetailDrawer } from '../components/DetailDrawer'
 import { loadList } from '../lib/data'
@@ -35,7 +35,7 @@ import { useWorkspaceCatalogue } from '../lib/workspace-catalogue'
 import { usePriceSuggestions, type PriceSuggestion } from '../lib/price-suggestions'
 import { CategoryTree, useExpanded, type CheckState } from '../components/split/CategoryTree'
 import { MoveToCategory } from '../components/split/MoveToCategory'
-import { budgetStatus, fixedBudget, int, money, parseNumber, plural } from '../lib/format'
+import { int, money, parseNumber, plural } from '../lib/format'
 import { positionTotal } from '../lib/money'
 import { groupByOz, hasSectionLabel } from '../lib/oz-groups'
 import { applyMoves, globalStep, indexTree, leafOz, nextChildOz, nextPositionOz, pathOf, resolveList, treeStats, type CatStat } from '../lib/resolve'
@@ -519,7 +519,6 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   }, [doc.id])
 
   const title = view?.title ?? doc.title
-  const cap = view?.cap ?? fixedBudget(doc.total)
   const editedIds = useMemo(() => new Set([...Object.keys(edits?.qty ?? {}), ...Object.keys(edits?.up ?? {}), ...Object.keys(edits?.patch ?? {}), ...Object.keys(edits?.moves ?? {})]), [edits])
   const addedIds = useMemo(() => new Set((edits?.added ?? []).map((p) => p.id)), [edits])
   const qtyEdited = useMemo(() => new Set(Object.keys(edits?.qty ?? {})), [edits])
@@ -700,7 +699,6 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
 
   const heading = title
   const zeroQty = positions.filter((p) => p.up != null && p.qty === 0).length
-  const status = budgetStatus(st.total, cap)
   const pendingCount = pending.size
   const unpriced = st.positionsCount - st.pricedCount - pendingCount
   // what the pending suggestions would add; shown beside the total, never inside it
@@ -764,7 +762,6 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
 
       <PhaseHeader
         total={st.total}
-        cap={cap}
         phase={tab}
         onPhase={setTab}
         workflow={workflow}
@@ -772,7 +769,6 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
           subcontractors: packages.length || null,
           x84: packages.filter((p) => p.chosenId).length || null,
         }}
-        onEditCap={live ? () => openDialog({ kind: 'edit-cap', target: 'list', id: doc.id }) : undefined}
         sub={pendingCount > 0 && (
           <span className="inline-flex items-center gap-1.5">
             <Icon name="schedule" size={16} className="text-slate-500" />
@@ -784,8 +780,8 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
           <CatalogueOverview part="line" show={researchShow} setShow={setResearchShow} report={report} error={error} retryFailed={retryFailed} positions={positions} onOpen={openDetail} hideMatched={pending} />
         )}
         extra={sections.length > 1 && showSections && (
-          <div id="pricing-legend" className="mt-4 max-w-xl rounded-lg bg-slate-50 p-4">
-            <PricingMeter sections={sections} total={st.total} cap={cap || st.total} className="max-w-md" />
+          <div id="pricing-legend" aria-label="Pricing summary" role="region" className="mt-4 max-w-xl rounded-lg bg-slate-50 p-4">
+            <PricingBreakdown sections={sections} className="max-w-md" />
             <PricingLegend sections={sections} />
           </div>
         )}
@@ -824,7 +820,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
                 </button>
               </span>
             )}
-            {(status.tone === 'warn' || status.tone === 'over') && largest && (
+            {largest && (
               <span className="inline-flex items-center gap-x-1.5">
                 <span aria-hidden className="max-sm:hidden">·</span>
                 <MetaLink onClick={review}>Review the biggest positions</MetaLink>
@@ -894,7 +890,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
           {onlyUnpriced && <FilterPill on onClick={() => setOnlyUnpriced(false)}>Not priced <span className="num">{int(unpriced)}</span></FilterPill>}
           {onlyPending && <FilterPill on onClick={() => setOnlyPending(false)}>Pending confirmation <span className="num">{int(pendingCount)}</span></FilterPill>}
           {onlyPending && confirmable.length > 0 && (
-            <button type="button" onClick={() => confirmPrices(confirmable)} title={`Adds ${money(confirmableTotal)}: the list total becomes ${money(st.total + confirmableTotal)}`} aria-label={`Confirm ${plural(confirmable.length, 'shown price', 'shown prices')}, adds ${money(confirmableTotal)}; the list total becomes ${money(st.total + confirmableTotal)}${cap ? `, ${money(Math.abs(cap - st.total - confirmableTotal))} ${cap - st.total - confirmableTotal >= 0 ? 'left in' : 'over'} the list cap` : ''}`} className="inline-flex h-10 items-center gap-1.5 rounded-md px-3 text-sm font-semibold text-slate-800 hover:bg-slate-100">
+            <button type="button" onClick={() => confirmPrices(confirmable)} title={`Adds ${money(confirmableTotal)}: the list total becomes ${money(st.total + confirmableTotal)}`} aria-label={`Confirm ${plural(confirmable.length, 'shown price', 'shown prices')}, adds ${money(confirmableTotal)}; the list total becomes ${money(st.total + confirmableTotal)}`} className="inline-flex h-10 items-center gap-1.5 rounded-md px-3 text-sm font-semibold text-slate-800 hover:bg-slate-100">
               <Icon name="done_all" size={18} />Confirm {plural(confirmable.length, 'price', 'prices')}
               <span className="num font-medium text-slate-600">+{money(confirmableTotal)}</span>
             </button>
@@ -990,14 +986,6 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
               <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
                 <span>List total</span>
                 <span className="num text-base font-semibold text-slate-900">{money(st.total)}</span>
-                {cap > 0 && st.total > 0 && (
-                  <>
-                    <span aria-hidden>·</span>
-                    <span className="num">{Math.round(status.pct)}% of cap</span>
-                    <span aria-hidden>·</span>
-                    <span className={clsx('font-semibold', statusText[status.tone])}>{status.word}</span>
-                  </>
-                )}
               </span>
             </div>
           )}
@@ -1179,7 +1167,6 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
         }}
         position={detailIdx >= 0 ? `${detailIdx + 1} of ${rows.length}` : undefined}
         listTotal={st.total}
-        cap={cap}
         onPrev={detailIdx > 0 ? () => openDetail(rows[detailIdx - 1].id) : undefined}
         onNext={detailIdx >= 0 && detailIdx < rows.length - 1 ? () => openDetail(rows[detailIdx + 1].id) : undefined}
       />

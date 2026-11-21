@@ -3,7 +3,7 @@ import { motion } from 'motion/react'
 import { WORKFLOW_PHASES, type WorkflowState } from '../../lib/workflow'
 
 /**
- * Workflow progress drawn as a crane jib (same look as the budget `TrussMeter`: two chords, a zigzag web, the lit
+ * Workflow progress drawn as a crane jib (two chords, a zigzag web, the lit
  * part, the unlit dashed part, the hook). The jib is split into the four phases, as wide as the tabs below it.
  * Finished phases are lit, the current one up to its centre, and the hook hangs over that centre. Once the award
  * document exists the whole jib is lit and the hook sits at the end.

@@ -4,12 +4,12 @@
 
 **A shared workspace for construction estimating and tender review.**
 
-BillBuild turns a bill of quantities (BoQ, or *Leistungsverzeichnis*) into an editable estimate. Estimators can keep the original tender alongside the working list, review missing or inconsistent items, and see how quantity and price changes affect the project budget before exporting the result.
+BillBuild turns a bill of quantities (BoQ, or *Leistungsverzeichnis*) into an editable estimate. Estimators can keep the original tender alongside the working list, review missing or inconsistent items, and see how quantity and price changes affect the estimate total before exporting the result.
 
 ## From tender to estimate
 
 1. **Bring in the tender.** Import a GAEB file or spreadsheet into a project folder. Keep the original available for download and attach supporting documents, such as the PDF printout that accompanies a priced GAEB offer.
-2. **Build the estimate.** Edit quantities, units, descriptions, and unit prices in the position table. Organize positions by trade or category, set budget caps, and track totals in **Active Budgets**. Workspace lists, documents, and edits sync across browsers connected to the same deployment.
+2. **Build the estimate.** Edit quantities, units, descriptions, and unit prices in the position table. Organize positions by trade or category and track totals in **Priced Lists**. Workspace lists, documents, and edits sync across browsers connected to the same deployment.
 3. **Review the work.** Newly uploaded lists with positions are checked in the background. Findings show up on the affected rows, where reviewers can inspect the evidence, filter by severity or rule, and mark findings as reviewed.
 4. **Check catalogue matches.** Maintain product, supplier, and subcontractor catalogues. Inspect linked products and the source of a price, and review catalogue or research suggestions against the original description.
 5. **Export the result.** Download the original tender, export selected positions, or share the updated list in a format the recipient can use.
@@ -38,7 +38,7 @@ On planted-error tests (244 mutated tenders), layers 1 and 2 catch every planted
 
 ### Subcontractor requests
 
-From the Export menu, pick positions and subcontractors, set an internal budget, and export a price-free request (X83, Excel or PDF) with a ready email draft (`.eml`) per subcontractor. The budget never leaves BillBuild.
+From the Export menu, pick positions and subcontractors, record an internal cost estimate, and export a price-free request (X83, Excel or PDF) with a ready email draft (`.eml`) per subcontractor. Cost estimates stay inside BillBuild.
 
 ### Supplier requests
 

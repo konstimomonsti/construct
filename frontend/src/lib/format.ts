@@ -63,36 +63,6 @@ export const pct1 = (v: number) => `${oneDecimal.format(v)}${NBSP}%`
 /** Plain decimal for editable inputs, without grouping: 1234,5 */
 export const inputNumber = (v: number) => String(Math.round(v * 1000) / 1000).replace('.', ',')
 
-/** next "nice" cap above value (1 / 1.5 / 2 / 2.5 / 3 / 4 / 5 / 6 / 8 steps) */
-export function niceCap(v: number): number {
-  if (v <= 0) return 0
-  const target = v * 1.12
-  const mag = 10 ** Math.floor(Math.log10(target))
-  for (const s of [1, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10]) if (s * mag >= target) return s * mag
-  return 10 * mag
-}
-
-/** Default for projects and lists that have no pre-priced estimate. */
-export const fixedBudget = (initialTotal: number): number => niceCap(initialTotal) || 50_000
-
-/** budget tone thresholds used by meters + alerts */
-export function usageTone(p: number): 'ok' | 'caution' | 'warn' | 'over' {
-  if (p > 100) return 'over'
-  if (p >= 90) return 'warn'
-  if (p >= 75) return 'caution'
-  return 'ok'
-}
-
-/** status in words so budget state never relies on colour alone */
-export function budgetStatus(total: number, cap: number): { tone: 'ok' | 'caution' | 'warn' | 'over' | 'none'; word: string; pct: number } {
-  if (!cap) return { tone: 'none', word: 'No cap', pct: 0 }
-  const pct = (total / cap) * 100
-  const tone = usageTone(pct)
-  const word = tone === 'over' ? 'Over cap' : tone === 'warn' ? 'Almost at cap' : tone === 'caution' ? 'Near cap' : 'On track'
-  /* caution / warn / over all count as "needs attention" (see needsAttention) */
-  return { tone, word, pct }
-}
-
 export const plural = (n: number, one: string, many: string) => `${intFmt.format(n)} ${n === 1 ? one : many}`
 
 export function relativeDate(iso?: string): string {
@@ -104,12 +74,6 @@ export function relativeDate(iso?: string): string {
   if (diff < 3600) return `${Math.floor(diff / 60)}m ago`
   if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`
   return d.toLocaleDateString(LOCALE)
-}
-
-/** one rule for every screen: anything at 75 % of its cap or more needs attention */
-export const needsAttention = (total: number, cap: number) => {
-  const t = budgetStatus(total, cap).tone
-  return t === 'caution' || t === 'warn' || t === 'over'
 }
 
 /** GAEB exchange phase from a file name or format string (D84, X86 …) */

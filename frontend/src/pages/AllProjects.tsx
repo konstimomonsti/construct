@@ -1,23 +1,19 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import { Button, toast } from '../components/ui'
-import { Chips, EmptyState, PageFrame, PageHeader, PaletteKey, PillLink, RowMenu, Section, SortMenu, ToolButton, worstTone } from '../components/Kit'
+import { Chips, EmptyState, PageFrame, PageHeader, PaletteKey, PillLink, RowMenu, Section, SortMenu, ToolButton } from '../components/Kit'
 import { FolderGrid } from '../components/FolderCard'
 import { Dock } from '../components/Dock'
 import { ProjectCrane } from '../components/project/ProjectCrane'
-import { SORT_LABEL, counts, useModel, useStore, type FolderView, type SortKey } from '../lib/store'
+import { SORT_LABEL, useModel, useStore, type FolderView, type SortKey } from '../lib/store'
 import { useUi } from '../lib/ui-store'
 import { useActions } from '../lib/actions'
 import { plural } from '../lib/format'
 
-type View = 'all' | 'attention' | 'unpriced'
-/** a project is as bad as its worst counted list, so a list at its cap flags the project too */
-export const projectTone = (f: FolderView) => worstTone(f, f.listMetas.filter(counts))
-const FLAGGED = new Set(['caution', 'warn', 'over'])
+type View = 'all' | 'unpriced'
 /** read from confirmed position counts: a saved zero price is still a price, and a project without positions isn't unpriced */
 const isUnpriced = (f: FolderView) => f.positions > 0 && f.priced === 0
 const VIEWS: Record<View, (f: FolderView) => boolean> = {
   all: () => true,
-  attention: (f) => FLAGGED.has(projectTone(f)),
   unpriced: isUnpriced,
 }
 
@@ -55,7 +51,6 @@ export function FolderCollection({
   const [view, setView] = useState<View>('all')
 
   const scoped = useMemo(() => all.filter((f) => !f.trashedAt && filter(f)), [all, filter])
-  const flagged = scoped.filter(VIEWS.attention)
   const unpriced = scoped.filter(isUnpriced)
   const folders = useMemo(
     () => sortFolders(scoped.filter(VIEWS[view]), sort),
@@ -82,7 +77,6 @@ export function FolderCollection({
   const listCount = scoped.reduce((x, f) => x + f.listMetas.length, 0)
   const newProject = () => openDialog({ kind: 'new-folder' })
   const showFilters = view !== 'all'
-    || ((withOpenAll || scoped.length > 3) && flagged.length > 0)
     || (scoped.length > 3 && unpriced.length > 0)
 
   return (
@@ -114,7 +108,6 @@ export function FolderCollection({
               onChange={setView}
               options={[
                 { key: 'all', label: 'All' },
-                ...(flagged.length ? [{ key: 'attention' as const, label: 'Needs attention', count: flagged.length }] : []),
                 ...(unpriced.length ? [{ key: 'unpriced' as const, label: 'Not priced', count: unpriced.length }] : []),
               ]}
             />
@@ -129,7 +122,7 @@ export function FolderCollection({
           }
         >
           <p className="sr-only" aria-live="polite">
-            {view === 'all' ? '' : `Showing ${plural(folders.length, 'project', 'projects')} ${view === 'attention' ? 'that need attention' : 'not priced'}`}
+            {view === 'all' ? '' : `Showing ${plural(folders.length, 'project', 'projects')} not priced`}
           </p>
           {selectMode && (
             <div className="mb-2 flex justify-end">
@@ -141,7 +134,7 @@ export function FolderCollection({
           {folders.length ? (
             <FolderGrid folders={folders} selectMode={selectMode} selected={sel} onToggle={toggle} />
           ) : (
-            <EmptyState compact icon="check_circle" title={view === 'unpriced' ? 'Every project is priced' : 'Nothing needs attention'} text={view === 'unpriced' ? undefined : 'Every project is below 75% of its cap.'} />
+            <EmptyState compact icon="check_circle" title="Every project is priced" />
           )}
         </Section>
       ) : (

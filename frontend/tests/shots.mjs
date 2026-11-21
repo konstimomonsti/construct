@@ -33,13 +33,6 @@ await page.waitForTimeout(700)
 await shot('03-list-top')
 await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight))
 await page.waitForTimeout(400)
-await shot('04-list-alert')
-// preview red tab
-await page.click('role=tab[name=/Budget Exceeded/]')
-await page.waitForTimeout(400)
-await shot('05-list-alert-red')
-
-// edit qty to push over
 const row = page.locator('tbody tr').first()
 await row.locator('input[aria-label^="Quantity"]').fill('40')
 await row.locator('input[aria-label^="Quantity"]').press('Enter')

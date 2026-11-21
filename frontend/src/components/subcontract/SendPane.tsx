@@ -73,7 +73,7 @@ export function SendPane({
           <textarea aria-label="Email text" value={body} onChange={(e) => onBody(e.target.value)} rows={11} className="block w-full resize-y bg-transparent px-3 py-1.5 text-sm leading-relaxed text-slate-900 outline-none" />
           <textarea aria-label="Sender block" value={sender} onChange={(e) => onSender(e.target.value)} rows={5} className="block w-full resize-y border-t border-slate-100 bg-transparent px-3 py-2 text-sm leading-relaxed text-slate-900 outline-none" />
         </div>
-        <p className="text-[11px] text-slate-600">The sender block is remembered on this computer. The email never contains a budget figure.</p>
+        <p className="text-[11px] text-slate-600">The sender block is remembered on this computer. The email never contains internal cost estimates.</p>
       </div>
 
       {recipients.length > 0 && (

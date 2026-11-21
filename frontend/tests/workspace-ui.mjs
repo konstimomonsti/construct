@@ -89,14 +89,14 @@ try {
   await subcategory.click()
   await button('Tile assembly', ledger).waitFor()
 
-  const budget = page.getByRole('region', { name: 'Pricing budget' })
-  const meter = budget.getByRole('meter')
-  const cap = await meter.getAttribute('aria-valuemax')
-  await button('Add pricing section').click()
+  const pricing = page.getByRole('region', { name: 'Pricing summary' })
+  await page.getByRole('button', { name: /^More actions for / }).click()
+  await page.getByRole('menuitem', { name: 'Add pricing section…' }).click()
   const section = dialog('Add pricing section')
   await section.getByRole('textbox', { name: 'Section name' }).fill('Installation')
   await button('Add section', section).click()
-  await budget.getByRole('listitem').filter({ hasText: 'Installation' }).waitFor()
+  await button('Cost by section').click()
+  await pricing.getByRole('listitem').filter({ hasText: 'Installation' }).waitFor()
   await button('Add Item').click()
   const addItem = dialog('Add item')
   await addItem.getByRole('textbox', { name: 'Kurztext' }).fill('Fit the shower')
@@ -104,14 +104,15 @@ try {
   await addItem.getByRole('combobox', { name: 'Kategorie' }).selectOption({ label: 'Installation' })
   await button('Add item', addItem).click()
   await button('Fit the shower', ledger).waitFor()
-  assert.equal(await meter.getAttribute('aria-valuenow'), '980')
-  assert.equal(await meter.getAttribute('aria-valuemax'), cap)
-  assert.match(await budget.getByRole('listitem').filter({ hasText: 'Installation' }).innerText(), /180,00\s€/)
+  const workflow = page.getByRole('region', { name: 'List total and workflow' })
+  await workflow.getByText(/^980,00\s€$/).waitFor()
+  assert.equal(await page.getByRole('meter').count(), 0)
+  assert.match(await pricing.getByRole('listitem').filter({ hasText: 'Installation' }).innerText(), /180,00\s€/)
   assert.notEqual(
-    await meter.getByTitle(/^Bathroom · 800,00\s€$/).evaluate((element) => element.style.backgroundColor),
-    await meter.getByTitle(/^Installation · 180,00\s€$/).evaluate((element) => element.style.backgroundColor),
+    await pricing.getByTitle(/^Bathroom · 800,00\s€$/).evaluate((element) => element.style.backgroundColor),
+    await pricing.getByTitle(/^Installation · 180,00\s€$/).evaluate((element) => element.style.backgroundColor),
   )
-  assert.equal(await page.getByText(/set budget cap|request budget expansion|share with team/i).count(), 0)
+  assert.equal(await page.getByText(/\bcap\b|\bbudget\b|overages|share with team/i).count(), 0)
 
   const formats = [
     'Table (CSV)', 'Excel (.xlsx)', 'PDF', 'Word (.docx)', 'JSON',
@@ -141,7 +142,7 @@ try {
   await button('Documents (1)').click()
   await page.getByRole('menuitem', { name: 'estimate.json' }).waitFor()
   await page.keyboard.press('Escape')
-  assert.equal(await meter.getAttribute('aria-valuemax'), cap)
+  await workflow.getByText(/^980,00\s€$/).waitFor()
   await button('Fit the shower', ledger).waitFor()
 
   await page.goto(bathroom)
