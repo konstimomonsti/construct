@@ -35,7 +35,7 @@ def recall_rows(evaluation: Evaluation) -> tuple[list[list], Counter, Counter]:
     for outcome in planted:
         by_type[outcome.label["mutation_type"]].append(outcome)
     rows = []
-    total, detectable = Counter(), Counter()
+    total = Counter()
     order = list(catalogue.TYPES_BY_NAME) + sorted(set(by_type) - catalogue.TYPES_BY_NAME.keys())
     for name in order:
         outcomes = by_type.get(name)
@@ -45,17 +45,15 @@ def recall_rows(evaluation: Evaluation) -> tuple[list[list], Counter, Counter]:
         label = outcomes[0].label
         title = mutation_type.title if mutation_type else label["description"]
         expected = mutation_type.expect if mutation_type else " / ".join(label["expect"])
-        gap = bool(label.get("gap"))
         tally = _tally(outcomes)
         denominator = len(outcomes) - tally["not_run"]
-        rows.append([title + (" (gap)" if gap else ""), f"`{expected}`",
+        rows.append([title + (" (gap)" if tally["gap"] else ""), f"`{expected}`",
                      len(outcomes), tally["caught"], tally["missed"], tally["gap"], tally["not_run"],
                      pct(tally["caught"], denominator)])
         total.update(tally)
         total["n"] += len(outcomes)
-        if not gap:
-            detectable.update(tally)
-            detectable["n"] += len(outcomes)
+    detectable = total.copy()
+    detectable["n"] -= detectable.pop("gap", 0)
     return rows, total, detectable
 
 

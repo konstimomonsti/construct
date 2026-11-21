@@ -344,7 +344,7 @@ def plan_typo(ctx: Context, count: int, rng: random.Random) -> Iterator[Plan]:
         yield Plan(f"TEXT-TYPO-{number:02d}", "TEXT-TYPO", f"{line['code']}: '{word}' misspelled as '{wrong}'",
                    [{"op": "set", "id": line["id"], "field": "short_text", "value": text}],
                    label(target=line_target(line), expect=["L1.TEXT.TYPO"], match="line", gap=True,
-                         note="Current spelling checks need enough evidence for an unambiguous correction."),
+                         note="A title without corroborating source text needs a configured German dictionary for this check."),
                    {"line": line["code"], "word": word, "typo": wrong})
 
 
@@ -583,7 +583,7 @@ TYPES: list[MutationType] = [
     MutationType("DUP-NEW-OZ", "Exact duplicate, new OZ", "L1.DUP.SUSPECTED", False, False, plan_duplicate("NEW-OZ")),
     MutationType("DUP-SAME-OZ", "Exact duplicate, same OZ", "L1.CODE.DUPLICATE", False, False, plan_duplicate("SAME-OZ")),
     MutationType("DUP-REWORDED", "Potential overlap between reworded positions", "L1.DUP.NEAR_TEXT", False, False, plan_duplicate("REWORDED")),
-    MutationType("TEXT-TYPO", "Typo in the short text", "gap: L1.TEXT.TYPO planned", True, False, plan_typo),
+    MutationType("TEXT-TYPO", "Typo in the short text", "L1.TEXT.TYPO (source text or dictionary)", True, False, plan_typo),
     MutationType("TEXT-VAGUE", "Lump sum with open effort", "L1.LUMP.OPEN_SCOPE", False, False, plan_vague),
     MutationType("TEXT-CONFLICT-CLASS", "Concrete class differs in the long text",
                  "L1.TEXT.VALUE_CONFLICT / L3", False, False, plan_conflict("CLASS")),

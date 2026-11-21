@@ -9,7 +9,7 @@ from analysis import adapter
 from analysis.eval import SEED_PATH, catalogue, docio, gaeb_writer, labels, mutate, ops
 from analysis.eval.cli import main as eval_main
 from analysis.eval.harness import evaluate, label_files, run_all
-from analysis.eval.report import format_report, guidance_rows
+from analysis.eval.report import format_report, guidance_rows, recall_rows
 from analysis.eval.seeds import make_building_hall
 from analysis.layer2.schema import load_rules
 from analysis.runner import analyze
@@ -185,7 +185,7 @@ def test_end_to_end_catches_every_detectable_error_with_no_false_alarm(evaluated
     gaps = {t.name for t in catalogue.TYPES if t.gap}
     for name, found in outcomes.items():
         if name in gaps:
-            assert found == {"gap"}, name
+            assert found <= {"gap", "caught"}, (name, found)
         elif name.startswith("CTRL"):
             assert found == {"clean"}, name
         else:
@@ -198,15 +198,20 @@ def test_end_to_end_catches_every_detectable_error_with_no_false_alarm(evaluated
 def test_report_has_recall_precision_controls_and_gaps(evaluated):
     out, evaluation = evaluated
     text = format_report(evaluation)
-    for heading in ("Recall per mutation type", "Controls", "Precision per rule", "Known gaps", "Presenter files"):
+    for heading in ("Recall per mutation type", "Controls", "Precision per rule", "Presenter files"):
         assert heading in text
     assert "Excluding the known gaps" in text and "`L1.QTY.ZERO`" in text
-    assert "TEXT-TYPO" in text and "(gap)" in text
+    assert "L1.TEXT.TYPO" in text
+    if any(outcome.outcome == "gap" for outcome in evaluation.outcomes):
+        assert "TEXT-TYPO" in text and "Known gaps" in text and "(gap)" in text
     assert "Corrective guidance on matched findings" in text
     counts = guidance_rows(evaluation)
     assert any(layer == 2 and patches > 0 for layer, patches, *_ in counts)
     assert sum(sum(row[1:]) for row in counts) == sum(c["tp"] for c in evaluation.per_rule.values())
     assert all(row[-2:] == [0, 0] for row in counts)
+    _, totals, supported = recall_rows(evaluation)
+    assert supported["n"] == totals["n"] - totals["gap"]
+    assert supported["caught"] == totals["caught"]
     arithmetic_guidance = [finding["guidance"] for outcome in evaluation.outcomes
                            for finding in outcome.matched if finding["rule_id"].startswith("L1.ARITH.")]
     assert arithmetic_guidance and set(arithmetic_guidance) == {"review"}

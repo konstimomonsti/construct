@@ -91,11 +91,11 @@ ANALYSIS_CONTRACT.md §7.
   mismatch, outliers against reference prices, low-confidence or AI matches, file price vs our price,
   stale prices. Import warnings are surfaced too.
 - **Text quality** (`text_quality.py`, `spelling.py`), all info and without an LLM:
-  - `L1.TEXT.TYPO`: a word unknown to the domain lexicon (`lexicon_de.txt`, words in ≥ 3 projects) and to
-    the German hunspell dictionary, one edit away from a known word. Inflections, cut or broken words and
-    product names are skipped. The fix replaces the word in every item. It runs only when `spylls` and a
-    local de_DE dictionary are available (`ANALYSIS_SPELL_DIC`, or MiKTeX / `/usr/share/hunspell`
-    auto-detected); the dictionary is GPL and never shipped.
+  - `L1.TEXT.TYPO`: an adjacent-letter transposition in a short description can be corrected using the
+    corresponding long description or a section heading. The finding cites the supporting text. A local
+    German dictionary also supports transpositions without a source match and runs the broader spelling
+    check alongside the domain lexicon. Protected product terms and other masked text stay outside the
+    proposed edits. The optional dictionary uses `spylls` and `ANALYSIS_SPELL_DIC` or a detected local installation.
   - `L1.TEXT.SPELLING_VARIANT`: one word written two ways (Anschluß/Anschluss, Baustrom-Kabel/Baustromkabel).
   - `L1.TEXT.NOTATION_VARIANT`: St/Stk, psch/Psch, DN 100/DN100, 5 x 25/5x25.
 

@@ -25,18 +25,24 @@ These figures describe the labelled fixtures replayed through Layers 1 and 2 aft
 
 | Suite per format | Caught | Missed | Known gaps | Layer not run |
 | --- | ---: | ---: | ---: | ---: |
-| Building hall | 86 | 0 | 3 | 0 |
+| Building hall without optional dictionary | 88 | 0 | 1 | 0 |
+| Building hall with optional dictionary | 89 | 0 | 0 | 0 |
 | Precast LV 11 | 6 | 0 | 0 | 2 |
 
-- Task 01 added deterministic detection for four concrete-class and nominal-diameter contradictions. The current replay also catches the three open-effort lump sums and the three closely reworded overlap cases per format. The default suite's remaining gaps cover typos.
+- Task 01 added deterministic detection for four concrete-class and nominal-diameter contradictions. The current replay also catches the three open-effort lump sums and the three closely reworded overlap cases per format. The source-only profile catches two of the three planted title typos. The German dictionary supports the third.
 - The precast catches cover strength versus exposure class, sandwich layer sum, billing unit, a product placeholder, conflicting concrete grades, and missing workshop drawings. Missing height or colour and ambiguous rebar scope require Layer 3.
 - Both seeds and all 46 control files across the two formats produced zero findings after clarifying the fixture scope. The first replay diagnosed contextual false alarms when a protection item named adjacent embedded parts and when the long text gave only an included component's dimensions. The refreshed controls keep the included component dimensions and also state the main item's dimensions. The original wording remains a challenge for the rule engine.
-- The generated report includes recall by mutation, precision by rule, individual cases, and expected consequences such as changes in subtotals. A finding counts as a catch when its rule and affected position or scope match a label. The guidance table shows whether the matched finding includes a proposed edit, a bidder question, or review guidance. All 54 matched Layer 1 findings include guidance in each format. Four offer a proposed edit, 13 provide a bidder question, and 37 describe how to review or correct the source. All 40 matched Layer 2 findings propose an edit. Some planted faults match multiple rules.
+- The generated report includes recall by mutation, precision by rule, individual cases, and expected consequences such as changes in subtotals. A finding counts as a catch when its rule and affected position or scope match a label. The guidance table shows whether the matched finding includes a proposed edit, a bidder question, or review guidance. All 56 source-only Layer 1 matches include guidance in each format. The dictionary adds one more proposed spelling edit per format. All 40 matched Layer 2 findings propose an edit. Some planted faults match multiple rules.
 
 Three additional X83 mutation seeds tested five open-effort positions and five potential overlaps each.
 All 15 pricing ambiguities and 12 of 15 overlaps were caught. The other overlaps involved more extensive
 verb changes or a different named work item. The check requires comparable written rates and matching
 technical qualifiers. No false alarms were recorded on these runs.
+
+The optional spelling profile used the LibreOffice German Hunspell dictionary. It caught all 15 title typos across three additional X83 mutation seeds with zero false alarms in those runs. Four representative
+corrections were checked against their original GAEB item, GAEB 90 record or PDF page and against the
+unchanged text carried in each proposed edit. These spot checks do not establish overall spelling
+precision. [LibreOffice German dictionaries](https://github.com/LibreOffice/dictionaries/tree/master/de)
 
 The local browser upload shows the building-hall zero quantity, duplicate and missing edge insulation, and the precast billing-unit conflict. On this baseline the X83 upload check omits the source line amount. The CLI report verifies the planted arithmetic and its subtotal consequences.
 
