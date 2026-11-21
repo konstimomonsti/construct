@@ -9,6 +9,7 @@ const Archived = lazy(() => import('./pages/Collections').then((m) => ({ default
 const FolderPage = lazy(() => import('./pages/FolderPage').then((m) => ({ default: m.FolderPage })))
 const ListPage = lazy(() => import('./pages/ListPage').then((m) => ({ default: m.ListPage })))
 const CataloguePage = lazy(() => import('./pages/CataloguePage').then((m) => ({ default: m.CataloguePage })))
+const Settings = lazy(() => import('./pages/Settings').then((m) => ({ default: m.Settings })))
 import { loadLibrary } from './lib/data'
 import { useStore } from './lib/store'
 import { startSync } from './lib/sync'
@@ -48,6 +49,7 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           <Route element={<Shell />}>
+            <Route path="/settings" element={<Settings />} />
             <Route path="/catalogues" element={<Navigate to="/catalogues/products" replace />} />
             <Route path="/catalogues/:kind" element={<CataloguePage />} />
             <Route

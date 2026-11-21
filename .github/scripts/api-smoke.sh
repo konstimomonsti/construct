@@ -115,4 +115,17 @@ post /api/workspace/state "{\"changes\":{
     \"edits\":{\"delete\":[\"$list_id\"]},\"listPatch\":{\"delete\":[\"$list_id\"]}
 }}" >/dev/null
 
+company_name="CI subcontractor $list_id"
+company=$(post /api/catalogues/subcontractors "{\"name\":\"$company_name\",\"trade\":\"Concrete\"}" | json 'd["id"]')
+company_path="/api/catalogues/subcontractors?q=$list_id"
+[ "$(get "$company_path" | json 'd["rows"][0]["billing_address"] is None')" = True ] || fail "a missing billing address was not returned as null"
+
+company_fields="\"id\":\"$company\",\"name\":\"$company_name\",\"trade\":\"Concrete\""
+post /api/catalogues/subcontractors "{$company_fields,\"billing_address\":\" Main Street 10 \"}" >/dev/null
+post /api/catalogues/subcontractors "{$company_fields,\"phone\":\"01234\"}" >/dev/null
+[ "$(get "$company_path" | json 'd["rows"][0]["billing_address"]')" = 'Main Street 10' ] || fail "billing address was not saved and preserved"
+post /api/catalogues/subcontractors "{$company_fields,\"billing_address\":\"\"}" >/dev/null
+[ "$(get "$company_path" | json 'd["rows"][0]["billing_address"] is None')" = True ] || fail "billing address was not cleared"
+echo "subcontractor billing address ok"
+
 echo "API smoke test passed"
