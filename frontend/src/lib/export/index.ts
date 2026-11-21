@@ -4,6 +4,7 @@
  * otherwise → regenerate in the notation of the target format.
  */
 import { loadDocument } from '../documents'
+import { treeFromPaths } from '../cat'
 import type { DocMeta, ListDoc, Position } from '../types'
 import type { ExportMode, ExportRequest, ExportResult, FormatId, FormatInfo, LayoutFile } from './types'
 import { baseName, buildCats, diffList, extOf } from './util'
@@ -16,6 +17,7 @@ export const FORMATS: FormatInfo[] = [
   { id: 'pdf', label: 'PDF', ext: 'pdf', mime: 'application/pdf', icon: 'picture_as_pdf', desc: 'Printout in the original layout' },
   { id: 'x83', label: 'GAEB DA XML 3.2 (.X83)', ext: 'X83', mime: 'application/xml', icon: 'code', desc: 'Tender BoQ, DA XML 3.2', tender: true },
   { id: 'x83-2004', label: 'GAEB DA XML 2004 (.x83)', ext: 'x83', mime: 'application/xml', icon: 'code', desc: 'Tender BoQ, DA XML 2004-07 / 3.1', tender: true },
+  { id: 'x84', label: 'GAEB DA XML 3.2 Angebot (.X84)', ext: 'X84', mime: 'application/xml', icon: 'request_quote', desc: 'Offer with unit prices, DA XML 3.2', priced: true },
   { id: 'd83', label: 'GAEB 90 (.D83)', ext: 'D83', mime: 'application/octet-stream', icon: 'description', desc: 'Tender BoQ, fixed 80-column records', tender: true },
   { id: 'd84', label: 'GAEB 90 Angebot (.D84)', ext: 'D84', mime: 'application/octet-stream', icon: 'request_quote', desc: 'Offer with unit prices', priced: true },
   { id: 'd86', label: 'GAEB 90 Auftrag (.D86)', ext: 'D86', mime: 'application/octet-stream', icon: 'assignment_turned_in', desc: 'Award with unit prices', priced: true },
@@ -44,6 +46,7 @@ export function ownFormat(doc: ListDoc): FormatId | null {
   const k = sourceKindOf(doc)
   if (k === 'gaeb-xml') {
     const phase = doc.phase?.match(/^(?:X|DA)?(\d{2})$/i)?.[1] ?? extOf(doc.fileName).match(/^x(\d{2})$/i)?.[1]
+    if (phase === '84' && /\b3\.2\b/.test(doc.source?.version ?? doc.format)) return 'x84'
     if (phase !== '83') return null
     const version = doc.source?.version ?? doc.format
     if (/\b3\.2\b/.test(version)) return 'x83'
@@ -95,14 +98,15 @@ export async function exportList(req: ExportRequest): Promise<ExportResult> {
   const diff = diffList(doc, req.resolved.positions)
   const edited = req.edited ?? diff.any
   let positions = req.resolved.positions
-  if (scope === 'selection' && req.selectedIds) {
+  if (scope === 'selection') {
     const s = new Set(req.selectedIds)
     positions = positions.filter((p) => s.has(p.id))
-  } else if (scope === 'categories' && req.categoryOzs?.length) {
-    const roots = new Set(req.categoryOzs)
-    positions = positions.filter((p) => roots.has((p.path?.[0]?.oz ?? p.oz.split('.')[0]) as string))
+  } else if (scope === 'categories') {
+    const categories = new Set(req.categoryOzs)
+    positions = positions.filter((p) => p.path?.some((part) => categories.has(part.oz)))
   }
-  const subset = positions.length !== req.resolved.positions.length || scope !== 'all'
+  if (scope !== 'all' && !positions.length) throw new Error('The selected scope has no positions.')
+  const subset = scope !== 'all'
   const tender = !!info.tender
   const prices = info.priced ? true : tender ? false : (req.prices ?? true)
   const mime = info.mime
@@ -141,7 +145,7 @@ export async function exportList(req: ExportRequest): Promise<ExportResult> {
     }
     case 'json': {
       const { toJson } = await import('./table')
-      return text(toJson(base, subset ? tree.roots : req.resolved.tree))
+      return text(toJson(base, subset ? treeFromPaths(positions) : req.resolved.tree))
     }
     case 'xlsx': {
       const { toXlsx } = await import('./table')
@@ -155,6 +159,11 @@ export async function exportList(req: ExportRequest): Promise<ExportResult> {
     case 'x83-2004': {
       const { generateGaebXml } = await import('./gaeb-xml')
       return text(generateGaebXml({ doc, positions, tree: subset ? undefined : req.resolved.tree, variant: format === 'x83' ? '3.2' : '2004', longTexts, prices: false, phase: '83', now }))
+    }
+    case 'x84': {
+      // the internal budget is not part of a list position, so it cannot reach this file
+      const { generateGaebXml } = await import('./gaeb-xml')
+      return text(generateGaebXml({ doc, positions, tree: subset ? undefined : req.resolved.tree, variant: '3.2', longTexts, prices: true, phase: '84', now }))
     }
     case 'd83':
     case 'd84':

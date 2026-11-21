@@ -1,22 +1,19 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import { Button, toast } from '../components/ui'
-import { Chips, EmptyState, PageFrame, PageHeader, PaletteKey, PillLink, RowMenu, Section, SortMenu, Summary, ToolButton, heroStatus, worstTone } from '../components/Kit'
+import { Chips, EmptyState, PageFrame, PageHeader, PaletteKey, PillLink, RowMenu, Section, SortMenu, ToolButton } from '../components/Kit'
 import { FolderGrid } from '../components/FolderCard'
 import { Dock } from '../components/Dock'
-import { SORT_LABEL, counts, folderPath, useModel, useStore, type FolderView, type SortKey } from '../lib/store'
+import { ProjectCrane } from '../components/project/ProjectCrane'
+import { SORT_LABEL, useModel, useStore, type FolderView, type SortKey } from '../lib/store'
 import { useUi } from '../lib/ui-store'
 import { useActions } from '../lib/actions'
-import { int, money, plural } from '../lib/format'
+import { plural } from '../lib/format'
 
-type View = 'all' | 'attention' | 'unpriced'
-/** a project is as bad as its worst counted list, so a list at its cap flags the project too */
-export const projectTone = (f: FolderView) => worstTone(f, f.listMetas.filter(counts))
-const FLAGGED = new Set(['caution', 'warn', 'over'])
+type View = 'all' | 'unpriced'
 /** read from confirmed position counts: a saved zero price is still a price, and a project without positions isn't unpriced */
 const isUnpriced = (f: FolderView) => f.positions > 0 && f.priced === 0
 const VIEWS: Record<View, (f: FolderView) => boolean> = {
   all: () => true,
-  attention: (f) => FLAGGED.has(projectTone(f)),
   unpriced: isUnpriced,
 }
 
@@ -55,7 +52,6 @@ export function FolderCollection({
   const [view, setView] = useState<View>('all')
 
   const scoped = useMemo(() => all.filter((f) => !f.trashedAt && filter(f)), [all, filter])
-  const flagged = scoped.filter(VIEWS.attention)
   const unpriced = scoped.filter(isUnpriced)
   const folders = useMemo(
     () => sortFolders(scoped.filter(VIEWS[view]), sort),
@@ -79,26 +75,16 @@ export function FolderCollection({
     setSel(new Set())
   }
 
-  // the hero total and the cap it is measured against come from the same projects: priced ones with a cap
-  const priced = all.filter((f) => (f.total > 0 || f.priced > 0) && !folderPath(all, f.id).some((x) => x.archived || x.trashedAt))
-  const pricedTotal = priced.reduce((x, f) => x + f.total, 0)
-  const capped = priced.filter((f) => f.cap > 0)
-  // no caps at all: the hero is simply the priced total, with "No cap set"
-  const budget = capped.length ? { total: capped.reduce((x, f) => x + f.total, 0), cap: capped.reduce((x, f) => x + f.cap, 0) } : { total: pricedTotal, cap: 0 }
-  const uncapped = capped.length ? priced.length - capped.length : 0
   const listCount = scoped.reduce((x, f) => x + f.listMetas.length, 0)
   const newProject = () => openDialog({ kind: 'new-folder' })
-  // the hero's exception count is the way in for short lists too, where the chips stay hidden until a filter is on
-  const showAttention = () => {
-    setView('attention')
-    requestAnimationFrame(() => document.getElementById('sec-projects')?.focus())
-  }
+  const showFilters = view !== 'all'
+    || (scoped.length > 3 && unpriced.length > 0)
 
   return (
     <PageFrame>
       <PageHeader
         title={title}
-        subtitle={!scoped.length ? undefined : subtitle ?? (scoped.length ? `${plural(scoped.length, 'project', 'projects')} · ${plural(listCount, 'list', 'lists')}` : undefined)}
+        subtitle={scoped.length ? subtitle ?? (withOpenAll ? undefined : `${plural(scoped.length, 'project', 'projects')} · ${plural(listCount, 'list', 'lists')}`) : undefined}
         aside={withOpenAll && scoped.length > 0 ? (
           <div className="flex items-center gap-2">
             <Button variant="primary" icon="upload" onClick={() => openDialog({ kind: 'folder-target', action: 'import' })} aria-label="Import files" className="max-sm:w-10 max-sm:px-0">
@@ -120,35 +106,19 @@ export function FolderCollection({
         {!scoped.length && <p className="mt-2 text-xs text-slate-600">Create a project first, then add the tender to it.</p>}
       </div>}
 
-      {withOpenAll && scoped.length > 0 && (
-        <Summary
-          label={uncapped ? 'Total of priced projects with a cap' : 'Total of priced projects'}
-          amount={money(budget.total)}
-          total={budget.total}
-          cap={budget.cap}
-          capLabel="in project caps"
-          capNote={<span className="num">caps of the same {plural(capped.length, 'project', 'projects')}</span>}
-          subject="Portfolio"
-          status={heroStatus(budget, flagged.map((f) => ({ tone: projectTone(f) })), ['project', 'projects'], { always: true })}
-          onStatus={showAttention}
-          statusAction="show them in Needs attention"
-          meta={uncapped ? <span className="num">{plural(uncapped, 'priced project', 'priced projects')} without a cap · {money(pricedTotal)} across all {int(priced.length)}</span> : undefined}
-        />
-      )}
+      {withOpenAll && scoped.length > 0 && <ProjectCrane />}
 
       {scoped.length ? (
         <Section
           title="Projects"
-          count={folders.length}
-          focusable
-          filters={((scoped.length > 3 && (flagged.length > 0 || unpriced.length > 0)) || view !== 'all') && (
+          count={withOpenAll ? undefined : folders.length}
+          filters={showFilters && (
             <Chips
               label="Filter projects"
               value={view}
               onChange={setView}
               options={[
                 { key: 'all', label: 'All' },
-                ...(flagged.length ? [{ key: 'attention' as const, label: 'Needs attention', count: flagged.length }] : []),
                 ...(unpriced.length ? [{ key: 'unpriced' as const, label: 'Not priced', count: unpriced.length }] : []),
               ]}
             />
@@ -163,7 +133,7 @@ export function FolderCollection({
           }
         >
           <p className="sr-only" aria-live="polite">
-            {view === 'all' ? '' : `Showing ${plural(folders.length, 'project', 'projects')} ${view === 'attention' ? 'that need attention' : 'not priced'}`}
+            {view === 'all' ? '' : `Showing ${plural(folders.length, 'project', 'projects')} not priced`}
           </p>
           {selectMode && (
             <div className="mb-2 flex justify-end">
@@ -175,7 +145,7 @@ export function FolderCollection({
           {folders.length ? (
             <FolderGrid folders={folders} selectMode={selectMode} selected={sel} onToggle={toggle} />
           ) : (
-            <EmptyState compact icon="check_circle" title={view === 'unpriced' ? 'Every project is priced' : 'Nothing needs attention'} text={view === 'unpriced' ? undefined : 'Every project is below 75% of its cap.'} />
+            <EmptyState compact icon="check_circle" title="Every project is priced" />
           )}
         </Section>
       ) : (

@@ -4,12 +4,14 @@ import { MotionConfig } from 'motion/react'
 import { Shell } from './components/Shell'
 import { GridSkeleton, Page, Skeleton } from './components/Page'
 const AllProjects = lazy(() => import('./pages/AllProjects').then((m) => ({ default: m.AllProjects })))
-const ActiveBudgets = lazy(() => import('./pages/ActiveBudgets').then((m) => ({ default: m.ActiveBudgets })))
+const PricedLists = lazy(() => import('./pages/PricedLists').then((m) => ({ default: m.PricedLists })))
 const Archived = lazy(() => import('./pages/Collections').then((m) => ({ default: m.Archived })))
 const FolderPage = lazy(() => import('./pages/FolderPage').then((m) => ({ default: m.FolderPage })))
 const ListPage = lazy(() => import('./pages/ListPage').then((m) => ({ default: m.ListPage })))
 const CataloguePage = lazy(() => import('./pages/CataloguePage').then((m) => ({ default: m.CataloguePage })))
+const Requests = lazy(() => import('./pages/Requests').then((m) => ({ default: m.Requests })))
 const Settings = lazy(() => import('./pages/Settings').then((m) => ({ default: m.Settings })))
+const CalendarPage = lazy(() => import('./pages/CalendarPage').then((m) => ({ default: m.CalendarPage })))
 import { loadLibrary } from './lib/data'
 import { useStore } from './lib/store'
 import { startSync } from './lib/sync'
@@ -50,6 +52,8 @@ export default function App() {
         <Routes>
           <Route element={<Shell />}>
             <Route path="/settings" element={<Settings />} />
+            <Route path="/calendar" element={<CalendarPage />} />
+            <Route path="/requests" element={<Requests />} />
             <Route path="/catalogues" element={<Navigate to="/catalogues/products" replace />} />
             <Route path="/catalogues/:kind" element={<CataloguePage />} />
             <Route
@@ -58,7 +62,7 @@ export default function App() {
             />
             {base ? (
               <>
-                <Route path="/active" element={<ActiveBudgets />} />
+                <Route path="/active" element={<PricedLists />} />
                 <Route path="/archived" element={<Archived />} />
                 <Route path="/trash" element={<Navigate to="/" replace />} />
                 <Route path="/folder/:folderId" element={<FolderPage />} />

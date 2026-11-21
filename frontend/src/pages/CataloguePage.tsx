@@ -28,6 +28,9 @@ type PriceFilter = 'all' | 'priced' | 'unpriced'
 /** every row of a result, with the filters it was read for, so it can stay on screen while the next one loads */
 type Scan = { key: string; filters: CatalogueFilters; rows: CatalogueEntry[]; done: boolean; capped: boolean; error?: string }
 
+/** the last complete default listing of each catalogue, so switching tabs shows it at once while a fresh read runs */
+const lastListing = new Map<CatalogueKind, Scan>()
+
 /** price coverage is only worked out for suppliers with up to this many products (it reads all of their pages) */
 const COVERAGE_LIMIT = 500
 
@@ -448,7 +451,7 @@ function Catalogue({ kind }: { kind: CatalogueKind }) {
   const [page, setPage] = useState(1)
   const [reload, setReload] = useState(0)
   const [scan, setScan] = useState<Scan | null>(null)
-  const [settled, setSettled] = useState<Scan | null>(null)
+  const [settled, setSettled] = useState<Scan | null>(() => lastListing.get(kind) ?? null)
   const [coverage, setCoverage] = useState<Record<string, Coverage>>({})
   const [editing, setEditing] = useState<{ entry: CatalogueEntry | null; focus?: EditorFocus } | undefined>(undefined)
   const [confirm, setConfirm] = useState<{ entry: CatalogueEntry; action: 'archive' | 'restore' } | null>(null)
@@ -505,10 +508,11 @@ function Catalogue({ kind }: { kind: CatalogueKind }) {
         const done = { ...snapshot, rows, done: true, capped }
         setScan(done)
         setSettled(done)
+        if (!snapshot.filters.q && !snapshot.filters.supplier && !snapshot.filters.archived) lastListing.set(kind, done)
       } catch (error) {
         if (!controller.signal.aborted) setScan({ ...snapshot, rows: [], done: true, capped: false, error: (error as Error).message })
       }
-    }, 180)
+    }, trimmed ? 180 : 0)
     return () => {
       clearTimeout(timer)
       controller.abort()

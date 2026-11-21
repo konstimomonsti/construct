@@ -229,7 +229,7 @@ export function CommandPalette() {
     const aRes = [
       act('new-project', 'create_new_folder', 'New project', 'Create an empty project', () => openDialog({ kind: 'new-folder' })),
       act('import', 'upload', 'Import files', 'GAEB, Excel, CSV, Word or PDF', () => openDialog({ kind: 'folder-target', action: 'import' })),
-      act('budgets', 'account_balance_wallet', 'Go to Active Budgets', 'Every priced list against its cap', go('/active')),
+      act('priced-lists', 'account_balance_wallet', 'Go to Priced Lists', 'Totals across priced lists', go('/active')),
       act('archived', 'archive', 'Go to Archived', 'Projects set aside', go('/archived')),
       act('products', 'package_2', 'Go to Products', 'Catalogue items and prices', go('/catalogues/products')),
       act('suppliers', 'local_shipping', 'Go to Suppliers', 'Companies you buy from', go('/catalogues/suppliers')),

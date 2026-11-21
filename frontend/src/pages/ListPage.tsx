@@ -1,23 +1,33 @@
 import { clsx } from 'clsx'
 import { lazy, Suspense, use, useEffect, useId, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
-import { useParams, useSearchParams } from 'react-router-dom'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import { Button, Dialog, Field, Icon, inputCls, kbdCls, toast, type MenuItem } from '../components/ui'
 import { raisedCls } from '../lib/cls'
 import { TableSkeleton } from '../components/Page'
-import { MetaLink, PageFrame, PageHeader, RowMenu, SortMenu, Summary, ToolButton, statusText } from '../components/Kit'
-import { phaseLabel } from '../components/ListCard'
+import { EmptyState, MetaLink, PageFrame, PageHeader, RowMenu, SortMenu, ToolButton } from '../components/Kit'
+import { PhaseHeader, PhasePanel, isPhase, type Phase } from '../components/project/PhaseHeader'
+import { SubcontractorsTab } from '../components/project/SubcontractorsTab'
+import { OfferTab } from '../components/project/OfferTab'
+import { AwardTab } from '../components/project/AwardTab'
+import { SubcontractOverlay } from '../components/subcontract/SubcontractOverlay'
+import type { SubcontractPackage } from '../lib/subcontract'
+import { currentPhase } from '../lib/workflow'
 import { ErrorBoundary } from '../components/ErrorBoundary'
 import { LedgerTable } from '../components/LedgerTable'
+import { BidSimulator } from '../components/BidSimulator'
 import { ChangeOrderText, FindingFilter, FindingText } from '../components/RiskAssessment'
-import { decisionsOf, indexFindings, matchesFindingFilter, SEVERITIES, useUploadAssessment, type ChangeOrderSignal, type Decision, type Report, type ReviewItem } from '../lib/risk-assessment'
+import { decisionsOf, indexFindings, matchesFindingFilter, SEVERITIES, useUploadAssessment, type ChangeOrderSignal, type Decision, type Finding, type Report, type ReviewItem } from '../lib/risk-assessment'
 import { riskXlsx, downloadBytes } from '../lib/risk-export'
 import type { RowRisk } from '../components/LedgerTable'
 import { DecisionControls, DismissMenu } from '../components/risk/DecisionControls'
 import { RiskSummary } from '../components/risk/RiskSummary'
+import { WarningsPanel, type WarningEntry } from '../components/risk/WarningsPanel'
+import { runSteps, type FixPlan } from '../lib/apply-fix'
+import { partialAnalysis } from '../lib/risk-labels'
 import { BidderQuestions, openQuestions } from '../components/risk/BidderQuestions'
 import { RiskPrint } from '../components/risk/RiskPrint'
-import { AddSectionDialog, PricingLegend, PricingMeter, pricingSections } from '../components/PricingBudget'
+import { AddSectionDialog, PricingLegend, PricingBreakdown, pricingSections } from '../components/PricingSummary'
 import { useActions } from '../lib/actions'
 import { DetailDrawer } from '../components/DetailDrawer'
 import { loadList } from '../lib/data'
@@ -27,10 +37,11 @@ import { useWorkspaceCatalogue } from '../lib/workspace-catalogue'
 import { usePriceSuggestions, type PriceSuggestion } from '../lib/price-suggestions'
 import { CategoryTree, useExpanded, type CheckState } from '../components/split/CategoryTree'
 import { MoveToCategory } from '../components/split/MoveToCategory'
-import { budgetStatus, fixedBudget, int, money, parseNumber, plural } from '../lib/format'
+import { int, money, parseNumber, plural } from '../lib/format'
 import { positionTotal } from '../lib/money'
+import { groupByOz, hasSectionLabel } from '../lib/oz-groups'
 import { applyMoves, globalStep, indexTree, leafOz, nextChildOz, nextPositionOz, pathOf, resolveList, treeStats, type CatStat } from '../lib/resolve'
-import { statsOf, useModel, useStore } from '../lib/store'
+import { selectModel, statsOf, useModel, useStore } from '../lib/store'
 import { useUi } from '../lib/ui-store'
 import type { CategoryNode, ListDoc, Position } from '../lib/types'
 
@@ -38,9 +49,20 @@ const SplitOverlay = lazy(() => import('../components/split/SplitOverlay').then(
 
 export function ListPage() {
   const { listId = '' } = useParams()
+  const syncReady = useStore((s) => s.syncReady)
+  const purged = useStore((s) => s.listPatch[listId]?.trashedAt === 'purged'
+    || selectModel(s).lists.some((list) => list.id === listId && list.trashedAt === 'purged'))
   useEffect(() => {
-    if (listId) useStore.getState().openTab(listId)
-  }, [listId])
+    if (listId && syncReady && !purged) useStore.getState().openTab(listId)
+  }, [listId, syncReady, purged])
+  if (purged) return (
+    <PageFrame>
+      <EmptyState icon="description" title="List not found" text="It may have been deleted permanently.">
+        <Link to="/" className="font-semibold text-brand-700 hover:underline">Back to All Projects</Link>
+      </EmptyState>
+    </PageFrame>
+  )
+  if (!syncReady) return <PageFrame><TableSkeleton /></PageFrame>
   return (
     <PageFrame>
       <ErrorBoundary key={listId}>
@@ -77,7 +99,9 @@ function FilterPill({ on, onClick, children }: { on: boolean; onClick: () => voi
   )
 }
 
-function CategoryFilter({ tree, stats, value, onChange }: { tree: CategoryNode[]; stats: Map<string, CatStat>; value: Set<string> | null; onChange: (v: Set<string> | null) => void }) {
+function CategoryFilter({ tree, stats, value, onChange, byOz }: { tree: CategoryNode[]; stats: Map<string, CatStat>; value: Set<string> | null; onChange: (v: Set<string> | null) => void; byOz: boolean }) {
+  const label = byOz ? 'OZ groups' : 'Categories'
+  const filterLabel = byOz ? 'Filter by OZ group' : 'Filter by category'
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const root = useRef<HTMLDivElement>(null)
@@ -142,7 +166,7 @@ function CategoryFilter({ tree, stats, value, onChange }: { tree: CategoryNode[]
         className={pillCls(!!value)}
       >
         <Icon name="filter_list" size={18} />
-        <span>{value ? `${value.size} of ${allOz.length} categories` : 'Categories'}</span>
+        <span>{value ? `${value.size} of ${allOz.length} ${label.toLowerCase()}` : label}</span>
         <Icon name="expand_more" size={18} className={clsx('transition-transform', open && 'rotate-180')} />
       </button>
       <AnimatePresence>
@@ -150,7 +174,7 @@ function CategoryFilter({ tree, stats, value, onChange }: { tree: CategoryNode[]
           <motion.div
             id={id}
             role="dialog"
-            aria-label="Filter by category"
+            aria-label={filterLabel}
             initial={{ opacity: 0, y: -4, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, transition: { duration: 0.1 } }}
@@ -158,14 +182,14 @@ function CategoryFilter({ tree, stats, value, onChange }: { tree: CategoryNode[]
             className="absolute left-0 z-40 mt-2 w-[26rem] max-w-[calc(100vw-2rem)] rounded-lg bg-white p-2 shadow-[0_8px_20px_-8px_var(--pop-shadow)] ring-1 ring-slate-300"
           >
             <div className="flex items-center gap-2 px-1.5 py-1.5">
-              <input ref={search} aria-label="Search categories" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search categories…" className="h-10 min-w-0 flex-1 rounded-md bg-white px-4 text-sm ring-1 ring-slate-500 outline-none ring-inset placeholder:text-slate-500 hover:ring-slate-600 focus:ring-2 focus:ring-brand-600" />
+              <input ref={search} aria-label={`Search ${label.toLowerCase()}`} value={query} onChange={(e) => setQuery(e.target.value)} placeholder={`Search ${label.toLowerCase()}…`} className="h-10 min-w-0 flex-1 rounded-md bg-white px-4 text-sm ring-1 ring-slate-500 outline-none ring-inset placeholder:text-slate-500 hover:ring-slate-600 focus:ring-2 focus:ring-brand-600" />
               <span className="flex gap-1 text-sm font-semibold text-slate-800">
                 <button type="button" className="h-10 rounded-md px-3 hover:bg-slate-100" onClick={() => onChange(null)}>All</button>
                 <button type="button" className="h-10 rounded-md px-3 hover:bg-slate-100" onClick={() => onChange(new Set())}>None</button>
               </span>
             </div>
             <div className="max-h-80 overflow-y-auto">
-              <CategoryTree tree={tree} stats={stats} expanded={ex.expanded} onToggleExpand={ex.toggle} mode="check" label="Filter by category" query={query} checkState={checkState} onToggle={toggle} />
+              <CategoryTree tree={tree} stats={stats} expanded={ex.expanded} onToggleExpand={ex.toggle} mode="check" label={filterLabel} query={query} checkState={checkState} onToggle={toggle} showCategoryCode={!byOz} />
             </div>
           </motion.div>
         )}
@@ -263,8 +287,27 @@ function useFixtureReport(on: boolean) {
   return on ? report : null
 }
 
+/** `?demo=workflow` shows demo subcontractor packages (tests/fixtures/workflow-demo.ts). They are never written to the store. */
+function useWorkflowDemo(on: boolean) {
+  const [demo, setDemo] = useState<typeof import('../../tests/fixtures/workflow-demo') | null>(null)
+  useEffect(() => {
+    if (on) void import('../../tests/fixtures/workflow-demo').then(setDemo)
+  }, [on])
+  return on ? demo : null
+}
+
+const NO_PACKAGES: SubcontractPackage[] = []
+
 function ListDetail({ doc: imported }: { doc: ListDoc }) {
-  const [params] = useSearchParams()
+  const [params, setParams] = useSearchParams()
+  const tab: Phase = isPhase(params.get('phase')) ? (params.get('phase') as Phase) : 'x83'
+  const setTab = (next: Phase) => setParams((prev) => {
+    const out = new URLSearchParams(prev)
+    if (next === 'x83') out.delete('phase')
+    else out.set('phase', next)
+    return out
+  }, { replace: true })
+  const [sending, setSending] = useState(false)
   const { lists, folders, documents } = useModel()
   const attached = documents.filter((document) => document.listId === imported.id)
   const original = attached.find((document) => document.original && document.name === imported.fileName)
@@ -288,18 +331,46 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   const edits = useStore((s) => s.edits[doc.id])
   const resolved = useMemo(() => resolveList(doc, edits), [doc, edits])
   const positions = resolved.positions
+  const bidStandardRates = useMemo(() => {
+    if (!original || imported.phase !== 'X83') return new Map<string, number>()
+    const units = new Map(imported.positions.map((p) => [p.id, p.unit]))
+    return new Map(positions.flatMap((p) => p.up != null && p.unit === units.get(p.id) ? [[p.id, p.up] as const] : []))
+  }, [original, imported.phase, imported.positions, positions])
   const tree = resolved.tree
   const catStats = useMemo(() => treeStats(positions), [positions])
+  const ozGroups = useMemo(() => groupByOz(positions), [positions])
+  const [grouping, setGrouping] = useState<'category' | 'oz'>(() =>
+    imported.positions.length > 0 && imported.positions.every((p) => !hasSectionLabel(p.path?.at(-1)?.label || p.category)) ? 'oz' : 'category',
+  )
+  const grouped = grouping === 'oz' ? ozGroups : null
+  const ledgerGrouping = grouped ? 'oz' : 'category'
+  const ledgerTree = grouped?.tree ?? tree
+  const ledgerPositions = grouped?.positions ?? positions
+  const ledgerStats = useMemo(() => grouped ? treeStats(grouped.positions) : catStats, [grouped, catStats])
   // prices proposed from matched catalogue products: pending until confirmed, never counted in totals
   const dismissedPrices = useStore((s) => s.listPatch[doc.id]?.dismissedPrices)
   const pending = usePriceSuggestions(report, positions, dismissedPrices)
+  // workflow tabs: subcontractor packages (plus read-only demo ones) and the award document
+  const storedPackages = useStore((s) => s.listPatch[doc.id]?.subcontractPackages) ?? NO_PACKAGES
+  const workflowDemo = useWorkflowDemo(params.get('demo') === 'workflow')
+  const { packages, demoIds } = useMemo(() => {
+    const held = new Set(storedPackages.map((p) => p.id))
+    const extra = (workflowDemo?.demoPackages ?? []).filter((p) => !held.has(p.id))
+    return { packages: [...storedPackages, ...extra], demoIds: new Set(extra.map((p) => p.id)) }
+  }, [storedPackages, workflowDemo])
+  const awardId = useStore((s) => s.listPatch[doc.id]?.awardDocumentId)
+  const award = awardId ? documents.find((d) => d.id === awardId) : undefined
+  const workflow = useMemo(() => currentPhase(packages, !!award, positions.length > 0 && positions.every((p) => p.up != null)), [packages, award, positions])
   const st = useMemo(() => statsOf(positions), [positions])
   // findings from the automatic check that runs once on upload
   const assessment = useUploadAssessment(catalogueEnabled && original ? imported.id : null)
   const fixtureReport = useFixtureReport(params.get('risk') === 'fixture')
   const uploadReport = fixtureReport ?? (assessment?.state === 'ready' ? assessment.report : null)
   const risk = uploadReport?.risk ?? null
-  const aiCheckSkipped = uploadReport?.layers_run != null && !uploadReport.layers_run.includes(3)
+  const partial = partialAnalysis(uploadReport?.errors ?? [])
+  const analysisErrors = uploadReport?.errors.filter((error) =>
+    (risk == null || !partial?.details.includes(error)) && !/^layer 3 coverage:/i.test(error),
+  ) ?? []
   const reviewedIds = useStore((s) => s.listPatch[doc.id]?.reviewedFindings)
   const decisionMap = useStore((s) => s.listPatch[doc.id]?.findingDecisions)
   const decisions = useMemo(() => decisionsOf({ findingDecisions: decisionMap, reviewedFindings: reviewedIds }), [decisionMap, reviewedIds])
@@ -386,9 +457,26 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
     riskCacheRef.current = risks
   }, [risks])
   const filterFindings = useMemo(() => [...reviewByRow.values()], [reviewByRow])
+  // every warning once, in list order (a warning on several rows sits at its first one), then the list-wide ones
+  const warningEntries = useMemo(() => {
+    const seen = new Set<string>()
+    const out: WarningEntry[] = []
+    for (const position of positions) {
+      for (const item of reviewByRow.get(position.id) ?? []) {
+        if (seen.has(item.id)) continue
+        seen.add(item.id)
+        out.push({ item, position })
+      }
+    }
+    for (const item of [...listWide, ...listSignals]) if (!seen.has(item.id)) out.push({ item, position: null })
+    return out
+  }, [positions, reviewByRow, listWide, listSignals])
 
   const [q, setQ] = useState('')
-  const [cats, setCats] = useState<Set<string> | null>(null)
+  const [categoryFilter, setCategoryFilter] = useState<Set<string> | null>(null)
+  const [ozFilter, setOzFilter] = useState<Set<string> | null>(null)
+  const cats = grouped ? ozFilter : categoryFilter
+  const setCats = grouped ? setOzFilter : setCategoryFilter
   const [sort, setSort] = useState<'oz' | 'amount' | 'risk'>('oz')
   const [onlyUnpriced, setOnlyUnpriced] = useState(false)
   const [onlyPending, setOnlyPending] = useState(false)
@@ -406,7 +494,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
     const io = new IntersectionObserver(([e]) => setHeroGone(!e.isIntersecting && e.boundingClientRect.top < 0))
     io.observe(el)
     return () => io.disconnect()
-  }, [])
+  }, [tab])
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [detailId, setDetailId] = useState<string | null>(null)
   const [detailField, setDetailField] = useState<string | null>(null)
@@ -447,7 +535,6 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   }, [doc.id])
 
   const title = view?.title ?? doc.title
-  const cap = view?.cap ?? fixedBudget(doc.total)
   const editedIds = useMemo(() => new Set([...Object.keys(edits?.qty ?? {}), ...Object.keys(edits?.up ?? {}), ...Object.keys(edits?.patch ?? {}), ...Object.keys(edits?.moves ?? {})]), [edits])
   const addedIds = useMemo(() => new Set((edits?.added ?? []).map((p) => p.id)), [edits])
   const qtyEdited = useMemo(() => new Set(Object.keys(edits?.qty ?? {})), [edits])
@@ -455,13 +542,16 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
 
   const rows = useMemo(() => {
     const t = q.trim().toLowerCase()
-    const r = positions.filter(
-      (p) => matchesFindingFilter(findingFilter, reviewByRow.get(p.id) ?? [], settled) && (!cats || cats.has(leafOz(p))) && (!onlyUnpriced || (p.up == null && !pending.has(p.id))) && (!onlyPending || (p.up == null && pending.has(p.id))) && (!onlyZero || (p.up != null && p.qty === 0)) && (!onlyEdited || editedIds.has(p.id) || addedIds.has(p.id)) && (!t || p.oz.toLowerCase().includes(t) || p.short.toLowerCase().includes(t) || p.path?.some((part) => part.label.toLowerCase().includes(t))),
+    const matchesText = (p: Position) => p.oz.toLowerCase().includes(t) || p.short.toLowerCase().includes(t)
+      || p.path?.some((part) => part.label.toLowerCase().includes(t))
+    const originalMatches = grouped && t ? new Set(positions.filter(matchesText).map((p) => p.id)) : null
+    const r = ledgerPositions.filter(
+      (p) => matchesFindingFilter(findingFilter, reviewByRow.get(p.id) ?? [], settled) && (!cats || cats.has(leafOz(p))) && (!onlyUnpriced || (p.up == null && !pending.has(p.id))) && (!onlyPending || (p.up == null && pending.has(p.id))) && (!onlyZero || (p.up != null && p.qty === 0)) && (!onlyEdited || editedIds.has(p.id) || addedIds.has(p.id)) && (!t || matchesText(p) || originalMatches?.has(p.id)),
     )
     if (sort === 'amount') r.sort((a, b) => positionTotal(b) - positionTotal(a))
     if (sort === 'risk') r.sort((a, b) => (rowPoints.get(b.id) ?? 0) - (rowPoints.get(a.id) ?? 0))
     return r
-  }, [positions, q, cats, sort, rowPoints, onlyUnpriced, onlyPending, pending, onlyZero, onlyEdited, editedIds, addedIds, findingFilter, reviewByRow, settled])
+  }, [positions, ledgerPositions, grouped, q, cats, sort, rowPoints, onlyUnpriced, onlyPending, pending, onlyZero, onlyEdited, editedIds, addedIds, findingFilter, reviewByRow, settled])
   const repeatedIds = useMemo(() => {
     if (!findingFilter.startsWith('rule:')) return []
     const ids = new Set<string>()
@@ -505,7 +595,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
     useStore.getState().decideFindings(doc.id, ids, decision)
     const what = !decision ? 'reopened' : decision.status === 'accepted' ? 'accepted' : 'dismissed'
     setReviewNote(`${title ?? plural(ids.length, 'item', 'items')}: ${what}`)
-    if (ids.length > 1) toast(`${plural(ids.length, 'finding', 'findings')} ${what}`, 'ok', { label: 'Undo', run: () => useStore.getState().decideFindings(doc.id, ids, null) })
+    if (ids.length > 1) toast(`${plural(ids.length, 'warning', 'warnings')} ${what}`, 'ok', { label: 'Undo', run: () => useStore.getState().decideFindings(doc.id, ids, null) })
   }
   const decideInDrawer = (findingId: string, title: string, decision: Decision | null) => {
     decide([findingId], decision, title)
@@ -518,6 +608,66 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
         ?? drawerFindings?.querySelector<HTMLElement>('#drawer-findings-h')
       next?.focus()
     })
+  }
+  // applies suggested fixes as tracked edits and records them as accepted; one Undo puts back edits and decisions
+  const applyFixes = (plans: { finding: Finding; plan: FixPlan }[]) => {
+    if (!plans.length) return
+    const store = useStore.getState()
+    const beforeEdits = store.edits[doc.id]
+    const beforeDecisions = decisionsOf(store.listPatch[doc.id])
+    const at = new Date().toISOString()
+    for (const { plan } of plans) runSteps(store, doc.id, plan.steps)
+    const findingDecisions = { ...beforeDecisions }
+    for (const { finding } of plans) findingDecisions[finding.id] = { status: 'accepted', at, applied: at }
+    store.patchList(doc.id, { findingDecisions, reviewedFindings: Object.keys(findingDecisions) })
+    const changes = plans.reduce((sum, { plan }) => sum + plan.steps.length, 0)
+    setReviewNote(`${plural(plans.length, 'warning', 'warnings')} fixed`)
+    toast(plans.length === 1 ? `Fixed: ${plans[0].finding.title}` : `Fixed ${plural(plans.length, 'warning', 'warnings')} with ${plural(changes, 'change', 'changes')}`, 'ok', {
+      label: 'Undo',
+      run: () => {
+        const s = useStore.getState()
+        s.setEdits(doc.id, beforeEdits)
+        s.patchList(doc.id, { findingDecisions: beforeDecisions, reviewedFindings: Object.keys(beforeDecisions) })
+      },
+    })
+  }
+  // web suggestions added to several long descriptions at once; Undo restores the edits from before
+  const applySuggestions = (changes: { id: string; long: string }[]) => {
+    if (!changes.length) return
+    const before = useStore.getState().edits[doc.id]
+    for (const { id, long } of changes) useStore.getState().patchPosition(doc.id, id, { long })
+    toast(`Added ${plural(changes.length, 'web suggestion', 'web suggestions')} to the long descriptions`, 'ok', {
+      label: 'Undo', run: () => useStore.getState().setEdits(doc.id, before),
+    })
+  }
+  // a price typed for a position nothing could match: the same as typing it in the table
+  const setOwnPrice = (id: string, price: number | null) => {
+    const before = useStore.getState().edits[doc.id]?.up ?? {}
+    const had = id in before
+    const previous = before[id]
+    useStore.getState().setUp(doc.id, id, price)
+    const oz = positions.find((p) => p.id === id)?.oz
+    toast(price == null ? `Cleared the price of ${oz}` : `Set ${money(price)} for position ${oz}`, 'ok', {
+      label: 'Undo',
+      run: () => {
+        const e = useStore.getState().edits[doc.id]
+        if (!e) return
+        const up = { ...e.up }
+        if (had) up[id] = previous
+        else delete up[id]
+        useStore.getState().setEdits(doc.id, { ...e, up })
+      },
+    })
+  }
+  const showWarnings = (filter: string) => {
+    setOnlyUnpriced(false)
+    setOnlyPending(false)
+    setOnlyZero(false)
+    setOnlyEdited(false)
+    setQ('')
+    setCats(null)
+    setFindingFilter(filter)
+    toTable()
   }
   const exportExcel = async () => {
     if (!uploadReport) return
@@ -623,14 +773,8 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
     toast('Suggestion dismissed', 'ok', { label: 'Undo', run: () => useStore.getState().patchList(doc.id, { dismissedPrices: before }) })
   }
 
-  const phase = view ? phaseLabel(view) : null
-  // dedupe tokens: format strings like "GAEB 90 · D86" repeat the phase code the phase label already shows
-  const meta = [...new Set([phase, doc.format, !phase ? doc.phase : null, doc.date].filter(Boolean).flatMap((m) => String(m).split(' · ')))]
-  // the store already renames lists that share their project's name (see listName); the file name is then the title
-  const sameAsFile = title === doc.fileName.replace(/\.[^.]+$/, '')
   const heading = title
   const zeroQty = positions.filter((p) => p.up != null && p.qty === 0).length
-  const status = budgetStatus(st.total, cap)
   const pendingCount = pending.size
   const unpriced = st.positionsCount - st.pricedCount - pendingCount
   // what the pending suggestions would add; shown beside the total, never inside it
@@ -664,13 +808,15 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
       <PageHeader
         crumbs={[{ label: 'All Projects', to: '/' }, { label: folder?.name ?? 'Project', to: `/folder/${folder?.id ?? doc.folderId}` }]}
         title={heading}
-        subtitle={[sameAsFile ? null : doc.fileName, ...meta].filter(Boolean).join(' · ')}
         aside={
           <div className="flex items-center gap-2">
             <Button variant="primary" icon="add" onClick={() => setAdding(true)} aria-label="Add position" className="max-sm:w-10 max-sm:px-0">
               <span className="max-sm:hidden">Add position</span>
             </Button>
-            <ExportMenu listId={doc.id} doc={doc} original={original} selectedIds={[...selected]} />
+            {original && imported.phase === 'X83' && imported.source?.kind === 'gaeb-xml' && (
+              <BidSimulator listId={doc.id} title={heading} standardRates={bidStandardRates} />
+            )}
+            <ExportMenu listId={doc.id} doc={doc} original={original} selectedIds={[...selected]} filteredIds={filtered ? rows.map((position) => position.id) : undefined} />
             <RowMenu items={more} label={`More actions for ${title}`} />
           </div>
         }
@@ -690,15 +836,15 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
         </div>
       )}
 
-      <Summary
-        label={pendingCount > 0 ? 'Confirmed total' : 'List total'}
-        compact
-        unpriced
-        pending={pendingTotal}
-        amount={money(st.total)}
+      <PhaseHeader
         total={st.total}
-        cap={cap}
-        onEditCap={live ? () => openDialog({ kind: 'edit-cap', target: 'list', id: doc.id }) : undefined}
+        phase={tab}
+        onPhase={setTab}
+        workflow={workflow}
+        badges={{
+          subcontractors: packages.length || null,
+          x84: packages.filter((p) => p.chosenId).length || null,
+        }}
         sub={pendingCount > 0 && (
           <span className="inline-flex items-center gap-1.5">
             <Icon name="schedule" size={16} className="text-slate-500" />
@@ -710,8 +856,8 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
           <CatalogueOverview part="line" show={researchShow} setShow={setResearchShow} report={report} error={error} retryFailed={retryFailed} positions={positions} onOpen={openDetail} hideMatched={pending} />
         )}
         extra={sections.length > 1 && showSections && (
-          <div id="pricing-legend" className="mt-4 max-w-xl rounded-lg bg-slate-50 p-4">
-            <PricingMeter sections={sections} total={st.total} cap={cap || st.total} className="max-w-md" />
+          <div id="pricing-legend" aria-label="Pricing summary" role="region" className="mt-4 max-w-xl rounded-lg bg-slate-50 p-4">
+            <PricingBreakdown sections={sections} className="max-w-md" />
             <PricingLegend sections={sections} />
           </div>
         )}
@@ -750,7 +896,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
                 </button>
               </span>
             )}
-            {(status.tone === 'warn' || status.tone === 'over') && largest && (
+            {largest && (
               <span className="inline-flex items-center gap-x-1.5">
                 <span aria-hidden className="max-sm:hidden">·</span>
                 <MetaLink onClick={review}>Review the biggest positions</MetaLink>
@@ -760,11 +906,17 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
         }
       />
 
-      {risk && <RiskSummary risk={risk} decisions={decisions} />}
+      {tab === 'x83' && <PhasePanel phase="x83">
+      {risk && <RiskSummary risk={risk} decisions={decisions} partial={partial} />}
+      {uploadReport && (
+        <WarningsPanel entries={warningEntries} decisions={decisions} settled={settled} positions={positions}
+          onOpen={(id) => openDetail(id, 'findings')} onFilter={showWarnings} onDecide={decide} onApplyFixes={applyFixes} />
+      )}
 
       {catalogueEnabled && researchShow && (
         <div className="mb-6">
-          <CatalogueOverview part="list" show={researchShow} setShow={setResearchShow} report={report} error={error} retryFailed={retryFailed} positions={positions} onOpen={openDetail} />
+          <CatalogueOverview part="list" show={researchShow} setShow={setResearchShow} report={report} error={error} retryFailed={retryFailed} positions={positions} onOpen={openDetail}
+            onApplyAll={applySuggestions} onPrice={setOwnPrice} />
         </div>
       )}
 
@@ -786,11 +938,23 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
             />
             {!q && <kbd aria-hidden className={clsx(kbdCls, 'pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 peer-focus:hidden [@media(hover:none)]:hidden')}>/</kbd>}
           </div>
-          <CategoryFilter tree={tree} stats={catStats} value={cats} onChange={setCats} />
+          {ozGroups && (
+            <label className={pillCls(false)}>
+              Group by
+              <select className="bg-transparent font-semibold" value={grouping} onChange={(e) => {
+                setGrouping(e.target.value === 'oz' ? 'oz' : 'category')
+                setSort('oz')
+              }}>
+                <option value="category">Category</option>
+                <option value="oz">Position number (OZ)</option>
+              </select>
+            </label>
+          )}
+          <CategoryFilter key={ledgerGrouping} tree={ledgerTree} stats={ledgerStats} value={cats} onChange={setCats} byOz={!!grouped} />
           <FindingFilter rows={filterFindings} reviewed={settled} value={findingFilter} onChange={setFindingFilter} />
           {repeatedIds.length > 1 && (
-            <DismissMenu label={`Dismiss ${repeatedIds.length} shown findings`} onDismiss={(decision) => decide(repeatedIds, decision)}>
-              {`Dismiss ${repeatedIds.length} shown findings`}
+            <DismissMenu label={`Dismiss ${repeatedIds.length} shown warnings`} onDismiss={(decision) => decide(repeatedIds, decision)}>
+              {`Dismiss ${repeatedIds.length} shown warnings`}
             </DismissMenu>
           )}
           {assessment?.state === 'waiting' && (
@@ -807,7 +971,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
           {onlyUnpriced && <FilterPill on onClick={() => setOnlyUnpriced(false)}>Not priced <span className="num">{int(unpriced)}</span></FilterPill>}
           {onlyPending && <FilterPill on onClick={() => setOnlyPending(false)}>Pending confirmation <span className="num">{int(pendingCount)}</span></FilterPill>}
           {onlyPending && confirmable.length > 0 && (
-            <button type="button" onClick={() => confirmPrices(confirmable)} title={`Adds ${money(confirmableTotal)}: the list total becomes ${money(st.total + confirmableTotal)}`} aria-label={`Confirm ${plural(confirmable.length, 'shown price', 'shown prices')}, adds ${money(confirmableTotal)}; the list total becomes ${money(st.total + confirmableTotal)}${cap ? `, ${money(Math.abs(cap - st.total - confirmableTotal))} ${cap - st.total - confirmableTotal >= 0 ? 'left in' : 'over'} the list cap` : ''}`} className="inline-flex h-10 items-center gap-1.5 rounded-md px-3 text-sm font-semibold text-slate-800 hover:bg-slate-100">
+            <button type="button" onClick={() => confirmPrices(confirmable)} title={`Adds ${money(confirmableTotal)}: the list total becomes ${money(st.total + confirmableTotal)}`} aria-label={`Confirm ${plural(confirmable.length, 'shown price', 'shown prices')}, adds ${money(confirmableTotal)}; the list total becomes ${money(st.total + confirmableTotal)}`} className="inline-flex h-10 items-center gap-1.5 rounded-md px-3 text-sm font-semibold text-slate-800 hover:bg-slate-100">
               <Icon name="done_all" size={18} />Confirm {plural(confirmable.length, 'price', 'prices')}
               <span className="num font-medium text-slate-600">+{money(confirmableTotal)}</span>
             </button>
@@ -828,8 +992,12 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
           >
             <Icon name="checklist" size={18} /><span className="max-[1399px]:sr-only">Select</span>
           </button>
-          <div className="flex items-center gap-2 sm:ml-auto">
-            {sort === 'oz' && !filtered && tree.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
+            {original && (
+              <ToolButton icon="description" onClick={() => openDialog({ kind: 'doc', doc: original })}>Original {original.name.split('.').pop()?.toUpperCase() ?? 'file'}</ToolButton>
+            )}
+            <ToolButton icon="engineering" onClick={() => setSending(true)}>Send to subcontractor…</ToolButton>
+            {sort === 'oz' && !filtered && ledgerTree.length > 0 && (
               <ToolButton icon={sectionsOpen ? 'unfold_less' : 'unfold_more'} aria-expanded={sectionsOpen} aria-keyshortcuts="e" title={`${sectionsOpen ? 'Collapse' : 'Expand'} all sections (E)`} onClick={() => setSectionsOpen((v) => !v)} className="max-[1399px]:w-10 max-[1399px]:justify-center max-[1399px]:px-0">
                 <span className="max-[1399px]:sr-only">{sectionsOpen ? 'Collapse all' : 'Expand all'}</span>
               </ToolButton>
@@ -841,9 +1009,11 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
         </div>
 
         <LedgerTable
+          key={ledgerGrouping}
           listId={doc.id}
           rows={rows}
-          tree={tree}
+          tree={ledgerTree}
+          byOz={!!grouped}
           showEmpty={!filtered}
           selected={selected}
           setSelected={setSelected}
@@ -897,28 +1067,19 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
               <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
                 <span>List total</span>
                 <span className="num text-base font-semibold text-slate-900">{money(st.total)}</span>
-                {cap > 0 && st.total > 0 && (
-                  <>
-                    <span aria-hidden>·</span>
-                    <span className="num">{Math.round(status.pct)}% of cap</span>
-                    <span aria-hidden>·</span>
-                    <span className={clsx('font-semibold', statusText[status.tone])}>{status.word}</span>
-                  </>
-                )}
               </span>
             </div>
           )}
         </div>
       </div>
 
-      {(listWide.length > 0 || listSignals.length > 0 || uploadReport?.source_notice || !!uploadReport?.errors.length || aiCheckSkipped) && (
+      {(listWide.length > 0 || listSignals.length > 0 || uploadReport?.source_notice || analysisErrors.length > 0) && (
         <section aria-labelledby="list-findings-h" className="mt-8">
-          <h2 id="list-findings-h" className="font-heading text-base font-bold text-slate-900">Upload check for the whole list</h2>
-          {(uploadReport?.source_notice || aiCheckSkipped || !!uploadReport?.errors.length) && (
+          <h2 id="list-findings-h" className="font-heading text-base font-bold text-slate-900">Warnings for the whole list</h2>
+          {(uploadReport?.source_notice || analysisErrors.length > 0) && (
             <div className="mt-1 space-y-1 text-sm text-amber-900" role="note">
               {uploadReport?.source_notice && <p>{uploadReport.source_notice}</p>}
-              {aiCheckSkipped && <p>The AI check (layer 3) did not run.</p>}
-              {uploadReport?.errors.slice(0, 3).map((error, index) => <p key={index}>{error}</p>)}
+              {analysisErrors.slice(0, 3).map((error, index) => <p key={index}>{error}</p>)}
             </div>
           )}
           {(listWide.length > 0 || listSignals.length > 0) && (
@@ -939,10 +1100,6 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
       {uploadReport?.questions && (
         <BidderQuestions title={title} questions={questions} texts={questionTexts} onEdit={(id, text) => setQuestionTexts((prev) => ({ ...prev, [id]: text }))} />
       )}
-      {uploadReport && risk && (
-        <RiskPrint title={title} report={uploadReport} risk={risk} decisions={decisions} sections={printSections} questions={questions} texts={questionTexts} />
-      )}
-
       {doc.notes && (
         <section className="mt-8 rounded-lg bg-slate-50">
           <button
@@ -963,6 +1120,40 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
           </AnimatePresence>
         </section>
       )}
+      </PhasePanel>}
+
+      {/* print output must work from every tab */}
+      {uploadReport && risk && (
+        <RiskPrint title={title} report={uploadReport} risk={risk} decisions={decisions} sections={printSections} questions={questions} texts={questionTexts} />
+      )}
+
+      {tab === 'subcontractors' && (
+        <PhasePanel phase="subcontractors">
+          <SubcontractorsTab listId={doc.id} doc={doc} resolved={resolved} packages={packages} demoIds={demoIds} demoNames={workflowDemo?.demoNames} positions={positions} onNew={() => setSending(true)} />
+        </PhasePanel>
+      )}
+      {tab === 'x84' && (
+        <PhasePanel phase="x84">
+          <OfferTab
+            listId={doc.id}
+            doc={doc}
+            tree={tree}
+            packages={packages}
+            demoNames={workflowDemo?.demoNames}
+            positions={positions}
+            pending={pending}
+            onSubcontractors={() => setTab('subcontractors')}
+            onReviewAi={() => { setTab('x83'); only('pending') }}
+          />
+        </PhasePanel>
+      )}
+      {tab === 'x86' && (
+        <PhasePanel phase="x86">
+          <AwardTab listId={doc.id} award={award} onOpen={(d) => openDialog({ kind: 'doc', doc: d })} />
+        </PhasePanel>
+      )}
+
+      <SubcontractOverlay open={sending} onClose={() => setSending(false)} listId={doc.id} doc={doc} resolved={resolved} selectedIds={[...selected]} />
 
       <AddSectionDialog open={addingSection} onClose={() => setAddingSection(false)} onAdd={(name) => {
         addCategory(null, name)
@@ -1059,7 +1250,6 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
         }}
         position={detailIdx >= 0 ? `${detailIdx + 1} of ${rows.length}` : undefined}
         listTotal={st.total}
-        cap={cap}
         onPrev={detailIdx > 0 ? () => openDetail(rows[detailIdx - 1].id) : undefined}
         onNext={detailIdx >= 0 && detailIdx < rows.length - 1 ? () => openDetail(rows[detailIdx + 1].id) : undefined}
       />

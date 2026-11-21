@@ -2,7 +2,6 @@ import { lazy, Suspense, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button, Dialog, Field, inputCls, toast } from './ui'
 import { folderPath, selectModel, useModel, useStore } from '../lib/store'
-import { int, money, parseNumber } from '../lib/format'
 import { useUi, type DialogState } from '../lib/ui-store'
 import { makeListDoc, pickAndImport } from '../lib/import'
 import type { DocMeta } from '../lib/types'
@@ -18,7 +17,6 @@ export function Dialogs() {
       {d?.kind === 'rename-folder' && <Rename key={d.id} kind="folder" id={d.id} onClose={close} />}
       {d?.kind === 'rename-list' && <Rename key={d.id} kind="list" id={d.id} onClose={close} />}
       {d?.kind === 'blank-list' && <BlankList folderId={d.folderId} onClose={close} />}
-      {d?.kind === 'edit-cap' && <EditCap key={d.id} target={d.target} id={d.id} onClose={close} />}
       {d?.kind === 'folder-target' && <FolderTarget dialog={d} onClose={close} />}
       {d?.kind === 'link-document' && <LinkDocument doc={d.doc} onClose={close} />}
       <Confirm />
@@ -150,7 +148,10 @@ function FolderTarget({ dialog, onClose }: { dialog: Extract<DialogState, { kind
       toast(`Moved "${list.title}" to "${target.name}"`)
     } else if (!move) {
       pickAndImport(folderId, (result) => {
-        if (result.lists.length || result.docs) navigate(`/folder/${folderId}`)
+        if (result.openListId) {
+          useStore.getState().openTab(result.openListId)
+          navigate(`/list/${result.openListId}`)
+        } else if (result.lists.length || result.docs) navigate(`/folder/${folderId}`)
       })
     }
   }
@@ -315,46 +316,5 @@ function Confirm() {
         </>
       }
     />
-  )
-}
-
-/** caps are suggested from the first import; this lets the estimator set the real budget */
-function EditCap({ target, id, onClose }: { target: 'folder' | 'list'; id: string; onClose: () => void }) {
-  const { folders, lists } = useModel()
-  const obj = target === 'folder' ? folders.find((f) => f.id === id) : lists.find((l) => l.id === id)
-  const name = obj ? ('name' in obj ? obj.name : obj.title) : ''
-  const [text, setText] = useState(obj ? int(Math.round(obj.cap)) : '')
-  if (!obj) return null
-  const value = parseNumber(text)
-  const valid = value !== null && value > 0
-  const pct = valid ? Math.round((obj.total / value) * 100) : null
-  const submit = (e: FormEvent) => {
-    e.preventDefault()
-    if (!valid) return
-    const prev = obj.cap
-    const patch = (cap: number) => (target === 'folder' ? useStore.getState().patchFolder(id, { cap }) : useStore.getState().patchList(id, { cap }))
-    patch(Math.round(value * 100) / 100)
-    toast(`Budget cap of "${name}" set to ${money(value)}`, 'ok', { label: 'Undo', run: () => patch(prev) })
-    onClose()
-  }
-  return (
-    <Dialog
-      open
-      onClose={onClose}
-      title="Edit budget cap"
-      description={`${target === 'folder' ? 'Project' : 'List'} "${name}". The status turns to Near cap at 75%, Almost at cap at 90% and Over cap above 100%.`}
-      footer={
-        <>
-          <Button onClick={onClose}>Cancel</Button>
-          <Button variant="primary" type="submit" form="edit-cap-form" disabled={!valid}>Save cap</Button>
-        </>
-      }
-    >
-      <form id="edit-cap-form" onSubmit={submit} className="space-y-3">
-        <Field label="Budget cap (€)" hint={obj.total ? `${money(obj.total)} priced${pct !== null ? `, ${pct}% of this cap` : ''}.` : 'Nothing priced yet.'}>
-          <input data-autofocus inputMode="decimal" className={`${inputCls} num text-right`} value={text} onChange={(e) => setText(e.target.value)} aria-invalid={text.trim() !== '' && !valid} />
-        </Field>
-      </form>
-    </Dialog>
   )
 }

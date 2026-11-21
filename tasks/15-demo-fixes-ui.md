@@ -53,7 +53,7 @@ send section codes.
 
 ## Notes / blockers (fill in)
 
-- Local frontend checks: `npm run lint`, `npm run build`, and `npm test` passed (153 tests). Both demo X83 files imported (60 hall positions, 12 precast positions); a single-file import offered **Open list** and opened it, while a two-file import stayed on the project page.
+- Local frontend checks after merging current main: `npm run lint`, `npm run build`, and `npm test` passed (228 tests). Both demo X83 files imported (60 hall positions, 12 precast positions); main now opens a single imported list directly, while a two-file import stays on the project page.
 - With a mocked analysis response, accepting the precast shop-drawing finding changed section points 51 → 45 and reopening restored 51. A mocked `layer 3 coverage: 17/20 batches; skipped: …` line showed the partial-analysis label and three skipped checks.
 - Both demo X83 files exported locally to PDF. Poppler `pdftotext` on the precast PDF found `Länge` (6), `Höhe` (4), `einschließlich` (5), and `Währung` (3). The added `@pdf-lib/fontkit` dependency embeds Noto Sans and Noto Sans Mono regular/bold TTF fonts under the SIL Open Font License (`frontend/public/fonts/OFL.txt`).
 - Full-stack/VPS verification is unverified: Docker is not installed here, no local backend is running, and VPS access is unavailable in this workspace. The UI checks above used the frontend preview and a mocked analysis response.

@@ -13,13 +13,14 @@ from urllib.parse import quote, urlencode
 from urllib.request import Request, urlopen
 
 import psycopg
+from lxml.etree import XMLSyntaxError
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 
 from analysis.layer3.provider import ProviderError, ProviderUnavailable
 from workspace_product_ai import adjudicate, catalogue_check, companion_check, configured_model, catalogue_provider
 from workspace_product_companions import catalogue_matches, position_number
-from workspace_product_match import ProductMatcher, clean_description, tender_unit
+from workspace_product_match import ProductMatcher, clean_description, clipped_description, tender_unit
 from workspace_product_references import PositionReferences
 
 LOG = logging.getLogger(__name__)
@@ -217,6 +218,26 @@ def legacy_source_texts(data):
     return {key: items[0] for key, items in indexed.items() if len(items) == 1}
 
 
+def xml_source_texts(data):
+    if not data:
+        return {}
+    from tender_import.structured import gaeb_xml
+    indexed = defaultdict(list)
+    for record in gaeb_xml(data).records:
+        if record.kind == "item" and (source_id := record.payload.get("source_id")):
+            indexed[source_id].append(record.payload)
+    return {source_id: items[0] for source_id, items in indexed.items() if len(items) == 1}
+
+
+def restored_xml_description(position, visible, record):
+    if not clipped_description(visible) or not compatible_companion(position, record):
+        return visible
+    full = clean_description(record.get("long_description"))
+    if code(record["code"]) == code(position.get("oz")) and len(visible) < len(full) <= 12000:
+        return full
+    return visible
+
+
 def seeded_offer_hash(connection, filename, sha, data):
     if not data or connection.execute("SELECT 1 FROM source_document WHERE sha256=%s LIMIT 1", (sha,)).fetchone():
         return sha
@@ -335,6 +356,15 @@ def classify(connection, workspace, list_id):
     except ValueError:
         LOG.warning("Could not recover GAEB 90 descriptions from the original file")
         legacy_texts = {}
+    xml_texts = {}
+    if value.get("source", {}).get("kind") == "gaeb-xml" and any(
+            isinstance(row, dict) and isinstance(row.get("srcRef"), str)
+            and clipped_description(clean_description(row.get("long")))
+            for row in value["positions"]):
+        try:
+            xml_texts = xml_source_texts(original_content(connection, workspace, original))
+        except (ValueError, XMLSyntaxError):
+            LOG.warning("Could not recover clipped descriptions from the original GAEB XML")
     descriptions = companion_descriptions(connection, workspace, documents, filename, sha) if is_offer else {}
     records = []
     prepared = []
@@ -351,11 +381,16 @@ def classify(connection, workspace, list_id):
             source_long = clean_description(source_text.get("long_description"))
             if is_offer or source_short or source_long:
                 short, long_text = source_short, source_long
+        if xml_texts and isinstance(source_id := position.get("srcRef"), str):
+            long_text = restored_xml_description(position, long_text, xml_texts.get(source_id))
         companion = descriptions.get(key)
-        used_pdf = compatible_companion(position, companion) and (not short or not long_text)
+        # Some priced GAEB offers carry a blank bidder field instead of a description.
+        has_short = bool(re.search(r"\w", short))
+        has_long = bool(re.search(r"\w", long_text))
+        used_pdf = compatible_companion(position, companion) and (not has_short or not has_long)
         if used_pdf:
-            short = short or companion["short_description"]
-            long_text = long_text or companion.get("long_description") or short
+            short = short if has_short else companion["short_description"]
+            long_text = long_text if has_long else companion.get("long_description") or short
         if not short and long_text:
             short = next((line.strip() for line in long_text.splitlines() if line.strip()), "")[:110]
         recovered = None
@@ -372,7 +407,12 @@ def classify(connection, workspace, list_id):
     for candidate, resolved, state, product, job in prepared:
         if model and state in {"queued", "needs_description"}:
             if evidence := companions.get(position_number(candidate)):
-                job["model_check"] = companion_check(resolved, evidence)
+                if evidence.get("requires_catalogue_review"):
+                    job["model_check"] = catalogue_check(
+                        resolved, evidence["product"], aligned_copy=evidence["position"],
+                    )
+                else:
+                    job["model_check"] = companion_check(resolved, evidence)
             elif review_item := matcher.review_candidate(resolved):
                 job["model_check"] = catalogue_check(resolved, review_item)
             if "model_check" in job:
@@ -407,18 +447,26 @@ def wiki_json(path):
         return json.loads(response.read(256 * 1024))
 
 
+def related(term, token):
+    """Same word, a shared stem, or a German compound and its head noun (Zementestrich -> Estrich)."""
+    if term == token:
+        return True
+    if min(len(term), len(token)) < 6:
+        return False
+    return term.startswith(token) or token.startswith(term) or term.endswith(token) or token.endswith(term)
+
+
 def research(name):
     """A job can refine its search once. Report only cited public evidence with title overlap."""
     terms = keywords(name)
     if not terms:
         return None
-    queries = dict.fromkeys((" ".join(terms[:6]), max(terms, key=len)))
+    # the whole name first, then single words, longest (most specific) first; at most four searches per position
+    queries = list(dict.fromkeys((" ".join(terms[:6]), *sorted(terms, key=len, reverse=True))))[:4]
     for query in queries:
         pages = wiki_json("/w/rest.php/v1/search/page?" + urlencode({"q": query, "limit": 5}))["pages"]
         for page in pages:
-            title_tokens = keywords(page["title"])
-            if not any(term == token or (min(len(term), len(token)) >= 6 and
-                       (term.startswith(token) or token.startswith(term))) for term in terms for token in title_tokens):
+            if not any(related(term, token) for term in terms for token in keywords(page["title"])):
                 continue
             article = quote(page["key"], safe="")
             summary = wiki_json(f"/api/rest_v1/page/summary/{article}")
@@ -475,7 +523,7 @@ def research_next(connection):
     state = "no_evidence"
     try:
         if model and (check := task["input"].get("model_check")):
-            proposed, = adjudicate(catalogue_provider(), [check])
+            proposed, = adjudicate(catalogue_provider(), [check], repair_quotes=True)
             if proposed and connection.execute(
                 "SELECT 1 FROM product WHERE id=%s AND archived_at IS NULL", (proposed["id"],),
             ).fetchone():

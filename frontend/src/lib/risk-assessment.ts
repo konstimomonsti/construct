@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import type { Position } from './types'
+import type { FixOperation } from './apply-fix'
 
 export type Severity = 'error' | 'warning' | 'info'
 export const SEVERITIES: Severity[] = ['error', 'warning', 'info']
 export const RISK_STYLE = {
-  error: { label: 'Error', icon: 'error', chip: 'bg-rose-100 text-rose-800', row: 'bg-rose-50 hover:bg-rose-100/75 max-lg:bg-rose-50' },
+  error: { label: 'Critical', icon: 'error', chip: 'bg-rose-100 text-rose-800', row: 'bg-rose-50 hover:bg-rose-100/75 max-lg:bg-rose-50' },
   warning: { label: 'Warning', icon: 'warning', chip: 'bg-amber-100 text-amber-900', row: 'bg-amber-50 hover:bg-amber-100/75 max-lg:bg-amber-50' },
   info: { label: 'Info', icon: 'info', chip: 'bg-sky-100 text-sky-800', row: 'bg-sky-50 hover:bg-sky-100/75 max-lg:bg-sky-50' },
 } as const
@@ -30,7 +31,7 @@ export type Finding = {
   target: { line_id: string | null; line_code?: string | null; section_id: string | null; field: string | null }
   related_line_ids: string[]
   evidence?: Evidence
-  suggested_fix: { rationale: string } | null
+  suggested_fix: { rationale: string; operations?: FixOperation[]; confidence?: number } | null
   origin?: 'rule' | 'llm'
   model?: string | null
 }
@@ -82,7 +83,8 @@ type Assessment = { state: 'waiting' | 'failed' | 'unavailable' } | { state: 're
 /* ------------------------------------------------------------------ */
 
 export type DecisionReason = 'not_an_error' | 'covered_elsewhere' | 'by_client' | 'will_ask_client' | 'other'
-export type Decision = { status: 'accepted' | 'dismissed'; reason?: DecisionReason; note?: string; at: string }
+/** `applied`: ISO time the suggested fix was applied as tracked edits (§5.5, task 10) */
+export type Decision = { status: 'accepted' | 'dismissed'; reason?: DecisionReason; note?: string; at: string; applied?: string }
 export type Decisions = Record<string, Decision>
 export const REASONS: Record<DecisionReason, string> = {
   not_an_error: 'Not an error',

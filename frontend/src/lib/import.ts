@@ -6,6 +6,7 @@ import type { DocMeta, ListDoc, Position } from './types'
 import { selectModel, useStore } from './store'
 import { removeDocuments, saveDocument } from './documents'
 import { toast } from '../components/ui'
+import { startImport } from './import-activity'
 
 export const ACCEPT = '.x80,.x81,.x82,.x83,.x84,.x85,.x86,.x87,.x88,.x89,.d80,.d81,.d82,.d83,.d84,.d85,.d86,.d87,.d88,.d89,.csv,.tsv,.xls,.xlsx,.json,.docx,.pdf'
 
@@ -65,6 +66,7 @@ export interface ImportResult {
   positions: number
   docs: number
   failed: string[]
+  openListId?: string
 }
 
 async function addFile(file: File, listId: string, original: boolean, list?: ListDoc) {
@@ -86,6 +88,15 @@ async function addFile(file: File, listId: string, original: boolean, list?: Lis
 }
 
 export async function importFiles(files: File[], folderId: string, activeListId?: string): Promise<ImportResult> {
+  const done = startImport(files.map((f) => f.name))
+  try {
+    return await runImport(files, folderId, activeListId)
+  } finally {
+    done()
+  }
+}
+
+async function runImport(files: File[], folderId: string, activeListId?: string): Promise<ImportResult> {
   const { parseListFile } = await import('./parse-list-file')
   const res: ImportResult = { lists: [], positions: 0, docs: 0, failed: [] }
   const documents: File[] = []
@@ -100,11 +111,8 @@ export async function importFiles(files: File[], folderId: string, activeListId?
     const name = f.name
     const ext = name.split('.').pop()?.toLowerCase() ?? ''
     try {
-      if (ext === 'pdf' && offerFiles.has(fileStem(name).toLowerCase())) {
-        documents.push(f)
-        continue
-      }
-      const parsed = await parseListFile(f) ?? await readSampleDocument(f)
+      const supportingPdf = ext === 'pdf' && offerFiles.has(fileStem(name).toLowerCase())
+      const parsed = await parseListFile(f, { supportingPdf }) ?? (supportingPdf ? undefined : await readSampleDocument(f))
       if (!parsed) {
         documents.push(f)
         continue
@@ -114,6 +122,7 @@ export async function importFiles(files: File[], folderId: string, activeListId?
       if (parsed.warnings?.length) toast(`${name}: ${parsed.warnings[0]}`)
       res.lists.push(list.id)
       res.positions += list.positions.length
+      if (files.length === 1 && list.positions.length > 0) res.openListId = list.id
     } catch (err) {
       console.warn(`import failed: ${name}`, err)
       res.failed.push(name)
@@ -147,9 +156,7 @@ export async function importFiles(files: File[], folderId: string, activeListId?
   const parts: string[] = []
   if (res.lists.length) parts.push(`${res.lists.length} ${res.lists.length === 1 ? 'list' : 'lists'} (${res.positions.toLocaleString('de-DE')} positions)`)
   if (res.docs) parts.push(`${res.docs} ${res.docs === 1 ? 'document' : 'documents'}`)
-  if (parts.length) toast(`Imported ${parts.join(' + ')}`, 'ok', files.length === 1 && res.lists.length === 1
-    ? { label: 'Open list', run: () => window.location.assign(`/list/${res.lists[0]}`) }
-    : undefined)
+  if (parts.length) toast(`Imported ${parts.join(' + ')}`)
   if (res.failed.length) toast(importErrors[0] ?? `Could not read: ${res.failed.join(', ')}`, 'error')
   return res
 }

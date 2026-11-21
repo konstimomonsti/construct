@@ -146,5 +146,13 @@ SELECT NOT EXISTS (
     INSERT INTO db_migration.applied_version (version) VALUES (19);
 \endif
 
+SELECT NOT EXISTS (
+    SELECT FROM db_migration.applied_version WHERE version = 20
+) AS apply_supplier_crm \gset
+\if :apply_supplier_crm
+    \ir migrations/020_supplier_crm.sql
+    INSERT INTO db_migration.applied_version (version) VALUES (20);
+\endif
+
 \ir runtime_role.sql
 COMMIT;

@@ -12,7 +12,7 @@ import { withoutLegacyImports } from './legacy'
 
 export const SYNCED = [
   'userFolders', 'userLists', 'userDocuments', 'documentLinks', 'documentFolders',
-  'folderPatch', 'listPatch', 'edits', 'stats',
+  'folderPatch', 'listPatch', 'edits', 'stats', 'calendar',
 ] as const
 type Collection = (typeof SYNCED)[number]
 const ARRAYS = new Set<Collection>(['userFolders', 'userLists', 'userDocuments'])
@@ -215,7 +215,9 @@ export function startSync() {
   })
   const tick = () => {
     if (document.visibilityState !== 'visible') return
-    void pull().then(push).catch(report)
+    void pull().finally(() => {
+      if (!useStore.getState().syncReady) useStore.setState({ syncReady: true })
+    }).then(push).catch(report)
   }
   tick()
   setInterval(tick, POLL_EVERY)

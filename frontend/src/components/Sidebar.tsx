@@ -11,6 +11,8 @@ import { useMedia } from '../lib/hooks'
 const NAV_GROUPS = [
   { label: 'Projects', links: [
     { to: '/', label: 'All Projects', icon: 'source', end: true },
+    { to: '/calendar', label: 'Calendar', icon: 'calendar_month', end: true },
+    { to: '/requests', label: 'Requests', icon: 'forward_to_inbox', end: true },
   ] },
   { label: 'Catalogues', links: [
     { to: '/catalogues/products', label: 'Products', icon: 'package_2', end: true },

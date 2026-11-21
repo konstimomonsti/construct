@@ -277,7 +277,7 @@ const EMPTY = new Set<string>()
 const SEVERITY_RANK: Record<Severity, number> = { error: 0, warning: 1, info: 2 }
 
 export function LedgerTable({
-  listId, rows, tree, showEmpty, selected, setSelected, focusId, onOpen, onMove, editedIds, qtyEdited, upEdited, risks, pending, onConfirmPrice, sortActive, selectMode, sectionsOpen = false,
+  listId, rows, tree, byOz, showEmpty, selected, setSelected, focusId, onOpen, onMove, editedIds, qtyEdited, upEdited, risks, pending, onConfirmPrice, sortActive, selectMode, sectionsOpen = false,
 }: {
   /** catalogue prices waiting for confirmation, by position id */
   pending?: ReadonlyMap<string, PriceSuggestion>
@@ -286,6 +286,7 @@ export function LedgerTable({
   sectionsOpen?: boolean
   /** category tree; rows are grouped under it unless a sort is active */
   tree: CategoryNode[]
+  byOz: boolean
   /** show categories with no positions (only when nothing is filtered) */
   showEmpty: boolean
   /** touch layouts hide the checkboxes until the user turns on selection */
@@ -450,44 +451,69 @@ Einheitspreis (€)
             <tbody key={cat ? `c-${cat.oz}` : 'loose'} style={{ '--ind': Math.min(b.depth, 3) } as React.CSSProperties}>
               {cat && (() => {
                 const st = stats.get(cat.oz)
+                const sectionIds = st?.pids ?? []
+                const sectionChecked = sectionIds.length > 0 && sectionIds.every((id) => selected.has(id))
+                const sectionMixed = !sectionChecked && sectionIds.some((id) => selected.has(id))
                 const waiting = st && pending?.size ? st.pids.reduce((n, pid) => n + (pending.has(pid) ? 1 : 0), 0) : 0
                 return (
                   <tr
                     data-group
                     data-depth={b.depth}
-                    onClick={(e) => { if (!(e.target as HTMLElement).closest('button')) toggleCat(cat.oz) }}
+                    onClick={(e) => { if (!(e.target as HTMLElement).closest('button, label')) toggleCat(cat.oz) }}
                     // an open section is a band over its rows, so the tree reads before a single word does; sub-sections are lighter bands
                     className={clsx('cursor-pointer border-b transition-colors', top ? (open ? 'border-slate-300 bg-slate-100 hover:bg-slate-200/70' : 'border-slate-200 hover:bg-slate-50') : 'border-slate-200 bg-slate-50 hover:bg-slate-100')}
                   >
                     <th scope="rowgroup" colSpan={6} className="p-0 text-left font-normal">
-                      <button
-                        type="button"
-                        aria-expanded={open}
-                        onClick={() => toggleCat(cat.oz)}
-                        className="flex min-h-11 w-full items-center pl-[calc(var(--ind,0)*16px)] text-left outline-none focus-visible:ring-2 focus-visible:ring-brand-700 focus-visible:ring-inset max-lg:min-h-10 lg:pl-[calc(var(--ind,0)*28px)]"
-                      >
-                        <span className="flex w-10 shrink-0 justify-center pl-2 max-lg:w-7 max-lg:justify-start max-lg:pl-0">
-                          <Icon name="chevron_right" size={18} className={clsx('text-slate-600 transition-transform', open && 'rotate-90')} />
-                        </span>
-                        <span className={clsx('w-[88px] shrink-0 px-2 font-mono text-[13px] tabular-nums max-lg:w-auto max-lg:pr-2 max-lg:pl-0', top ? 'font-semibold text-slate-900' : 'text-slate-700')}>{cat.oz}</span>
-                        <span className="flex min-w-0 flex-1 items-baseline gap-2.5 px-2 max-lg:flex-col max-lg:items-start max-lg:gap-0 max-lg:pl-0">
-                          <span lang="de" className={clsx('min-w-0 hyphens-auto max-lg:line-clamp-2 max-lg:break-words lg:line-clamp-2 2xl:truncate', top ? 'text-[15px] font-bold text-slate-900' : 'text-sm font-semibold text-slate-900')}>{cat.label || cat.oz}</span>
-                          {!open && st && (
-                            <span className="num shrink-0 text-[13px] text-slate-600">
-                              {plural(st.count, 'position', 'positions')}
-                              {/* where the money is, without expanding: each top section's share of the list */}
-                              {top && showEmpty && listTotal > 0 && st.total > 0 && <span className="ml-2 text-slate-600">{st.total / listTotal < 0.01 ? '< 1' : Math.round((st.total / listTotal) * 100)}% of list</span>}
-                              {waiting > 0 && st.total > 0 && <span className="ml-2 font-medium text-slate-700">{int(waiting)} pending</span>}
+                      <div className="flex items-start">
+                        <label className="mt-1 ml-2 flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-md hover:bg-slate-200 max-lg:mt-0.5 max-lg:ml-0 has-disabled:cursor-default">
+                          <input
+                            ref={(input) => { if (input) input.indeterminate = sectionMixed }}
+                            type="checkbox"
+                            className="checkbox disabled:cursor-default disabled:opacity-50"
+                            aria-label={`Select all positions in ${cat.label || cat.oz}`}
+                            checked={sectionChecked}
+                            disabled={!sectionIds.length}
+                            onChange={(event) => {
+                              const next = new Set(selected)
+                              for (const id of sectionIds) {
+                                if (event.target.checked) next.add(id)
+                                else next.delete(id)
+                              }
+                              setSelected(next)
+                            }}
+                          />
+                        </label>
+                        <div className="min-w-0 flex-1">
+                          <button
+                            type="button"
+                            aria-expanded={open}
+                            onClick={() => toggleCat(cat.oz)}
+                            className="flex min-h-11 w-full items-center pl-[calc(var(--ind,0)*16px)] text-left outline-none focus-visible:ring-2 focus-visible:ring-brand-700 focus-visible:ring-inset max-lg:min-h-10 lg:pl-[calc(var(--ind,0)*28px)]"
+                          >
+                            <span className="flex w-10 shrink-0 justify-center pl-2 max-lg:w-7 max-lg:justify-start max-lg:pl-0">
+                              <Icon name="chevron_right" size={18} className={clsx('text-slate-600 transition-transform', open && 'rotate-90')} />
+                            </span>
+                            {!byOz && <span className={clsx('w-[88px] shrink-0 px-2 font-mono text-[13px] tabular-nums max-lg:w-auto max-lg:pr-2 max-lg:pl-0', top ? 'font-semibold text-slate-900' : 'text-slate-700')}>{cat.oz}</span>}
+                            <span className="flex min-w-0 flex-1 items-baseline gap-2.5 px-2 max-lg:flex-col max-lg:items-start max-lg:gap-0 max-lg:pl-0">
+                              <span lang="de" className={clsx('min-w-0 hyphens-auto max-lg:line-clamp-2 max-lg:break-words lg:line-clamp-2 2xl:truncate', top ? 'text-[15px] font-bold text-slate-900' : 'text-sm font-semibold text-slate-900')}>{cat.label || cat.oz}</span>
+                              {!open && st && (
+                                <span className="num shrink-0 text-[13px] text-slate-600">
+                                  {plural(st.count, 'position', 'positions')}
+                                  {/* where the money is, without expanding: each top section's share of the list */}
+                                  {top && showEmpty && listTotal > 0 && st.total > 0 && <span className="ml-2 text-slate-600">{st.total / listTotal < 0.01 ? '< 1' : Math.round((st.total / listTotal) * 100)}% of list</span>}
+                                  {waiting > 0 && st.total > 0 && <span className="ml-2 font-medium text-slate-700">{int(waiting)} pending</span>}
+                                </span>
+                              )}
+                            </span>
+                          </button>
+                          {flagged && (!open || flagged.points > 0) && (
+                            <span className="-mt-1 mb-2 flex flex-wrap items-center gap-2 pl-[calc(136px+var(--ind,0)*28px)] text-sm max-lg:pl-[calc(1.75rem+var(--ind,0)*16px)]">
+                              {!open && <FindingBadge severity={flagged.severity}>{plural(flagged.count, 'flagged position', 'flagged positions')}</FindingBadge>}
+                              {flagged.points > 0 && <span className="num text-[13px] text-slate-600">{plural(flagged.points, 'risk point', 'risk points')}</span>}
                             </span>
                           )}
-                        </span>
-                      </button>
-                      {flagged && (!open || flagged.points > 0) && (
-                        <span className="-mt-1 mb-2 flex flex-wrap items-center gap-2 pl-[calc(136px+var(--ind,0)*28px)] text-sm max-lg:pl-[calc(1.75rem+var(--ind,0)*16px)]">
-                          {!open && <FindingBadge severity={flagged.severity}>{plural(flagged.count, 'flagged position', 'flagged positions')}</FindingBadge>}
-                          {flagged.points > 0 && <span className="num text-[13px] text-slate-600">{plural(flagged.points, 'risk point', 'risk points')}</span>}
-                        </span>
-                      )}
+                        </div>
+                      </div>
                     </th>
                     <td colSpan={2} className={clsx('num px-2 pr-[3.25rem] text-right whitespace-nowrap lg:[@media(hover:hover)]:pr-0', top ? 'text-[15px] font-bold text-slate-900' : 'text-sm font-semibold text-slate-900')}>
                       {!st ? (

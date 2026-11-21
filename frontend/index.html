@@ -6,10 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#ffffff" />
     <meta name="color-scheme" content="light dark" />
-    <script>
-      // apply the saved theme before first paint; light is the default
-      try { if (localStorage.getItem('billbuild-theme') === 'dark') { document.documentElement.dataset.theme = 'dark'; document.querySelector('meta[name=theme-color]').content = '#0d0502' } } catch (e) {}
-    </script>
+    <script src="%BASE_URL%theme-startup.js"></script>
     <title>BillBuild – Leistungsverzeichnisse</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />

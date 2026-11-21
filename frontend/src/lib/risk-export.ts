@@ -1,5 +1,5 @@
 import { REASONS, rescore, type Decision, type Decisions, type Finding, type Report, type Severity } from './risk-assessment'
-import { categoryLabel, layer3Coverage } from './risk-labels'
+import { categoryLabel, partialAnalysis } from './risk-labels'
 
 const LAYER = ['', 'Layer 1 (rules)', 'Layer 2 (dependencies)', 'Layer 3 (AI)']
 const SEVERITY_FILL: Record<Severity, string> = { error: 'FFFFC7CE', warning: 'FFFFEB9C', info: 'FFDDEBF7' }
@@ -50,8 +50,8 @@ export async function riskXlsx({ title, report, decisions, codes, questionTexts 
   }
 
   const risk = report.risk
+  const partial = partialAnalysis(report.errors)
   const live = risk ? rescore(risk, decisions) : null
-  const coverage = layer3Coverage(report.errors)
   const open = report.findings.filter((f) => !decisions[f.id])
   const summary = wb.addWorksheet('Summary')
   summary.columns = [{ width: 30 }, { width: 60 }]
@@ -59,7 +59,6 @@ export async function riskXlsx({ title, report, decisions, codes, questionTexts 
     ['List', title],
     ['Exported', now.toISOString().slice(0, 10)],
     ...(live && risk ? [['Risk score', live.score], ['Risk level', live.level], ['Score at upload', risk.score]] as [string, string | number][] : []),
-    ...(coverage && coverage.run < coverage.planned ? [['Analysis coverage', `Partial: ${coverage.skipped} AI checks skipped`]] as [string, string][] : []),
     ['Money at stake', risk?.money_at_stake ? `${risk.money_at_stake} ${risk.currency}` : 'not priced'],
     ['Findings', report.findings.length],
     ['Reviewed', `${report.findings.length - open.length} of ${report.findings.length}`],
@@ -75,6 +74,11 @@ export async function riskXlsx({ title, report, decisions, codes, questionTexts 
     row.getCell(1).font = { bold: true }
     row.getCell(2).value = v
   })
+  if (partial) {
+    const row = summary.addRow(['Analysis coverage', `Based on partial analysis. ${partial.message}`])
+    row.font = { bold: true }
+    row.alignment = { wrapText: true }
+  }
 
   // one Bieterfrage per finding: the edited question text that covers it, else its own evidence
   const questionOf = new Map<string, string>()

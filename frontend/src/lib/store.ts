@@ -2,12 +2,13 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { useShallow } from 'zustand/react/shallow'
 import type { DocMeta, FolderMeta, Library, ListDoc, ListMeta, Position, Tone } from './types'
-import { fixedBudget, gaebPhase } from './format'
+import { gaebPhase } from './format'
 import { positionTotal } from './money'
 import { removeDocuments } from './documents'
 import { withoutLegacyImports } from './legacy'
 import { applyDecision, decisionsOf, type Decision, type Decisions } from './risk-assessment'
 import type { SubcontractPackage } from './subcontract'
+import type { CalendarEntry, Communication } from './communications'
 
 export type SortKey = 'cost-desc' | 'cost-asc' | 'name' | 'items'
 export const SORT_LABEL: Record<SortKey, string> = {
@@ -36,6 +37,12 @@ interface ListPatch {
   /** positions whose catalogue price suggestion the user dismissed */
   dismissedPrices?: string[]
   subcontractPackages?: SubcontractPackage[]
+  /** the uploaded award document (X86 tab) */
+  awardDocumentId?: string
+  /** ISO, when the award document was uploaded (the calendar's "Award document received") */
+  awardUploadedAt?: string
+  /** manually logged communications with subcontractors, the client and suppliers (calendar) */
+  communications?: Communication[]
 }
 export interface ListEdits {
   qty: Record<string, number>
@@ -63,6 +70,7 @@ export interface SyncBase {
 interface State {
   base: Library | null
   sync: SyncBase | null
+  syncReady: boolean
   userFolders: FolderMeta[]
   userLists: ListDoc[]
   userDocuments: DocMeta[]
@@ -72,6 +80,8 @@ interface State {
   listPatch: Record<string, ListPatch>
   edits: Record<string, ListEdits>
   stats: Record<string, Stats>
+  /** custom calendar appointments by id (synced) */
+  calendar: Record<string, CalendarEntry>
   openTabs: string[]
   view: 'grid' | 'list'
   sort: SortKey
@@ -113,6 +123,8 @@ interface State {
   deleteList: (id: string) => void
   addPosition: (listId: string, p: Position) => void
   recordStats: (listId: string, s: Stats) => void
+  saveCalendarEntry: (entry: CalendarEntry) => void
+  deleteCalendarEntry: (id: string) => void
 }
 
 const emptyEdits = (): ListEdits => ({ qty: {}, up: {}, removed: [], added: [], patch: {}, moves: {}, categories: { added: [], renamed: {} } })
@@ -142,6 +154,7 @@ export const useStore = create<State>()(
     (set, get) => ({
       base: null,
       sync: null,
+      syncReady: false,
       userFolders: [],
       userLists: [],
       userDocuments: [],
@@ -151,6 +164,7 @@ export const useStore = create<State>()(
       listPatch: {},
       edits: {},
       stats: {},
+      calendar: {},
       openTabs: [],
       view: 'grid',
       sort: 'cost-desc',
@@ -322,6 +336,12 @@ export const useStore = create<State>()(
           const e = norm(s.edits[listId])
           return { edits: { ...s.edits, [listId]: { ...e, added: [...e.added, p] } } }
         }),
+      saveCalendarEntry: (entry) => set((s) => ({ calendar: { ...s.calendar, [entry.id]: entry } })),
+      deleteCalendarEntry: (id) =>
+        set((s) => {
+          const { [id]: _drop, ...rest } = s.calendar
+          return { calendar: rest }
+        }),
       recordStats: (listId, st) => {
         const cur = get().stats[listId]
         if (cur && cur.total === st.total && cur.pricedCount === st.pricedCount && cur.positionsCount === st.positionsCount) return
@@ -336,7 +356,7 @@ export const useStore = create<State>()(
         if (st.edits) st.edits = Object.fromEntries(Object.entries(st.edits).map(([k, v]) => [k, normEdits(v)]))
         return withoutLegacyImports(st as Partial<State>) as never
       },
-      partialize: ({ base: _b, ...rest }) => ({
+      partialize: ({ base: _b, syncReady: _ready, ...rest }) => ({
         ...rest,
         // object URLs don't survive reloads
         userFolders: rest.userFolders.map((f) => ({ ...f, documents: f.documents.filter((d) => !d.blobUrl) })),
@@ -353,14 +373,12 @@ export interface FolderView extends FolderMeta {
   archived: boolean
   trashedAt?: string
   total: number
-  cap: number
   positions: number
   priced: number
   listMetas: ListView[]
 }
 
 export interface ListView extends ListMeta {
-  cap: number
   trashedAt?: string
   /** GAEB exchange phase (D84 = bid, D86 = award …) read from the file name */
   phaseCode?: string
@@ -419,18 +437,17 @@ function buildLists(s: State): ListView[] {
   return markVersions(metas.map((m) => {
     const phase = gaebPhase(m.fileName, m.phase, m.format)
     const patch = s.listPatch[m.id] ?? {}
+    const folderId = patch.folderId ?? m.folderId
     const st = s.stats[m.id]
     const total = st?.total ?? m.total
-    const cap = patch.cap ?? fixedBudget(m.total)
     return {
       ...m,
       title: patch.title ?? m.title,
-      folderId: patch.folderId ?? m.folderId,
+      folderId,
       total,
       pricedCount: st?.pricedCount ?? m.pricedCount,
       positionsCount: st?.positionsCount ?? m.positionsCount,
-      cap,
-      trashedAt: patch.trashedAt,
+      trashedAt: s.folderPatch[folderId]?.trashedAt === 'purged' ? 'purged' : patch.trashedAt,
       phaseCode: phase?.code,
       phaseName: phase?.name,
     }
@@ -453,14 +470,6 @@ function buildDocuments(s: State): (DocMeta & { originalFolderId?: string })[] {
 function buildFolders(s: State, lists: ListView[], documents: ReturnType<typeof buildDocuments>): FolderView[] {
   const byId = new Map(lists.map((l) => [l.id, l]))
   const all = [...(s.base?.folders ?? []), ...s.userFolders]
-  const originalTotals = new Map<string, number>()
-  // an earlier version (D84 next to its D86) is not counted twice in the fixed budget;
-  // imported lists set the budget of the folder they arrived in, like the sample lists do
-  const superseded = new Set(lists.filter((l) => l.supersededBy).map((l) => l.id))
-  for (const list of [...(s.base?.lists ?? []), ...s.userLists]) {
-    if (superseded.has(list.id)) continue
-    originalTotals.set(list.folderId, (originalTotals.get(list.folderId) ?? 0) + list.total)
-  }
   const documentsByFolder = new Map<string, DocMeta[]>()
   for (const doc of documents) {
     const list = doc.listId ? byId.get(doc.listId) : undefined
@@ -490,7 +499,6 @@ function buildFolders(s: State, lists: ListView[], documents: ReturnType<typeof 
         archived: !!patch.archived,
         trashedAt: patch.trashedAt,
         total,
-        cap: patch.cap ?? fixedBudget(originalTotals.get(f.id) ?? 0),
         positions: counted.reduce((a, l) => a + l.positionsCount, 0),
         priced: counted.reduce((a, l) => a + l.pricedCount, 0),
         listMetas: ordered,
@@ -537,26 +545,4 @@ export function folderPath(folders: FolderView[], id: string): FolderView[] {
     folder = folders.find((entry) => entry.id === parentId)
   }
   return path
-}
-
-/**
- * The one portfolio figure used on All Projects and Active Budgets: the money in every
- * active (not archived, not trashed) project, against the sum of those projects' caps.
- * Projects without priced lists add neither money nor cap.
- */
-export function portfolioBudget(folders: FolderView[]) {
-  const live = folders.filter((f) => !f.trashedAt && !f.archived && !isInArchived(folders, f) && f.total > 0)
-  const total = live.reduce((a, f) => a + f.total, 0)
-  const cap = live.reduce((a, f) => a + f.cap, 0)
-  return { total, cap, projects: live.length }
-}
-
-function isInArchived(folders: FolderView[], f: FolderView) {
-  return folderPath(folders, f.id).some((x) => x.archived || x.trashedAt)
-}
-
-export function useWorkspaceBudget() {
-  const { folders } = useModel()
-  const b = portfolioBudget(folders)
-  return { total: b.total, cap: b.cap, pct: b.cap ? (b.total / b.cap) * 100 : 0 }
 }

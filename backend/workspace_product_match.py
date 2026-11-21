@@ -26,6 +26,17 @@ PRINTED_PRICE_FIELDS = re.compile(
     r"(?i)(?<![\w.,])\d+(?:[.,]\d+)?\s+(?P<unit>psch|pau|st(?:k)?|m[²³23]?|kg|t)\s+\.{5,}\s+\.{5,}(?=\s|$)"
 )
 OPTIONAL_POSITION_BANNER = re.compile(r"^\s*\*{3,}\s*(?:bedarfsposition|alternativposition)\b[^\n]*$", re.I)
+PRINTED_REPORT_TOTAL = re.compile(r"(?im)^[ \t]*(?:gesamtsumme\b|mwst\.)[^\n]*[ \t]+\.{8,}[ \t]*$")
+DETACHED_PREAMBLE = re.compile(
+    r"(?im)^(?P<heading>[^\W\d_][\w .-]{1,65})[ \t]*\r?\n(?P=heading)[ \t]*\r?\n"
+    r"[ \t]*vorbemerkung(?:en)?[ \t]+-[ \t]+"
+)
+DUCT_MARKING = re.compile(r"(?i)\bpe[\s-]+hd\b")
+DUCT_BUNDLE_SIZE = re.compile(r"(?i)\b([1-9]\d*)\s*[x×]\s*da\s*(\d+(?:[.,]\d+)?)\s*[x×]\s*(\d+(?:[.,]\d+)?)\s*mm\b")
+DUCT_BODY_COUNT = re.compile(r"(?i)\b(?:aus|mit)\s+(\d+)\s+(?:innen)?rohr(?:en|e)?\b")
+EMPTY_LABELLED_FIELD = re.compile(r"""(?i)(?:#{3}|\[person_\d+\])\s*:\s*['"]?\.{8,}['"]?""")
+REDACTED_MATERIAL_LABEL = re.compile(r"(?i)\bwerkstoff[ \t]+(?=\[person_\d+\][ \t]*:)")
+STAINLESS_GRADES = frozenset({"1.4301", "1.4408"})
 PLACEHOLDER_PREFIXES = ("person_", "firma_", "telefon_", "ort_")
 DIMENSION_KEYS = frozenset({"dn", "sn", "pn", "sdr"})
 
@@ -43,6 +54,10 @@ def tender_unit(value):
 
 def clean_description(value):
     return str(value or "").strip() if value != "(ohne Kurztext)" else ""
+
+
+def clipped_description(value):
+    return len(value) >= 3995 and value.endswith(("…", "..."))
 
 
 def tokens(value):
@@ -94,6 +109,19 @@ def primary_specifications(name, raw):
     if component and not COMPONENT_OVERRIDE.search(raw, component.end()):
         return tuple(body for body in descriptions(name, raw[:component.start()]) if len(body) >= 12)
     return ()
+
+
+def stainless_specifications(name, raw):
+    """Keep exact grades when their material name is repeated or redacted."""
+    if not all(grade in raw for grade in STAINLESS_GRADES):
+        return ()
+    raw = EMPTY_LABELLED_FIELD.sub("", REDACTED_MATERIAL_LABEL.sub("", raw))
+    return tuple(
+        tuple(term for previous, term in zip(("", *body), body)
+              if previous not in STAINLESS_GRADES or not (term == "edelstahl" or term.startswith("person_")))
+        for body in descriptions(name, raw)
+        if len(body) >= 32 and STAINLESS_GRADES.issubset(body)
+    )
 
 
 def deduplicate_wrap(terms):
@@ -257,6 +285,28 @@ def reviewable_detail(left, right, same_name):
     return 0.
 
 
+def review_descriptions(name, raw):
+    # Preserve the original evidence for the model. These shortened views only shortlist candidates.
+    bodies = descriptions(name, raw)
+    if preamble := DETACHED_PREAMBLE.search(raw):
+        return (*bodies, *descriptions(name, raw[:preamble.start()]))
+    if total := PRINTED_REPORT_TOTAL.search(raw):
+        if not PRINTED_REPORT_TOTAL.sub("", raw[total.start():]).strip():
+            return (*bodies, *descriptions(name, raw[:total.start()]))
+    return bodies
+
+
+def duct_bundle(text):
+    """Read a count, outside diameter, and wall thickness for a marked PE-HD duct bundle."""
+    if not DUCT_MARKING.search(text) or not re.search(r"(?i)\bleerrohr\w*", text):
+        return None
+    sizes = {tuple(value.replace(",", ".") for value in group) for group in DUCT_BUNDLE_SIZE.findall(text)}
+    if len(sizes) != 1:
+        return None
+    size = next(iter(sizes))
+    return size if set(DUCT_BODY_COUNT.findall(text)).issubset({size[0]}) else None
+
+
 def looks_like_redaction(markers, words):
     if len(markers) != 1 or not markers[0].startswith(PLACEHOLDER_PREFIXES):
         return False
@@ -302,6 +352,7 @@ class ProductText:
     name: tuple[str, ...]
     details: tuple[tuple[str, ...], ...]
     pipe: tuple[tuple[str, ...], ...]
+    stainless: tuple[tuple[str, ...], ...]
 
 
 class ProductMatcher:
@@ -314,6 +365,7 @@ class ProductMatcher:
         self.long_names = defaultdict(set)
         self.leading_specs = defaultdict(set)
         self.pipes = defaultdict(set)
+        self.duct_bundles = defaultdict(set)
         self.qualified_pipes = set()
         for row in rows:
             name = tokens(row["name"])
@@ -325,12 +377,14 @@ class ProductMatcher:
                     units = frozenset(printed_units)
             pipe = pipe_key(name)
             index = len(self.products)
-            self.products.append(ProductText(row, units, name, details, pipe))
+            self.products.append(ProductText(row, units, name, details, pipe, stainless_specifications(name, row["description"])))
             self.names[reference_override(name)].add(index)
             if len(name) >= 5 and is_specific(name):
                 self.long_names[name[:4]].add(index)
             if pipe:
                 self.pipes[pipe].add(index)
+            if bundle := duct_bundle(f"{row['name']}\n{row['description']}"):
+                self.duct_bundles[bundle].add(index)
             for marker in ("mit", "ohne"):
                 if marker in name and (base := pipe_key(name[:name.index(marker)])):
                     self.qualified_pipes.add(base)
@@ -351,7 +405,8 @@ class ProductMatcher:
             return None
         details = tuple(detail for detail in descriptions(name, raw) if detail and detail != name)
         primary = primary_specifications(name, raw)
-        truncated = len(raw) >= 3995 and raw.endswith(("…", "..."))
+        stainless = stainless_specifications(name, raw)
+        truncated = clipped_description(raw)
         pipe = pipe_key(name)
         unit = tender_unit(position.get("unit"))
         if reference_override(name) != name and pipe in self.qualified_pipes:
@@ -375,6 +430,9 @@ class ProductMatcher:
                     and (normalized == reference_override(product.name) or begins(product.name, name))
                     and any(body in product.details for body in primary)):
                 score = max(score, 5)
+            if (unit in product.units and normalized == reference_override(product.name)
+                    and any(body in product.stainless for body in stainless)):
+                score = max(score, 5)
             if score:
                 matches[score].append(product.row)
         if matches and len(best := matches[max(matches)]) == 1:
@@ -383,10 +441,12 @@ class ProductMatcher:
 
     def review_candidate(self, position):
         """Shortlist a unique close specification for independent model review."""
-        title = tokens(position.get("short"))
+        headline = clean_description(position.get("short"))
+        raw = clean_description(position.get("long"))
+        title = tokens(headline)
         name = reference_override(explicit_title(position, title))
         unit = tender_unit(position.get("unit"))
-        bodies = [body for body in descriptions(title, position.get("long")) if len(body) >= 8 and body != title]
+        bodies = [body for body in review_descriptions(title, raw) if len(body) >= 8 and body != title]
         if not unit or not name or not bodies:
             return None
         pipe = pipe_key(name)
@@ -395,6 +455,8 @@ class ProductMatcher:
         candidates = self.names.get(name, set()).copy()
         if pipe:
             candidates.update(self.pipes.get(pipe, ()))
+        duct_candidates = self.duct_bundles.get(duct_bundle(f"{headline}\n{raw}"), ()) if unit == "m" else ()
+        candidates.update(duct_candidates)
         for body in bodies:
             for phrase in phrases(body):
                 candidates.update(self.detail_phrases.get(phrase, ()))
@@ -412,6 +474,8 @@ class ProductMatcher:
                 if not any(number_conflict((*name, *body), (*product.name, *detail))
                            for body in bodies for detail in product.details):
                     rating = .83
+            if not rating and index in duct_candidates:
+                rating = .83
             if rating:
                 ranked.append((rating, index))
         ranked.sort(reverse=True)
@@ -445,10 +509,12 @@ class ProductMatcher:
                 if detail == description or trim_delivery(detail) == description:
                     if name_equivalent:
                         return 5
-                    if len(detail) >= 7 and (is_specific(detail) or (
-                            len(requested) == 1 and requested[0].startswith(PLACEHOLDER_PREFIXES)
-                            and len(catalogued) >= 3 and begins(detail[1:], catalogued)
-                    )):
+                    redacted_title = (
+                        len(detail) >= 6 and unit in product.units and len(requested) == 1
+                        and requested[0].startswith(PLACEHOLDER_PREFIXES) and begins(detail, requested)
+                        and len(catalogued) >= 3 and begins(detail[1:], catalogued)
+                    )
+                    if len(detail) >= 7 or redacted_title:
                         score = max(score, 4)
 
                 if (related or min(len(detail), len(description)) >= 40) and similar_detail(detail, description):

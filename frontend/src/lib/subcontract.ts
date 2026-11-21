@@ -9,6 +9,30 @@ import type { Position } from './types'
 export type SubcontractFormat = 'x83' | 'xlsx' | 'pdf'
 export type SubcontractStatus = 'draft' | 'sent' | 'offer_received'
 
+/** a subcontractor's reply to one package. Internal: never part of a request file or an email. */
+export type SubcontractOffer = {
+  /** ISO; falls back to package.sentAt when missing */
+  sentAt?: string
+  /** ISO, when the subcontractor's X84 / reply arrived */
+  receivedAt?: string
+  /** EUR total they want (net) */
+  amount?: number
+  /** free text info about the reply */
+  note?: string
+  /** imported offer file */
+  fileName?: string
+  /** package positions found in the offer file */
+  matched?: number
+  /** package position ids the offer did not price */
+  missing?: string[]
+  /** unit price (EUR) the offer gives each package position, by position id; fills the X84 for the client */
+  prices?: Record<string, number>
+  /** we declined this offer */
+  declined?: boolean
+  /** id of the stored offer file (a `DocMeta`), when the file was imported */
+  documentId?: string
+}
+
 export type SubcontractPackage = {
   id: string
   /** e.g. "Estricharbeiten" */
@@ -24,8 +48,14 @@ export type SubcontractPackage = {
   format: SubcontractFormat
   status: SubcontractStatus
   sentAt?: string
+  /** the email text as it went out (generic salutation, sender block, no budget); `toRequest` never copies it */
+  sentText?: string
   /** internal note, never exported */
   notes?: string
+  /** replies by subcontractor catalogue id */
+  offers?: Record<string, SubcontractOffer>
+  /** subcontractor chosen for this package (shown in X84) */
+  chosenId?: string
 }
 
 /** everything a request file or an email may know about a package: no budget, no notes */
@@ -87,10 +117,73 @@ export function upsertPackage(packages: readonly SubcontractPackage[], pkg: Subc
   return [...others.slice(0, before), pkg, ...others.slice(before)]
 }
 
-export const removePackage = (packages: readonly SubcontractPackage[], id: string): SubcontractPackage[] => packages.filter((p) => p.id !== id)
+/**
+ * The package to store when the overlay saves or re-exports `next`. A new id is stored as built. For an existing
+ * id the replies survive: `offers` and `chosenId` are carried over (those of subcontractors removed from the
+ * package are dropped, and so is the choice if that subcontractor is gone) and `sentText` stays unless `next`
+ * carries a new one (a newly composed and sent email).
+ */
+export function mergeSavedPackage(existing: SubcontractPackage | undefined, next: SubcontractPackage): SubcontractPackage {
+  if (!existing) return next
+  const keep = new Set(next.subcontractorIds)
+  const offers = Object.fromEntries(Object.entries(next.offers ?? existing.offers ?? {}).filter(([id]) => keep.has(id)))
+  const chosenId = next.chosenId ?? existing.chosenId
+  const { offers: _o, chosenId: _c, sentText: _s, ...rest } = next
+  const sentText = next.sentText ?? existing.sentText
+  return {
+    ...rest,
+    ...(Object.keys(offers).length ? { offers } : {}),
+    ...(chosenId && keep.has(chosenId) ? { chosenId } : {}),
+    ...(sentText !== undefined ? { sentText } : {}),
+  }
+}
+
+export const removePackage =(packages: readonly SubcontractPackage[], id: string): SubcontractPackage[] => packages.filter((p) => p.id !== id)
 
 export const setStatus = (packages: readonly SubcontractPackage[], id: string, status: SubcontractStatus, at?: string): SubcontractPackage[] =>
   packages.map((p) => (p.id === id ? { ...p, status, sentAt: status === 'sent' ? at ?? p.sentAt : p.sentAt } : p))
+
+/* ------------------------------------------------------------------ */
+/* offers (replies from subcontractors)                                */
+/* ------------------------------------------------------------------ */
+
+const NO_OFFER: SubcontractOffer = {}
+
+export const offerOf = (pkg: Pick<SubcontractPackage, 'offers'>, subId: string): SubcontractOffer => pkg.offers?.[subId] ?? NO_OFFER
+
+const mapPackage = (packages: readonly SubcontractPackage[], id: string, fn: (p: SubcontractPackage) => SubcontractPackage) =>
+  packages.map((p) => (p.id === id ? fn(p) : p))
+
+/** merges `patch` into one subcontractor's offer; a key set to undefined is removed */
+export function setOffer(packages: readonly SubcontractPackage[], pkgId: string, subId: string, patch: Partial<SubcontractOffer>): SubcontractPackage[] {
+  return mapPackage(packages, pkgId, (p) => {
+    const next: SubcontractOffer = { ...offerOf(p, subId), ...patch }
+    for (const k of Object.keys(next) as (keyof SubcontractOffer)[]) if (next[k] === undefined) delete next[k]
+    return { ...p, offers: { ...p.offers, [subId]: next } }
+  })
+}
+
+/** chooses a subcontractor (null clears the choice). Choosing marks the package as having an offer. */
+export function chooseSubcontractor(packages: readonly SubcontractPackage[], pkgId: string, subId: string | null): SubcontractPackage[] {
+  return mapPackage(packages, pkgId, (p) => {
+    if (subId == null) {
+      const { chosenId: _drop, ...rest } = p
+      return rest
+    }
+    const offers = p.offers?.[subId]?.declined ? { ...p.offers, [subId]: { ...p.offers[subId], declined: false } } : p.offers
+    return { ...p, chosenId: subId, offers, status: p.status === 'draft' || p.status === 'sent' ? 'offer_received' : p.status }
+  })
+}
+
+/** declines (or reopens) an offer. Declining the chosen one clears the choice. */
+export function declineOffer(packages: readonly SubcontractPackage[], pkgId: string, subId: string, declined: boolean): SubcontractPackage[] {
+  const next = setOffer(packages, pkgId, subId, { declined })
+  return declined ? mapPackage(next, pkgId, (p) => {
+    if (p.chosenId !== subId) return p
+    const { chosenId: _drop, ...rest } = p
+    return rest
+  }) : next
+}
 
 /** a package whose positions were deleted from the list loses them */
 export function pruneMissing(pkg: SubcontractPackage, existingIds: ReadonlySet<string>): SubcontractPackage {

@@ -3,7 +3,7 @@
 Each worker edits **only their own row** (Status: `todo` → `in progress` → `PR open` → `merged`, or `blocked`).
 The lead merges PRs and resolves conflicts in this file. Contracts are in [CLAUDE.md](CLAUDE.md) §5.
 
-## Wave 1 (started 2026-11-21, about 18 h left)
+## Tasks (wave 1 started 2026-11-21)
 
 | ID | Task | Branch | Status | Notes |
 |---|---|---|---|---|
@@ -14,39 +14,66 @@ The lead merges PRs and resolves conflicts in this file. Contracts are in [CLAUD
 | 05 | [Planted-error evaluation and demo files](tasks/05-planted-error-evaluation.md) | `feat/task-05` | merged | [PR #9](https://github.com/konstimomonsti/construct/pull/9). 0 false alarms on 46 controls; precast 6/6 deterministic caught. Lead follow-up [PR #19](https://github.com/konstimomonsti/construct/pull/19) closed four rule gaps. |
 | 06 | [Upload real tender PDFs and .xls (queued)](tasks/06-real-pdf-excel-upload.md) | `feat/task-06` | merged | [PR #17](https://github.com/konstimomonsti/construct/pull/17). Real LV_11 PDF imports all nine positions and runs through the analysis. |
 | 07 | [Usability walkthrough and improvement proposals (queued)](tasks/07-usability-walkthrough.md) | `feat/task-07` | merged | Desktop bug report and prioritized fix plan in PR #22; hall L3 coverage and end-to-end desktop verification remain. |
-| 08 | [Calibrate the risk score and money at stake](tasks/08-risk-calibration.md) | `feat/task-08` | PR open | [PR #23](https://github.com/konstimomonsti/construct/pull/23). Six-file calibration measured; contract scale type updated with user approval; 377 analysis tests passed. |
-| 09 | [Check line amounts and totals on uploaded GAEB files](tasks/09-upload-amount-checks.md) | `feat/task-09` | queued | Demo gap: the planted wrong amount only shows in the CLI |
-| 14 | **PRIORITY:** [Backend fixes from the walkthrough (layer 3 coverage, question prefix, wording)](tasks/14-demo-fixes-backend.md) | `feat/task-14` | PR open | [PR #31](https://github.com/konstimomonsti/construct/pull/31). Offline hall 16/16 batches; live Anthropic unverified (no key); 386 analysis tests pass. |
-| 15 | **PRIORITY (Marcos):** [UI fixes from the walkthrough](tasks/15-demo-fixes-ui.md) | `feat/task-15` | in progress | Frontend checks pass (153 tests); both demo files import and export; PDF Unicode text verified with pdftotext. Full-stack/VPS check unverified (Docker and VPS access unavailable). |
+| 08 | [Calibrate the risk score and money at stake](tasks/08-risk-calibration.md) | `feat/task-08` | merged | [PR #23](https://github.com/konstimomonsti/construct/pull/23) merged, lead-reviewed. Clean seed 20 low, planted demo 57 high, real tenders 52-79; StBALV23040 money at stake 48 k EUR (plan ~53 k). |
+| 09 | [Check line amounts and totals on uploaded GAEB files](tasks/09-upload-amount-checks.md) | `feat/task-09` | merged | Done inside [PR #37](https://github.com/konstimomonsti/construct/pull/37) (Marcos): source line amounts, section and net totals restored on uploads while inputs match; section codes sent. Lead-verified: 8 tests pass. |
+| 14 | **PRIORITY:** [Backend fixes from the walkthrough (layer 3 coverage, question prefix, wording)](tasks/14-demo-fixes-backend.md) | `feat/task-14` | merged | [PR #31](https://github.com/konstimomonsti/construct/pull/31) merged and deployed. Live on the VPS (Anthropic): hall demo 16/16 batches in 31 s, 4 layer 3 findings, 12 questions, none with a doubled "Zu Pos.". |
+| 15 | **PRIORITY (Marcos):** [UI fixes from the walkthrough](tasks/15-demo-fixes-ui.md) | `feat/task-15` | in progress | Frontend checks pass; both demo files import and export; PDF Unicode text verified with pdftotext. Full-stack/VPS check unverified (Docker and VPS access unavailable). |
 | 10 | [Apply accepted fixes (reviewed, undoable, original kept)](tasks/10-apply-accepted-fixes.md) | `feat/task-10` | queued | |
-| 13 | **PRIORITY:** [Subcontractor requests: pick positions + subcontractors, budget, export + email draft](tasks/13-subcontractor-requests.md) | `feat/task-13` | PR open | Overlay in the Export menu, X83/Excel/PDF request without prices, one `.eml` per subcontractor (zip for several). Budget kept out of file and email by construction and by test. Not verified: second-browser sync on the real backend. |
+| 13 | **PRIORITY:** [Subcontractor requests: pick positions + subcontractors, budget, export + email draft](tasks/13-subcontractor-requests.md) | `feat/task-13` | merged | [PR #29](https://github.com/konstimomonsti/construct/pull/29) merged, lead-reviewed. 20 tests pass incl. budget-leak checks; .eml drafts verified (encoded subject, base64 attachment, X-Unsent). |
 | 11 | [Unusual-quantity rules and layer 2 ratio checks](tasks/11-quantity-rules-and-ratios.md) | `feat/task-11` | queued | |
 | 12 | [Reference prices from past offers and a what-if view](tasks/12-reference-prices-what-if.md) | `feat/task-12` | queued | Opus; P0 = references + price rules |
+| 16 | [Supplier requests, communication log, AI categorization](tasks/16-supplier-crm.md) | `feat/supplier-crm` | merged | [PR #40](https://github.com/konstimomonsti/construct/pull/40): `/requests` page, grouped supplier quote emails, AI categories with keyword fallback, communication log (migration 020). |
 
 Suggested merge order: 01 → 03 → 02 → 05 → 04 → 06. Each PR must pass CI (Python tests, frontend lint/build).
 
-Priority for free workers: 09 → 14 → 15 (Marcos) → 10 → **13** → 08 → 11 → 12.
+Priority for free workers: **15 (rest)** → 10 → 11 → 12. Before the hand-in: demo rehearsal on the VPS (see the walkthrough's step 4) and the pitch numbers below.
+
+## Other merged work (outside the task files)
+
+| PR | What | Author |
+|---|---|---|
+| #25 | Risk review moved into the position list | Marcos |
+| #26, #32 | Product matching and catalogue recall from uploaded tender evidence | Marcos |
+| #27 | Sidebar reorganised, incomplete catalogue entries flagged | Marcos |
+| #33, #38, #39 | Group positions by OZ prefix, section-wide selection, exports scoped to selected subsections | Marcos |
+| #36 | Bid simulator for GAEB X83 lists (standard vs price-only vs quantity-aware bids) | Marcos |
+| #37 | Hand-in readiness: source amounts on uploads (task 09), partial-analysis label, import opens the list | Marcos |
+| #41, #43–#48 | X83 → Subcontractors → X84 → X86 project workflow, calendar, audit fixes, crane visuals, import loader, no price caps | Marcos and others |
+| (lead) | Biel's extended DIN checks from `feat/extended-din-rules` (never sent as a PR): `L1.DIN.WATERPROOFING_MISSING`, `FIRE_RATING_CONFLICT`, `VOB_DEDUCTION_VIOLATION`, `REBAR_UNKNOWN_GRADE`, `TOLERANCE_UNSPECIFIED`; catalogue tab-switch fix from `feat/task-13` | Biel, lead |
+
+## Open PRs to review before merging
+
+| PR | What | Note |
+|---|---|---|
+| #35 | Extend BOM risk evaluation, OCR for raster PDFs, evidence across uploads (branch `feat/task-05`) | 96 files across contracts, adapter, eval and bid pricing. Needs a careful review, a check that `python -m analysis.eval fp` still exits 0, and no regressions in the measured results below |
+| #46 | Construction loading screen with percentage for PDF imports | Not reviewed yet |
 
 ## Lead checklist
 
-- [ ] VPS `.env.prod`: `ANALYSIS_L3_PROVIDER=anthropic`, `ANTHROPIC_API_KEY`, plus the defaults from task 02
-- [ ] After each merge: re-run `python -m analysis.eval report` and the LV_11 fixture, and update the numbers below
-- [ ] Update README "Analysis" and "Risk" sections after wave 1
+- [x] VPS `.env.prod`: `ANALYSIS_L3_PROVIDER=anthropic`, `ANTHROPIC_API_KEY`, plus the defaults from task 02 (checked 2026-11-21 17:10)
+- [ ] After each merge: re-run `python -m analysis.eval report` and the LV_11 fixture, and update the numbers below (last: main at PR #31)
+- [x] Deploys: the VPS pulls `main` about every 10 minutes (a timer on the server, not in this repo; the CI deploy job stays off because `VPS_HOST` is unset). Anything merged is live within ~10 minutes. Last manual deploy: 916ec70 on 2026-11-21 17:10, backup `manual-20261121T160925Z.dump`
+- [x] Update README "Analysis" and "Risk" sections after wave 1
 
 ## Wave 2 backlog (nothing is cut, only sequenced)
 
 | Item | Depends on | Notes |
 |---|---|---|
-| Apply accepted fixes to a **new list version** (`Fix` operations → new `bom_version` / workspace list copy) | 03, 04 | Contracts already define `SetField`, `AddLine`, `RemoveLine`, `MergeLines`, `LinkAlternative` |
-| Unusual-quantity rules `L1.QTY.ROUND_SHARE`, `IMPLIED_DURATION`, `UNIT_OUTLIER`, `L1.UNIT.CROSS_SECTION_MISMATCH` and layer 2 `Ratio` checks | 01 | Archived plan §3 |
-| Historical reference prices and what-if (price shock → risk delta) | 03 | Archived plan §7 |
+| Apply accepted fixes to a **new list version** | 03, 04 | Now task 10 |
+| Unusual-quantity rules and layer 2 `Ratio` checks | 01 | Now task 11 |
+| Historical reference prices and what-if | 03 | Now task 12 (the bid simulator in #36 covers part of the what-if idea; task 12 should reuse it, not duplicate it) |
 | `AnalysisInput.notes` (preamble / Vorbemerkungen) for layer 3 and risk | 02, 03 | Contract change |
 | Layer 3 calibration on real labels, precision table in `docs/EVALUATION.md` | 02, 05 | |
-| Demo rehearsal on the VPS and pitch numbers | all | |
+| Demo rehearsal on the VPS and pitch numbers | all | Next up for the lead |
+| `L1.DIN.SICHTBETON_MISSING_CLASS` (Biel's branch) | 01, 05 | Held back: the real LV_11 text ("Sichtbeton der Vorsatzschale durchgefärbt in RAL 7032", no SB class) makes the clean precast eval seed fire. Decide whether it is a true finding, then update the seed and eval baseline together |
+| Import subcontractor offers (D84/Excel) back into a package and compare with the budget (Preisspiegel) | 13, 16 | Listed in task 13 as "later"; #41 adds the X84 phase tab |
+| Real email sending through SMTP on the VPS | 13, 16 | Needs explicit configuration; drafts (`.eml`) work today |
 
 ## Measured results (lead updates after merges)
 
 | Metric | Value |
 |---|---|
-| Analysis tests | 370 passed, 3 skipped; importer tests 172 passed (main after wave 1 + PR #19) |
-| LV_11 fixture findings (layers 1–2) | 13 (10 `L1.DIN.NOTE`, 2 `L1.TEXT.SPEC_PLACEHOLDER`, 1 `L1.UNIT.TRADE_MISMATCH`) |
+| Analysis tests | 391 passed, 3 skipped; `backend/tests/test_workspace_analysis.py` 8 passed; `eval fp` exits 0 (main after PR #40, lead check) |
+| Planted-error eval (layers 1–2) | 244 files; 100% recall on every non-gap mutation; 100% precision on every rule; 46 controls, 0 false alarms. Gaps: reworded duplicate, typo, 'nach Aufwand' |
+| Hall demo, live layers 1–3 on the VPS | 11 findings (6 L1, 1 L2, 4 L3), risk 64 high, 31 s, 16/16 layer 3 batches |
+| LV_11 fixture findings (layers 1–2) | 13 (10 `L1.DIN.NOTE`, 2 `L1.TEXT.SPEC_PLACEHOLDER`, 1 `L1.UNIT.TRADE_MISMATCH`); risk 38 medium; 7 Bieterfragen |

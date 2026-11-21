@@ -1,3 +1,27 @@
+export function partialAnalysis(errors: string[]) {
+  const details: string[] = []
+  let skipped = 0
+  let failed = false
+  for (const error of errors) {
+    const coverage = /^layer 3 coverage: (\d+)\/(\d+) batches\b/i.exec(error)
+    if (coverage) {
+      skipped = Math.max(skipped, Number(coverage[2]) - Number(coverage[1]))
+      details.push(error)
+    } else if (/^(?:layer 3(?: audit model)?:|L3\.)/i.test(error)) {
+      failed = true
+      details.push(error)
+    }
+  }
+  if (!skipped && !failed) return null
+  return {
+    message: skipped > 0
+      ? `${skipped} AI ${skipped === 1 ? 'batch was' : 'batches were'} skipped.`
+      : 'One or more AI checks could not finish.',
+    details,
+  }
+}
+
+export type PartialAnalysis = ReturnType<typeof partialAnalysis>
 import type { Position } from './types'
 import type { Decisions, Report, Risk } from './risk-assessment'
 
@@ -11,13 +35,6 @@ export function categoryLabel(id: string): string {
   return CATEGORY[id] ?? id.replaceAll('_', ' ').replace(/\b\p{L}/gu, (letter) => letter.toUpperCase())
 }
 
-export function layer3Coverage(errors: string[]): { run: number; planned: number; skipped: number; details: string } | null {
-  const line = errors.find((error) => /^layer 3 coverage: \d+\/\d+ batches(?:; skipped: .+)?$/.test(error))
-  if (!line) return null
-  const match = /^layer 3 coverage: (\d+)\/(\d+) batches/.exec(line)!
-  const run = Number(match[1]), planned = Number(match[2])
-  return { run, planned, skipped: Math.max(0, planned - run), details: line }
-}
 
 export function sectionPoints(risk: Risk, report: Report, positions: Position[], decisions: Decisions) {
   const byLine = new Map(positions.map((position) => [position.id, position]))

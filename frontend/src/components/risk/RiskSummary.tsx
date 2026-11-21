@@ -1,7 +1,7 @@
 import { clsx } from 'clsx'
 import { int, money } from '../../lib/format'
 import { rescore, useUploadAssessment, type Decisions, type Risk, type RiskLevel } from '../../lib/risk-assessment'
-import { categoryLabel, categoryPoints, layer3Coverage, sectionPoints } from '../../lib/risk-labels'
+import { categoryLabel, categoryPoints, sectionPoints, type PartialAnalysis } from '../../lib/risk-labels'
 import { useStore } from '../../lib/store'
 
 const LEVEL: Record<RiskLevel, { label: string; text: string; bar: string }> = {
@@ -11,13 +11,11 @@ const LEVEL: Record<RiskLevel, { label: string; text: string; bar: string }> = {
   critical: { label: 'Critical', text: 'text-rose-700', bar: 'bg-rose-600' },
 }
 
-export function RiskSummary({ risk, decisions }: { risk: Risk; decisions: Decisions }) {
+export function RiskSummary({ risk, decisions, partial }: { risk: Risk; decisions: Decisions; partial: PartialAnalysis }) {
   const listId = /^\/list\/([^/]+)/.exec(window.location.pathname)?.[1] ?? null
   const assessment = useUploadAssessment(listId)
   const report = assessment?.state === 'ready' ? assessment.report : null
   const positions = useStore((state) => state.userLists.find((list) => list.id === listId)?.positions)
-  const coverage = report ? layer3Coverage(report.errors) : null
-  const partial = coverage && coverage.run < coverage.planned
   const hasDecisions = Object.keys(decisions).length > 0
   const sections = report && positions ? sectionPoints(risk, report, positions, decisions) : hasDecisions ? [] : risk.by_section
   const categories = report ? categoryPoints(risk, report, decisions) : hasDecisions ? [] : Object.entries(risk.by_category).sort((a, b) => b[1] - a[1])
@@ -27,6 +25,17 @@ export function RiskSummary({ risk, decisions }: { risk: Risk; decisions: Decisi
 
   return (
     <section aria-label="Risk summary" className="mb-5">
+      {partial && (
+        <div className="mb-2 max-w-xl rounded-lg bg-amber-50 px-4 py-3 text-[13px] text-amber-900">
+          <p role="note"><strong>Based on partial analysis.</strong> {partial.message}</p>
+          <details className="mt-1">
+            <summary className="cursor-pointer font-medium">Analysis details</summary>
+            <ul className="mt-1 list-disc space-y-1 break-words ps-5">
+              {partial.details.map((error, index) => <li key={index}>{error}</li>)}
+            </ul>
+          </details>
+        </div>
+      )}
       <dl className="grid max-w-xl grid-cols-2 gap-3">
         <div className="min-w-0 rounded-lg bg-slate-50 px-4 py-3">
           <dt className="text-[13px] font-medium text-slate-600">Risk score{partial ? ' · based on partial analysis' : ''}</dt>
@@ -47,10 +56,6 @@ export function RiskSummary({ risk, decisions }: { risk: Risk; decisions: Decisi
           </dd>
         </div>
       </dl>
-      {partial && <div className="mt-2 max-w-xl text-sm text-amber-900">
-        <p>{coverage.skipped} AI {coverage.skipped === 1 ? 'check was' : 'checks were'} skipped. These results may change when the remaining checks run.</p>
-        <details className="mt-1 text-xs"><summary className="cursor-pointer">Technical details</summary><p>{coverage.details}</p></details>
-      </div>}
       {sections.length > 0 && <div className="mt-5 max-w-xl">
         <h3 className="text-sm font-semibold text-slate-900">Risk by section (open)</h3>
         <ul className="mt-2 space-y-1 text-sm">{sections.filter((section) => section.points > 0).map((section) => <li key={section.section_id} className="flex justify-between gap-3">

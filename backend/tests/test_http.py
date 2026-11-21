@@ -137,6 +137,15 @@ def test_workspace_rejects_unknown_collections():
         workspace.file_id("../etc/passwd")
 
 
+def test_workspace_accepts_calendar_collection():
+    import workspace
+
+    assert "calendar" in workspace.COLLECTIONS
+    # validation passes the collection and reaches the record id check (no database needed)
+    with pytest.raises(ValueError, match="Invalid record id"):
+        workspace.apply(None, {"changes": {"calendar": {"set": {"": {"title": "x"}}}}})
+
+
 def test_json_values(server):
     module, _ = server
     assert module.json_value(datetime(2026, 1, 2, 3, 4, tzinfo=timezone.utc)) == "2026-01-02T03:04:00+00:00"
