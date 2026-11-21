@@ -12,11 +12,8 @@ from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 
 from analysis import adapter
-from analysis.contracts import SourceDocument
 from analysis.runner import DEFAULT_LAYERS, analyze
 from tender_import.common import detect_format
-from tender_import.legacy import gaeb_1990
-from tender_import.structured import gaeb_xml
 from workspace_parse import read_document
 from workspace_product_evidence import add_to_snapshot
 
@@ -62,8 +59,7 @@ def _source(connection, workspace, list_id, file_id, filename):
         })
     if kind not in {"gaeb_xml", "gaeb_1990"}:
         return None
-    parsed = gaeb_xml(content) if kind == "gaeb_xml" else gaeb_1990(content)
-    return adapter.from_import(parsed, document=SourceDocument(filename=name, format=kind))
+    return adapter.from_bytes(name, content)
 
 
 def _attach_source(snapshot, source, original_codes):
@@ -107,6 +103,42 @@ def _attach_source(snapshot, source, original_codes):
             line.source_amounts = match.source_amounts
     return bool(pairs)
 
+def _unique_keys(objects, key_of):
+    by_key = defaultdict(list)
+    for obj in objects:
+        if key := key_of(obj):
+            by_key[key].append(obj.id)
+    return {key: ids[0] for key, ids in by_key.items() if len(ids) == 1}
+
+
+def _original_gaeb(uploaded, source, original_refs):
+    """Analyze the complete tender and retain workspace IDs where a match is unambiguous."""
+    def source_ref(line):
+        return (line.source_locator.get("source_id") or line.source_locator.get("sequence", "")).strip()
+
+    upload_refs = _unique_keys(uploaded.lines, lambda line: original_refs.get(line.id))
+    upload_codes = _unique_keys(uploaded.lines, lambda line: _code(line.code) if line.code else None)
+    file_refs = _unique_keys(source.lines, source_ref)
+    file_codes = _unique_keys(source.lines, lambda line: _code(line.code) if line.code else None)
+    line_ids = {file_refs[key]: upload_refs[key] for key in file_refs.keys() & upload_refs.keys()}
+    matched_upload_ids = set(line_ids.values())
+    for key in file_codes.keys() & upload_codes.keys():
+        source_id, upload_id = file_codes[key], upload_codes[key]
+        if source_id not in line_ids and upload_id not in matched_upload_ids:
+            line_ids[source_id] = upload_id
+
+    upload_sections = _unique_keys(uploaded.sections, lambda section: _code(section.id))
+    file_sections = _unique_keys(source.sections, lambda section: _code(section.code) if section.code else None)
+    section_ids = {file_sections[key]: upload_sections[key] for key in file_sections.keys() & upload_sections.keys()}
+    for section in source.sections:
+        section.id = section_ids.get(section.id, section.id)
+        section.parent_id = section_ids.get(section.parent_id, section.parent_id)
+    for line in source.lines:
+        line.id = line_ids.get(line.id, line.id)
+        line.section_id = section_ids.get(line.section_id, line.section_id)
+        line.alternative_for = line_ids.get(line.alternative_for, line.alternative_for)
+    return source
+
 
 def prepare(payload):
     layers = payload.get("layers", list(DEFAULT_LAYERS))
@@ -135,7 +167,7 @@ def prepare(payload):
     return snapshot, layers
 
 
-def run(payload, connection=None, workspace=None, list_id=None, file_id=None, filename=None):
+def run(payload, connection=None, workspace=None, list_id=None, file_id=None, filename=None, *, original_upload=False):
     snapshot, layers = prepare(payload)
     used_source = False
     source_notice = None
@@ -145,12 +177,16 @@ def run(payload, connection=None, workspace=None, list_id=None, file_id=None, fi
         except (LookupError, ValueError, SyntaxError):
             source = None
             source_notice = "The original tender file could not be checked. Findings are based on the editable list."
-        if source:
-            original_codes = payload.get("original_codes")
-            if isinstance(original_codes, dict):
-                used_source = _attach_source(snapshot, source, original_codes)
-            if used_source and source.project.source_document.format in {"xls", "pdf"}:
-                snapshot.import_warnings = source.import_warnings
+        if source and source.lines:
+            if original_upload and source.project.source_document.format in {"gaeb_xml", "gaeb_1990"}:
+                snapshot = _original_gaeb(snapshot, source, payload.get("original_refs", {}))
+                used_source = True
+            else:
+                original_codes = payload.get("original_codes")
+                if isinstance(original_codes, dict):
+                    used_source = _attach_source(snapshot, source, original_codes)
+                if used_source and source.project.source_document.format in {"xls", "pdf"}:
+                    snapshot.import_warnings = source.import_warnings
             snapshot = snapshot.with_hash()
     evidence_files = add_to_snapshot(connection, workspace, list_id, snapshot) if connection is not None and list_id else []
     if evidence_files:
@@ -188,6 +224,7 @@ def _uploaded_input(document):
     visit(document.get("tree") or [])
     lines = []
     original_codes = {}
+    original_refs = {}
     for position in document["positions"]:
         section_id = None
         for part in position.get("path") or []:
@@ -211,6 +248,8 @@ def _uploaded_input(document):
             line["price"] = {"unit_price": position["up"], "currency": currency, "source": "client"}
         if line["code"]:
             original_codes[line["id"]] = line["code"]
+        if isinstance(position.get("srcRef"), str):
+            original_refs[line["id"]] = position["srcRef"].strip()
         lines.append(line)
     return {
         "snapshot": {
@@ -221,6 +260,7 @@ def _uploaded_input(document):
             "lines": lines,
         },
         "original_codes": original_codes,
+        "original_refs": original_refs,
         "layers": [*DEFAULT_LAYERS, 3] if options()["ai_available"] else list(DEFAULT_LAYERS),
     }
 
@@ -296,7 +336,7 @@ def assess_next(connection):
         try:
             with connection.transaction():
                 filename = document.get("fileName") if document["source"]["kind"] in {"gaeb-xml", "gaeb90", "pdf", "xlsx"} else None
-                report = run(_uploaded_input(document), connection, workspace, list_id, filename=filename)
+                report = run(_uploaded_input(document), connection, workspace, list_id, filename=filename, original_upload=True)
         except psycopg.OperationalError:
             raise
         except Exception:

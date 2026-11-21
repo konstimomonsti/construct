@@ -50,7 +50,7 @@ corrections were checked against their original GAEB item, GAEB 90 record or PDF
 unchanged text carried in each proposed edit. These spot checks do not establish overall spelling
 precision. [LibreOffice German dictionaries](https://github.com/LibreOffice/dictionaries/tree/master/de)
 
-The local browser upload shows the building-hall zero quantity, duplicate and missing edge insulation, and the precast billing-unit conflict. On this baseline the X83 upload check omits the source line amount. The CLI report verifies the planted arithmetic and its subtotal consequences.
+The original workspace replay caught the building-hall zero quantity, duplicate, and missing edge insulation, and the precast billing-unit conflict. The upload worker now also preserves written line amounts, section subtotals, and the net total for GAEB originals. See the upload replay below.
 
 Each generated file has a `construct-eval-labels/1` sidecar with stable position codes, the expected or acceptable rule IDs, and a link to its clean baseline. A run subtracts findings already present in the corresponding baseline. This keeps synthetic measurements tied to the planted faults. The `fp` run checks the controls directly, including their clean baselines. Controls with incomplete layer coverage remain unverified and cause a nonzero exit.
 
@@ -89,3 +89,22 @@ The evidence JSON contains the manufacturer, SKU, declaration title, revision, a
 Layer 1 compares the exact offered variant with the stated minimum SN and cited property requirements. It compares the specified or declared pipe material with the public material scope for DIN EN 1401-1, DIN EN 1852-1 and DIN EN 12666-1. Unsupported or conflicting editions need review. Clause-level compliance requires the governing text and evidence for the specific requirement. Layers 2 and 3 continue to handle cross-position dependencies and ambiguities in the tender. [DIN EN 1401-1](https://www.dinmedia.de/en/standard/din-en-1401-1/366215601), [DIN EN 1852-1](https://www.dinmedia.de/en/standard/din-en-1852-1/358909857), [DIN EN 12666-1](https://www.dinmedia.de/en/standard/din-en-12666-1/139590041)
 
 The targeted tests cover three planted conflicts, matching values in different units, variant mismatches, contradictory declarations, and an unsupported edition. They exercise both JSON and a generated X83. The PostgreSQL tests cover attachment order, moving evidence between lists, replacing its bytes, removing it, and discarding a stale result if evidence changes while the worker is running. A preliminary replay of the repository's 8209 X83 and D83 exports (159 positions each) and LV 14 sanitary PDF (168 positions) produced zero findings from the new rules. Those bills lack the paired declarations needed to measure product-check accuracy independently.
+
+
+## GAEB workspace upload replay
+
+The workspace picker parses the test files. The replay saves each original file and its parsed list in PostgreSQL, runs the assessment worker, and checks the stored findings and input hash against analysis of the original file. The worker keeps the original file's quantities, prices, subtotals, flags, and source locators. Unambiguous position and section links carry those findings into the workspace. Separate draft assessments continue to use the edited values.
+
+With the optional German dictionary, the replay assessed 122 synthetic X83 uploads. All 95 planted labels applicable to Layers 1 and 2 were caught with an edit, review suggestion, or bidder question. All 23 clean controls finished without findings, and two labels required Layer 3. The local replay also linked every source position in the repository D83 (159), D84 (274), and D86 (249) samples to a workspace row. The D86 replay preserved the written amounts needed to review the known record 3721 subtotal discrepancy. The three real files provide import coverage. The planted labels establish accuracy for the tested synthetic cases.
+
+Reproduce from the repository root with frontend dependencies installed, the optional dictionary configured through `ANALYSIS_SPELL_DIC`, and `PGHOST`, `PGPORT`, `PGUSER`, and `PGDATABASE` pointing to a disposable migrated database with an empty assessment queue. The replay rolls back each fixture.
+
+```sh
+export PYTHONPATH=backend:backend/importer
+python -m analysis.eval mutate --backend x83
+frontend/node_modules/.bin/tsx frontend/tests/risk-upload-fixtures.ts \
+  eval_out/mutated/*.X83 eval_out/demo/*.X83 \
+  data/tenders/8209.003_Leistungsverzeichnis_leer.D83 \
+  'data/tenders/Angebot AN24-0305.D84' data/tenders/StBALV23040.D86 \
+  | python -m analysis.eval.uploads
+```

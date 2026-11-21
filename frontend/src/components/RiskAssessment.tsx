@@ -37,10 +37,15 @@ function FindingEvidence({ finding }: { finding: Finding }) {
   const declarations = finding.evidence?.declarations ?? []
   const requirement = finding.rule_id === 'L1.PRODUCT.DECLARED_PROPERTY' ? finding.evidence?.requirement : undefined
   const extracted = Object.entries(finding.evidence?.extracted ?? {})
-  if (!din && !standard && !requirement && !declarations.length && !extracted.length) return null
+  const locator = finding.source_locator
+  const source = locator?.page ? `Source page ${locator.page}`
+    : locator?.record ? `Source record ${locator.record}`
+    : locator?.source_id ? `Source item ${locator.source_id}` : null
+  if (!source && !din && !standard && !requirement && !declarations.length && !extracted.length) return null
   const show = (v: unknown) => (v === null || v === undefined || v === '' ? '—' : Array.isArray(v) ? v.join(', ') || '—' : String(v))
   return (
     <div className="mt-2 space-y-2 text-[13px]">
+      {source && <p className="text-slate-700">{source}</p>}
       {din && (
         <p className="flex flex-wrap gap-x-3 gap-y-1 text-slate-700">
           <span className="font-semibold text-slate-900">DIN 1045-2</span>

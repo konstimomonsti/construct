@@ -33,6 +33,7 @@ export type Finding = {
   target: { line_id: string | null; line_code?: string | null; section_id: string | null; field: string | null }
   related_line_ids: string[]
   evidence?: Evidence
+  source_locator?: { page?: number; record?: number; source_id?: string } | null
   suggested_fix: { rationale: string } | null
   origin?: 'rule' | 'llm'
   model?: string | null

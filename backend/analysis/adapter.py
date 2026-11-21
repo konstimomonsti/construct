@@ -386,7 +386,8 @@ def _lines_from_records(records, doc_key, sections, section_keys) -> list[Line]:
             alternative_for=alternative_for,
             gaeb_flags=flags,
             source_amounts=_source_amounts(payload),
-            source_locator={"ordinal": ordinal, **locator},
+            source_locator={"ordinal": ordinal, **locator,
+                            **({"source_id": payload["source_id"]} if payload.get("source_id") else {})},
         ))
     return lines
 
