@@ -87,6 +87,11 @@ export function FolderCollection({
   const uncapped = capped.length ? priced.length - capped.length : 0
   const listCount = scoped.reduce((x, f) => x + f.listMetas.length, 0)
   const newProject = () => openDialog({ kind: 'new-folder' })
+  // the hero's exception count is the way in for short lists too, where the chips stay hidden until a filter is on
+  const showAttention = () => {
+    setView('attention')
+    requestAnimationFrame(() => document.getElementById('sec-projects')?.focus())
+  }
 
   return (
     <PageFrame>
@@ -112,7 +117,10 @@ export function FolderCollection({
           cap={budget.cap}
           capLabel="in project caps"
           capNote={<span className="num">caps of the same {plural(capped.length, 'project', 'projects')}</span>}
-          status={heroStatus(budget, flagged.map((f) => ({ tone: projectTone(f) })), ['project', 'projects'], { keepSame: true })}
+          subject="Portfolio"
+          status={heroStatus(budget, flagged.map((f) => ({ tone: projectTone(f) })), ['project', 'projects'], { always: true })}
+          onStatus={showAttention}
+          statusAction="show them in Needs attention"
           meta={uncapped ? <span className="num">{plural(uncapped, 'priced project', 'priced projects')} without a cap · {money(pricedTotal)} across all {int(priced.length)}</span> : undefined}
         />
       )}

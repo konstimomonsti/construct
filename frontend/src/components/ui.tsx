@@ -5,6 +5,7 @@ import {
 import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import { create } from 'zustand'
+import { raisedCls } from '../lib/cls'
 
 /* ------------------------------------------------------------------ */
 /* Icon                                                                */
@@ -27,7 +28,8 @@ type Size = 'sm' | 'md' | 'lg'
 
 const variants: Record<Variant, string> = {
   primary: 'bg-brand-600 hover:bg-brand-500 text-ink font-semibold',
-  secondary: 'bg-slate-100 hover:bg-slate-200 text-slate-900 font-semibold',
+  // raised: white with a drawn edge, so it never reads as one of the tan input fields
+  secondary: `${raisedCls} font-semibold`,
   ghost: 'text-slate-700 hover:text-slate-900 hover:bg-slate-100 font-medium',
   danger: 'bg-rose-600 hover:bg-rose-700 text-white font-semibold',
   soft: 'bg-brand-50 text-brand-700 hover:bg-brand-100 font-semibold',
@@ -89,7 +91,7 @@ export function IconButton({
 /* ------------------------------------------------------------------ */
 
 export const toneBar: Record<string, string> = {
-  ok: 'bg-emerald-600',
+  ok: 'bg-jib',
   caution: 'bg-amber-500',
   warn: 'bg-orange-500',
   over: 'bg-rose-600',
@@ -359,13 +361,28 @@ export const inputCls =
 /* Toasts                                                              */
 /* ------------------------------------------------------------------ */
 
-interface Toast { id: number; text: string; tone: 'ok' | 'info' | 'error'; action?: { label: string; run: () => void } }
-const useToasts = create<{ toasts: Toast[]; push: (t: Omit<Toast, 'id'>) => void; drop: (id: number) => void }>((set) => ({
+interface ToastAction {
+  label: string
+  run: () => void
+  /** accessible name when the visible label alone is ambiguous ("Undo creation of Kita") */
+  ariaLabel?: string
+  /** re-checked on activation: a message here means the action no longer applies, so it is shown instead of running */
+  stale?: () => string | undefined
+}
+interface Toast { id: number; text: string; tone: 'ok' | 'info' | 'error'; action?: ToastAction; dismissLabel?: string }
+const useToasts = create<{ toasts: Toast[]; push: (t: Omit<Toast, 'id'>) => number; drop: (id: number) => void; patch: (id: number, p: Partial<Omit<Toast, 'id'>>) => void }>((set) => ({
   toasts: [],
   // a newer toast with an action replaces an older one, so only the latest Undo is ever on offer
-  push: (t) => set((s) => ({ toasts: [...(t.action ? s.toasts.filter((x) => !x.action) : s.toasts).slice(-3), { ...t, id: Date.now() + Math.random() }] })),
+  push: (t) => {
+    const id = Date.now() + Math.random()
+    set((s) => ({ toasts: [...(t.action ? s.toasts.filter((x) => !x.action) : s.toasts).slice(-3), { ...t, id }] }))
+    return id
+  },
   drop: (id) => set((s) => ({ toasts: s.toasts.filter((x) => x.id !== id) })),
+  patch: (id, p) => set((s) => ({ toasts: s.toasts.map((x) => (x.id === id ? { ...x, ...p } : x)) })),
 }))
+/** dark-surface focus ring: the light brand yellow on the ink toast, well above 3:1 */
+const toastFocus = 'outline-none focus-visible:ring-2 focus-visible:ring-[#f6c96a] focus-visible:ring-offset-2 focus-visible:ring-offset-[#1a0c01]'
 
 /**
  * one toast — always the dark ink surface, in both themes. A plain message leaves after 5 s (paused while hovered or
@@ -399,11 +416,21 @@ function ToastItem({ t, drop }: { t: Toast; drop: (id: number) => void }) {
       />
       <span className="min-w-0 flex-1 py-1.5 font-medium">{t.text}</span>
       {t.action && (
-        <button type="button" className="h-10 rounded-md bg-white/10 px-3 font-semibold text-[#f3c160] hover:bg-white/20" onClick={() => { t.action!.run(); drop(t.id) }}>
+        <button
+          type="button"
+          aria-label={t.action.ariaLabel}
+          className={`h-10 rounded-md bg-white/10 px-3 font-semibold text-[#f3c160] hover:bg-white/20 ${toastFocus}`}
+          onClick={() => {
+            const stale = t.action!.stale?.()
+            // the action no longer applies (e.g. the project has new work): say so instead of running it
+            if (stale) useToasts.getState().patch(t.id, { text: stale, tone: 'info', action: undefined })
+            else { t.action!.run(); drop(t.id) }
+          }}
+        >
           {t.action.label}
         </button>
       )}
-      <button type="button" aria-label="Dismiss notification" title="Dismiss notification" onClick={() => drop(t.id)} className="flex size-9 items-center justify-center rounded-md text-[#d2c6b1] hover:bg-white/10 hover:text-white">
+      <button type="button" aria-label={t.dismissLabel ?? 'Dismiss notification'} title={t.dismissLabel ?? 'Dismiss notification'} onClick={() => drop(t.id)} className={`flex size-9 items-center justify-center rounded-md text-[#d2c6b1] hover:bg-white/10 hover:text-white ${toastFocus}`}>
         <Icon name="close" size={18} />
       </button>
     </motion.div>
@@ -413,8 +440,17 @@ function ToastItem({ t, drop }: { t: Toast; drop: (id: number) => void }) {
 /** the one keyboard-key chip, used for every shortcut hint */
 export const kbdCls = 'inline-flex h-6 min-w-6 items-center justify-center rounded-md bg-slate-200 px-1.5 font-sans text-xs font-medium text-slate-700'
 
-export const toast = (text: string, tone: Toast['tone'] = 'ok', action?: Toast['action']) =>
-  useToasts.getState().push({ text, tone, action })
+/**
+ * returns a handle: `active()` says whether the toast still offers its action, `retire()` takes the action off a toast
+ * that is still showing (it then leaves like a plain message)
+ */
+export const toast = (text: string, tone: Toast['tone'] = 'ok', action?: Toast['action'], opts?: { dismissLabel?: string }) => {
+  const id = useToasts.getState().push({ text, tone, action, dismissLabel: opts?.dismissLabel })
+  return {
+    active: () => useToasts.getState().toasts.some((x) => x.id === id && !!x.action),
+    retire: () => useToasts.getState().patch(id, { action: undefined }),
+  }
+}
 
 /** while a drawer or panel is open, the app behind it is hidden from keyboard and screen readers */
 export function useInertRoot(active: boolean) {
@@ -434,7 +470,7 @@ export function Toaster() {
   const urgent = [...toasts].reverse().find((t) => t.tone === 'error')
   return createPortal(
     <>
-      <div className="sr-only" aria-live="polite" aria-atomic="true">{polite ? `${polite.text}${polite.action ? `. ${polite.action.label} is available.` : ''}` : ''}</div>
+      <div className="sr-only" aria-live="polite" aria-atomic="true">{polite ? `${polite.text}${polite.action ? `. ${polite.action.ariaLabel ?? polite.action.label} is available.` : ''}` : ''}</div>
       <div className="sr-only" aria-live="assertive" aria-atomic="true">{urgent?.text ?? ''}</div>
       <div className="pointer-events-none fixed right-4 bottom-24 z-[90] flex w-[calc(100%-2rem)] max-w-md flex-col items-end gap-2 sm:right-8 sm:bottom-20 lg:right-[max(2rem,calc((100vw-var(--side,240px)-1120px)/2+2rem))]">
         <AnimatePresence initial={false}>

@@ -3,6 +3,7 @@ import { lazy, Suspense, use, useEffect, useId, useMemo, useRef, useState, type 
 import { useParams, useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import { Button, Dialog, Field, Icon, inputCls, kbdCls, toast, type MenuItem } from '../components/ui'
+import { raisedCls } from '../lib/cls'
 import { TableSkeleton } from '../components/Page'
 import { MetaLink, PageFrame, PageHeader, RowMenu, SortMenu, Summary, ToolButton, statusText } from '../components/Kit'
 import { phaseLabel } from '../components/ListCard'
@@ -57,7 +58,7 @@ function Loaded({ id }: { id: string }) {
 const pillCls = (on: boolean) =>
   clsx(
     'inline-flex h-10 shrink-0 items-center gap-2 rounded-md px-3.5 text-sm whitespace-nowrap transition-colors',
-    on ? 'bg-slate-900 font-semibold text-white hover:bg-slate-800' : 'bg-slate-100 font-medium text-slate-800 hover:bg-slate-200',
+    on ? 'bg-slate-900 font-semibold text-white hover:bg-slate-800' : [raisedCls, 'font-medium'],
   )
 
 /** toggles one quick filter; the pressed state is the filter's only visible state */
@@ -776,7 +777,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
               <button type="button" onClick={removeSelected} className="inline-flex h-10 items-center gap-1.5 rounded-md px-3 font-medium text-rose-700 hover:bg-rose-50">
                 <Icon name="delete" size={18} />Remove
               </button>
-              <button type="button" onClick={() => { setSelected(new Set()); setSelectMode(false) }} className="ml-auto inline-flex h-10 items-center rounded-md bg-slate-100 px-4 font-semibold text-slate-900 hover:bg-slate-200">Clear</button>
+              <button type="button" onClick={() => { setSelected(new Set()); setSelectMode(false) }} className={clsx('ml-auto inline-flex h-10 items-center rounded-md px-4 font-semibold', raisedCls)}>Clear</button>
             </div>
           ) : (
             <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-sm text-slate-600">
@@ -785,7 +786,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
                   type="button"
                   aria-label="Search positions"
                   onClick={() => { tableRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); searchRef.current?.focus({ preventScroll: true }) }}
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-md text-slate-700 bg-slate-100 hover:bg-slate-200"
+                  className={clsx('inline-flex h-10 w-10 items-center justify-center rounded-md', raisedCls)}
                 >
                   <Icon name="search" size={20} />
                 </button>

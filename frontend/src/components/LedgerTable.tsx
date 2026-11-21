@@ -398,7 +398,7 @@ export function LedgerTable({
     <div>
       <table className="ledger group/table w-full table-fixed border-collapse text-left" data-selecting={selecting || selectMode ? '' : undefined}>
         <thead className="[&_th]:sticky [&_th]:top-16 [&_th]:z-10 [&_th]:bg-white">
-          <tr className="text-sm font-medium text-slate-600 [&_th]:border-b [&_th]:border-slate-200">
+          <tr className="text-[13px] font-semibold text-slate-800 [&_th]:border-b-2 [&_th]:border-slate-300">
             <th scope="col" className="w-10 py-2 pl-2">
               <label className="cb-reveal flex size-9 cursor-pointer items-center justify-center rounded-md hover:bg-slate-100">
                 <input
@@ -447,7 +447,8 @@ EP (€)
                     data-group
                     data-depth={b.depth}
                     onClick={(e) => { if (!(e.target as HTMLElement).closest('button')) toggleCat(cat.oz) }}
-                    className={clsx('cursor-pointer border-b border-slate-200 transition-colors hover:bg-slate-50', top && open && 'bg-slate-50/70')}
+                    // an open section is a band over its rows, so the tree reads before a single word does; sub-sections are lighter bands
+                    className={clsx('cursor-pointer border-b transition-colors', top ? (open ? 'border-slate-300 bg-slate-100 hover:bg-slate-200/70' : 'border-slate-200 hover:bg-slate-50') : 'border-slate-200 bg-slate-50 hover:bg-slate-100')}
                   >
                     <th scope="rowgroup" colSpan={6} className="p-0 text-left font-normal">
                       <button
@@ -459,11 +460,11 @@ EP (€)
                         <span className="flex w-10 shrink-0 justify-center pl-2 max-lg:w-7 max-lg:justify-start max-lg:pl-0">
                           <Icon name="chevron_right" size={18} className={clsx('text-slate-600 transition-transform', open && 'rotate-90')} />
                         </span>
-                        <span className="w-[88px] shrink-0 px-2 font-mono text-[13px] text-slate-600 tabular-nums max-lg:w-auto max-lg:pr-2 max-lg:pl-0">{cat.oz}</span>
+                        <span className={clsx('w-[88px] shrink-0 px-2 font-mono text-[13px] tabular-nums max-lg:w-auto max-lg:pr-2 max-lg:pl-0', top ? 'font-semibold text-slate-900' : 'text-slate-700')}>{cat.oz}</span>
                         <span className="flex min-w-0 flex-1 items-baseline gap-2.5 px-2 max-lg:flex-col max-lg:items-start max-lg:gap-0 max-lg:pl-0">
-                          <span lang="de" className={clsx('min-w-0 hyphens-auto max-lg:line-clamp-2 max-lg:break-words lg:line-clamp-2 2xl:truncate', top ? 'text-[15px] font-semibold text-slate-900' : 'text-sm font-semibold text-slate-800')}>{cat.label || cat.oz}</span>
+                          <span lang="de" className={clsx('min-w-0 hyphens-auto max-lg:line-clamp-2 max-lg:break-words lg:line-clamp-2 2xl:truncate', top ? 'text-[15px] font-bold text-slate-900' : 'text-sm font-semibold text-slate-900')}>{cat.label || cat.oz}</span>
                           {!open && st && (
-                            <span className="num shrink-0 text-[13px] text-slate-500">
+                            <span className="num shrink-0 text-[13px] text-slate-600">
                               {plural(st.count, 'position', 'positions')}
                               {/* where the money is, without expanding: each top section's share of the list */}
                               {top && showEmpty && listTotal > 0 && st.total > 0 && <span className="ml-2 text-slate-600">{st.total / listTotal < 0.01 ? '< 1' : Math.round((st.total / listTotal) * 100)}% of list</span>}
@@ -478,7 +479,7 @@ EP (€)
                         </span>
                       )}
                     </th>
-                    <td colSpan={2} className={clsx('num px-2 pr-[3.25rem] text-right whitespace-nowrap lg:[@media(hover:hover)]:pr-0', top ? 'text-[15px] font-semibold text-slate-900' : 'text-sm font-semibold text-slate-900')}>
+                    <td colSpan={2} className={clsx('num px-2 pr-[3.25rem] text-right whitespace-nowrap lg:[@media(hover:hover)]:pr-0', top ? 'text-[15px] font-bold text-slate-900' : 'text-sm font-semibold text-slate-900')}>
                       {!st ? (
                         <span className="text-sm font-normal text-slate-500">No positions yet</span>
                       ) : st.total === 0 ? (

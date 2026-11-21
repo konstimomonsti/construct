@@ -10,7 +10,7 @@ import { loadList } from '../lib/data'
 import { int, money, plural } from '../lib/format'
 import { listLabel, phaseLabel } from './ListCard'
 import { positionTotal } from '../lib/money'
-import { folderDescription, useModel, useStore, type ListView } from '../lib/store'
+import { folderDescription, normEdits, useModel, useStore, type ListView } from '../lib/store'
 import { useUi } from '../lib/ui-store'
 import { setTheme, useTheme } from '../lib/theme'
 
@@ -43,6 +43,8 @@ interface Result {
   right?: string
   /** smaller muted line under `right` (the GP under a position's EP) */
   rightSub?: string
+  /** a position's pricing state, said beside the amount or in the empty price slot */
+  state?: 'Priced' | 'Not priced'
   priced: boolean
   /** 0 = title (or OZ) starts with the query, 1 = title contains it, 2 = matched elsewhere */
   score: number
@@ -73,6 +75,8 @@ const ALT_KEY = MOD_KEY === '⌘' ? '⌥' : 'Alt'
 const TILE = 'bg-brand-50 text-brand-700'
 const TILE_ON = 'bg-brand-100 text-brand-700'
 const GROUP_ORDER: Group[] = ['Actions', 'Projects', 'Lists', 'Positions']
+/** key of the "New project “query”" command offered when no command matches */
+const FALLBACK = 'a-new-named'
 const NOUN: Record<Group, [string, string]> = { Actions: ['action', 'actions'], Projects: ['project', 'projects'], Lists: ['list', 'lists'], Positions: ['position', 'positions'] }
 
 /** bold the matched part of a result title or subtitle */
@@ -130,9 +134,15 @@ export function CommandPalette() {
     const ids = lists.filter((l) => !l.trashedAt).map((l) => l.id)
     Promise.allSettled(ids.map((id) => loadList(id))).then((rs) => {
       const out: PosIndexEntry[] = []
+      const edits = useStore.getState().edits
       rs.forEach((r, i) => {
         if (r.status !== 'fulfilled') return
-        for (const p of r.value.positions) {
+        // saved edits on top of the file, so a price typed (even 0,00 €) or removed here is what the palette shows
+        const e = normEdits(edits[ids[i]])
+        const removed = new Set(e.removed)
+        for (const raw of [...r.value.positions, ...e.added]) {
+          if (removed.has(raw.id)) continue
+          const p = { ...raw, ...e.patch[raw.id], qty: e.qty[raw.id] ?? raw.qty, up: raw.id in e.up ? e.up[raw.id] : raw.up }
           out.push({ listId: ids[i], id: p.id, oz: p.oz, short: p.short, category: p.category, total: positionTotal(p), priced: p.up != null, up: p.up, unit: p.unit ?? '' })
         }
       })
@@ -200,7 +210,8 @@ export function CommandPalette() {
       .map(({ x: f, s }) => ({
         key: `f-${f.id}`, group: 'Projects', icon: f.icon, title: f.name,
         sub: [plural(f.listMetas.length, 'list', 'lists'), folderDescription(f)].filter(Boolean).join(' · '),
-        right: f.total ? money(f.total) : undefined, priced: !!f.total, score: s,
+        // read from confirmed position counts, so a saved zero price still shows 0,00 €
+        right: f.total || f.priced ? money(f.total) : undefined, priced: !!f.total || f.priced > 0, score: s,
         go: go(`/folder/${f.id}`),
       }))
     const lRes: Result[] = rank(live, displayName, (l) => `${l.title} ${folderName.get(l.folderId) ?? ''} ${l.projectLabel ?? ''}`)
@@ -208,7 +219,7 @@ export function CommandPalette() {
         key: `l-${l.id}`, group: 'Lists', icon: 'request_quote', title: displayName(l),
         sub: [folderName.get(l.folderId), phaseLabel(l) ?? plural(l.positionsCount, 'position', 'positions')].filter(Boolean).join(' · '),
         projectId: l.folderId, subLocal: phaseLabel(l) ?? plural(l.positionsCount, 'position', 'positions'),
-        right: l.total ? money(l.total) : undefined, priced: !!l.total, score: s, go: go(`/list/${l.id}`, l.id),
+        right: l.total || l.pricedCount ? money(l.total) : undefined, priced: !!l.total || l.pricedCount > 0, score: s, go: go(`/list/${l.id}`, l.id),
       }))
     // commands: all of them on an empty query, otherwise the ones whose name matches
     const act = (key: string, icon: string, title: string, sub: string, run: () => void): Result => ({
@@ -254,6 +265,7 @@ export function CommandPalette() {
           projectId: l?.folderId,
           right: !e.priced ? undefined : ep ?? `GP ${money(e.total)}`,
           rightSub: e.priced && ep ? `GP ${money(e.total)}` : undefined,
+          state: e.priced ? 'Priced' : 'Not priced',
           priced: e.priced,
           score: s,
           go: go(`/list/${e.listId}?pos=${encodeURIComponent(e.id)}`, e.listId),
@@ -269,6 +281,7 @@ export function CommandPalette() {
   const { groups, options, shown, defaultIdx } = useMemo(() => {
     const byGroup = new Map<Group, Result[]>()
     for (const r of results) byGroup.set(r.group, [...(byGroup.get(r.group) ?? []), r])
+    // the "New project" fallback (score 3) always sorts its group after the actual search results
     const best = (g: Group) => Math.min(...(byGroup.get(g) ?? []).map((r) => r.score))
     const order = GROUP_ORDER.filter((g) => byGroup.has(g)).sort((a, b) => best(a) - best(b))
     const options: Option[] = []
@@ -292,8 +305,10 @@ export function CommandPalette() {
       }
       return view
     })
+    // the first title match, else the first real result; the "New project" fallback is only the default when it is alone
     const firstTitle = options.findIndex((o) => o.kind === 'result' && o.r.score < 2)
-    return { groups, options, shown, defaultIdx: Math.max(firstTitle, 0) }
+    const firstReal = options.findIndex((o) => o.kind !== 'result' || o.r.key !== FALLBACK)
+    return { groups, options, shown, defaultIdx: Math.max(firstTitle >= 0 ? firstTitle : firstReal, 0) }
   }, [results, limits, pricedOnly, folderById])
 
   const found = options.findIndex((o) => o.key === activeKey)
@@ -335,6 +350,11 @@ export function CommandPalette() {
     if (o) setActiveKey(o.key)
   }
 
+  const posGroup = groups.find((g) => g.group === 'Positions')
+  // offered whenever the position matches mix priced and unpriced rows, however few, and while it is on
+  const canNarrow = !!posGroup && (pricedOnly || ((posGroup.priced ?? 0) > 0 && (posGroup.priced ?? 0) < posGroup.count))
+  const togglePriced = () => { setPricedOnly((v) => !v); setActiveKey(null) }
+
   const onKey = (e: React.KeyboardEvent) => {
     // Tab / Shift+Tab cycle through the search field, the priced-only toggle (when shown) and the close button; results use the arrow keys
     if (e.key === 'Tab') {
@@ -343,6 +363,11 @@ export function CommandPalette() {
       const at = stops.indexOf(document.activeElement as HTMLInputElement | HTMLButtonElement)
       stops[(at + (e.shiftKey ? -1 : 1) + stops.length) % stops.length]?.focus()
     } else if (e.key === 'Escape') { e.preventDefault(); close() }
+    // Alt/Option+P toggles Priced only from anywhere in the palette, without leaving the query (code: Option+P types π on a Mac)
+    else if (e.altKey && !e.metaKey && !e.ctrlKey && e.code === 'KeyP') {
+      e.preventDefault()
+      if (canNarrow) togglePriced()
+    }
     else if (e.target !== inputRef.current) return
     // on a list, "/" with an empty field hands over to the list's own position search ("/" inside a query, as in C30/37, still types)
     else if (e.key === '/' && onList && !q.trim()) {
@@ -360,8 +385,14 @@ export function CommandPalette() {
   }
 
   const needle = q.trim().toLowerCase()
-  const posGroup = groups.find((g) => g.group === 'Positions')
-  const status = !needle ? '' : !results.length ? 'No matches' : plural(results.length, 'result', 'results')
+  const onlyFallback = results.length === 1 && results[0].key === FALLBACK
+  const shownCount = [...shown.values()].reduce((x, rs) => x + rs.length, 0)
+  const posPriced = posGroup?.priced ?? 0
+  const posCount = posGroup?.count ?? 0
+  // said when the query or Priced only changes: the filtered position count, or that no priced position matches
+  const status = !needle ? '' : !results.length ? 'No matches' : onlyFallback ? `No matches for ${q.trim()}. New project ${q.trim()} is available`
+    : pricedOnly && posGroup ? `${plural(shownCount, 'result', 'results')}. Priced only: ${posPriced ? `${int(posPriced)} of ${plural(posCount, 'position', 'positions')}` : 'no priced matches'}`
+    : plural(results.length, 'result', 'results')
   return createPortal(
     <AnimatePresence>
       {open && (
@@ -403,17 +434,20 @@ export function CommandPalette() {
                 className="h-16 min-w-0 flex-1 bg-transparent text-base text-slate-900 outline-none placeholder:text-slate-500"
               />
               {loading && <Icon name="progress_activity" size={18} className="animate-spin text-slate-500" />}
-              {/* narrows a long Positions group to priced rows, keeping the query; only offered when it would change something */}
-              {posGroup && (pricedOnly || ((posGroup.priced ?? 0) > 0 && (posGroup.priced ?? 0) < posGroup.count && posGroup.count > CAP)) && (
+              {/* narrows the Positions group to priced rows, keeping the query; only offered when it would change something */}
+              {canNarrow && (
                 <button
                   ref={pricedRef}
                   type="button"
                   aria-pressed={pricedOnly}
-                  onClick={() => { setPricedOnly((v) => !v); setActiveKey(null); inputRef.current?.focus() }}
+                  aria-keyshortcuts="Alt+P"
+                  title={`Priced only (${ALT_KEY} P)`}
+                  onClick={() => { togglePriced(); inputRef.current?.focus() }}
                   className="inline-flex h-8 shrink-0 items-center gap-1 rounded-md bg-slate-100 px-2.5 text-[13px] font-medium whitespace-nowrap text-slate-800 transition-colors hover:bg-slate-200 aria-pressed:bg-slate-900 aria-pressed:text-white"
                 >
                   <Icon name={pricedOnly ? 'check' : 'filter_list'} size={16} />
                   Priced only
+                  <kbd aria-hidden className={clsx('num ml-1 rounded px-1 font-sans text-[11px] font-medium max-sm:hidden [@media(hover:none)]:hidden', pricedOnly ? 'bg-white/15 text-white' : 'bg-slate-200 text-slate-700')}>{ALT_KEY} P</kbd>
                 </button>
               )}
               {/* the same chip as the footer's key hints; an invisible pad keeps the 44px hit area */}
@@ -423,13 +457,17 @@ export function CommandPalette() {
             </div>
             <div role="status" aria-live="polite" className="sr-only">{status}</div>
             <p id="palette-keys" className="sr-only">
-              Up and down arrows move through results, Enter opens one, {ALT_KEY === '⌥' ? 'Option' : 'Alt'} with the arrows jumps between groups, Tab moves to the other controls, Escape closes.
+              Up and down arrows move through results, Enter opens one, {ALT_KEY === '⌥' ? 'Option' : 'Alt'} with the arrows jumps between groups, Tab moves to the other controls, Escape closes.{canNarrow ? ` ${ALT_KEY === '⌥' ? 'Option' : 'Alt'} P toggles Priced only.` : ''}
               {onList ? ' With an empty field, slash searches positions in this list.' : ''}
             </p>
             <div className="relative flex min-h-0 flex-1 flex-col sm:flex-none">
             <div ref={listRef} onScroll={measureFade} id="palette-list" role="listbox" aria-label="Results" className="min-h-0 flex-1 overflow-y-auto px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:max-h-[56vh] sm:flex-none">
               {results.length === 0 && (
-                <div className="px-3 py-12 text-center text-sm text-slate-600">{loading ? 'Searching positions…' : `Nothing matches “${q.trim()}”`}</div>
+                <div className="px-3 py-12 text-center text-sm text-slate-600">{loading ? 'Searching positions…' : `No matches for “${q.trim()}”`}</div>
+              )}
+              {/* the "New project" fallback alone: say plainly that nothing matched, above the one thing on offer */}
+              {onlyFallback && (
+                <div className="px-3 pt-6 pb-2 text-center text-sm text-slate-600">{loading ? 'Searching positions…' : <>No matches for “<span lang="de" className="font-medium text-slate-900">{q.trim()}</span>”</>}</div>
               )}
               {groups.map((g) => {
                 const headingId = `pal-group-${g.group.toLowerCase()}`
@@ -447,6 +485,12 @@ export function CommandPalette() {
                       {g.project && g.group !== 'Projects' && <span lang="de" className="-ml-1 min-w-0 truncate font-medium">· all in {g.project}</span>}
                     </div>
                     <div role="group" aria-labelledby={headingId}>
+                      {g.pricedOnly && g.options.length === 0 && (
+                        <div className="flex min-h-11 items-center gap-3.5 px-3 text-sm text-slate-600">
+                          <span className="flex w-9 shrink-0 justify-center"><Icon name="filter_list_off" size={20} className="text-slate-500" /></span>
+                          <span>No priced matches · <span className="max-sm:hidden [@media(hover:none)]:hidden"><Kbd label={`${ALT_KEY === '⌥' ? 'Option' : 'Alt'} P`}>{ALT_KEY} P</Kbd> to </span>show all {plural(g.count, 'position', 'positions')}</span>
+                        </div>
+                      )}
                       {g.options.map(({ o, i }) => {
                         const on = i === active
                         const rowCls = clsx(
@@ -502,18 +546,25 @@ export function CommandPalette() {
                                 {g.project ? r.subLocal ?? r.sub : r.sub}
                               </span>
                               {/* phones: the figures go under the title instead of squeezing it */}
-                              {r.right && (
+                              {(r.right || r.state) && (
                                 <span className="num mt-0.5 block truncate text-sm sm:hidden">
-                                  <span className="font-semibold text-slate-900">{r.right}</span>
+                                  {r.state && <span className={r.right ? 'text-slate-600' : 'text-slate-700'}>{r.state}{r.right && ' · '}</span>}
+                                  {r.right && <span className="font-semibold text-slate-900">{r.right}</span>}
                                   {r.rightSub && <span className="text-slate-600"> · {r.rightSub}</span>}
                                 </span>
                               )}
                             </span>
-                            {/* an empty column means not priced; the group header says how many are */}
-                            {r.right && (
+                            {/* positions say their pricing state beside the amount, or in the empty price slot */}
+                            {(r.right || r.state) && (
                               <span className="flex shrink-0 flex-col items-end max-sm:hidden">
-                                <span className="num text-sm leading-5 font-semibold text-slate-900">{r.right}</span>
-                                {r.rightSub && <span className="num text-[13px] leading-5 text-slate-600">{r.rightSub}</span>}
+                                {r.right ? (
+                                  <span className="num text-sm leading-5 font-semibold text-slate-900">{r.right}</span>
+                                ) : (
+                                  <span className="inline-flex h-5 items-center rounded bg-slate-100 px-1.5 text-[13px] leading-5 font-medium text-slate-700">{r.state}</span>
+                                )}
+                                {r.right && (r.rightSub || r.state) && (
+                                  <span className="num text-[13px] leading-5 text-slate-600">{[r.state, r.rightSub].filter(Boolean).join(' · ')}</span>
+                                )}
                               </span>
                             )}
                           </button>
@@ -530,6 +581,7 @@ export function CommandPalette() {
               <span className="flex items-center gap-1.5"><Kbd label="Up arrow">↑</Kbd><Kbd label="Down arrow">↓</Kbd> to move</span>
               <span className="flex items-center gap-1.5"><Kbd label="Enter">↵</Kbd> to open</span>
               {groups.length > 1 && <span className="flex items-center gap-1.5"><Kbd label={`${ALT_KEY === '⌥' ? 'Option' : 'Alt'} and arrow keys`}>{ALT_KEY} ↑↓</Kbd> to jump between groups</span>}
+              {canNarrow && <span className="flex items-center gap-1.5"><Kbd label={`${ALT_KEY === '⌥' ? 'Option' : 'Alt'} P`}>{ALT_KEY} P</Kbd> {pricedOnly ? 'to show all positions' : 'for priced only'}</span>}
               {/* the list page's own position search; elsewhere there is nothing for the slash to open */}
               {onList && !needle && <span className="ml-auto flex items-center gap-1.5"><Kbd label="Slash">/</Kbd> search positions in this list</span>}
             </div>

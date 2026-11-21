@@ -61,8 +61,16 @@ export function FolderPage() {
   const nested = ancestors.length > 0
   const toPrice = f.positions - f.priced
   const flaggedLists = allLists.filter((l) => needsAttention(l.total, l.cap)).length
-  const counted = allLists.filter((l) => counts(l) && l.total > 0)
-  const status = heroStatus(f, counted.map((l) => ({ tone: budgetStatus(l.total, l.cap).tone })), ['list', 'lists'], { keepSame: true })
+  // priced from confirmed position counts: a list whose prices were saved as zero still counts
+  const counted = allLists.filter((l) => counts(l) && (l.total > 0 || l.pricedCount > 0))
+  const status = heroStatus(f, counted.map((l) => ({ tone: budgetStatus(l.total, l.cap).tone })), ['list', 'lists'], { always: true })
+  // the hero's exception count opens Needs attention and lands on Lists, also when the chips are hidden for a short list
+  const showAttention = () => {
+    setView('attention')
+    requestAnimationFrame(() => document.getElementById('sec-lists')?.focus())
+  }
+  const partial = f.positions > 0 && toPrice > 0
+  const coverage = partial ? `${int(f.priced)} of ${plural(f.positions, 'position', 'positions')} priced` : undefined
   // list caps are set independently; say when they promise more than the project cap allows
   const cappedLists = allLists.filter((l) => counts(l) && l.cap > 0)
   const listCaps = cappedLists.reduce((x, l) => x + l.cap, 0)
@@ -127,18 +135,21 @@ export function FolderPage() {
       />
 
       <Summary
-        label={nested ? 'Sub-project total' : 'Project total'}
+        // with prices missing, the figure is only what is confirmed so far
+        label={partial ? 'Confirmed total' : nested ? 'Sub-project total' : 'Project total'}
         amount={money(f.total)}
         total={f.total}
         cap={f.cap}
         status={status}
+        onStatus={showAttention}
+        statusAction="show them in Needs attention"
         capNote={capNote}
         onEditCap={() => openDialog({ kind: 'edit-cap', target: 'folder', id: f.id })}
-        // coverage sits beside the total, so what is left reads against how much is priced
-        sub={toPrice > 0 && f.priced > 0 ? (
-          <span className="num">{int(f.priced)} of {plural(f.positions, 'position', 'positions')} priced · <strong className="font-semibold text-slate-900">{int(toPrice)}</strong> without a price</span>
+        // coverage sits beside the headroom, so what is left reads against how much is priced; without a cap, under the total
+        leftNote={coverage}
+        sub={partial && !f.cap ? (
+          <span className="num">{coverage} · <strong className="font-semibold text-slate-900">{int(toPrice)}</strong> without a price</span>
         ) : undefined}
-        meta={toPrice > 0 && f.priced === 0 ? <span className="num"><strong className="font-semibold text-slate-900">{int(toPrice)}</strong> positions without a price</span> : undefined}
       />
 
       {subfolders.length > 0 && (

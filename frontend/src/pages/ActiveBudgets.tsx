@@ -44,6 +44,11 @@ export function ActiveBudgets() {
   const budget = capped.lists ? capped : { total, cap: 0, lists: 0 }
   const uncapped = capped.lists ? live.length - capped.lists : 0
   const folderCount = new Set(live.map((l) => l.folderId)).size
+  // the hero's exception count opens Needs attention even for short lists, whose chips appear once a filter is on
+  const showAttention = () => {
+    setView('attention')
+    requestAnimationFrame(() => document.getElementById('sec-budgets')?.focus())
+  }
   const toggle = (id: string) =>
     setSel((s) => {
       const n = new Set(s)
@@ -73,7 +78,10 @@ export function ActiveBudgets() {
             cap={budget.cap}
             capLabel="in list caps"
             capNote={<span className="num">caps of the same {plural(budget.lists, 'list', 'lists')}</span>}
-            status={heroStatus(budget, live.map((l) => ({ tone: budgetStatus(l.total, l.cap).tone })), ['list', 'lists'], { keepSame: true })}
+            subject="Combined budgets"
+            status={heroStatus(budget, live.map((l) => ({ tone: budgetStatus(l.total, l.cap).tone })), ['list', 'lists'], { always: true })}
+            onStatus={showAttention}
+            statusAction="show them in Needs attention"
             meta={uncapped ? <span className="num">{plural(uncapped, 'priced list', 'priced lists')} without a cap · {money(total)} across all {int(live.length)}</span> : undefined}
           />
           <Section

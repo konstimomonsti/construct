@@ -264,7 +264,7 @@ export function DetailDrawer({
                   {(edited || added) && (
                     <div className="flex shrink-0 flex-col items-end gap-1 pt-2">
                       {edited && <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[13px] font-semibold text-slate-700" data-testid="edited-badge">Edited</span>}
-                      {added && <span className="rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-800">Added by you</span>}
+                      {added && <span className="rounded-md bg-brand-50 px-2 py-0.5 text-xs font-semibold text-brand-700">Added by you</span>}
                     </div>
                   )}
                 </div>

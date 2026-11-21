@@ -5,6 +5,7 @@ import { CatalogueEditor, type EditorFocus } from '../components/CatalogueEditor
 import { Skeleton } from '../components/Page'
 import { Chips, EmptyState, Kbd, MetaLink, PageFrame, PageHeader, RowList, RowMenu, ToolButton } from '../components/Kit'
 import { Button, Dialog, Icon, inputCls, kbdCls, Menu, toast } from '../components/ui'
+import { raisedCls } from '../lib/cls'
 import { int, plural } from '../lib/format'
 import {
   CATALOGUES, CATALOGUE_PAGE_SIZE, CATALOGUE_SCAN_PAGES, catalogueDate, cataloguePriceSource, formatCataloguePrice, isPriced, scanCatalogue, writeCatalogue,
@@ -362,7 +363,7 @@ function PriceFilters({ value, options, onChange }: { value: PriceFilter; option
         const on = o.key === value
         return (
           <button key={o.key} type="button" aria-pressed={on} onClick={() => onChange(on ? 'all' : o.key)}
-            className={clsx('inline-flex h-10 shrink-0 items-center gap-2 rounded-md px-3.5 text-sm whitespace-nowrap transition-colors', on ? 'bg-slate-900 font-semibold text-white hover:bg-slate-800' : 'bg-slate-100 font-medium text-slate-800 hover:bg-slate-200')}>
+            className={clsx('inline-flex h-10 shrink-0 items-center gap-2 rounded-md px-3.5 text-sm whitespace-nowrap transition-colors', on ? 'bg-slate-900 font-semibold text-white hover:bg-slate-800' : [raisedCls, 'font-medium'])}>
             {o.label}
             {o.count !== undefined && <span className={clsx('num', on ? 'text-slate-200' : 'text-slate-600')}>{int(o.count)}</span>}
             {on && <Icon name="close" size={16} />}
