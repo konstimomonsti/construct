@@ -213,3 +213,75 @@ def special_notes(ctx):
                 message=f"{label(line)}: {exposure}. {NOTES[exposure]}",
                 evidence={**evidence, "exposure": exposure,
                           "bieterfrage_de": f"Zu Pos. {line.code}: {NOTES[exposure]}"})
+
+# Extended norm checks use only explicit facts stated on the position.
+from decimal import Decimal
+from . import textvalues as tv
+
+
+@rule("L1.DIN.WATERPROOFING_MISSING", layer=1, category="din", severity="warning",
+      title="Waterproofing specification missing", description="Checks ground-contact precast and plinth specifications.")
+def waterproofing_missing(ctx):
+    for line in ctx.input.lines:
+        text = text_of(line)
+        if tv.PRECAST_PLINTH.search(text) and tv.GROUND_CONTACT.search(text) and not (tv.WATER_IMPACT.search(text) or tv.WATERPROOFING.search(text)):
+            yield ctx.finding(line=line, field="long_text", message=f"{label(line)}: Ground-contact precast or plinth work lacks a water-impact class or waterproofing specification.",
+                evidence={"standard": "DIN 18533", "water_impact_class": None, "waterproofing": None, "bieterfrage_de": f"Zu Pos. {line.code}: Das Bauteil befindet sich im Erd-/Spritzwasserbereich. Welche Wassereinwirkungsklasse nach DIN 18533 und welche Abdichtungsmaßnahme sind vorgesehen?"})
+
+
+@rule("L1.DIN.FIRE_RATING_CONFLICT", layer=1, category="din", severity="error",
+      title="Fire resistance requirement unclear", description="Checks conflicting ratings and unclassified fire walls.")
+def fire_rating_conflict(ctx):
+    for line in ctx.input.lines:
+        short = {f"{a.upper()}{b}" for a, b in tv.FIRE_RATING.findall(line.short_text or "")}
+        long = {f"{a.upper()}{b}" for a, b in tv.FIRE_RATING.findall(line.long_text or "")}
+        conflict = bool(short and long and {x for x in short} != {x for x in long})
+        unclassified = bool(tv.FIRE_WALL.search(text_of(line)) and not (short or long))
+        if conflict or unclassified:
+            a, b = ", ".join(sorted(short)) or "keine Angabe", ", ".join(sorted(long)) or "keine Angabe"
+            yield ctx.finding(line=line, field="long_text", message=f"{label(line)}: " + (f"Short and long text specify different fire ratings ({a} vs. {b})." if conflict else "The fire wall has no stated fire-resistance rating."),
+                evidence={"standard": "DIN 4102 / DIN EN 13501", "short_ratings": sorted(short), "long_ratings": sorted(long), "unclassified_fire_wall": unclassified, "bieterfrage_de": f"Zu Pos. {line.code}: Die Brandschutzanforderung ist unklar ({a} gegenüber {b}). Bitte bestätigen Sie die maßgebliche Feuerwiderstandsklasse nach DIN 4102 / DIN EN 13501."})
+
+
+@rule("L1.DIN.VOB_DEDUCTION_VIOLATION", layer=1, category="din", severity="warning",
+      title="Opening deduction requires clarification", description="Screens explicit opening deduction limits against DIN 18331 thresholds.")
+def vob_deduction_violation(ctx):
+    for line in ctx.input.lines:
+        text = text_of(line)
+        # Evaluate individual clauses to avoid pairing unrelated quantities with an opening.
+        import re
+        for clause in re.split(r"[;\n]", text):
+            if not (tv.VOB_OPENING.search(clause) and tv.VOB_DEDUCTION.search(clause)):
+                continue
+            for match in tv.VOB_LIMIT.finditer(clause):
+                number, unit = match.groups()
+                limit = Decimal("0.5") if unit.lower() in {"m³", "m3", "cbm"} else Decimal("2.5")
+                if Decimal(number.replace(",", ".")) <= limit:
+                    yield ctx.finding(line=line, field="long_text", message=f"{label(line)}: The opening deduction clause includes openings at or below the DIN 18331 screening threshold ({limit} {unit}).",
+                        evidence={"standard": "DIN 18331", "stated_limit": number, "unit": unit, "screening_threshold": str(limit), "clause": clause.strip(), "bieterfrage_de": f"Zu Pos. {line.code}: Die Ausschreibung sieht den Abzug kleiner Aussparungen vor. Bitte klären Sie die Abrechnung im Hinblick auf die Übermessungsgrenzen nach VOB/C DIN 18331."})
+                    break
+            else:
+                continue
+            break
+
+
+@rule("L1.DIN.REBAR_UNKNOWN_GRADE", layer=1, category="din", severity="warning",
+      title="Unknown reinforcing steel grade", description="Checks stated reinforcement grades against the supported DIN 488 designations.")
+def rebar_unknown_grade(ctx):
+    for line in ctx.input.lines:
+        text = text_of(line)
+        if not tv.REBAR_KEYWORD.search(text):
+            continue
+        for grade in sorted({m.group().strip() for m in tv.REBAR_GRADE.finditer(text) if not tv.REBAR_VALID.fullmatch(m.group().strip())}):
+            yield ctx.finding(line=line, field="long_text", discriminator=grade.upper(), message=f"{label(line)}: Reinforcing steel grade {grade} is not a supported DIN 488 designation.",
+                evidence={"standard": "DIN 488", "grade": grade, "valid_grades": ["B500A", "B500B", "B500NR", "Bst 500 S", "Bst 500 M"], "bieterfrage_de": f"Zu Pos. {line.code}: Der angegebene Betonstahl {grade} ist nicht als DIN-488-Bezeichnung erkannt. Bitte bestätigen Sie die geforderte Stahlsorte und Duktilitätsklasse."})
+
+
+@rule("L1.DIN.TOLERANCE_UNSPECIFIED", layer=1, category="din", severity="info",
+      title="Special tolerance unspecified", description="Checks enhanced accuracy demands for an explicit tolerance class or table line.")
+def tolerance_unspecified(ctx):
+    for line in ctx.input.lines:
+        text = text_of(line)
+        if tv.TOLERANCE_DEMAND.search(text) and not tv.TOLERANCE_SPEC.search(text):
+            yield ctx.finding(line=line, field="long_text", message=f"{label(line)}: Enhanced accuracy is requested without a specified tolerance table line or class.",
+                evidence={"standard": "DIN 18202 / DIN 18203-1", "requirement": tv.TOLERANCE_DEMAND.search(text).group(), "bieterfrage_de": f"Zu Pos. {line.code}: Es werden erhöhte Anforderungen an die Genauigkeit gestellt. Bitte definieren Sie die zulässigen Grenzabweichungen nach DIN 18202 oder DIN 18203-1."})

@@ -135,3 +135,49 @@ def test_lv11_golden_and_mutations():
     changed = analyze(mutated, [1])
     assert {"L1.DIN.EXPOSURE_STRENGTH", "L1.PRECAST.LAYER_SUM"} <= {
         f.rule_id for f in changed.findings if f.target.line_code == "3.2.20"}
+
+
+def extended(rule, short, long=""):
+    result = run(make_line(short_text=short, long_text=long))
+    assert not result.errors
+    findings = [f for f in result.findings if f.rule_id == "L1.DIN." + rule]
+    for finding in findings:
+        assert finding.message and finding.target.field in {"short_text", "long_text"}
+        assert finding.evidence["bieterfrage_de"].startswith("Zu Pos. 01.0001:")
+    return findings
+
+
+def test_waterproofing_ground_contact():
+    assert extended("WATERPROOFING_MISSING", "FT-Sockel im Erdreich")
+    assert not extended("WATERPROOFING_MISSING", "FT-Sockel im Erdreich W1.2-E")
+    assert not extended("WATERPROOFING_MISSING", "Sockel im Erdreich mit Abdichtung")
+    assert not extended("WATERPROOFING_MISSING", "Fertigteil an Innenwand")
+
+
+def test_fire_rating_consistency():
+    assert extended("FIRE_RATING_CONFLICT", "Wand F30", "Wand F90")
+    assert extended("FIRE_RATING_CONFLICT", "Brandwand")
+    assert extended("FIRE_RATING_CONFLICT", "REI 30", "REI 60")
+    assert not extended("FIRE_RATING_CONFLICT", "Brandwand F90", "F 90")
+    assert not extended("FIRE_RATING_CONFLICT", "Wand ohne Anforderungen")
+
+
+def test_vob_illegal_deduction():
+    for clause in ("Öffnungen bis 2,5 m² abziehen", "Aussparungen unter 0,5 m³ abzuziehen"):
+        assert extended("VOB_DEDUCTION_VIOLATION", clause)
+    assert not extended("VOB_DEDUCTION_VIOLATION", "Öffnungen über 2,5 m² abziehen")
+    assert not extended("VOB_DEDUCTION_VIOLATION", "Öffnungen bis 2,5 m² übermessen")
+
+
+def test_rebar_grades():
+    assert extended("REBAR_UNKNOWN_GRADE", "Bewehrung B400A")
+    for grade in ("B500A", "B500B", "B500NR", "Bst 500 S", "Bst 500 M"):
+        assert not extended("REBAR_UNKNOWN_GRADE", "Betonstahl " + grade)
+    assert not extended("REBAR_UNKNOWN_GRADE", "Bewehrung nach Statik")
+
+
+def test_tolerance_unspecified():
+    assert extended("TOLERANCE_UNSPECIFIED", "Fertigteile mit erhöhter Genauigkeit")
+    assert extended("TOLERANCE_UNSPECIFIED", "Sondertoleranz gefordert")
+    assert not extended("TOLERANCE_UNSPECIFIED", "erhöhte Genauigkeit nach DIN 18202 Tabelle 3 Zeile 7")
+    assert not extended("TOLERANCE_UNSPECIFIED", "Sondertoleranz nach DIN 18203-1 Klasse A")
