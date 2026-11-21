@@ -755,6 +755,47 @@ def generate_insulation_specifications(out):
             write_fixture_labels(out / f"{name}.{ext}", f"{baseline}.{ext}", label)
 
 
+def generate_thermal_products(out):
+    """Replay a quoted conductivity limit against synthetic exact-SKU evidence."""
+    out.mkdir(parents=True, exist_ok=True)
+    manufacturer = "Synthetic Insulation"
+    declarations = [
+        {"manufacturer": manufacturer, "product_code": sku, "document": f"Synthetic declaration {sku}",
+         "revision": "A", "locator": "page 2, conductivity table",
+         "properties": {f"thermal_conductivity_{basis}": {"value": value, "unit": unit}}}
+        for sku, basis, value, unit in (
+            ("I-35", "design", "35", "mW/(mK)"),
+            ("I-40", "design", "0.040", "W/(mK)"),
+            ("I-D34", "declared", "0.034", "W/(mK)"),
+            ("I-R", "design", "3", "m²K/W"),
+            ("I-D40", "declared", "40", "mW/(mK)"),
+        )
+    ]
+    package = {"schema": "billbuild.product-evidence.v1", "declarations": declarations}
+    (out / "product-evidence.json").write_text(json.dumps(package, indent=2), encoding="utf-8")
+    for name, sku, basis, role, severity, reason in (
+        ("thermal-fit", "I-35", "Bemessungswert", "Angebotenes Fabrikat", None, None),
+        ("thermal-higher", "I-40", "Bemessungswert", "Angebotenes Fabrikat", "warning", None),
+        ("thermal-wrong-basis", "I-D34", "Bemessungswert", "Angebotenes Fabrikat", "info", "thermal_basis_unverified"),
+        ("thermal-incompatible-unit", "I-R", "Bemessungswert", "Angebotenes Fabrikat", "info", "thermal_evidence_unverified"),
+        ("thermal-reference", "I-40", "Bemessungswert", "Fabrikat der Planung", None, None),
+        ("thermal-declared-higher", "I-D40", "Nennwert", "Angebotenes Fabrikat", "warning", None),
+    ):
+        detail = f"{basis}: höchstens 0,035 W/(mK).\n{role}: Hersteller: {manufacturer}; SKU: {sku}"
+        item = Item("01.0010", "Dämmplatten EPS, 80 mm", 25, "m²", detail=detail)
+        locators = _write_text_case(out, name, "Leistungsverzeichnis Dämmarbeiten", item, "thermal-product")
+        locators.update(_write_offer_tables(out, name, item, "Dämmung"))
+        for ext, locator in locators.items():
+            label = {"control": severity is None, "layers": [1], "expect": []}
+            if severity:
+                label.update(match="line", expect=["L1.PRODUCT.DECLARED_PROPERTY"], target={
+                    "line_codes": [item.code], "severity": severity, "source_locator": locator,
+                    "reason": reason, "guidance": "review",
+                })
+            baseline = "thermal-fit" if severity else name
+            write_fixture_labels(out / f"{name}.{ext}", f"{baseline}.{ext}", label)
+
+
 def generate_grade_scope(out):
     """Test concrete grade conflicts, legitimate component differences and unclear attribution."""
     out.mkdir(parents=True, exist_ok=True)
@@ -872,7 +913,8 @@ if __name__ == "__main__":
               "fire-door-installation": generate_fire_door_installation,
               "cable-designations": generate_cable_designations, "fix-planning": generate_fix_planning,
               "dependency-specification": generate_dependency_specification,
-              "fire-attribution": generate_fire_attribution, "insulation-specifications": generate_insulation_specifications}
+              "fire-attribution": generate_fire_attribution, "insulation-specifications": generate_insulation_specifications,
+              "thermal-products": generate_thermal_products}
     parser.add_argument("--suite", choices=suites, default="tabular")
     args = parser.parse_args()
     suites[args.suite](args.out)

@@ -22,10 +22,14 @@ _THICKNESS_BOUND = re.compile(r"\b(?:maximal|max\.|höchstens)\b|[<>≤≥]", re
 _MULTI = re.compile(r"\b(?:gesamt|Gesamtdicke|zweilagig|mehrlagig|\d+[ -]lagig)\b|\d\s*[×x/]\s*\d", re.I)
 _UPPER_LIMIT = re.compile(r"(?:≤|<=|\bmax\.?|\bhöchstens)\s*$", re.I)
 _GRADE = re.compile(r"\b(?P<kind>WLG|WLS|Wärmeleitgruppe|Wärmeleitfähigkeitsstufe)\s*[:=]?\s*(?P<value>0[1-9]\d)\b", re.I)
+_WATTS_PER_METRE_KELVIN = r"(?P<power>(?-i:mW|W))\s*/\s*(?:\(\s*m\s*[·∙*]?\s*K\s*\)|m\s*[·∙*]?\s*K)"
+_CONDUCTIVITY_UNIT = re.compile(_WATTS_PER_METRE_KELVIN, re.I)
+CONDUCTIVITY_UNIT = "W/(m·K)"
+CONDUCTIVITY_PROPERTIES = {"design": "thermal_conductivity_design", "declared": "thermal_conductivity_declared"}
 _LAMBDA = re.compile(
     rf"(?<!\w)(?P<kind>(?:Bemessungswert|Nennwert)(?:\s+der\s+Wärmeleitfähigkeit)?|"
     rf"Wärmeleitfähigkeit|λ(?:[ _]?(?:BW|B|D))?)\s*[:=]?\s*(?P<limit>≤|<=|max\.?|höchstens)?\s*"
-    rf"(?P<value>{NUMBER})\s*(?P<power>(?-i:mW|W))\s*/\s*(?:\(\s*m\s*[·∙*]?\s*K\s*\)|m\s*[·∙*]?\s*K)(?!\w)",
+    rf"(?P<value>{NUMBER})\s*{_WATTS_PER_METRE_KELVIN}(?!\w)",
     re.I,
 )
 _THICKNESS_LEAD = re.compile(r"(?:[,;:]|\b(?:Plattendicke|Dicke|d)\s*[:=])\s*$", re.I)
@@ -50,6 +54,30 @@ def insulation_role(heading):
     return match["role"].casefold()
 
 
+def _watts(value, power):
+    number = value if isinstance(value, Decimal) else Decimal(value.replace(",", "."))
+    if power == "W":
+        return number
+    sign, digits, exponent = number.as_tuple()
+    return Decimal((sign, digits, exponent - 3))
+
+
+def conductivity_in_watts(value, unit):
+    """Normalize a typed conductivity. Require a unit and a positive measured value."""
+    match = _CONDUCTIVITY_UNIT.fullmatch((unit or "").strip())
+    if not match:
+        return None
+    if isinstance(value, Decimal):
+        if not value.is_finite():
+            return None
+    else:
+        value = str(value).strip()
+        if not re.fullmatch(NUMBER, value):
+            return None
+    number = _watts(value, match["power"])
+    return number if number > 0 else None
+
+
 def _conductivities(text):
     for match in _GRADE.finditer(text):
         if re.match(r"\s*[-–—/]\s*\d", text[match.end():]):
@@ -63,12 +91,11 @@ def _conductivities(text):
         kind = re.sub(r"[ _]", "", match["kind"].casefold())
         basis = ("design" if kind.startswith("bemessungswert") or kind in {"λb", "λbw"} else
                  "declared" if kind.startswith("nennwert") or kind == "λd" else "unspecified")
-        number = Decimal(match["value"].replace(",", "."))
+        number = _watts(match["value"], match["power"])
         if number > 0:
             limit = _UPPER_LIMIT.search(text[:match.start()])
             quote = text[limit.start():match.end()] if limit else match[0]
-            yield basis, WrittenValue(number / (1000 if match["power"] == "mW" else 1),
-                                      quote, bool(match["limit"] or limit))
+            yield basis, WrittenValue(number, quote, bool(match["limit"] or limit))
 
 
 def is_conductivity_quote(text):
@@ -108,14 +135,38 @@ def _disagrees(a, b):
     return a.value != b.value
 
 
-def insulation_conflicts(heading, detail):
+def _scoped_text(heading, detail):
     role = insulation_role(heading)
     if not role or _UNCERTAIN.search(OR_EQUIVALENT.sub("", heading)):
-        return
+        return None
     boundary = _ACCESSORY.search(heading)
     primary = heading[:boundary.start()] if boundary else heading
     clauses = [clause for clause in _scoped_clauses(heading, detail, role)
                if not _UNCERTAIN.search(OR_EQUIVALENT.sub("", clause))]
+    return role, primary, clauses
+
+
+def written_conductivity_limits(heading, detail):
+    """Extract one explicit upper value per basis. Leave grade codes and unlabelled values alone."""
+    if not (scoped := _scoped_text(heading, detail)):
+        return
+    _, primary, clauses = scoped
+    for basis in CONDUCTIVITY_PROPERTIES:
+        limits = {}
+        for field, parts in (("short_text", [primary]), ("long_text", clauses)):
+            for part in parts:
+                for key, item in _conductivities(part):
+                    if basis == key and item.upper_limit:
+                        limits.setdefault(item.value, (field, item))
+        if len(limits) == 1:
+            field, item = next(iter(limits.values()))
+            yield CONDUCTIVITY_PROPERTIES[basis], field, item
+
+
+def insulation_conflicts(heading, detail):
+    if not (scoped := _scoped_text(heading, detail)):
+        return
+    role, primary, clauses = scoped
     short, long = list(_conductivities(primary)), [pair for clause in clauses for pair in _conductivities(clause)]
     for basis in dict.fromkeys(key for key, _ in short):
         a = _unique(item for key, item in short if key == basis)

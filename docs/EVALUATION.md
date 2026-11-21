@@ -122,6 +122,12 @@ Generate with `--suite insulation-specifications` and upload `insulation-*.{pdf,
 
 The source audit confirms a real conflict on page 4, position 11.4.10 of the repository screed bill. The heading gives 80 mm for the single-layer EPS and the detail gives 120 mm for the plate. The question cites both values and asks which thickness governs. The comparable position 11.3.20, with 80 mm in both places, stayed clear.
 
+### Comparing offered insulation conductivity
+
+Use `thermal_conductivity_design` for a design value and `thermal_conductivity_declared` for a declared value. Each property takes an explicit unit of W/(m·K) or mW/(m·K). The checker uses the exact offered manufacturer and SKU and cites the declaration document, revision and locator. It can read an explicit, attributed maximum from the tender and compare it with the same property in an attached project requirement. If the project sources specify incompatible values, the finding cites both before any product judgement. A WLG or WLS label alone leaves the product design limit unspecified. [Manufacturer example showing both bases](https://knauf.com/api/download-center/v1/assets/32534f04-4b77-4798-8b7a-a5a371ccec17?download=true)
+
+Generate with `--suite thermal-products` and upload `thermal-*.{pdf,docx,X83,json,csv,tsv,xlsx,xls}` with the generated product evidence. The eight-format replay caught 16 above-limit conflicts and 16 evidence reviews and cleared 16 controls. The local three-layer replay preserved all 12 findings and cleared six controls. A preliminary probe attached a synthetic project schedule and offer to the original screed position 11.3.20. The comparison linked to page 2. Those inputs check traceability and unit comparison.
+
 ### Cable designations in electrical and roadworks bills
 
 Layer 1 compares the leading named cable in the heading and detail. It checks the written core count, nominal core cross-section, explicitly stated concentric conductor cross-section, and variant suffix. Findings quote both designations and ask which governs in the cable schedule. Equivalent notation, references to connection cables, and explicit alternatives are covered by controls. The check uses values written in the bill. Cable sizing and suitability require engineering and project evidence. [Manufacturer designation example](https://www.lapp.com/en_GB/gb/GBP/nycwy/p/15505443)

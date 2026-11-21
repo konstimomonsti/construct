@@ -11,6 +11,9 @@ from ..registry import rule
 from .common import BIDDER_INPUT, OR_EQUIVALENT, review_fix, source_detail, text_of
 from .fire_doors import door_class_discrepancy, parse_fire_class, written_fire_class
 from .fire_installation import match_installation
+from .insulation import (
+    CONDUCTIVITY_PROPERTIES, CONDUCTIVITY_UNIT, conductivity_in_watts, insulation_conflicts, written_conductivity_limits,
+)
 from .standards import MATERIAL, material_family, supported_pipe_scopes
 
 
@@ -36,6 +39,8 @@ _MINIMUM_SN = re.compile(
 _ALTERNATIVE = re.compile(r"\b(?:wahlweise|alternativ|oder)\b", re.I)
 _SN_PROPERTY = "ring_stiffness_sn"
 _FIRE_PROPERTY = "fire_resistance_class"
+_THERMAL_PROPERTIES = {name: f"{basis} thermal conductivity" for basis, name in CONDUCTIVITY_PROPERTIES.items()}
+_AUTO_PROPERTIES = {_FIRE_PROPERTY, *_THERMAL_PROPERTIES}
 _SN_SUBJECT = re.compile(rf"^(?:(?:{MATERIAL})[ -]+)?{_DRAINAGE.pattern}", re.I)
 _SN_CLAUSE = re.compile(r"(?<=[.!?;])\s+|\n")
 _SN_QUALIFIER = re.compile(r"\b(?:falls|sofern|wenn|gegebenenfalls|optional|bei Bedarf|für|oder|wahlweise|alternativ|Formstücke?|Muffen?|Bögen)\b", re.I)
@@ -157,9 +162,24 @@ def _written_fire_requirements(snapshot):
     return written
 
 
+def _written_thermal_requirements(snapshot):
+    source = snapshot.project.source_document
+    for line in snapshot.lines:
+        if not line.code:
+            continue
+        for name, field, limit in written_conductivity_limits(line.short_text, source_detail(line, source.format)):
+            location = "Heading" if field == "short_text" else "Description"
+            requirement = ProductRequirement(
+                position_code=line.code[:100], property_name=name, comparison="at_most",
+                required=ProductProperty(value=limit.value, unit=CONDUCTIVITY_UNIT),
+                document=(source.filename or "Original tender")[:240], locator=f"{location} of position {line.code}"[:240],
+            )
+            yield (line.id, name), WrittenRequirement(requirement, field, limit.quote)
+
+
 def _written_requirements(snapshot):
     return {**{(line_id, _SN_PROPERTY): source for line_id, source in _written_stiffness(snapshot).items()},
-            **_written_fire_requirements(snapshot)}
+            **_written_fire_requirements(snapshot), **dict(_written_thermal_requirements(snapshot))}
 
 
 def _sn_unit(unit):
@@ -256,6 +276,9 @@ def _requirement_positions(snapshot):
 
 
 def _requirement_bound(requirement):
+    if requirement.property_name in _THERMAL_PROPERTIES:
+        value = conductivity_in_watts(requirement.required.value, requirement.required.unit)
+        return (("thermal", requirement.property_name), value) if value is not None else (None, None)
     if requirement.property_name == _FIRE_PROPERTY:
         rating = parse_fire_class(requirement.required.value, requirement.required.unit)
         return (("fire", rating.family, rating.qualifiers), rating.minutes) if rating else (None, None)
@@ -341,7 +364,7 @@ def conflicting_product_requirements(ctx):
             if source and requirement is source.requirement:
                 citation.update(quote=source.quote, field=source.field)
             citations.append(citation)
-        name = "ring stiffness" if property_name == _SN_PROPERTY else property_name
+        name = "ring stiffness" if property_name == _SN_PROPERTY else _THERMAL_PROPERTIES.get(property_name, property_name)
         yield ctx.finding(
             line=lines[line_id], discriminator=property_name,
             message=f"The requirements for {name} specify {_constraint_text(first)} and "
@@ -361,7 +384,11 @@ def _compare_property(line, requirement, source_format, declarations):
     items = declarations.get(identity, [])
     target_unit = requirement.required.unit
     expected = _value_in_unit(requirement.required, target_unit)
-    if requirement.property_name == _SN_PROPERTY and _sn_unit(target_unit):
+    if requirement.property_name in _THERMAL_PROPERTIES:
+        expected = conductivity_in_watts(requirement.required.value, target_unit)
+        values = {conductivity_in_watts(prop.value, prop.unit) for item in items
+                  if (prop := item.properties.get(requirement.property_name))}
+    elif requirement.property_name == _SN_PROPERTY and _sn_unit(target_unit):
         expected = adapter.parse_number(requirement.required.value)
         if expected is not None and expected <= 0:
             expected = None
@@ -420,12 +447,12 @@ def declared_properties(ctx):
     conflicts = _incompatible_requirements(positions, written)
     reported = {(matches[0].id, requirement.comparison, _requirement_bound(requirement))
                 for requirement, _, matches in positions
-                if len(matches) == 1 and requirement.property_name == _FIRE_PROPERTY}
+                if len(matches) == 1 and requirement.property_name in _AUTO_PROPERTIES}
     lines = ctx.input.line_by_id()
     source_format = ctx.input.project.source_document.format
     for (line_id, name), source in written.items():
         requirement = source.requirement
-        if name != _FIRE_PROPERTY or (line_id, requirement.comparison, _requirement_bound(requirement)) in reported:
+        if name not in _AUTO_PROPERTIES or (line_id, requirement.comparison, _requirement_bound(requirement)) in reported:
             continue
         if _offers(lines[line_id], source_format):
             positions.append((requirement, [], [lines[line_id]]))
@@ -446,7 +473,18 @@ def declared_properties(ctx):
                     line, requirement, source_format, declarations, written=is_written,
                 )
             else:
+                if requirement.property_name in _THERMAL_PROPERTIES:
+                    detail = source_detail(line, source_format)
+                    if any(family == "insulation_conductivity" and CONDUCTIVITY_PROPERTIES.get(basis) == requirement.property_name
+                           for family, basis, _, _ in insulation_conflicts(line.short_text, detail)):
+                        continue
                 offer, items, actual, outcome = _compare_property(line, requirement, source_format, declarations)
+                if requirement.property_name in _THERMAL_PROPERTIES and outcome == "insufficient_evidence":
+                    other_bases = _THERMAL_PROPERTIES.keys() - {requirement.property_name}
+                    different_basis_only = any(other_bases & item.properties.keys() for item in items) and not any(
+                        requirement.property_name in item.properties for item in items
+                    )
+                    reason = "thermal_basis_unverified" if different_basis_only else "thermal_evidence_unverified"
         else:
             offer, items, actual, outcome = None, [], None, "insufficient_evidence"
             candidates = matches or codes
@@ -487,6 +525,13 @@ def declared_properties(ctx):
                 message += f" The supplied declaration states {actual}."
             action = "Confirm the exact offered door assembly and obtain its governing declaration. " \
                      "If the designated class differs, ask the specification owner to confirm acceptance."
+        elif name in _THERMAL_PROPERTIES and outcome == "conflict":
+            message = (f"Position {position} {operator} {expected} for {_THERMAL_PROPERTIES[name]}. "
+                       f"The offered variant declares {actual} {CONDUCTIVITY_UNIT} on that basis.")
+            action = "Confirm the cited requirement and request a variant with a comparable conductivity declaration."
+        elif reason in {"thermal_basis_unverified", "thermal_evidence_unverified"}:
+            message = f"The evidence for position {position} does not establish {_THERMAL_PROPERTIES[name]} against {expected}."
+            action = "Attach the governing value on the specified basis for the exact offered manufacturer and SKU."
         elif outcome == "conflict":
             observed = f"{actual} {unit}".strip()
             message = f"Position {position} {operator} {expected} for {name}. The offered variant declares {observed}."
@@ -519,6 +564,7 @@ def declared_properties(ctx):
                       "position_candidates": [{"line_code": candidate.code, "locator": candidate.source_locator}
                                               for candidate in example_candidates],
                       "declarations": [item.model_dump(mode="json") for item in items],
+                      **({"observed_unit": CONDUCTIVITY_UNIT} if name in _THERMAL_PROPERTIES and actual is not None else {}),
                       **({"installation": installation} if installation else {}),
                       **(offer.evidence() if offer else {})},
             message=message, suggested_fix=review_fix(action),
