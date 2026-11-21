@@ -502,6 +502,22 @@ def generate_written_quantities(out):
             write_fixture_labels(out / f"{name}.{ext}", f"{baseline}.{ext}", label)
 
 
+def generate_underspecification(out):
+    """Check an explicit missing rating and a fully specified door control."""
+    out.mkdir(parents=True, exist_ok=True)
+    for name, rating in (("property-stated", "T30"), ("property-open", "noch offen")):
+        item = Item("01.0010", "Brandschutztür aus Stahl, 1000 × 2125 mm, RAL 9010", 1, "St",
+                    detail=f"Feuerwiderstand: {rating}.\nInkl. Türschließer, Profilzylinder und Drückergarnitur.")
+        for ext, locator in _write_text_case(out, name, "Leistungsverzeichnis Türen", item, "property").items():
+            control = name == "property-stated"
+            label = {"control": control, "layers": [1], "expect": []}
+            if not control:
+                label.update(match="line", expect=["L1.TEXT.SPEC_PLACEHOLDER"], target={
+                    "line_codes": [item.code], "severity": "warning", "source_locator": locator, "bidder_question": True,
+                })
+            write_fixture_labels(out / f"{name}.{ext}", f"property-stated.{ext}", label)
+
+
 def generate_grade_scope(out):
     """Test concrete grade conflicts, legitimate component differences and unclear attribution."""
     out.mkdir(parents=True, exist_ok=True)
@@ -614,7 +630,7 @@ if __name__ == "__main__":
               "product-offer": generate_product_offer, "product-position": generate_product_position,
               "product-requirements": generate_product_requirements, "written-stiffness": generate_written_stiffness,
               "action-spelling": generate_action_spelling, "outline-duplicates": generate_outline_duplicates,
-              "written-quantities": generate_written_quantities}
+              "written-quantities": generate_written_quantities, "underspecification": generate_underspecification}
     parser.add_argument("--suite", choices=suites, default="tabular")
     args = parser.parse_args()
     suites[args.suite](args.out)

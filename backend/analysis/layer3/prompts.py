@@ -55,7 +55,7 @@ Answer once for every finding ref you are given."""
 
 PRECAST_VERSION = "l3-precast-v1"
 SCOPE_VERSION = "l3-scope-v1"
-UNDERSPECIFIED_VERSION = "l3-underspecified-v1"
+UNDERSPECIFIED_VERSION = "l3-underspecified-v2"
 QUANTITY_VERSION = "l3-quantity-v4"
 
 # Spec Step 2, extended with the fields the cross-item audit needs (rebar_purpose, assigned_element_codes)
@@ -149,6 +149,10 @@ quantity alone. Report an item only when a property that clearly drives the pric
 - surface_finish or colour where it is specified elsewhere for similar work;
 - fire_rating of doors, closures, penetration seals;
 - installation_location or scope_of_work when it is unclear what work is included.
+
+Before reporting, read both descriptions. An explicit class, colour or material applying to the quoted
+part is evidence of that property. A value for a different component is separate. Quote the subject
+whose requirement still needs clarification.
 
 Do NOT report:
 - site set-up, lump sums, hourly work, surcharges (Zulagen) whose base item carries the specification;

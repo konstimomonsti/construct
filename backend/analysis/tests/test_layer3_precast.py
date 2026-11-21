@@ -549,6 +549,52 @@ def test_underspecified_only_short_texts_with_verified_quote():
     assert found[0].evidence["bieterfrage_de"].startswith("Zu Pos. 3.2.80: ")
 
 
+@pytest.mark.parametrize("heading,detail,property_name,quote", [
+    ("Stahltür T30, RAL 9010", "", "fire_rating", "Stahltür"),
+    ("Stahltür T30, RAL 9010", "", "colour", "Stahltür"),
+    ("Abdeckung montieren", "Material: Edelstahl.", "material", "Abdeckung"),
+    ("Fundament aus Beton C30/37", "", "strength_class", "Fundament"),
+    ("Fundament einbauen", "Expositionsklasse: XC4.", "exposure_class", "Fundament"),
+    ("Türblatt einbauen", "Zarge aus Stahl.", "material", "Zarge"),
+])
+def test_underspecified_drops_claims_contradicted_by_a_value_for_the_quoted_part(heading, detail, property_name, quote):
+    snapshot = from_data({"lines": [{"id": "one", "code": "01.0010", "short_text": heading,
+                                   "long_text": detail, "quantity": "1", "unit": "St"}]})
+    response = {"findings": [{"line_ref": "#1", "missing_property": property_name, "quote": quote,
+                              "question_de": "Welche Vorgabe gilt?", "confidence": 0.9}]}
+    provider = FakeProvider(lambda request: fake_model(request, under=lambda _: response))
+    findings, _ = run3(snapshot, provider)
+    assert [r for r in provider.requests if r.prompt_version == prompts.UNDERSPECIFIED_VERSION]
+    assert not by_rule(findings, UNDER)
+
+
+@pytest.mark.parametrize("heading,detail,property_name,quote", [
+    ("Stahltür mit Zarge T30", "", "fire_rating", "Stahltür"),
+    ("Stahltür, Zarge T30", "", "fire_rating", "Stahltür"),
+    ("Stahltür optional T30 oder T60", "", "fire_rating", "Stahltür"),
+    ("Stahltür ohne Feuerwiderstand T30", "", "fire_rating", "Stahltür"),
+    ("Stahltür T30", "Feuerwiderstand: noch offen.", "fire_rating", "Stahltür"),
+    ("Abdeckung mit Griff aus Stahl", "", "material", "Abdeckung"),
+    ("Abdeckung montieren", "Griff: Material: Edelstahl.", "material", "Abdeckung"),
+    ("Betonfundament, Bettung C30/37", "", "strength_class", "Betonfundament"),
+    ("Betonbord TB10/25 grau Fundament Rückenstütze C20/25", "", "strength_class", "Betonbord"),
+    ("Betonbord TB10/25 grau", "Festigkeitsklasse: Fundament C20/25.", "strength_class", "Betonbord"),
+    ("Rohr DN 160", "", "dimension", "Rohr"),
+])
+def test_underspecified_keeps_unclear_requirements_and_other_components(heading, detail, property_name, quote):
+    snapshot = from_data({"lines": [{"id": "one", "code": "01.0010", "short_text": heading,
+                                   "long_text": detail, "quantity": "1", "unit": "St",
+                                   "source_locator": {"row": 2}}]})
+    response = {"findings": [{"line_ref": "#1", "missing_property": property_name, "quote": quote,
+                              "question_de": "Welche Vorgabe gilt?", "confidence": 0.9}]}
+    provider = FakeProvider(lambda request: fake_model(request, under=lambda _: response))
+    findings, _ = run3(snapshot, provider)
+    item, = by_rule(findings, UNDER)
+    assert item.evidence["missing_property"] == property_name
+    assert item.source_locator == {"row": 2}
+    assert item.evidence["bieterfrage_de"].startswith("Zu Pos. 01.0010")
+
+
 def test_underspecified_nothing_reported_when_model_finds_nothing():
     findings, _ = run3(lv11(), FakeProvider(fake_model))
     assert by_rule(findings, UNDER) == []

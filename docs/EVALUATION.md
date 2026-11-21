@@ -342,6 +342,12 @@ WORKSPACE_PARSE_ORIGIN=http://127.0.0.1:8080 \
 
 A separate replay of the existing ten short-versus-long description cases caught four of five contradictions through the full pipeline, with zero contradiction warnings on the five controls. Layer 1 caught the nominal diameter and concrete class conflicts. Layer 3 caught board thickness and material. The site-fence height conflict was missed.
 
+### Missing specification and component scope
+
+Layer 1 flags explicit unresolved fire-resistance fields such as `Feuerwiderstand: noch offen`. The finding quotes the tender and asks the issuer to provide the requirement. The local three-layer upload replay caught all four marked cases and linked each bidder question to its original position. Four complete controls were clear in PDF, Word, X83, and JSON. Generate these fixtures with `--suite underspecification` and replay `property-*.{pdf,docx,X83,json}` using the local upload command above.
+
+Layer 3 checks a proposed missing property for a directly attributable value before showing the question. The check covers supported fire designations, concrete strength and exposure classes, RAL colours, and explicit materials. Model-response tests cover separate components, conditional values and unresolved field labels. A preliminary source check on the repository roof drainage PDF (position .28, page 7) recognized the branch fitting's stated material. In the repository roadworks award (position 03.03.0004, record 1611), the foundation and back support grade did not answer a question about the curb. These two checks passed on the original parsed wording with manually specified claims. The initial local-model run missed the silent fire-rating omission in all four formats. That scenario still needs coverage.
+
 ### Directly attributed dimension conflicts
 
 Layer 1 now compares heights attached directly to the same named component and thicknesses stated for single-layer gypsum-board cladding on stud walls. Findings quote the two original measurements, compare them in a common unit, and ask the reviewer to confirm the intended dimension before aligning the descriptions. The cases include equivalent units, separate components, ranges, alternatives, and multi-layer construction. Printed PDF detail excludes the copied item heading when the new dimension checks compare the two descriptions.

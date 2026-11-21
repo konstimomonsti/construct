@@ -18,6 +18,23 @@ def test_placeholders(text):
     assert finding.evidence["bieterfrage_de"].startswith("Zu Pos. 01.0001:")
 
 
+@pytest.mark.parametrize("detail", [
+    "Feuerwiderstand: noch offen.", "Feuerwiderstandsklasse = TBD", "Feuerwiderstand: noch festzulegen; Farbe: RAL 9010.",
+])
+def test_unresolved_fire_rating_placeholder_quotes_the_label(detail):
+    finding, = selected("SPEC_PLACEHOLDER", "Brandschutztür", detail)
+    assert "Feuerwiderstand" in finding.evidence["excerpts"][0]
+    assert finding.evidence["bieterfrage_de"].startswith("Zu Pos. 01.0001:")
+
+
+@pytest.mark.parametrize("detail", [
+    "Feuerwiderstand: T30.", "Feuerwiderstand: noch offen zu halten ist die Tür.",
+    "Bieter: Feuerwiderstandsklasse: noch offen.",
+])
+def test_fire_rating_placeholder_requires_an_explicit_unresolved_value(detail):
+    assert selected("SPEC_PLACEHOLDER", "Brandschutztür", detail) == []
+
+
 @pytest.mark.parametrize("text", [
     "Fabrikat z. B. [FIRMA_095]",
     "Lieferant/Hersteller: [FIRMA_095] oder\ngleichwertig",
