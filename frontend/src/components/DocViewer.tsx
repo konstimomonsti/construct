@@ -57,6 +57,7 @@ export default function DocViewer() {
       )}
     >
       {url && pdf && <iframe title={doc.name} src={url} className="h-[62vh] w-full rounded-lg border border-slate-200 bg-slate-50" />}
+      {url && !pdf && <p className="text-sm text-slate-600">This file type has no preview. Download it to open it in your own program.</p>}
       {!url && <p role="status" className="text-sm text-slate-500">{unavailable ? 'The original file is unavailable.' : 'Loading document…'}</p>}
     </Dialog>
   )

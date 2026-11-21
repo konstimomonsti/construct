@@ -12,7 +12,7 @@ import { withoutLegacyImports } from './legacy'
 
 export const SYNCED = [
   'userFolders', 'userLists', 'userDocuments', 'documentLinks', 'documentFolders',
-  'folderPatch', 'listPatch', 'edits', 'stats',
+  'folderPatch', 'listPatch', 'edits', 'stats', 'calendar',
 ] as const
 type Collection = (typeof SYNCED)[number]
 const ARRAYS = new Set<Collection>(['userFolders', 'userLists', 'userDocuments'])
