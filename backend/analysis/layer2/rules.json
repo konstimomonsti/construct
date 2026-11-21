@@ -7,7 +7,7 @@
     "ExcludeRegex": "(?i)^\\s*(?:trittschall|wärme)?dämm(?:ung|platten?)\\b[^;]{0,45}\\b(?:unter|für)\\s+(?:dem\\s+)?\\w*estrich\\b|\\b(abbrechen|abbruch\\w*|rückbau\\w*|zurückbauen|ausbauen|demontage|demontieren|entfernen|entsorg\\w*|aufnehmen|abtragen|stemmen|fräsen|messung\\w*|\\w*feuchte\\w*|belegreife\\w*|aussparung\\w*|zul|zulage\\w*)\\b",
     "Required_Dependencies": [
       {"DependencyName": "Edge insulation", "Regex": "(?i)\\b(randdämmstreifen)\\b", "CheckType": "Boolean", "SuggestedText": "Randdämmstreifen", "SuggestedUnit": "m"},
-      {"DependencyName": "Underlays and insulation", "Regex": "(?i)\\b(?:trittschall)?dämmung\\b|\\b(?:eps|xps)\\b", "CheckType": "Boolean", "SuggestedText": "Trittschalldämmung unter Estrich", "SuggestedUnit": "m²"},
+      {"DependencyName": "Underlays and insulation", "Regex": "(?i)\\b(?:trittschall)?dämmung\\b|\\b(?:eps|xps)\\b", "SpecificationFamilies": ["insulation_conductivity", "insulation_thickness"], "CheckType": "Boolean", "SuggestedText": "Trittschalldämmung unter Estrich", "SuggestedUnit": "m²"},
       {"DependencyName": "Primer and leveling", "Regex": "(?i)\\b(?:tief|haft)?grund(?:ierung)?\\b|\\b(?:spachtel|nivellier|ausgleichs)masse\\b|\\bnivellierausgleich\\b", "CheckType": "QuantityMatch", "QuantityUnit": "m²", "ExcludeRegex": "(?i)(\\bauf\\s+(?:tsd|wd|tsd/wd|dämm\\w*|trennlage\\w*|trittschall\\w*)\\b|schwimmend\\w*)", "SuggestedText": "Untergrundvorbereitung / Grundierung / Ausgleichsmasse"},
       {"DependencyName": "Floor covering", "Regex": "(?i)\\b(?:pvc|vinyl|kautschuk(?:boden)?|laminat(?:böden|bodenbeläge)?|teppich(?:boden)?|kugelgarn|bodenfliesen?|naturstein(?:belag)?)\\b", "CheckType": "QuantityMatch", "QuantityUnit": "m²", "SuggestedText": "Bodenbelag, Ausführung durch Fachplanung festzulegen", "Severity": "info"},
       {"DependencyName": "Skirting", "Regex": "(?i)\\b([a-zäöüß]*sockel(?:leiste|fliese)?(?:n|s)?)\\b", "CheckType": "Boolean", "SuggestedText": "Sockelleisten", "SuggestedUnit": "m", "Severity": "info"}
@@ -56,7 +56,7 @@
     "ExcludeRegex": "(?i)\\b(abbrechen|abbruch\\w*|rückbau\\w*|zurückbauen|ausbauen|demontage|demontieren|entfernen|entsorg\\w*|aufnehmen|abtragen|stemmen|fräsen|dichtung\\w*|dichtring\\w*|\\w*manschette\\w*|\\w*rohr\\w*|muffe\\w*|\\w*kupplung\\w*|schieber\\w*|ventil\\w*)\\b",
     "Required_Dependencies": [
       {"DependencyName": "Vapor barrier", "Regex": "(?i)\\b(dampfsperre|dampfbremse)\\b", "CheckType": "QuantityMatch", "QuantityUnit": "m²", "SuggestedText": "Dampfsperre / Dampfbremse für Flachdach"},
-      {"DependencyName": "Thermal insulation", "Regex": "(?i)\\b(wärmedämmung|gefälledämmung|eps|pur)\\b", "CheckType": "QuantityMatch", "QuantityUnit": "m²", "SuggestedText": "Wärme- / Gefälledämmung für Flachdach"},
+      {"DependencyName": "Thermal insulation", "Regex": "(?i)\\b(wärmedämmung|gefälledämmung|eps|pur)\\b", "SpecificationFamilies": ["insulation_conductivity", "insulation_thickness"], "CheckType": "QuantityMatch", "QuantityUnit": "m²", "SuggestedText": "Wärme- / Gefälledämmung für Flachdach"},
       {"DependencyName": "Roof drainage", "Regex": "(?i)\\b(dachgully|notüberlauf|speier)\\b", "CheckType": "Boolean", "SuggestedText": "Dachentwässerung / Notüberlauf gemäß Planung", "SuggestedUnit": "ea"}
     ]
   },

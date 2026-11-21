@@ -728,6 +728,33 @@ def generate_fire_attribution(out):
             write_fixture_labels(out / f"{name}.{ext}", f"{baseline}.{ext}", label)
 
 
+def generate_insulation_specifications(out):
+    """Check a comparable thermal class, an explicit limit, and the named plate thickness."""
+    out.mkdir(parents=True, exist_ok=True)
+    for name, heading, detail, expected in (
+        ("insulation-class", "Dämmplatten EPS WLS 035", "WLS: 040.", "insulation_conductivity"),
+        ("insulation-limit", "Dämmplatten EPS, Bemessungswert: höchstens 0,035 W/(mK)",
+         "Bemessungswert: 40 mW/(mK).", "insulation_conductivity"),
+        ("insulation-thickness", "Ausgleichsschicht, EPS, WLS 035, 80 mm",
+         "Dämmung: EPS. Plattendicke: 120 mm.", "insulation_thickness"),
+        ("insulation-equivalent", "Ausgleichsschicht, EPS, WLS 035, 80 mm", "WLS: 035. Plattendicke: 8 cm.", None),
+        ("insulation-basis", "Dämmplatten EPS, Bemessungswert: 0,035 W/(mK)", "Nennwert: 0,034 W/(mK).", None),
+        ("insulation-accessory", "Dämmplatten EPS WLS 035", "Einschließlich Randdämmstreifen mit WLS 040.", None),
+    ):
+        item = Item("01.0010", heading, 25, "m²", detail=detail)
+        locators = _write_text_case(out, name, "Leistungsverzeichnis Dämmarbeiten", item, "insulation")
+        locators.update(_write_offer_tables(out, name, item, "Dämmung"))
+        for ext, locator in locators.items():
+            label = {"control": not expected, "layers": [1], "expect": []}
+            if expected:
+                label.update(match="line", expect=["L1.TEXT.VALUE_CONFLICT"], target={
+                    "line_codes": [item.code], "severity": "warning", "source_locator": locator,
+                    "family": expected, "bidder_question": True,
+                })
+            baseline = "insulation-equivalent" if expected else name
+            write_fixture_labels(out / f"{name}.{ext}", f"{baseline}.{ext}", label)
+
+
 def generate_grade_scope(out):
     """Test concrete grade conflicts, legitimate component differences and unclear attribution."""
     out.mkdir(parents=True, exist_ok=True)
@@ -845,7 +872,7 @@ if __name__ == "__main__":
               "fire-door-installation": generate_fire_door_installation,
               "cable-designations": generate_cable_designations, "fix-planning": generate_fix_planning,
               "dependency-specification": generate_dependency_specification,
-              "fire-attribution": generate_fire_attribution}
+              "fire-attribution": generate_fire_attribution, "insulation-specifications": generate_insulation_specifications}
     parser.add_argument("--suite", choices=suites, default="tabular")
     args = parser.parse_args()
     suites[args.suite](args.out)

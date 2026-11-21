@@ -53,5 +53,7 @@ def test_repository_audit_scores_source_labels_without_assuming_unreviewed_posit
     assert by_id["word-alternative-code"]["outcome"] == "unresolved"
     for key in ("elt-nycwy-50-25", "elt-nycwy-25-16", "roadworks-nyy-cores"):
         assert by_id[key]["outcome"] == "clear_control"
+    assert by_id["screed-eps-thickness"]["outcome"] == "caught_with_guidance"
+    assert by_id["screed-eps-thickness-control"]["outcome"] == "clear_control"
     assert "source_unlinked" not in result["counts"]
-    assert sum(result["counts"].values()) == len(result["cases"]) == 14
+    assert sum(result["counts"].values()) == len(result["cases"]) == 16

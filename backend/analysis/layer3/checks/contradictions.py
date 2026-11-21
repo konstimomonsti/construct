@@ -8,6 +8,7 @@ from ...contracts import Line
 from ...layer1.common import review_fix, source_detail
 from ...layer1.concrete_scope import different_components
 from ...layer1.fire_doors import door_class_discrepancy
+from ...layer1.insulation import insulation_conflicts, insulation_role, is_conductivity_quote
 from ...layer1.structural_fire import structural_fire_review
 from ...layer1.textvalues import MEASURE, centimetres
 from ...registry import rule
@@ -19,6 +20,8 @@ from ..schema import CONTRADICTION_SCHEMA, ContradictionItem, clamp_confidence, 
 RULE_ID = "L3.TEXT.SHORT_LONG_CONTRADICTION"
 L1_VALUE_CONFLICT = "L1.TEXT.VALUE_CONFLICT"  # layer 1 already reported a conflict on the line: don't repeat
 _DIMENSION_PROPERTY = re.compile(r"\b(?:thickness|dimension[s]?|height|length|width|depth|dicke|höhe|länge|breite|tiefe)\b", re.I)
+_THERMAL_PROPERTY = re.compile(r"\b(?:thermal conductivity|wärmeleit\w*|WLS|WLG|lambda)\b", re.I)
+_THICKNESS_PROPERTY = re.compile(r"\b(?:thickness|dicke|dämmstoffdicke|plattendicke)\b", re.I)
 _FIRE_PROPERTY = re.compile(r"\b(?:fire(?:[- ]resistance|[- ]rating)?|feuerwiderstand\w*|brandschutz(?:klasse)?)\b", re.I)
 _LENGTH = re.compile(MEASURE, re.I)
 _MATERIAL_PROPERTY = re.compile(r"\b(?:material\w*|werkstoff\w*)\b", re.I)
@@ -99,6 +102,14 @@ def _finding(ctx, session, line: Line, item: ContradictionItem):
         line.short_text, line.long_text, item.short_quote, item.long_quote,
     ):
         return None
+    conductivity_quote = is_conductivity_quote(item.short_quote) or is_conductivity_quote(item.long_quote)
+    if conductivity_quote and _MATERIAL_PROPERTY.search(item.property):
+        return None
+    if (conductivity_quote or _THERMAL_PROPERTY.search(item.property)
+            or (_THICKNESS_PROPERTY.search(item.property) and insulation_role(line.short_text))):
+        if not any(quote_in(a.quote, item.short_quote) and quote_in(b.quote, item.long_quote)
+                   for _, _, a, b in insulation_conflicts(line.short_text, line.long_text)):
+            return None
     if _FIRE_PROPERTY.search(item.property):
         door = door_class_discrepancy(line.short_text, line.long_text)
         structure = structural_fire_review(line.short_text, line.long_text)

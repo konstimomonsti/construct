@@ -207,6 +207,40 @@
       "evidence": {
         "family": "cable_conductors"
       }
+    },
+    {
+      "id": "screed-eps-thickness",
+      "file": "LV_18_Estrich.pdf",
+      "code": "11.4.10.",
+      "locator": {
+        "page": 4
+      },
+      "verdict": "error",
+      "rules": [
+        "L1.TEXT.VALUE_CONFLICT"
+      ],
+      "note": "The heading specifies 80 mm. The description calls for single-layer EPS and lists 120 mm as the plate thickness.",
+      "evidence": {
+        "family": "insulation_thickness",
+        "short_quote": "80mm",
+        "long_quote": "Plattendicke: 120 mm"
+      }
+    },
+    {
+      "id": "screed-eps-thickness-control",
+      "file": "LV_18_Estrich.pdf",
+      "code": "11.3.20.",
+      "locator": {
+        "page": 2
+      },
+      "verdict": "control",
+      "rules": [
+        "L1.TEXT.VALUE_CONFLICT"
+      ],
+      "note": "The comparable EPS position gives 80 mm in both descriptions.",
+      "evidence": {
+        "family": "insulation_thickness"
+      }
     }
   ]
 }

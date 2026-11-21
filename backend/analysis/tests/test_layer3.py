@@ -538,6 +538,19 @@ def test_fire_contradiction_requires_quotes_for_the_same_component(detail, quote
     assert bool(actual) is expected
 
 
+@pytest.mark.parametrize("short,long,short_quote,long_quote,prop,expected", [
+    ("Ausgleichsschicht EPS WLS 035, 80 mm", "WLS: 035. Plattendicke: 8 cm.", "EPS", "WLS: 035.", "material", False),
+    ("Dämmplatten EPS, Bemessungswert: 0,035 W/(mK)", "Nennwert: 0,034 W/(mK).",
+     "Bemessungswert: 0,035 W/(mK)", "Nennwert: 0,034 W/(mK).", "bemessungswert", False),
+    ("Dämmplatten EPS (WLS 035)", "Dämmplatten aus Mineralwolle.", "EPS (WLS 035)", "Mineralwolle", "material", True),
+])
+def test_insulation_contradiction_uses_comparable_evidence(short, long, short_quote, long_quote, prop, expected):
+    analysis_input = from_data({"lines": [{"id": "plate", "code": "01", "short_text": short, "long_text": long}]})
+    answer = {"findings": [{"line_ref": "#1", "property": prop, "short_quote": short_quote,
+                            "long_quote": long_quote, "message": "Specification differs.", "confidence": 0.8}]}
+    assert bool(by_rule(run3(analysis_input, FakeProvider([answer]))[0], CONTRA)) is expected
+
+
 def test_no_l2_findings_means_no_l2_calls():
     provider = FakeProvider(lambda request: {"findings": []})
     run3(pipe_input(), provider, prior=[])

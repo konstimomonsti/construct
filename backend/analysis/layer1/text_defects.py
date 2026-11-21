@@ -7,6 +7,7 @@ from .cable_designations import cable_conflict
 from .common import BIDDER_INPUT, OR_EQUIVALENT, excerpt, label, review_fix, source_detail, text_of
 from .concrete_scope import by_component, mentions
 from .fire_doors import door_class_discrepancy
+from .insulation import insulation_conflicts, insulation_role
 from .textvalues import DIMENSIONS, GRADE, MEASURE, NUMBER, centimetres, grades, values
 
 # Product/value redactions, not anonymized people or addresses.
@@ -218,7 +219,7 @@ def value_conflict(ctx):
         # strip), not to the item the short text names.
         short, long = values(line.short_text or ""), values(INCLUDED_CLAUSE.sub(" ", line.long_text or ""))
         for family in short:
-            if family in {"concrete", "fire"}:
+            if family in {"concrete", "fire"} or (family == "thickness" and insulation_role(line.short_text)):
                 continue
             if short[family] and long[family] and short[family].isdisjoint(long[family]):
                 yield ctx.finding(line=line, field="long_text", discriminator=family,
@@ -226,6 +227,18 @@ def value_conflict(ctx):
                     message=f"{label(line)}: {family} values differ between short and long text.",
                     evidence={"family": family, "short_values": sorted(short[family]), "long_values": sorted(long[family]),
                               "bieterfrage_de": f"Zu Pos. {line.code}: Kurz- und Langtext enthalten unterschiedliche Angaben ({FAMILY_DE[family]}: {', '.join(sorted(short[family]))} / {', '.join(sorted(long[family]))}). Bitte bestätigen Sie die maßgebende Ausführung."})
+
+        for family, basis, short_spec, long_spec in insulation_conflicts(line.short_text, detail):
+            description = "Wärmeleitfähigkeit" if family == "insulation_conductivity" else "Dämmstoffdicke"
+            yield ctx.finding(
+                line=line, field="long_text", discriminator=f"{family}:{basis}",
+                message=f"{label(line)} gives conflicting insulation specifications: {short_spec.quote} / {long_spec.quote}.",
+                evidence={"family": family, "basis": basis, "short_quote": short_spec.quote, "long_quote": long_spec.quote,
+                          "short_value": short_spec.value, "long_value": long_spec.value,
+                          "bieterfrage_de": f"Zu Pos. {line.code}: Welche {description} gilt für die ausgeschriebene "
+                                            f"Platte ({short_spec.quote} / {long_spec.quote})?"},
+                suggested_fix=review_fix("Confirm the insulation requirement against the layer schedule and align the two descriptions."),
+            )
 
         if discrepancy := door_class_discrepancy(line.short_text, detail):
             short_quote, long_quote, outcome = discrepancy
