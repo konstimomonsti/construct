@@ -1,0 +1,33 @@
+{
+  "currency": "EUR",
+  "prices": {
+    "01.0010": {
+      "unit_cost": "2.00",
+      "min_rate": "2.00",
+      "standard_rate": "2.01",
+      "max_rate": "2.05"
+    },
+    "01.0020": {
+      "unit_cost": "2.00",
+      "min_rate": "2.00",
+      "standard_rate": "2.00",
+      "max_rate": "2.05"
+    }
+  },
+  "scenarios": [
+    {
+      "name": "Route quantities corrected",
+      "probability": "0.75",
+      "winning_bid_ceiling": "40160",
+      "changes": {
+        "01.0010": {"extra_quantity": "9000", "quoted_rate_share": "1"},
+        "01.0020": {"extra_quantity": "5500", "quoted_rate_share": "1"}
+      }
+    },
+    {
+      "name": "As tendered",
+      "probability": "0.25",
+      "winning_bid_ceiling": "40160"
+    }
+  ]
+}

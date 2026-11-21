@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<GAEB xmlns="http://www.gaeb.de/GAEB_DA_XML/DA83/3.2">
+  <Award><DP>83</DP><BoQ><BoQInfo><Name>Tables and chairs</Name></BoQInfo><BoQBody>
+    <BoQCtgy RNoPart="01"><LblTx><p>Tables and chairs</p></LblTx><BoQBody><Itemlist>
+      <Item RNoPart="0010" ID="BID_1"><Qty>10.000</Qty><QU>St</QU>
+        <Description><CompleteText><DetailTxt><Text><p>Supply ten dining tables. Provide three chairs per table.</p></Text></DetailTxt>
+          <OutlineText><OutlTxt><TextOutlTxt><p>Tables</p></TextOutlTxt></OutlTxt></OutlineText>
+        </CompleteText></Description>
+      </Item>
+      <Item RNoPart="0020" ID="BID_2"><Qty>3.000</Qty><QU>St</QU>
+        <Description><CompleteText><DetailTxt><Text><p>Supply matching dining chairs.</p></Text></DetailTxt>
+          <OutlineText><OutlTxt><TextOutlTxt><p>Chairs</p></TextOutlTxt></OutlTxt></OutlineText>
+        </CompleteText></Description>
+      </Item>
+    </Itemlist></BoQBody></BoQCtgy>
+  </BoQBody></BoQ></Award>
+</GAEB>
