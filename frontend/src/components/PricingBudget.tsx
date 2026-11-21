@@ -17,6 +17,8 @@ export function pricingSections(tree: CategoryNode[], stats: Map<string, CatStat
     cost: stats.get(category.oz)?.total ?? 0,
     color: RAMP[index % RAMP.length],
   }))
+    // largest first, in the bar and the legend; colours stay tied to the section, not to its rank
+    .sort((a, b) => b.cost - a.cost)
 }
 
 /** one bar for the whole list, split by pricing section; the cap is the full width (or a marker when exceeded) */

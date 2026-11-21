@@ -16,7 +16,7 @@ from workspace_product_evidence import affected_lists
 WORKSPACE = "default"
 COLLECTIONS = {
     "userFolders", "userLists", "userDocuments", "documentLinks", "documentFolders",
-    "folderPatch", "listPatch", "edits", "stats",
+    "folderPatch", "listPatch", "edits", "stats", "calendar",
 }
 FILE_ID = re.compile(r"^[A-Za-z0-9_-]{1,120}$")
 FILE_TYPES = {"application/pdf", "application/octet-stream"}

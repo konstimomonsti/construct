@@ -14,7 +14,7 @@ import { amount, money, parseNumber, plural } from '../../lib/format'
 import { useMedia } from '../../lib/hooks'
 import { useStore } from '../../lib/store'
 import {
-  composeEmail, defaultPackageName, emailBody, emailSubject, findConflicts, makeBudget, newPackageId, prefillBudget, pruneMissing,
+  composeEmail, defaultPackageName, emailBody, emailSubject, findConflicts, makeBudget, mergeSavedPackage, newPackageId, prefillBudget, pruneMissing,
   removePackage, salutation, sectionLabels, setStatus, suggestSubcontractors, toRequest, upsertPackage,
   type SubcontractFormat, type SubcontractPackage,
 } from '../../lib/subcontract'
@@ -203,7 +203,8 @@ function Panel({ onClose, listId, doc, resolved, selectedIds }: Props) {
 
   const saveDraft = () => {
     if (!chosen.length || !packageName) return
-    writePackages(upsertPackage(current(), buildPackage('draft')))
+    const built = buildPackage('draft')
+    writePackages(upsertPackage(current(), mergeSavedPackage(current().find((p) => p.id === built.id), built)))
     toast(`Saved package “${packageName}” as draft`)
     reset([])
     setView('packages')
@@ -233,14 +234,15 @@ function Panel({ onClose, listId, doc, resolved, selectedIds }: Props) {
     setBusy(true)
     try {
       const now = new Date()
-      const pkg = buildPackage('sent', now.toISOString())
+      // the text kept for "View request": generic salutation (each draft gets its own), sender block, no budget
+      const pkg = { ...buildPackage('sent', now.toISOString()), sentText: composeEmail({ salutation: salutation(), body, sender }) }
       const result = await exportAndDraft({
         doc, resolved, request: toRequest(pkg), recipients, body, sender, now,
         loadLayout: format === 'pdf' ? layoutLoader(doc) : undefined,
       })
       downloadResult(result.download)
       saveSender(sender)
-      writePackages(upsertPackage(current(), pkg))
+      writePackages(upsertPackage(current(), mergeSavedPackage(current().find((p) => p.id === pkg.id), pkg)))
       void logToCrm('rfq_sent', pkg, recipients.map((r) => r.id), chosen)
       toast(`${result.download.fileName}: ${plural(recipients.length, 'draft', 'drafts')} with the request file attached`)
       reset([])

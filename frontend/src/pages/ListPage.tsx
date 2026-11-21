@@ -5,8 +5,14 @@ import { AnimatePresence, motion } from 'motion/react'
 import { Button, Dialog, Field, Icon, inputCls, kbdCls, toast, type MenuItem } from '../components/ui'
 import { raisedCls } from '../lib/cls'
 import { TableSkeleton } from '../components/Page'
-import { MetaLink, PageFrame, PageHeader, RowMenu, SortMenu, Summary, ToolButton, statusText } from '../components/Kit'
-import { phaseLabel } from '../components/ListCard'
+import { MetaLink, PageFrame, PageHeader, RowMenu, SortMenu, ToolButton, statusText } from '../components/Kit'
+import { PhaseHeader, PhasePanel, isPhase, type Phase } from '../components/project/PhaseHeader'
+import { SubcontractorsTab } from '../components/project/SubcontractorsTab'
+import { OfferTab } from '../components/project/OfferTab'
+import { AwardTab } from '../components/project/AwardTab'
+import { SubcontractOverlay } from '../components/subcontract/SubcontractOverlay'
+import type { SubcontractPackage } from '../lib/subcontract'
+import { currentPhase } from '../lib/workflow'
 import { ErrorBoundary } from '../components/ErrorBoundary'
 import { LedgerTable } from '../components/LedgerTable'
 import { BidSimulator } from '../components/BidSimulator'
@@ -269,8 +275,27 @@ function useFixtureReport(on: boolean) {
   return on ? report : null
 }
 
+/** `?demo=workflow` shows demo subcontractor packages (tests/fixtures/workflow-demo.ts). They are never written to the store. */
+function useWorkflowDemo(on: boolean) {
+  const [demo, setDemo] = useState<typeof import('../../tests/fixtures/workflow-demo') | null>(null)
+  useEffect(() => {
+    if (on) void import('../../tests/fixtures/workflow-demo').then(setDemo)
+  }, [on])
+  return on ? demo : null
+}
+
+const NO_PACKAGES: SubcontractPackage[] = []
+
 function ListDetail({ doc: imported }: { doc: ListDoc }) {
-  const [params] = useSearchParams()
+  const [params, setParams] = useSearchParams()
+  const tab: Phase = isPhase(params.get('phase')) ? (params.get('phase') as Phase) : 'x83'
+  const setTab = (next: Phase) => setParams((prev) => {
+    const out = new URLSearchParams(prev)
+    if (next === 'x83') out.delete('phase')
+    else out.set('phase', next)
+    return out
+  }, { replace: true })
+  const [sending, setSending] = useState(false)
   const { lists, folders, documents } = useModel()
   const attached = documents.filter((document) => document.listId === imported.id)
   const original = attached.find((document) => document.original && document.name === imported.fileName)
@@ -313,6 +338,17 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   // prices proposed from matched catalogue products: pending until confirmed, never counted in totals
   const dismissedPrices = useStore((s) => s.listPatch[doc.id]?.dismissedPrices)
   const pending = usePriceSuggestions(report, positions, dismissedPrices)
+  // workflow tabs: subcontractor packages (plus read-only demo ones) and the award document
+  const storedPackages = useStore((s) => s.listPatch[doc.id]?.subcontractPackages) ?? NO_PACKAGES
+  const workflowDemo = useWorkflowDemo(params.get('demo') === 'workflow')
+  const { packages, demoIds } = useMemo(() => {
+    const held = new Set(storedPackages.map((p) => p.id))
+    const extra = (workflowDemo?.demoPackages ?? []).filter((p) => !held.has(p.id))
+    return { packages: [...storedPackages, ...extra], demoIds: new Set(extra.map((p) => p.id)) }
+  }, [storedPackages, workflowDemo])
+  const awardId = useStore((s) => s.listPatch[doc.id]?.awardDocumentId)
+  const award = awardId ? documents.find((d) => d.id === awardId) : undefined
+  const workflow = useMemo(() => currentPhase(packages, !!award), [packages, award])
   const st = useMemo(() => statsOf(positions), [positions])
   // findings from the automatic check that runs once on upload
   const evidenceSignature = attached.filter((document) => document.productEvidence).map(({ id }) => id).sort().join(',')
@@ -437,7 +473,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
     const io = new IntersectionObserver(([e]) => setHeroGone(!e.isIntersecting && e.boundingClientRect.top < 0))
     io.observe(el)
     return () => io.disconnect()
-  }, [])
+  }, [tab])
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [detailId, setDetailId] = useState<string | null>(null)
   const [detailField, setDetailField] = useState<string | null>(null)
@@ -657,11 +693,6 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
     toast('Suggestion dismissed', 'ok', { label: 'Undo', run: () => useStore.getState().patchList(doc.id, { dismissedPrices: before }) })
   }
 
-  const phase = view ? phaseLabel(view) : null
-  // dedupe tokens: format strings like "GAEB 90 · D86" repeat the phase code the phase label already shows
-  const meta = [...new Set([phase, doc.format, !phase ? doc.phase : null, doc.date].filter(Boolean).flatMap((m) => String(m).split(' · ')))]
-  // the store already renames lists that share their project's name (see listName); the file name is then the title
-  const sameAsFile = title === doc.fileName.replace(/\.[^.]+$/, '')
   const heading = title
   const zeroQty = positions.filter((p) => p.up != null && p.qty === 0).length
   const status = budgetStatus(st.total, cap)
@@ -703,7 +734,6 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
       <PageHeader
         crumbs={[{ label: 'All Projects', to: '/' }, { label: folder?.name ?? 'Project', to: `/folder/${folder?.id ?? doc.folderId}` }]}
         title={heading}
-        subtitle={[sameAsFile ? null : doc.fileName, ...meta].filter(Boolean).join(' · ')}
         aside={
           <div className="flex items-center gap-2">
             <Button variant="primary" icon="add" onClick={() => setAdding(true)} aria-label="Add position" className="max-sm:w-10 max-sm:px-0">
@@ -732,14 +762,16 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
         </div>
       )}
 
-      <Summary
-        label={pendingCount > 0 ? 'Confirmed total' : 'List total'}
-        compact
-        unpriced
-        pending={pendingTotal}
-        amount={money(st.total)}
+      <PhaseHeader
         total={st.total}
         cap={cap}
+        phase={tab}
+        onPhase={setTab}
+        workflow={workflow}
+        badges={{
+          subcontractors: packages.length || null,
+          x84: packages.filter((p) => p.chosenId).length || null,
+        }}
         onEditCap={live ? () => openDialog({ kind: 'edit-cap', target: 'list', id: doc.id }) : undefined}
         sub={pendingCount > 0 && (
           <span className="inline-flex items-center gap-1.5">
@@ -802,6 +834,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
         }
       />
 
+      {tab === 'x83' && <PhasePanel phase="x83">
       {risk && <RiskSummary risk={risk} decisions={decisions} partial={partial} />}
 
       {catalogueEnabled && researchShow && (
@@ -882,7 +915,11 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
           >
             <Icon name="checklist" size={18} /><span className="max-[1399px]:sr-only">Select</span>
           </button>
-          <div className="flex items-center gap-2 sm:ml-auto">
+          <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
+            {original && (
+              <ToolButton icon="description" onClick={() => openDialog({ kind: 'doc', doc: original })}>Original {original.name.split('.').pop()?.toUpperCase() ?? 'file'}</ToolButton>
+            )}
+            <ToolButton icon="engineering" onClick={() => setSending(true)}>Send to subcontractor…</ToolButton>
             {sort === 'oz' && !filtered && ledgerTree.length > 0 && (
               <ToolButton icon={sectionsOpen ? 'unfold_less' : 'unfold_more'} aria-expanded={sectionsOpen} aria-keyshortcuts="e" title={`${sectionsOpen ? 'Collapse' : 'Expand'} all sections (E)`} onClick={() => setSectionsOpen((v) => !v)} className="max-[1399px]:w-10 max-[1399px]:justify-center max-[1399px]:px-0">
                 <span className="max-[1399px]:sr-only">{sectionsOpen ? 'Collapse all' : 'Expand all'}</span>
@@ -994,10 +1031,6 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
       {uploadReport?.questions && (
         <BidderQuestions title={title} questions={questions} texts={questionTexts} onEdit={(id, text) => setQuestionTexts((prev) => ({ ...prev, [id]: text }))} />
       )}
-      {uploadReport && risk && (
-        <RiskPrint title={title} report={uploadReport} risk={risk} decisions={decisions} sections={printSections} questions={questions} texts={questionTexts} />
-      )}
-
       {doc.notes && (
         <section className="mt-8 rounded-lg bg-slate-50">
           <button
@@ -1018,6 +1051,38 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
           </AnimatePresence>
         </section>
       )}
+      </PhasePanel>}
+
+      {/* print output must work from every tab */}
+      {uploadReport && risk && (
+        <RiskPrint title={title} report={uploadReport} risk={risk} decisions={decisions} sections={printSections} questions={questions} texts={questionTexts} />
+      )}
+
+      {tab === 'subcontractors' && (
+        <PhasePanel phase="subcontractors">
+          <SubcontractorsTab listId={doc.id} doc={doc} resolved={resolved} packages={packages} demoIds={demoIds} demoNames={workflowDemo?.demoNames} positions={positions} onNew={() => setSending(true)} />
+        </PhasePanel>
+      )}
+      {tab === 'x84' && (
+        <PhasePanel phase="x84">
+          <OfferTab
+            listId={doc.id}
+            packages={packages}
+            demoNames={workflowDemo?.demoNames}
+            positions={positions}
+            pending={pending}
+            onSubcontractors={() => setTab('subcontractors')}
+            onReviewAi={() => { setTab('x83'); only('pending') }}
+          />
+        </PhasePanel>
+      )}
+      {tab === 'x86' && (
+        <PhasePanel phase="x86">
+          <AwardTab listId={doc.id} award={award} onOpen={(d) => openDialog({ kind: 'doc', doc: d })} />
+        </PhasePanel>
+      )}
+
+      <SubcontractOverlay open={sending} onClose={() => setSending(false)} listId={doc.id} doc={doc} resolved={resolved} selectedIds={[...selected]} />
 
       <AddSectionDialog open={addingSection} onClose={() => setAddingSection(false)} onAdd={(name) => {
         addCategory(null, name)
