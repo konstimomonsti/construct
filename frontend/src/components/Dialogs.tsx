@@ -150,7 +150,10 @@ function FolderTarget({ dialog, onClose }: { dialog: Extract<DialogState, { kind
       toast(`Moved "${list.title}" to "${target.name}"`)
     } else if (!move) {
       pickAndImport(folderId, (result) => {
-        if (result.lists.length || result.docs) navigate(`/folder/${folderId}`)
+        if (result.openListId) {
+          useStore.getState().openTab(result.openListId)
+          navigate(`/list/${result.openListId}`)
+        } else if (result.lists.length || result.docs) navigate(`/folder/${folderId}`)
       })
     }
   }
