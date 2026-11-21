@@ -16,7 +16,7 @@ The lead merges PRs and resolves conflicts in this file. Contracts are in [CLAUD
 | 07 | [Usability walkthrough and improvement proposals (queued)](tasks/07-usability-walkthrough.md) | `feat/task-07` | merged | Desktop bug report and prioritized fix plan in PR #22; hall L3 coverage and end-to-end desktop verification remain. |
 | 08 | [Calibrate the risk score and money at stake](tasks/08-risk-calibration.md) | `feat/task-08` | merged | [PR #23](https://github.com/konstimomonsti/construct/pull/23) merged, lead-reviewed. Clean seed 20 low, planted demo 57 high, real tenders 52-79; StBALV23040 money at stake 48 k EUR (plan ~53 k). |
 | 09 | [Check line amounts and totals on uploaded GAEB files](tasks/09-upload-amount-checks.md) | `feat/task-09` | queued | Demo gap: the planted wrong amount only shows in the CLI |
-| 14 | **PRIORITY:** [Backend fixes from the walkthrough (layer 3 coverage, question prefix, wording)](tasks/14-demo-fixes-backend.md) | `feat/task-14` | PR open | [PR #31](https://github.com/konstimomonsti/construct/pull/31). Offline hall 16/16 batches; live Anthropic unverified (no key); 386 analysis tests pass. |
+| 14 | **PRIORITY:** [Backend fixes from the walkthrough (layer 3 coverage, question prefix, wording)](tasks/14-demo-fixes-backend.md) | `feat/task-14` | merged | [PR #31](https://github.com/konstimomonsti/construct/pull/31) merged. Offline hall 16/16 batches. Live Anthropic run still unverified: VPS has the key, so verify there after the next deploy. |
 | 15 | **PRIORITY (Marcos):** [UI fixes from the walkthrough](tasks/15-demo-fixes-ui.md) | `feat/task-15` | queued | From task 07 |
 | 10 | [Apply accepted fixes (reviewed, undoable, original kept)](tasks/10-apply-accepted-fixes.md) | `feat/task-10` | queued | |
 | 13 | **PRIORITY:** [Subcontractor requests: pick positions + subcontractors, budget, export + email draft](tasks/13-subcontractor-requests.md) | `feat/task-13` | merged | [PR #29](https://github.com/konstimomonsti/construct/pull/29) merged, lead-reviewed. 20 tests pass incl. budget-leak checks; .eml drafts verified (encoded subject, base64 attachment, X-Unsent). |
@@ -25,11 +25,11 @@ The lead merges PRs and resolves conflicts in this file. Contracts are in [CLAUD
 
 Suggested merge order: 01 → 03 → 02 → 05 → 04 → 06. Each PR must pass CI (Python tests, frontend lint/build).
 
-Priority for free workers: 09 → 14 → 15 (Marcos) → 10 → **13** → 08 → 11 → 12.
+Priority for free workers: 09 → 15 (Marcos) → 10 → 11 → 12. (08, 13, 14 merged.)
 
 ## Lead checklist
 
-- [ ] VPS `.env.prod`: `ANALYSIS_L3_PROVIDER=anthropic`, `ANTHROPIC_API_KEY`, plus the defaults from task 02
+- [x] VPS `.env.prod`: `ANALYSIS_L3_PROVIDER=anthropic`, `ANTHROPIC_API_KEY`, plus the defaults from task 02 (checked 2026-11-21 17:10)
 - [ ] After each merge: re-run `python -m analysis.eval report` and the LV_11 fixture, and update the numbers below
 - [ ] Update README "Analysis" and "Risk" sections after wave 1
 
@@ -48,5 +48,6 @@ Priority for free workers: 09 → 14 → 15 (Marcos) → 10 → **13** → 08 �
 
 | Metric | Value |
 |---|---|
-| Analysis tests | 370 passed, 3 skipped; importer tests 172 passed (main after wave 1 + PR #19) |
-| LV_11 fixture findings (layers 1–2) | 13 (10 `L1.DIN.NOTE`, 2 `L1.TEXT.SPEC_PLACEHOLDER`, 1 `L1.UNIT.TRADE_MISMATCH`) |
+| Analysis tests | 386 passed, 4 skipped; importer tests 173 passed (main at PR #31) |
+| Planted-error eval (layers 1–2) | 244 files; 100% recall on every non-gap mutation; 100% precision on every rule; 46 controls, 0 false alarms. Gaps: reworded duplicate, typo, 'nach Aufwand' |
+| LV_11 fixture findings (layers 1–2) | 13 (10 `L1.DIN.NOTE`, 2 `L1.TEXT.SPEC_PLACEHOLDER`, 1 `L1.UNIT.TRADE_MISMATCH`); risk 38 medium; 7 Bieterfragen |
