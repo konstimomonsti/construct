@@ -358,7 +358,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   }, [storedPackages, workflowDemo])
   const awardId = useStore((s) => s.listPatch[doc.id]?.awardDocumentId)
   const award = awardId ? documents.find((d) => d.id === awardId) : undefined
-  const workflow = useMemo(() => currentPhase(packages, !!award), [packages, award])
+  const workflow = useMemo(() => currentPhase(packages, !!award, positions.length > 0 && positions.every((p) => p.up != null)), [packages, award, positions])
   const st = useMemo(() => statsOf(positions), [positions])
   // findings from the automatic check that runs once on upload
   const assessment = useUploadAssessment(catalogueEnabled && original ? imported.id : null)
@@ -1055,6 +1055,8 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
         <PhasePanel phase="x84">
           <OfferTab
             listId={doc.id}
+            doc={doc}
+            tree={tree}
             packages={packages}
             demoNames={workflowDemo?.demoNames}
             positions={positions}
