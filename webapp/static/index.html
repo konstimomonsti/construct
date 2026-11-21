@@ -162,6 +162,19 @@
       </div>
     </div>
   </section>
+
+  <section class="panel notes" aria-labelledby="catalogue-title">
+    <h2 id="catalogue-title">Stored BOM catalogue</h2>
+    <form id="catalogue-form" class="row">
+      <label for="catalogue-bom">BOM version UUID</label>
+      <input id="catalogue-bom" class="grow" type="search" required>
+      <button type="submit" value="report" class="secondary">Load results</button>
+      <button type="submit" value="process">Match products</button>
+      <label class="check"><input id="catalogue-llm" type="checkbox"> Allow model fallback</label>
+    </form>
+    <p id="catalogue-status" role="status"></p>
+    <div id="catalogue-results"></div>
+  </section>
 </main>
 
 <script>
@@ -428,6 +441,100 @@ function fmtMoney(v, cur) {
   const n = Number(v);
   return isNaN(n) ? String(v) : n.toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + (cur ? " " + cur : "");
 }
+</script>
+<script>
+(() => {
+  const form = $("catalogue-form");
+  const results = $("catalogue-results");
+  const status = $("catalogue-status");
+  let currentPath = "";
+  let busy = false;
+
+  async function request(url, body) {
+    if (busy) return;
+    busy = true;
+    status.textContent = "Working…";
+    try {
+      const options = body === undefined ? {} : {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(body),
+      };
+      const response = await fetch(url, options);
+      const report = await response.json();
+      if (!response.ok) {
+        throw new Error(typeof report.detail === "string" ? report.detail : "Check the UUID and form fields.");
+      }
+      currentPath = "/api/catalogue/" + encodeURIComponent(report.bom_version_id);
+      render(report);
+      status.textContent = report.summary.occurrences
+        ? report.summary.review_queue + " occurrences awaiting review"
+        : "No catalogue results for this BOM version.";
+    } catch (error) {
+      status.textContent = error.message;
+    } finally {
+      busy = false;
+    }
+  }
+
+  function render(report) {
+    const groups = report.groups.map(group => {
+      const total = group.selected_total === null
+        ? "Selected total unavailable"
+        : "Selected total " + group.selected_total + " " + (group.unit || "");
+      const positions = group.occurrences.map(item =>
+        "<li>" + esc(item.line_code || item.bom_line_id) + " · " + esc(item.scope) + " · " +
+        esc(item.selection) + " · " + esc(item.quantity ?? "quantity unknown") + " " + esc(item.unit || "") + "</li>"
+      ).join("");
+      const unknown = group.unknown_selected ? " · " + group.unknown_selected + " with unknown selected quantity" : "";
+      return "<details><summary>" + esc(group.product.name) + " · " + esc(group.quantity_basis) +
+        " · " + esc(total + unknown) + "</summary><ul>" + positions + "</ul></details>";
+    }).join("");
+    const occurrences = report.occurrences.map(item => {
+      const evidence = JSON.stringify({
+        source: item.source, context: item.context, attributes: item.attributes, decision: item.evidence,
+      }, null, 2);
+      const retry = item.attempt_id && item.attempt_status !== "running" && item.state !== "accepted"
+        ? '<button type="submit" value="retry" class="secondary" formnovalidate>Retry model request</button>' : "";
+      return '<details><summary>' + esc(item.line_code || "Unnumbered position") + " · " + esc(item.name) +
+        " · " + esc(item.state) + " · " + esc(item.outcome) + "</summary><p>" +
+        esc(item.scope) + " · " + esc(item.selection) + (item.attempt_status ? " · " + esc(item.attempt_status) : "") +
+        "</p><pre>" + esc(evidence) + '</pre><form class="row" data-occurrence="' + esc(item.id) +
+        '" data-decision="' + esc(item.decision_id) + '" data-attempt="' + esc(item.attempt_id) + '">' +
+        '<label>Reviewer <input name="reviewer" required maxlength="200"></label>' +
+        '<label>Product UUID <input name="product_id"></label>' +
+        '<label>Review note <input name="note" maxlength="4000"></label>' +
+        '<button type="submit" value="accept">Accept</button>' +
+        '<button type="submit" value="correct" class="secondary">Correct</button>' +
+        '<button type="submit" value="reject" class="secondary">Reject</button>' + retry +
+        "</form></details>";
+    }).join("");
+    results.innerHTML = (groups ? "<h3>Grouped requirements</h3>" + groups : "") +
+      (occurrences ? "<h3>Product decisions</h3>" + occurrences : "");
+  }
+
+  form.addEventListener("submit", event => {
+    event.preventDefault();
+    const path = "/api/catalogue/" + encodeURIComponent($("catalogue-bom").value.trim());
+    request(path, event.submitter?.value === "process" ? {llm: $("catalogue-llm").checked} : undefined);
+  });
+  results.addEventListener("submit", event => {
+    event.preventDefault();
+    const review = event.target;
+    const action = event.submitter?.value || "accept";
+    const path = currentPath + "/occurrences/" + encodeURIComponent(review.dataset.occurrence);
+    const decision_id = review.dataset.decision;
+    if (action === "retry") {
+      request(path + "/retry", {decision_id, attempt_id: review.dataset.attempt});
+    } else {
+      const values = new FormData(review);
+      request(path + "/review", {
+        action, decision_id, reviewer: values.get("reviewer").trim(), note: values.get("note"),
+        product_id: values.get("product_id").trim() || null,
+      });
+    }
+  });
+})();
 </script>
 </body>
 </html>

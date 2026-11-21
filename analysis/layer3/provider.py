@@ -20,6 +20,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from hashlib import sha256
 import json
+import math
 import os
 from pathlib import Path
 from typing import Any, Callable, Protocol
@@ -54,6 +55,12 @@ class LLMRequest:
         return sha256(canonical.encode("utf-8")).hexdigest()
 
 
+@dataclass
+class ResponseDetails:
+    raw: str | None = None
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+
 class LLMProvider(Protocol):
     model_id: str
 
@@ -75,7 +82,7 @@ class OllamaProvider:
             self.host = "http://" + self.host
         self.timeout = timeout
 
-    def complete_json(self, request: LLMRequest) -> dict[str, Any]:
+    def complete_json(self, request: LLMRequest, details: ResponseDetails | None = None) -> dict[str, Any]:
         body = {
             "model": self.model, "stream": False, "format": request.schema,
             "options": {"temperature": 0, "seed": 0},
@@ -88,9 +95,18 @@ class OllamaProvider:
         )
         try:
             with urllib.request.urlopen(http_request, timeout=self.timeout) as response:
-                payload = json.loads(response.read().decode("utf-8"))
+                raw = response.read().decode("utf-8", "replace")
+                if details is not None:
+                    details.raw = raw
+                    if request_id := response.headers.get("X-Request-ID"):
+                        details.metadata["request_id"] = request_id
+                payload = json.loads(raw)
         except urllib.error.HTTPError as exc:
-            detail = exc.read().decode("utf-8", "replace")[:300]
+            raw = exc.read().decode("utf-8", "replace")
+            if details is not None:
+                details.raw = raw
+                details.metadata.update(http_status=exc.code, request_id=exc.headers.get("X-Request-ID"))
+            detail = raw[:300]
             if exc.code == 404:
                 raise ProviderUnavailable(f"Ollama model {self.model!r} not found ({detail}); "
                                           f"run `ollama pull {self.model}`") from exc
@@ -103,7 +119,14 @@ class OllamaProvider:
             raise ProviderUnavailable(f"Ollama not reachable at {self.host}: {exc.reason}") from exc
         except json.JSONDecodeError as exc:
             raise ProviderError(f"Ollama returned invalid JSON: {exc}") from exc
-        content = (payload.get("message") or {}).get("content")
+        message = payload.get("message") if isinstance(payload, dict) else None
+        content = message.get("content") if isinstance(message, dict) else None
+        if details is not None:
+            if isinstance(content, str):
+                details.raw = content
+            if isinstance(payload, dict):
+                details.metadata.update({key: payload[key] for key in ("prompt_eval_count", "eval_count", "done_reason")
+                                         if key in payload})
         return _parse_json_object(content, "Ollama")
 
 
@@ -127,6 +150,7 @@ class AnthropicProvider:
         self._anthropic = anthropic
         self.model = model
         self.model_id = model
+        self.timeout = timeout
         self.max_tokens = max_tokens
         self.effort = effort
         try:
@@ -134,10 +158,11 @@ class AnthropicProvider:
         except Exception as exc:  # e.g. no credentials could be resolved
             raise ProviderUnavailable(f"Anthropic client could not be created: {exc}") from exc
 
-    def complete_json(self, request: LLMRequest) -> dict[str, Any]:
+    def complete_json(self, request: LLMRequest, details: ResponseDetails | None = None) -> dict[str, Any]:
         anthropic = self._anthropic
+        client = self._client.with_options(max_retries=0) if details is not None else self._client
         try:
-            response = self._client.messages.create(
+            response = client.messages.create(
                 model=self.model, max_tokens=self.max_tokens, system=request.system,
                 messages=[{"role": "user", "content": request.prompt}],
                 output_config={"effort": self.effort,
@@ -147,19 +172,26 @@ class AnthropicProvider:
             raise ProviderError("Anthropic request timed out") from exc
         except anthropic.APIConnectionError as exc:
             raise ProviderUnavailable(f"Anthropic API not reachable: {exc}") from exc
-        except (anthropic.AuthenticationError, anthropic.PermissionDeniedError, anthropic.NotFoundError) as exc:
-            raise ProviderUnavailable(f"Anthropic API rejected the request: {exc.message}") from exc
-        except anthropic.RateLimitError as exc:
-            raise ProviderError("Anthropic rate limit reached") from exc
         except anthropic.APIStatusError as exc:
+            if details is not None:
+                details.raw = exc.response.text
+                details.metadata.update(http_status=exc.status_code, request_id=getattr(exc, "request_id", None))
+            if isinstance(exc, (anthropic.AuthenticationError, anthropic.PermissionDeniedError, anthropic.NotFoundError)):
+                raise ProviderUnavailable(f"Anthropic API rejected the request: {exc.message}") from exc
+            if isinstance(exc, anthropic.RateLimitError):
+                raise ProviderError("Anthropic rate limit reached") from exc
             raise ProviderError(f"Anthropic HTTP {exc.status_code}: {exc.message}") from exc
         except anthropic.AnthropicError as exc:  # e.g. no credentials at request time
             raise ProviderUnavailable(f"Anthropic client error: {exc}") from exc
+        text = next((block.text for block in response.content if block.type == "text"), None)
+        if details is not None:
+            details.raw = text
+            details.metadata = {"response_id": response.id, "request_id": getattr(response, "_request_id", None),
+                                "usage": response.usage.model_dump(mode="json"), "stop_reason": response.stop_reason}
         if response.stop_reason == "refusal":
             raise ProviderError("Anthropic declined the request (stop_reason=refusal)")
         if response.stop_reason == "max_tokens":
             raise ProviderError(f"Anthropic answer truncated at max_tokens={self.max_tokens}")
-        text = next((block.text for block in response.content if block.type == "text"), None)
         return _parse_json_object(text, "Anthropic")
 
 
@@ -247,6 +279,8 @@ def provider_from_env() -> LLMProvider | None:
         timeout = float(os.environ.get("ANALYSIS_L3_TIMEOUT", DEFAULT_TIMEOUT))
     except ValueError:
         timeout = DEFAULT_TIMEOUT
+    if not math.isfinite(timeout) or timeout <= 0:
+        timeout = DEFAULT_TIMEOUT
     if name in ("", "none", "off", "disabled"):
         return None
     if name in ("ollama", "local"):
@@ -257,7 +291,7 @@ def provider_from_env() -> LLMProvider | None:
 
 
 def _parse_json_object(text: str | None, source: str) -> dict[str, Any]:
-    if not text:
+    if not isinstance(text, str) or not text:
         raise ProviderError(f"{source} returned an empty answer")
     try:
         value = json.loads(text)

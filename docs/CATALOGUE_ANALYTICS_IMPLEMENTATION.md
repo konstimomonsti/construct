@@ -2,7 +2,7 @@
 
 Date — 21 November 2026
 
-Status — Proposed implementation. This document defines the next development work. The catalogue matching service and persistence described below remain to be implemented.
+Status — The stored-BOM pipe and cable conduit pilot is implemented. Review the operating instructions in the [README](../README.md#stored-bom-catalogue-analytics). Valves can appear as separate evidence-bearing occurrences and remain outside automatic identification and approval pending family-specific validation.
 
 ## Objective
 
@@ -174,3 +174,7 @@ Use one shared service for CLI and application callers. Reuse existing unit logi
 - Database migrations, rollback behavior and the stored-BOM entry point are verified against PostgreSQL.
 
 Track rule precision, rule coverage, resolution reuse rate, provider calls and usage, LLM suggestion acceptance, unresolved coverage and grouping errors. Retain a held-out set that is independent of rule construction. The first release gate is a complete, reviewed pipe-family workflow with demonstrated persistence and zero repeat calls for saved identical identification requests.
+
+Run `python -m pytest -q -s analysis/tests/test_catalogue_rules.py` for the labelled pilot and held-out metrics. To exercise the workflow with PostgreSQL, migrate a disposable PostgreSQL 18 database, set `CATALOGUE_TEST_DSN` to its application-role connection string, and run `python -m pytest -q analysis/tests/test_catalogue_db.py`. The integration suite writes fixtures and uses a fake provider to verify response persistence, concurrent reservation, retries, review corrections, pending product creation, and grouping.
+
+The pilot uses explicitly labelled element quantities when available and the BOM line quantity when a single supplied element can be identified. Multi-element positions with a shared quantity stay visible with unknown per-element quantities. Source context is project-scoped, and an expired worker lease stays visible as uncertain until reconciled or explicitly retried. Use `catalogue history` to inspect saved responses, available provider request IDs and usage, and superseded decisions.

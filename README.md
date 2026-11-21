@@ -179,6 +179,26 @@ Create a draft quote and its lines from one estimate. For tender-linked lines, u
 
 The application will supply the upload and review screens, risk decisions, cost build-ups, and selling-price calculations from markup or margin. Database backups include uploaded originals and source evidence.
 
+### Stored BOM catalogue analytics
+
+Apply the database migrations, install the database extra with `pip install -e '.[db]'`, and create a draft using the importer. Use the runtime role to connect. The CLI accepts `DATABASE_URL` or standard libpq environment variables. Set `DATABASE_URL` to enable the **Stored BOM catalogue** panel in the local web app.
+
+```sh
+python -m analysis catalogue process BOM_VERSION_UUID
+python -m analysis catalogue report BOM_VERSION_UUID --out catalogue.json
+python -m analysis catalogue process BOM_VERSION_UUID --llm
+python -m analysis catalogue review BOM_VERSION_UUID OCCURRENCE_UUID accept --decision-id DECISION_UUID --reviewer "Reviewer name"
+python -m analysis catalogue review BOM_VERSION_UUID OCCURRENCE_UUID correct --product-id PRODUCT_UUID --decision-id DECISION_UUID --reviewer "Reviewer name"
+python -m analysis catalogue history BOM_VERSION_UUID OCCURRENCE_UUID
+python -m analysis catalogue retry BOM_VERSION_UUID OCCURRENCE_UUID --decision-id DECISION_UUID --attempt-id ATTEMPT_UUID
+```
+
+The pipe and cable conduit pilot matches technical specifications, approved aliases, and supplier-qualified SKUs. It captures references, conflicting attributes, and scope evidence for review. The model uses the existing `ANALYSIS_L3_PROVIDER` configuration only when explicitly enabled. Review decisions and saved responses are reusable within the project. An approved new identity becomes a pending product, with commercial fields completed through the existing catalogue workflow.
+
+`approve-alias` takes a BOM version UUID, a product UUID, the alias, and `--reviewer`. Use `--share` to approve a project-independent alias across projects. Review and retry commands require the current decision ID from the report. A retry also requires the latest attempt ID so competing requests cannot both retry the same attempt.
+
+Selected totals include supported quantity conversions and preserve paired bases. The report shows alternative, conditional, included, and companion occurrences with their selection status. Companion-only positions require reconciliation with primary scope before contributing to totals. The web panel uses the same service as the CLI. See [the implementation plan and verification commands](docs/CATALOGUE_ANALYTICS_IMPLEMENTATION.md).
+
 ## Analysis dependency checks
 
 Layer 2 now checks 16 dependencies across screed/floor finishes, concrete, drywall, painting, and flat roofing. It uses the shared analysis models, rule registry, and runner alongside layer 1. Findings include source-related line IDs, quantity evidence, stable keys, and reviewable proposals; inputs are never modified.

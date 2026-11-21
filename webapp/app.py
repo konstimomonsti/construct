@@ -1,18 +1,18 @@
-"""Minimal web UI: upload a BoQ (GAEB, PDF, Word), run the analysis layers, show the report.
-
-Runs without the database: the file is parsed in memory with the importer's parsers and passed
-straight to the analysis runner. Nothing is stored.
-"""
+"""Upload checks and optional catalogue analytics for stored BOMs."""
 
 from __future__ import annotations
 
 from hashlib import sha256
+import os
 from pathlib import Path
 import sys
 import traceback
+from typing import Literal
+from uuid import UUID
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
+from pydantic import BaseModel, Field
 
 ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT / "importer") not in sys.path:
@@ -136,3 +136,64 @@ def analyze_upload(file: UploadFile = File(...), layers: str = Form("1,2")):
     if len(data) > MAX_BYTES:
         raise HTTPException(413, f"The file is larger than {MAX_BYTES // (1024 * 1024)} MB.")
     return run_analysis(Path(file.filename or "upload").name, data, parse_layers(layers))
+
+
+class CatalogueProcess(BaseModel):
+    llm: bool = False
+
+
+class CatalogueReview(BaseModel):
+    action: Literal["accept", "reject", "correct"]
+    reviewer: str = Field(min_length=1, max_length=200)
+    decision_id: UUID
+    product_id: UUID | None = None
+    note: str = Field(default="", max_length=4000)
+
+
+class CatalogueRetry(BaseModel):
+    decision_id: UUID
+    attempt_id: UUID
+
+
+def catalogue_operation(operation, *args, llm=False, **kwargs):
+    if not os.environ.get("DATABASE_URL"):
+        raise HTTPException(503, "Configure DATABASE_URL to use stored catalogue analytics")
+    import psycopg
+
+    from analysis.catalogue.service import Catalogue, connect
+    from analysis.catalogue.store import CatalogueError, Conflict, NotFound
+    from analysis.layer3.provider import ProviderError, provider_from_env
+
+    try:
+        provider = provider_from_env() if llm else None
+        with connect() as connection:
+            return getattr(Catalogue(connection, provider), operation)(*args, **kwargs)
+    except NotFound as exc:
+        raise HTTPException(404, str(exc)) from exc
+    except Conflict as exc:
+        raise HTTPException(409, str(exc)) from exc
+    except CatalogueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+    except (ProviderError, psycopg.OperationalError, psycopg.errors.UndefinedTable) as exc:
+        raise HTTPException(503, "Catalogue database or identification provider is unavailable") from exc
+
+
+@app.get("/api/catalogue/{bom_id}")
+def catalogue_report(bom_id: UUID):
+    return catalogue_operation("report", bom_id)
+
+
+@app.post("/api/catalogue/{bom_id}")
+def catalogue_process(bom_id: UUID, options: CatalogueProcess):
+    return catalogue_operation("process", bom_id, llm=options.llm)
+
+
+@app.post("/api/catalogue/{bom_id}/occurrences/{occurrence_id}/review")
+def catalogue_review(bom_id: UUID, occurrence_id: UUID, review: CatalogueReview):
+    return catalogue_operation("review", bom_id, occurrence_id, review.action, review.reviewer,
+                               product_id=review.product_id, note=review.note, expected_decision_id=review.decision_id)
+
+
+@app.post("/api/catalogue/{bom_id}/occurrences/{occurrence_id}/retry")
+def catalogue_retry(bom_id: UUID, occurrence_id: UUID, retry: CatalogueRetry):
+    return catalogue_operation("retry", bom_id, occurrence_id, retry.decision_id, retry.attempt_id, llm=True)

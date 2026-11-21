@@ -1,0 +1,19 @@
+{
+  "products": [
+    ["p1", "PP pipe DN 110 SN 8"],
+    ["p2", "PP pipe DN 125 SN 8"],
+    ["p3", "PVC-U pipe DN 160 SN 4"],
+    ["p4", "PE-HD pipe 90 x 8.2 mm"],
+    ["p5", "PE-HD pipe 90 x 8.2 mm"]
+  ],
+  "cases": [
+    {"text": "PP-Rohr DN110 SN8 liefern", "label": "p1"},
+    {"text": "Supply PP pipe DN 125 SN 8", "label": "p2"},
+    {"text": "PVC-U pipe DN 160 SN 4 supply", "label": "p3"},
+    {"text": "Supply PP pipe DN 110 SN 4", "label": null},
+    {"text": "Supply PE-HD pipe 90 x 8,2 mm", "label": null},
+    {"text": "Liefern PVC-U-Rohr DN 160", "label": null},
+    {"text": "Supply PP pipe DN 250 SN 8", "label": null},
+    {"text": "Supply PP pressure pipe DN 110 SN 8", "label": "p1"}
+  ]
+}

@@ -79,5 +79,13 @@ SELECT NOT EXISTS (
     INSERT INTO db_migration.applied_version (version) VALUES (9);
 \endif
 
+SELECT NOT EXISTS (
+    SELECT FROM db_migration.applied_version WHERE version = 10
+) AS apply_catalogue_analytics \gset
+\if :apply_catalogue_analytics
+    \ir migrations/010_catalogue_analytics.sql
+    INSERT INTO db_migration.applied_version (version) VALUES (10);
+\endif
+
 \ir runtime_role.sql
 COMMIT;

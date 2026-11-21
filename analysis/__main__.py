@@ -12,6 +12,7 @@ from pathlib import Path
 import sys
 
 from . import adapter
+from .catalogue import cli as catalogue_cli
 from .registry import all_rules
 from .runner import DEFAULT_LAYERS, analyze
 
@@ -41,7 +42,11 @@ def main(argv=None) -> int:
         if name == "run":
             command.add_argument("--layers", default=",".join(map(str, DEFAULT_LAYERS)))
     commands.add_parser("rules")
+    catalogue_cli.add_command(commands)
     args = parser.parse_args(argv)
+
+    if args.command == "catalogue":
+        return catalogue_cli.dispatch(args, emit, parser)
 
     if args.command == "rules":
         import importlib
