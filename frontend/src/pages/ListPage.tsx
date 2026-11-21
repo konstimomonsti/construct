@@ -9,6 +9,7 @@ import { MetaLink, PageFrame, PageHeader, RowMenu, SortMenu, Summary, ToolButton
 import { phaseLabel } from '../components/ListCard'
 import { ErrorBoundary } from '../components/ErrorBoundary'
 import { LedgerTable } from '../components/LedgerTable'
+import { BidSimulator } from '../components/BidSimulator'
 import { ChangeOrderText, FindingFilter, FindingText } from '../components/RiskAssessment'
 import { decisionsOf, indexFindings, matchesFindingFilter, SEVERITIES, useUploadAssessment, type ChangeOrderSignal, type Decision, type Report, type ReviewItem } from '../lib/risk-assessment'
 import { riskXlsx, downloadBytes } from '../lib/risk-export'
@@ -292,6 +293,11 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   const edits = useStore((s) => s.edits[doc.id])
   const resolved = useMemo(() => resolveList(doc, edits), [doc, edits])
   const positions = resolved.positions
+  const bidStandardRates = useMemo(() => {
+    if (!original || imported.phase !== 'X83') return new Map<string, number>()
+    const units = new Map(imported.positions.map((p) => [p.id, p.unit]))
+    return new Map(positions.flatMap((p) => p.up != null && p.unit === units.get(p.id) ? [[p.id, p.up] as const] : []))
+  }, [original, imported.phase, imported.positions, positions])
   const tree = resolved.tree
   const catStats = useMemo(() => treeStats(positions), [positions])
   const ozGroups = useMemo(() => groupByOz(positions), [positions])
@@ -692,6 +698,9 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
             <Button variant="primary" icon="add" onClick={() => setAdding(true)} aria-label="Add position" className="max-sm:w-10 max-sm:px-0">
               <span className="max-sm:hidden">Add position</span>
             </Button>
+            {original && imported.phase === 'X83' && imported.source?.kind === 'gaeb-xml' && (
+              <BidSimulator listId={doc.id} title={heading} standardRates={bidStandardRates} />
+            )}
             <ExportMenu listId={doc.id} doc={doc} original={original} selectedIds={[...selected]} />
             <RowMenu items={more} label={`More actions for ${title}`} />
           </div>
