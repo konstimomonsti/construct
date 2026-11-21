@@ -46,11 +46,35 @@ def detect_format(name: str, content: bytes) -> str:
         return "docx"
     if extension == ".zip":
         return "zip"
+    if extension in {".xlsx", ".xlsm"}:
+        return "xlsx"
+    if extension == ".xls":
+        return "xls"
+    if extension in {".csv", ".tsv"}:
+        return "csv"
     if re.fullmatch(r"\.x\d{2}", extension) or extension == ".xml":
         return "gaeb_xml"
     if re.fullmatch(r"\.d\d{2}", extension):
         return "gaeb_1990"
     return "unsupported"
+
+
+# Regexes shared by the PDF and spreadsheet parsers. pdf.py still carries its own copies of these;
+# it can switch to the ones below once the PDF fixes have landed.
+NUMBER = r"[+\-−]?(?:\d{1,3}(?:\.\d{3})+|\d+)(?:,\d+)?"
+UNIT = re.compile(r"^(?:m(?:[²³23])?(?:wo|d)?|cm[²23]?|mm|km[²2]?|kg|t|to|l|kwh|st(?:k|ck)?\.?|stwo|satz|set|pau|psch\.?|h|std\.?|wo\.?|mt\.?|mo\.?|d|j(?:r|ahre?)|lfm)$", re.I)
+PRICE_ONLY = re.compile(r"nur\s+(?:einh[. -]*pr\.?|einheitspreis|EP)\b", re.I)
+
+
+def item_flags(description: str) -> dict:
+    """Marker words in the printed text ("Bedarfsposition ohne GB") that change how a line is totalled."""
+    lowered = description.casefold()
+    return {
+        "unit_price_only": bool(PRICE_ONLY.search(description)) or "ohne gb" in lowered or "ohne gesamtbetrag" in lowered,
+        "provisional_included": "bedarfsposition mit gb" in lowered,
+        "base_item": "grundposition" in lowered,
+        "alternative_item": "wahlposition" in lowered or "alternativposition" in lowered,
+    }
 
 
 def german_decimal(raw: str) -> str | None:

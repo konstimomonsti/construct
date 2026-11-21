@@ -1,4 +1,6 @@
+from hashlib import sha256
 from io import BytesIO
+import json
 from pathlib import PurePosixPath
 from zipfile import ZipFile
 
@@ -6,14 +8,19 @@ from .common import PARSER_VERSION, Result, checked_entries, detect_format, read
 from .legacy import gaeb_1990
 from .pdf import pdf
 from .store import find_import, save_result, store_upload, summarize
+from .spreadsheet import excel
 from .structured import docx, gaeb_xml
 
 
-def ingest(connection, project_id, name, content, *, legacy_encoding=None, depth=0):
+def ingest(connection, project_id, name, content, *, legacy_encoding=None, depth=0, column_map=None):
     document_format = detect_format(name, content)
     parser_version = PARSER_VERSION
     if legacy_encoding is not None and document_format in {"gaeb_1990", "zip"}:
         parser_version = f"{PARSER_VERSION}+{legacy_encoding}"
+    if column_map and document_format in {"xlsx", "xls", "csv"}:
+        # A manual column mapping gives different records than auto-detection, so it needs its own cache key.
+        mapping_hash = sha256(json.dumps(column_map, sort_keys=True).encode()).hexdigest()[:8]
+        parser_version = f"{PARSER_VERSION}+map-{mapping_hash}"
     document_id, checksum = store_upload(connection, project_id, name, content, document_format)
     existing = find_import(connection, document_id, parser_version)
     if existing and existing[1] != "failed" and not existing[2].get("failed_members", 0):
@@ -28,7 +35,7 @@ def ingest(connection, project_id, name, content, *, legacy_encoding=None, depth
         failed = result.metadata.get("failed_archive", False)
     else:
         try:
-            result = parse_document(document_format, content, legacy_encoding)
+            result = parse_document(document_format, content, legacy_encoding, column_map)
         except Exception as exc:
             # Parsing is isolated from persistence. Database errors must remain visible to the caller.
             failed = True
@@ -40,7 +47,7 @@ def ingest(connection, project_id, name, content, *, legacy_encoding=None, depth
     return summary
 
 
-def parse_document(document_format, data, legacy_encoding):
+def parse_document(document_format, data, legacy_encoding, column_map=None):
     if document_format == "gaeb_xml":
         return gaeb_xml(data)
     if document_format == "gaeb_1990":
@@ -49,6 +56,8 @@ def parse_document(document_format, data, legacy_encoding):
         return pdf(data)
     if document_format == "docx":
         return docx(data)
+    if document_format in {"xlsx", "xls", "csv"}:
+        return excel(data, document_format, column_map)
     raise ValueError(f"Unsupported file type or nesting limit: {document_format}")
 
 

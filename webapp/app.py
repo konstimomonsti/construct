@@ -7,6 +7,7 @@ straight to the analysis runner. Nothing is stored.
 from __future__ import annotations
 
 from hashlib import sha256
+import json
 from pathlib import Path
 import sys
 import traceback
@@ -25,7 +26,9 @@ from analysis.runner import analyze  # noqa: E402
 DATA_DIR = ROOT / "Data"
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 MAX_BYTES = 50 * 1024 * 1024
-SUPPORTED = {"gaeb_xml": "GAEB XML", "gaeb_1990": "GAEB 90", "pdf": "PDF", "docx": "Word"}
+SPREADSHEETS = {"xlsx", "xls", "csv"}
+SUPPORTED = {"gaeb_xml": "GAEB XML", "gaeb_1990": "GAEB 90", "pdf": "PDF", "docx": "Word",
+             "xlsx": "Excel", "xls": "Excel (.xls)", "csv": "CSV"}
 
 app = FastAPI(title="Construct BoQ check")
 
@@ -35,7 +38,7 @@ def detect(name: str, data: bytes) -> str:
     return detect_format(name, data)
 
 
-def parse(document_format: str, data: bytes):
+def parse(document_format: str, data: bytes, column_map: dict | None = None):
     # Imported per format so a missing optional dependency (pypdf, poppler) only breaks that format.
     if document_format == "gaeb_xml":
         from tender_import.structured import gaeb_xml
@@ -49,6 +52,13 @@ def parse(document_format: str, data: bytes):
     if document_format == "docx":
         from tender_import.structured import docx
         return docx(data)
+    if document_format in SPREADSHEETS:
+        from tender_import.spreadsheet import excel
+        result = excel(data, document_format, column_map)
+        if not any(r.kind == "boq_header" for r in result.records):
+            detail = next((i["detail"] for i in result.issues if i["code"] == "excel_no_header"), "No BoQ was found.")
+            raise HTTPException(422, f"{detail} Send the optional column_map field to name the columns.")
+        return result
     raise HTTPException(415, f"Unsupported file type. Upload one of: {', '.join(SUPPORTED.values())}.")
 
 
@@ -62,14 +72,27 @@ def parse_layers(raw: str) -> list[int]:
     return layers
 
 
-def run_analysis(filename: str, data: bytes, layers: list[int]) -> dict:
+def parse_column_map(raw: str) -> dict | None:
+    """Optional JSON such as {"code": "A", "short_text": "B", "quantity": "E", "unit": "F", "header_row": 6}."""
+    if not raw or not raw.strip():
+        return None
+    from tender_import.spreadsheet import validate_mapping
+    try:
+        mapping = json.loads(raw)
+        validate_mapping(mapping)
+    except (ValueError, TypeError) as exc:  # json.JSONDecodeError is a ValueError
+        raise HTTPException(400, f"column_map is not valid: {exc}") from None
+    return mapping
+
+
+def run_analysis(filename: str, data: bytes, layers: list[int], column_map: dict | None = None) -> dict:
     if not data:
         raise HTTPException(400, "The file is empty.")
     document_format = detect(filename, data)
     if document_format not in SUPPORTED:
         raise HTTPException(415, f"Unsupported file type. Upload one of: {', '.join(SUPPORTED.values())}.")
     try:
-        result = parse(document_format, data)
+        result = parse(document_format, data, column_map)
     except HTTPException:
         raise
     except Exception as exc:
@@ -96,6 +119,7 @@ def run_analysis(filename: str, data: bytes, layers: list[int]) -> dict:
         "format_label": SUPPORTED[document_format],
         "size": len(data),
         "needs_review": bool(getattr(result, "needs_review", False)),
+        "column_map": getattr(result, "metadata", {}).get("column_map"),  # detected spreadsheet columns, per sheet
         "boqs": boqs,
     }
 
@@ -131,8 +155,8 @@ def analyze_sample(name: str, layers: str = "1,2"):
 
 
 @app.post("/api/analyze")
-def analyze_upload(file: UploadFile = File(...), layers: str = Form("1,2")):
+def analyze_upload(file: UploadFile = File(...), layers: str = Form("1,2"), column_map: str = Form("")):
     data = file.file.read(MAX_BYTES + 1)
     if len(data) > MAX_BYTES:
         raise HTTPException(413, f"The file is larger than {MAX_BYTES // (1024 * 1024)} MB.")
-    return run_analysis(Path(file.filename or "upload").name, data, parse_layers(layers))
+    return run_analysis(Path(file.filename or "upload").name, data, parse_layers(layers), parse_column_map(column_map))
