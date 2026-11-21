@@ -9,8 +9,26 @@ export interface LayoutLine {
   t: string
   b?: 1
   i?: 1
+  /** part of the (bold) short text */
+  s?: 1
   /** indentation relative to the text column, in pt */
   x?: number
+  /** baseline gap to the previous line in pt (omitted = regular pitch) */
+  g?: number
+  /** column segments of a line with value columns */
+  segs?: { t: string; x: number }[]
+}
+export interface LayoutEntry {
+  lines: LayoutLine[]
+  /** 'c' = category heading block */
+  k?: 'c'
+  /** original OZ token as printed (e.g. ".2") */
+  tok?: string
+  /** gap from the qty row to the next OZ line */
+  qg?: number
+  /** gap from the last line to the next OZ line */
+  eg?: number
+  ok?: number
 }
 export interface FurnitureItem {
   x: number
@@ -31,7 +49,7 @@ export interface PdfFurniture {
 }
 export interface LayoutFile {
   furniture?: PdfFurniture
-  positions: Record<string, { lines: LayoutLine[] }>
+  positions: Record<string, LayoutEntry>
 }
 
 export interface ExportRequest {

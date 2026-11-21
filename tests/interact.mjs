@@ -99,7 +99,7 @@ await page.keyboard.press('Escape')
 // export
 const [dl] = await Promise.all([page.waitForEvent('download'), (async () => {
   await page.getByRole('button', { name: 'Export' }).click()
-  await page.getByRole('menuitem', { name: 'Export as CSV' }).click()
+  await page.getByRole('menuitem', { name: /Table \(CSV\)/ }).click()
 })()])
 ok('csv download', dl.suggestedFilename().endsWith('.csv'))
 

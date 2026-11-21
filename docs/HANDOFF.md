@@ -12,7 +12,11 @@ Run: `cd app && npm run dev` (http://localhost:5173). Rebuild data: `npm run dat
 - Council review round 2: visual 8.3, function/content 8.7, code 7.0 → weighted 8.3/10.
 - Feature (done, verified): category tree + split overlay + re-categorisation (`src/components/split/*`, `src/lib/resolve.ts`, `src/lib/cat.ts`). User decisions: moved positions are RENUMBERED (next free OZ in target category); split UI = large in-app overlay. Test: `node tests/split.mjs` (13 checks pass).
 
-## In progress when saved
+## Exporters (done 2026-11-21, verified)
+- `src/lib/export/**`, `ExportMenu`/`ExportDialog` wired into ListPage. 10 formats. Tests: `npx tsx tests/export-roundtrip.ts` (byte-identical 9/9, cross-format 45/45, patch, PDF OZ/qty order), `node tests/export-ui.mjs` (all formats download via UI, UI byte-identity for X83/D86/PDF).
+- Known gaps: PDF pagination differs from originals; Angebot (C) lacks the 'Zusammenstellung Bereich' block and some 2-line short texts (e.g. 1.1.140) are cut to the first line; exceljs lazy chunk 929 kB triggers Vite warning (lazy only).
+
+## (historic) In progress when saved
 - Exporters (Sonnet subagent B, background): `src/lib/export/**`, `src/components/ExportMenu.tsx`, `src/components/ExportDialog.tsx`, `scripts/pdf-layout.py`, `public/data/layout/**`, `tests/export-roundtrip.ts`.
   Formats: CSV, XLSX (exceljs), PDF (pdf-lib, in the original layout family `source.pdfTemplate` A_anfrage | B_kurz_langtext | C_angebot | D_lv_ausdruck | E_courier — measurements in `docs/pdf-templates/*.txt`), GAEB X83 (3.2), x83 (2004), D83, D84, D86, DOCX, JSON.
   Fidelity rules: unedited + same format → original bytes; edited + same format → patch original; else generate in the source's notation.

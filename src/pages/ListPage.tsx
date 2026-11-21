@@ -2,14 +2,14 @@ import { clsx } from 'clsx'
 import { lazy, Suspense, use, useEffect, useId, useMemo, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
-import { Button, Dialog, Field, Icon, Menu, inputCls, toast } from '../components/ui'
+import { Button, Dialog, Field, Icon, inputCls, toast } from '../components/ui'
 import { Page, TableSkeleton } from '../components/Page'
 import { ErrorBoundary } from '../components/ErrorBoundary'
 import { LedgerTable } from '../components/LedgerTable'
 import { BudgetAlert } from '../components/BudgetAlert'
 import { DetailDrawer } from '../components/DetailDrawer'
-import { fileUrl, loadList } from '../lib/data'
-import { downloadText, safeName, toCsv } from '../lib/export'
+import { loadList } from '../lib/data'
+import { ExportMenu } from '../components/ExportMenu'
 import { CategoryTree, useExpanded, type CheckState } from '../components/split/CategoryTree'
 import { MoveToCategory } from '../components/split/MoveToCategory'
 import { money, moneyCompact, niceCap, plural } from '../lib/format'
@@ -314,10 +314,6 @@ function ListDetail({ doc }: { doc: ListDoc }) {
 
   const detail = detailId ? positions.find((p) => p.id === detailId) ?? null : null
 
-  const exportCsv = () => downloadText(`${safeName(title)}.csv`, toCsv(positions), 'text/csv')
-  const exportJson = () =>
-    downloadText(`${safeName(title)}.json`, JSON.stringify({ ...doc, title, total: st.total, positionsCount: st.positionsCount, pricedCount: st.pricedCount, positions }, null, 2), 'application/json')
-
   const removeSelected = () => {
     const ids = [...selected]
     useStore.getState().removePositions(doc.id, ids)
@@ -393,21 +389,7 @@ function ListDetail({ doc }: { doc: ListDoc }) {
 
       <div className="flex min-w-0 items-center justify-between gap-3 pb-4">
         <TabsBar activeId={doc.id} folderId={folder?.id ?? doc.folderId} />
-        <Menu
-          label="Export"
-          width="w-52"
-          items={[
-            { label: 'Export as CSV', icon: 'table_view', onSelect: exportCsv },
-            { label: 'Export as JSON', icon: 'data_object', onSelect: exportJson },
-            ...(doc.file ? ([{ label: 'Original file', icon: 'attach_file', onSelect: () => window.open(fileUrl(doc.file), '_blank') }] as const) : []),
-          ]}
-          trigger={(p) => (
-            <button {...p} type="button" className="flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-xs transition-colors hover:bg-slate-50">
-              <Icon name="file_download" size={15} className="text-slate-500" />
-              Export
-            </button>
-          )}
-        />
+        <ExportMenu listId={doc.id} doc={doc} selectedIds={[...selected]} />
       </div>
 
       <div className="mt-6 flex flex-wrap items-center justify-between gap-3">

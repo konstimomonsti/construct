@@ -337,7 +337,7 @@ function scan90(text: string): Scan90 {
       cur = null
     }
     if (r === '00') {
-      const m = l.match(/(\d{2})([LKA])\s/)
+      const m = l.slice(10, 13).match(/^(\d{2})[LKA]/)
       if (m) phase = m[1]
       const mk = l.slice(62, 71).trim()
       if (/^[1-9P]+I?$/.test(mk)) mask = mk

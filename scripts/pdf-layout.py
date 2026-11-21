@@ -89,7 +89,7 @@ def seg_split(spans):
     segs = []
     cur = [spans[0]]
     for s in spans[1:]:
-        if s['origin'][0] - cur[-1]['bbox'][2] > 25:
+        if s['origin'][0] - cur[-1]['bbox'][2] > 12:
             segs.append(cur)
             cur = [s]
         else:

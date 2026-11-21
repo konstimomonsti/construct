@@ -1,0 +1,144 @@
+import { useMemo, useState } from 'react'
+import clsx from 'clsx'
+import { Button, Dialog, Icon, toast } from './ui'
+import { useStore } from '../lib/store'
+import { resolveList } from '../lib/resolve'
+import {
+  FORMATS, downloadResult, exportFileName, exportList, fidelityNote, isEdited, layoutLoader, originalLoader, ownFormat,
+  type FormatId, type ExportRequest,
+} from '../lib/export/index'
+import type { ListDoc } from '../lib/types'
+
+type Scope = 'all' | 'selection' | 'categories'
+
+export function ExportDialog({
+  open, onClose, listId, doc, selectedIds, initial,
+}: { open: boolean; onClose: () => void; listId: string; doc: ListDoc; selectedIds?: string[]; initial?: FormatId }) {
+  const edits = useStore((s) => s.edits[listId])
+  const resolved = useMemo(() => resolveList(doc, edits), [doc, edits])
+  const edited = useMemo(() => isEdited(doc, resolved.positions), [doc, resolved])
+  const own = ownFormat(doc)
+  const [format, setFormat] = useState<FormatId>(initial ?? own ?? 'xlsx')
+  const [scope, setScope] = useState<Scope>('all')
+  const [cats, setCats] = useState<Set<string>>(new Set())
+  const [longTexts, setLongTexts] = useState(true)
+  const [prices, setPrices] = useState(true)
+  const [busy, setBusy] = useState(false)
+
+  const info = FORMATS.find((f) => f.id === format)!
+  const forcedOff = !!info.tender
+  const forcedOn = !!info.priced
+  const hasSel = !!selectedIds?.length
+  const effScope: Scope = scope === 'selection' && !hasSel ? 'all' : scope
+  const pricesOn = forcedOn ? true : forcedOff ? false : prices
+  const canPrices = format !== 'json' || true
+  const fileName = exportFileName(doc, format, edited || effScope !== 'all')
+
+  const run = async () => {
+    setBusy(true)
+    try {
+      const req: ExportRequest = {
+        doc, resolved, format, scope: effScope,
+        selectedIds: effScope === 'selection' ? selectedIds : undefined,
+        categoryOzs: effScope === 'categories' ? [...cats] : undefined,
+        longTexts, prices: pricesOn,
+        loadOriginal: originalLoader(doc),
+        loadLayout: layoutLoader(doc),
+        edited,
+      }
+      const res = await exportList(req)
+      downloadResult(res)
+      toast(`Exported ${res.fileName}`)
+      onClose()
+    } catch (e) {
+      console.error(e)
+      toast(`Export failed: ${(e as Error).message}`, 'error')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const toggleCat = (oz: string) =>
+    setCats((s) => {
+      const n = new Set(s)
+      if (n.has(oz)) n.delete(oz)
+      else n.add(oz)
+      return n
+    })
+
+  return (
+    <Dialog
+      open={open}
+      onClose={onClose}
+      title="Export"
+      description={`${doc.title} · ${resolved.positions.length} positions${edited ? ' · edited' : ''}`}
+      width="max-w-2xl"
+      footer={
+        <>
+          <span className="mr-auto truncate font-mono text-[11px] text-slate-400" title={fileName}>{fileName}</span>
+          <Button variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button variant="primary" icon="file_download" disabled={busy || (effScope === 'categories' && cats.size === 0)} onClick={run}>
+            {busy ? 'Exporting…' : 'Export'}
+          </Button>
+        </>
+      }
+    >
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        {FORMATS.map((f) => (
+          <button
+            key={f.id}
+            type="button"
+            onClick={() => setFormat(f.id)}
+            aria-pressed={format === f.id}
+            className={clsx(
+              'flex flex-col items-start gap-1 rounded-xl border p-2.5 text-left transition-colors',
+              format === f.id ? 'border-brand-500 bg-brand-50 ring-1 ring-brand-500' : 'border-slate-200 bg-white hover:bg-slate-50',
+            )}
+          >
+            <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-800">
+              <Icon name={f.icon} size={16} className="text-slate-400" />
+              {f.label}
+            </span>
+            <span className="text-[11px] leading-snug text-slate-500">{fidelityNote(doc, f.id, edited)}</span>
+          </button>
+        ))}
+      </div>
+
+      <div className="mt-4 grid gap-4 sm:grid-cols-2">
+        <fieldset className="space-y-1.5">
+          <legend className="mb-1 text-xs font-semibold text-slate-700">Scope</legend>
+          {(['all', 'selection', 'categories'] as Scope[]).map((s) => (
+            <label key={s} className={clsx('flex items-center gap-2 text-xs text-slate-700', s === 'selection' && !hasSel && 'opacity-40')}>
+              <input type="radio" name="scope" checked={effScope === s} disabled={s === 'selection' && !hasSel} onChange={() => setScope(s)} />
+              {s === 'all' ? 'Whole list' : s === 'selection' ? `Selected positions${hasSel ? ` (${selectedIds!.length})` : ''}` : 'Selected categories'}
+            </label>
+          ))}
+          {effScope === 'categories' && (
+            <div className="max-h-32 space-y-1 overflow-auto rounded-lg border border-slate-200 p-2">
+              {resolved.tree.map((c) => (
+                <label key={c.oz} className="flex items-center gap-2 text-xs text-slate-700">
+                  <input type="checkbox" checked={cats.has(c.oz)} onChange={() => toggleCat(c.oz)} />
+                  <span className="font-mono text-[11px] text-slate-400">{c.oz}</span>
+                  <span className="truncate">{c.label}</span>
+                </label>
+              ))}
+            </div>
+          )}
+        </fieldset>
+        <fieldset className="space-y-1.5">
+          <legend className="mb-1 text-xs font-semibold text-slate-700">Content</legend>
+          <label className="flex items-center gap-2 text-xs text-slate-700">
+            <input type="checkbox" checked={longTexts} onChange={(e) => setLongTexts(e.target.checked)} />
+            Include long texts
+          </label>
+          <label className={clsx('flex items-center gap-2 text-xs text-slate-700', (forcedOn || forcedOff) && 'opacity-60')}>
+            <input type="checkbox" checked={pricesOn && canPrices} disabled={forcedOn || forcedOff} onChange={(e) => setPrices(e.target.checked)} />
+            Include prices
+            {forcedOff && <span className="text-[11px] text-slate-400">(not part of tender formats)</span>}
+            {forcedOn && <span className="text-[11px] text-slate-400">(always in this format)</span>}
+          </label>
+        </fieldset>
+      </div>
+    </Dialog>
+  )
+}
