@@ -8,8 +8,8 @@ from .. import units
 from ..contracts import Fix, SetField
 from ..registry import rule
 from .common import (
-    BILLING_UNIT, BIDDER_INPUT, OR_EQUIVALENT, THRESHOLDS, excerpt, label, phase_has_prices, review_fix, section_label,
-    section_subtrees, text_of,
+    BILLING_UNIT, BIDDER_INPUT, OR_EQUIVALENT, THRESHOLDS, excerpt, label, outline_alternative_repeats,
+    phase_has_prices, review_fix, section_label, section_subtrees, text_of,
 )
 
 
@@ -196,6 +196,7 @@ _PRECEDING_SCOPE = re.compile(
 @rule("L1.DUP.SUSPECTED", layer=1, category="duplicate", severity="warning", title="Possible duplicate item",
       description="Same description and unit twice in the same section: possible double counting.")
 def suspected_duplicate(ctx):
+    alternatives = outline_alternative_repeats(ctx.input)
     groups = defaultdict(list)
     previous_by_section = {}
     base_work = {}
@@ -219,7 +220,7 @@ def suspected_duplicate(ctx):
         for line in lines:
             scope = base_work[line.id] if resolved else None
             first = first_by_scope.setdefault(scope, line)
-            if line is first:
+            if line is first or (line.id in alternatives and alternatives[line.id][0].id == first.id):
                 continue
             yield ctx.finding(line=line, related_line_ids=[first.id],
                               message=f"{label(line)} has the same description and unit as {first.code}.",

@@ -94,6 +94,12 @@ ANALYSIS_SPELL_DIC=off PYTHONPATH=backend:backend/importer python -m analysis.ev
 
 Run again with `ANALYSIS_SPELL_DIC` pointing to `de_DE.dic` to replay the optional profile. The command returns exit 1 for misses, false alarms, missing guidance, or unlinked cases. Its counts apply to the reviewed position and rule combinations. An independent sample of unseen bills is still needed for a production accuracy estimate.
 
+### Repeated codes in Word outline alternatives
+
+The repository Word outline repeats position 3.1.90 in paragraphs 36 and 39. Paragraph 37 separates the surrounding pipe work with `oder`. The importer retains that connector with its original paragraph. Layer 1 issues a source-linked warning asking whether the identical surcharge applies to both variants and whether it needs a shared or separate reference. Both quantity omissions remain visible. The underlying commercial scope still needs confirmation from the governing tender.
+
+The `outline-duplicates` suite exercises the same repeat with `oder`, a repeat joined by `mit`, and different work carrying the same code. The first calls for a scope review. The other two retain duplicate-code errors. All three expected classifications were found with guidance through the normal Word upload and repeated with all three layers using local Qwen. The tests also cover repeats within the same branch or across a new heading.
+
 ## Dependency responsibility and cross-reference replay
 
 Layer 2 distinguishes counted coverage from explicit responsibility statements. A dependency stated as client-supplied, excluded, conditional, or in another position is not counted from that mention. A position reference can be verified when it resolves uniquely to a firm matching line within the assessed scope. That target counts once at its recorded quantity. An unresolved reference is visible even when other quantities look sufficient. Findings quote the source statement and ask the reviewer to confirm the responsible position and quantity before adding work.

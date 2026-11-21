@@ -5,7 +5,7 @@ from collections import defaultdict
 from .. import units
 from ..contracts import Fix, SetField
 from ..registry import rule
-from .common import BID_PHASE, label, review_fix
+from .common import BID_PHASE, label, outline_alternative_repeats, review_fix
 
 
 def is_markup(line) -> bool:
@@ -155,6 +155,7 @@ def code_missing(ctx):
 @rule("L1.CODE.DUPLICATE", layer=1, category="structure", severity="error", title="Duplicate OZ code",
       description="Two items share the same ordinal number.")
 def code_duplicate(ctx):
+    alternatives = outline_alternative_repeats(ctx.input)
     by_code = defaultdict(list)
     for line in ctx.input.lines:
         if line.code:
@@ -163,6 +164,21 @@ def code_duplicate(ctx):
     for (sheet, code), lines in by_code.items():
         first, *repeats = lines
         for line in repeats:
+            if line.id in alternatives:
+                base, connector = alternatives[line.id]
+                original_paragraph = base.source_locator["paragraph"]
+                repeated_paragraph = line.source_locator["paragraph"]
+                yield ctx.finding(
+                    line=line, field="code", related_line_ids=[base.id], severity="warning",
+                    title="Position code repeats across Word outline alternatives",
+                    message=f"OZ {code} repeats in paragraphs {original_paragraph} and {repeated_paragraph}. "
+                            f"Paragraph {connector['paragraph']} separates them with “{connector['text']}”.",
+                    evidence={"code": code, "occurrences": len(lines), "reason": "outline_alternatives",
+                              "outline_connector": connector, "source_paragraphs": [original_paragraph, repeated_paragraph]},
+                    suggested_fix=review_fix("Confirm whether the repeated work applies to both alternatives. "
+                                             "Record shared scope once or give each variant a unique reference before pricing."),
+                )
+                continue
             yield ctx.finding(line=line, field="code", related_line_ids=[first.id],
                               message=f"OZ {code} is used {len(lines)} times" + (f" on sheet {sheet}." if sheet else "."),
                               evidence={"code": code, "occurrences": len(lines), **({"sheet": sheet} if sheet else {})},

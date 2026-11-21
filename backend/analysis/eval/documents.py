@@ -453,6 +453,29 @@ def generate_action_spelling(out):
             write_fixture_labels(out / f"{name}.{ext}", f"{baseline}.{ext}", label)
 
 
+def generate_outline_duplicates(out):
+    """Replay repeated Word outline codes with and without an explicit alternative."""
+    out.mkdir(parents=True, exist_ok=True)
+    shared = "1.2.90 – Zulage Deckbeschichtung [m]"
+    for name, connector, repeat, severity in (
+        ("outline-alternative", "oder", shared, "warning"),
+        ("outline-additional", "mit", shared, "error"),
+        ("outline-different", "oder", "1.2.90 – Andere Deckbeschichtung [m]", "error"),
+    ):
+        doc = Document()
+        for paragraph in ("Rohrleitung", "1.2.10 – Stahlrohr liefern [m]", shared, connector,
+                          "1.2.20 – Kunststoffrohr liefern [m]", repeat):
+            doc.add_paragraph(paragraph)
+        path = out / f"{name}.docx"
+        doc.save(path)
+        target = {"line_codes": ["1.2.90"], "severity": severity, "source_locator": {"paragraph": 6}}
+        if severity == "warning":
+            target["reason"] = "outline_alternatives"
+        write_fixture_labels(path, path.name, {
+            "layers": [1], "expect": ["L1.CODE.DUPLICATE"], "match": "line", "target": target,
+        })
+
+
 def generate_grade_scope(out):
     """Test concrete grade conflicts, legitimate component differences and unclear attribution."""
     out.mkdir(parents=True, exist_ok=True)
@@ -564,7 +587,7 @@ if __name__ == "__main__":
               "exposure-scope": generate_exposure_scope, "dependency-scope": generate_dependency_scope,
               "product-offer": generate_product_offer, "product-position": generate_product_position,
               "product-requirements": generate_product_requirements, "written-stiffness": generate_written_stiffness,
-              "action-spelling": generate_action_spelling}
+              "action-spelling": generate_action_spelling, "outline-duplicates": generate_outline_duplicates}
     parser.add_argument("--suite", choices=suites, default="tabular")
     args = parser.parse_args()
     suites[args.suite](args.out)

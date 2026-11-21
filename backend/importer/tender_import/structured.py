@@ -173,6 +173,8 @@ def extract_word_body(root, locator, result):
 def extract_word_paragraphs(root, locator, result, item_tables):
     context = None
     connector = None
+    heading_paragraph = None
+    connector_paragraph = None
     for index, para in enumerate(root.iter(_WORD + "p"), 1):
         phrase = word_text(para)
         path = {**locator, "paragraph": index, "xml_path": root.getroottree().getelementpath(para)}
@@ -180,15 +182,26 @@ def extract_word_paragraphs(root, locator, result, item_tables):
         style_id = style.get(_WORD + "val") if style is not None else None
         result.add("paragraph", path, text=phrase, style=style_id)
         match = _WORD_ITEM.fullmatch(phrase)
+        is_body_paragraph = para.getparent().tag == _WORD + "body"
+        if not is_body_paragraph:
+            heading_paragraph = connector_paragraph = None
         if match and not any(table in item_tables for table in para.iterancestors(_WORD + "tbl")):
             code, description, unit = match.groups()
-            result.add("item_candidate", path, code=code, short_description=description,
+            outline = {}
+            if is_body_paragraph and heading_paragraph:
+                outline = {"outline_heading_paragraph": heading_paragraph}
+                if connector_paragraph:
+                    outline["outline_connector"] = {"paragraph": connector_paragraph, "text": connector}
+            result.add("item_candidate", {**path, **outline}, code=code, short_description=description,
                        unit=unit, quantity=None, group=context, relationship_hint=connector,
                        confidence="review")
         elif phrase.strip().casefold() in {"oder", "mit"}:
             connector = phrase.strip()
+            connector_paragraph = index if is_body_paragraph else None
         elif phrase.strip() and phrase.strip() not in {"…", "..."}:
             context, connector = phrase.strip(), None
+            heading_paragraph = index if is_body_paragraph else None
+            connector_paragraph = None
 
 
 _WORD_HEADERS = {

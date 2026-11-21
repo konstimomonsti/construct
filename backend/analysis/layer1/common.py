@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections import defaultdict
 from dataclasses import dataclass
 from decimal import ROUND_HALF_UP, Decimal
 import re
@@ -66,6 +67,47 @@ def source_detail(line: Line, source_format: str | None) -> str | None:
     if " ".join(header.casefold().split()) == " ".join(line.short_text.casefold().split()):
         return detail or None
     return line.long_text
+
+
+def outline_alternative_repeats(snapshot: AnalysisInput):
+    """Locate identical unmeasured Word lines repeated across explicit outline alternatives."""
+    if snapshot.project.source_document.format != "docx":
+        return {}
+    groups = defaultdict(list)
+    for line in snapshot.lines:
+        if line.code:
+            groups[line.code].append(line)
+
+    repeats = {}
+    for group in groups.values():
+        if len(group) < 2:
+            continue
+        first, *rest = sorted(group, key=lambda line: line.sort_order)
+        outline = first.source_locator
+        heading = outline.get("outline_heading_paragraph")
+        previous = outline.get("paragraph")
+        if not heading or not isinstance(previous, int) or outline.get("outline_connector") or not first.short_text:
+            continue
+        linked = {}
+        for line in [first, *rest]:
+            if (line.source_locator.get("outline_heading_paragraph") != heading or line.quantity is not None
+                    or line.price is not None or line.source_amounts is not None
+                    or ((line.short_text or "").casefold(), line.long_text, line.unit)
+                    != (first.short_text.casefold(), first.long_text, first.unit)):
+                break
+            if line is first:
+                continue
+            paragraph = line.source_locator.get("paragraph")
+            connector = line.source_locator.get("outline_connector")
+            boundary = connector.get("paragraph") if isinstance(connector, dict) else None
+            if (not isinstance(paragraph, int) or not isinstance(boundary, int)
+                    or not previous < boundary < paragraph or str(connector.get("text")).casefold() != "oder"):
+                break
+            linked[line.id] = (first, connector)
+            previous = paragraph
+        else:
+            repeats.update(linked)
+    return repeats
 
 
 def section_subtrees(analysis_input: AnalysisInput) -> dict[str, set[str]]:

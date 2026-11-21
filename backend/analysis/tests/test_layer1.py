@@ -131,6 +131,54 @@ def test_code_missing_and_duplicate():
 # ---------------------------------------------------------------- consistency
 
 
+def _word_repeated_positions(paragraphs):
+    from io import BytesIO
+    from xml.sax.saxutils import escape
+    from zipfile import ZipFile
+
+    from analysis.adapter import from_bytes
+
+    body = "".join(f"<w:p><w:r><w:t>{escape(phrase)}</w:t></w:r></w:p>" for phrase in paragraphs)
+    buffer = BytesIO()
+    with ZipFile(buffer, "w") as archive:
+        archive.writestr("word/document.xml",
+                         '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+                         f"<w:body>{body}</w:body></w:document>")
+    return from_bytes("outline.docx", buffer.getvalue())
+
+
+def test_identical_word_outline_code_across_oder_needs_scope_review():
+    shared = "1.2.90 – Zulage Deckbeschichtung [m]"
+    snapshot = _word_repeated_positions(["Rohrleitung", "1.2.10 – Stahlrohr liefern [m]", shared, "Oder",
+                                         "1.2.20 – Kunststoffrohr liefern [m]", shared])
+    result = analyze(snapshot, [1, 2])
+    finding, = only(result, "L1.CODE.DUPLICATE")
+    first, repeat = [line for line in snapshot.lines if line.code == "1.2.90"]
+    assert finding.severity == "warning" and finding.target.line_id == repeat.id
+    assert finding.related_line_ids == [first.id]
+    assert finding.evidence["outline_connector"] == {"text": "Oder", "paragraph": 4}
+    assert finding.evidence["source_paragraphs"] == [3, 6]
+    assert finding.source_locator["paragraph"] == 6
+    assert finding.suggested_fix and not finding.suggested_fix.operations
+    assert "L1.DUP.SUSPECTED" not in rules(result)
+    assert len(only(result, "L1.QTY.MISSING")) == 4
+    assert all(line.alternative_for is None and line.total_rule == "include" for line in snapshot.lines)
+
+
+@pytest.mark.parametrize("boundary,repeated,extra", [
+    ([], "1.2.90 – Zulage Deckbeschichtung [m]", []),
+    (["mit"], "1.2.90 – Zulage Deckbeschichtung [m]", []),
+    (["Neuer Abschnitt", "oder"], "1.2.90 – Zulage Deckbeschichtung [m]", []),
+    (["oder"], "1.2.90 – Andere Deckbeschichtung [m]", []),
+    (["oder"], "1.2.90 – Zulage Deckbeschichtung [m]", ["1.2.90 – Zulage Deckbeschichtung [m]"]),
+])
+def test_word_code_stays_an_error_without_distinct_matching_alternatives(boundary, repeated, extra):
+    snapshot = _word_repeated_positions(["Rohrleitung", "1.2.90 – Zulage Deckbeschichtung [m]",
+                                         *boundary, repeated, *extra])
+    findings = only(analyze(snapshot, [1, 2]), "L1.CODE.DUPLICATE")
+    assert findings and all(f.severity == "error" for f in findings)
+
+
 def test_unit_text_mismatch_explicit_statement_only():
     result = run(make_line(1, unit="ea", unit_raw="St", long_text="Pflaster verlegen. Abrechnung nach m2."),
                  make_line(2, unit="h", long_text="Pumpenbetrieb. Abrechnung nach Stück x Stunden."),
