@@ -6,6 +6,7 @@ from ..registry import rule
 from .cable_designations import cable_conflict
 from .common import BIDDER_INPUT, OR_EQUIVALENT, excerpt, label, review_fix, source_detail, text_of
 from .concrete_scope import by_component, mentions
+from .fire_doors import door_class_discrepancy
 from .textvalues import DIMENSIONS, GRADE, MEASURE, NUMBER, centimetres, grades, values
 
 # Product/value redactions, not anonymized people or addresses.
@@ -217,7 +218,7 @@ def value_conflict(ctx):
         # strip), not to the item the short text names.
         short, long = values(line.short_text or ""), values(INCLUDED_CLAUSE.sub(" ", line.long_text or ""))
         for family in short:
-            if family == "concrete":
+            if family in {"concrete", "fire"}:
                 continue
             if short[family] and long[family] and short[family].isdisjoint(long[family]):
                 yield ctx.finding(line=line, field="long_text", discriminator=family,
@@ -225,6 +226,17 @@ def value_conflict(ctx):
                     message=f"{label(line)}: {family} values differ between short and long text.",
                     evidence={"family": family, "short_values": sorted(short[family]), "long_values": sorted(long[family]),
                               "bieterfrage_de": f"Zu Pos. {line.code}: Kurz- und Langtext enthalten unterschiedliche Angaben ({FAMILY_DE[family]}: {', '.join(sorted(short[family]))} / {', '.join(sorted(long[family]))}). Bitte bestätigen Sie die maßgebende Ausführung."})
+
+        if discrepancy := door_class_discrepancy(line.short_text, detail):
+            short_quote, long_quote, outcome = discrepancy
+            yield ctx.finding(
+                line=line, field="long_text", discriminator="fire", severity="warning" if outcome == "conflict" else "info",
+                message=f"{label(line)} states {short_quote} in the heading and {long_quote} in the detail for the door.",
+                evidence={"family": "fire", "outcome": outcome, "short_quote": short_quote, "long_quote": long_quote,
+                          "bieterfrage_de": f"Zu Pos. {line.code}: Welche Feuerwiderstandsklasse gilt für das "
+                                            f"Türelement ({short_quote} / {long_quote})?"},
+                suggested_fix=review_fix("Confirm the required doorset classification in the door schedule and align the descriptions."),
+            )
 
         for family, specification, heading_match, detail_match in attributed_dimensions(line.short_text, detail):
             heading_cm = centimetres(heading_match["number"], heading_match["unit"])

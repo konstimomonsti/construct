@@ -6,6 +6,7 @@ import re
 from ..registry import rule
 from .common import label, review_fix, source_detail, text_of
 from .concrete_scope import mentions, preceding_components
+from .structural_fire import structural_fire_review
 from .textvalues import EXPOSURE, GRADE, NORMAL_GRADES, STANDARD_GRADES, grades
 
 STRENGTH_RANK = {grade: rank for rank, grade in enumerate(NORMAL_GRADES, 1)}
@@ -230,17 +231,28 @@ def waterproofing_missing(ctx):
 
 
 @rule("L1.DIN.FIRE_RATING_CONFLICT", layer=1, category="din", severity="error",
-      title="Fire resistance requirement unclear", description="Checks conflicting ratings and unclassified fire walls.")
+      title="Fire resistance requirement unclear", description="Checks written ratings attributed to the same structural item.")
 def fire_rating_conflict(ctx):
+    source_format = ctx.input.project.source_document.format
     for line in ctx.input.lines:
-        short = {f"{a.upper()}{b}" for a, b in tv.FIRE_RATING.findall(line.short_text or "")}
-        long = {f"{a.upper()}{b}" for a, b in tv.FIRE_RATING.findall(line.long_text or "")}
-        conflict = bool(short and long and {x for x in short} != {x for x in long})
-        unclassified = bool(tv.FIRE_WALL.search(text_of(line)) and not (short or long))
-        if conflict or unclassified:
-            a, b = ", ".join(sorted(short)) or "keine Angabe", ", ".join(sorted(long)) or "keine Angabe"
-            yield ctx.finding(line=line, field="long_text", message=f"{label(line)}: " + (f"Short and long text specify different fire ratings ({a} vs. {b})." if conflict else "The fire wall has no stated fire-resistance rating."),
-                evidence={"standard": "DIN 4102 / DIN EN 13501", "short_ratings": sorted(short), "long_ratings": sorted(long), "unclassified_fire_wall": unclassified, "bieterfrage_de": f"Zu Pos. {line.code}: Die Brandschutzanforderung ist unklar ({a} gegenüber {b}). Bitte bestätigen Sie die maßgebliche Feuerwiderstandsklasse nach DIN 4102 / DIN EN 13501."})
+        review = structural_fire_review(line.short_text, source_detail(line, source_format))
+        if not review:
+            continue
+        outcome, short, long = review
+        missing = outcome == "missing"
+        statement = ("The fire wall has no attributed fire-resistance classification." if missing else
+                     f"The heading states {short} and the detail states {long} for this component.")
+        question = ("Bitte geben Sie die maßgebliche Feuerwiderstandsklasse der Brandwand an." if missing else
+                    f"Welche Feuerwiderstandsklasse gilt für dieses Bauteil ({short} / {long})?")
+        yield ctx.finding(
+            line=line, field="long_text", message=f"{label(line)}: {statement}",
+            severity="info" if outcome == "comparison_unverified" else "error",
+            evidence={"standard": "DIN 4102 / DIN EN 13501", "outcome": outcome,
+                      "short_ratings": [short] if short else [], "long_ratings": [long] if long else [],
+                      "short_quote": short, "long_quote": long, "unclassified_fire_wall": missing,
+                      "bieterfrage_de": f"Zu Pos. {line.code}: {question}"},
+            suggested_fix=review_fix("Confirm the classification for the named component in the fire strategy and align the tender wording."),
+        )
 
 
 @rule("L1.DIN.VOB_DEDUCTION_VIOLATION", layer=1, category="din", severity="warning",

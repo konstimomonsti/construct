@@ -9,7 +9,7 @@ from .. import adapter, units
 from ..contracts import ProductProperty, ProductRequirement
 from ..registry import rule
 from .common import BIDDER_INPUT, OR_EQUIVALENT, review_fix, source_detail, text_of
-from .fire_doors import parse_fire_class, written_fire_class
+from .fire_doors import door_class_discrepancy, parse_fire_class, written_fire_class
 from .fire_installation import match_installation
 from .standards import MATERIAL, material_family, supported_pipe_scopes
 
@@ -439,6 +439,9 @@ def declared_properties(ctx):
             if (line.id, requirement.property_name) in conflicts:
                 continue
             if requirement.property_name == _FIRE_PROPERTY:
+                detail = source_detail(line, source_format)
+                if door_class_discrepancy(line.short_text, detail):
+                    continue  # Resolve the directly conflicting descriptions before judging the offer.
                 offer, items, actual, outcome, reason, installation = _compare_fire_property(
                     line, requirement, source_format, declarations, written=is_written,
                 )

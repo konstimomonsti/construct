@@ -523,6 +523,21 @@ def test_manufacturer_name_alone_is_not_material_evidence(text, quote, expected)
     assert bool(actual) is expected
 
 
+@pytest.mark.parametrize("detail,quote,expected", [
+    ("Anschluss an Wand F90.", "F90", False),
+    ("Feuerwiderstand: T90.", "T90", True),
+    ("Feuerwiderstand: T90. Zarge T60.", "T60", False),
+])
+def test_fire_contradiction_requires_quotes_for_the_same_component(detail, quote, expected):
+    analysis_input = from_data({"lines": [
+        {"id": "door", "code": "01", "short_text": "Brandschutztür T30", "long_text": detail},
+    ]})
+    answer = {"findings": [{"line_ref": "#1", "property": "fire rating", "short_quote": "T30",
+                            "long_quote": quote, "message": "Ratings differ.", "confidence": 0.8}]}
+    actual = by_rule(run3(analysis_input, FakeProvider([answer]))[0], CONTRA)
+    assert bool(actual) is expected
+
+
 def test_no_l2_findings_means_no_l2_calls():
     provider = FakeProvider(lambda request: {"findings": []})
     run3(pipe_input(), provider, prior=[])

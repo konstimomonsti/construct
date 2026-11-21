@@ -86,6 +86,12 @@ def test_comparable_offered_class_satisfies_stated_class_or_explicit_minimum(hea
     assert findings(heading, "", [declaration("EI2 90-C5 Sₐ")]) == []
 
 
+def test_conflicting_written_door_classes_hold_the_offered_product_comparison():
+    report = findings("Brandschutztür EI2 60-Sa C5", "Feuerwiderstand: EI2 30-C5 Sa.",
+                      [declaration("EI2 30-C5 Sa")], [schedule("EI2 60-C5 Sa")])
+    assert report == []
+
+
 def test_door_detail_keeps_the_qualifiers_omitted_from_the_heading():
     finding, = findings("Brandschutztür EI2 60", "Feuerwiderstand: EI2 60, Sa, C5.", [declaration("EI2 60")])
     assert finding.severity == "info"

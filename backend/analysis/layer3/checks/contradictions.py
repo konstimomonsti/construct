@@ -7,6 +7,8 @@ import re
 from ...contracts import Line
 from ...layer1.common import review_fix, source_detail
 from ...layer1.concrete_scope import different_components
+from ...layer1.fire_doors import door_class_discrepancy
+from ...layer1.structural_fire import structural_fire_review
 from ...layer1.textvalues import MEASURE, centimetres
 from ...registry import rule
 from .. import prompts
@@ -17,6 +19,7 @@ from ..schema import CONTRADICTION_SCHEMA, ContradictionItem, clamp_confidence, 
 RULE_ID = "L3.TEXT.SHORT_LONG_CONTRADICTION"
 L1_VALUE_CONFLICT = "L1.TEXT.VALUE_CONFLICT"  # layer 1 already reported a conflict on the line: don't repeat
 _DIMENSION_PROPERTY = re.compile(r"\b(?:thickness|dimension[s]?|height|length|width|depth|dicke|höhe|länge|breite|tiefe)\b", re.I)
+_FIRE_PROPERTY = re.compile(r"\b(?:fire(?:[- ]resistance|[- ]rating)?|feuerwiderstand\w*|brandschutz(?:klasse)?)\b", re.I)
 _LENGTH = re.compile(MEASURE, re.I)
 _MATERIAL_PROPERTY = re.compile(r"\b(?:material\w*|werkstoff\w*)\b", re.I)
 _MANUFACTURER_FIELD = re.compile(r"\b(?:Hersteller|Manufacturer)[ \t]*:[ \t]*[^:;\r\n]+", re.I)
@@ -47,7 +50,8 @@ def is_candidate(line: Line, blocked_fields: set[str]) -> bool:
 def short_long_contradiction(ctx):
     session = current()
     blocked = l1_error_fields(ctx.prior_findings)
-    conflicts = {f.target.line_id for f in ctx.prior_findings if f.rule_id == L1_VALUE_CONFLICT}
+    conflicts = {f.target.line_id for f in ctx.prior_findings if f.rule_id == L1_VALUE_CONFLICT
+                 or (f.rule_id == "L1.DIN.FIRE_RATING_CONFLICT" and f.evidence.get("outcome") != "missing")}
     by_section: dict[str | None, list[Line]] = {}
     source_format = ctx.input.project.source_document.format
     for source_line in sorted(ctx.input.lines, key=lambda l: l.sort_order):
@@ -95,6 +99,17 @@ def _finding(ctx, session, line: Line, item: ContradictionItem):
         line.short_text, line.long_text, item.short_quote, item.long_quote,
     ):
         return None
+    if _FIRE_PROPERTY.search(item.property):
+        door = door_class_discrepancy(line.short_text, line.long_text)
+        structure = structural_fire_review(line.short_text, line.long_text)
+        if door and door[2] == "conflict":
+            expected_short, expected_long = door[:2]
+        elif structure and structure[0] == "conflict":
+            expected_short, expected_long = structure[1:]
+        else:
+            return None
+        if not quote_in(expected_short, item.short_quote) or not quote_in(expected_long, item.long_quote):
+            return None
     if _MATERIAL_PROPERTY.search(item.property):
         if (not quote_in(item.short_quote, _MANUFACTURER_FIELD.sub("", line.short_text or ""))
                 or not quote_in(item.long_quote, _MANUFACTURER_FIELD.sub("", line.long_text or ""))):

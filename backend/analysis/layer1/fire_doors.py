@@ -5,7 +5,6 @@ import re
 
 from ..registry import rule
 from .common import OR_EQUIVALENT, source_detail
-from .text_defects import ordered_lines, refers_to_previous
 
 RULE_ID = "L1.TEXT.FIRE_DOOR_RATING_MISSING"
 _FIRE_DOOR = r"(?:Brandschutz|Feuerschutz)[ -]?(?:tür(?:en|elemente?)?|abschluss|abschlüsse)"
@@ -25,6 +24,7 @@ _SCOPE_BREAK = re.compile(
     r"\b(?:mit(?!\s+(?:Feuerwiderstand|Brandschutz))|für|inkl\.?|einschl\.?|einschließlich|"
     r"Zarge|Türblatt|Rahmen|Beschlag|Verglasung|Dichtung|Wand)\b", re.I,
 )
+_ANCILLARY_SUBJECT = re.compile(r"^\s*(?:Zarge|Türblatt|Rahmen|Beschlag|Verglasung|Wand|Anschluss)\b", re.I)
 _CLAUSES = re.compile(r"[;\n]|\.(?=\s+\S)")
 _EXISTING_WORK = re.compile(
     r"\b(?:abbruch\w*|ausbauen|demont\w*|entfern\w*|rückbau\w*|warten|wartung\w*|"
@@ -97,7 +97,7 @@ def parse_fire_class(value, unit=None):
     return None
 
 
-def written_fire_class(heading, detail):
+def written_fire_class(heading, detail, *, detail_only=False):
     """Return one class explicitly scoped to a new door assembly on this position."""
     heading = heading or ""
     detail = detail or ""
@@ -108,9 +108,16 @@ def written_fire_class(heading, detail):
             or _ALTERNATIVE.search(OR_EQUIVALENT.sub("", heading + "\n" + detail))):
         return None
     matches = {}
-    for field, text in (("short_text", heading), ("long_text", detail)):
+    fields = [("long_text", detail)] if detail_only else [("short_text", heading), ("long_text", detail)]
+    for field, text in fields:
+        active = True
         for clause in _CLAUSES.split(text):
-            attributed = _FIELD_LABEL.match(clause) or _DOOR_SUBJECT.match(clause) or _RATING_FIRST.match(clause)
+            named = _DOOR_SUBJECT.match(clause) or _RATING_FIRST.match(clause)
+            if named:
+                active = True
+            elif _ANCILLARY_SUBJECT.match(clause):
+                active = False
+            attributed = named or (active and _FIELD_LABEL.match(clause))
             primary = _primary(clause)
             if not attributed or _UNCERTAIN_CLASS.search(primary) or _EXISTING_WORK.search(primary):
                 continue
@@ -136,6 +143,34 @@ def written_fire_class(heading, detail):
     if all((rating.family, rating.minutes) == (most_specific.family, most_specific.minutes)
            and set(rating.qualifiers).issubset(most_specific.qualifiers) for rating in matches):
         return matches[most_specific]
+    return None
+
+
+def door_class_discrepancy(heading, detail):
+    left = written_fire_class(heading, "")
+    right = written_fire_class(heading, detail, detail_only=True)
+    if left and not right and (bare := parse_fire_class((detail or "").strip().rstrip("."))):
+        right = (bare, False, "long_text", detail.strip().rstrip("."))
+    if not left and (bare := parse_fire_class((heading or "").strip().rstrip("."))):
+        left = (bare, False, "short_text", heading.strip().rstrip("."))
+        if detail_class := parse_fire_class((detail or "").strip().rstrip(".")):
+            right = (detail_class, False, "long_text", detail.strip().rstrip("."))
+    if not left or not right:
+        return None
+    a, a_minimum, _, a_quote = left
+    b, b_minimum, _, b_quote = right
+    if a.family != b.family:
+        return a_quote, b_quote, "comparison_unverified"
+    compatible_bounds = ((a_minimum and b_minimum) or (a_minimum and b.minutes >= a.minutes)
+                         or (b_minimum and a.minutes >= b.minutes))
+    if a.minutes != b.minutes and not compatible_bounds:
+        return a_quote, b_quote, "conflict"
+    smoke_a = {q for q in a.qualifiers if q.startswith("S") or q == "RS"}
+    smoke_b = {q for q in b.qualifiers if q.startswith("S") or q == "RS"}
+    closure_a = {q for q in a.qualifiers if q.startswith("C") and q != "C"}
+    closure_b = {q for q in b.qualifiers if q.startswith("C") and q != "C"}
+    if smoke_a and smoke_b and smoke_a != smoke_b or closure_a and closure_b and closure_a != closure_b:
+        return a_quote, b_quote, "comparison_unverified"
     return None
 
 
@@ -169,6 +204,8 @@ def _door_context(heading: str, clauses: list[str]) -> tuple[str | None, bool]:
 @rule(RULE_ID, layer=1, category="text", severity="warning", title="Fire door rating missing",
       description="A fire-rated door or closure is explicitly required but has no stated classification or governing schedule reference.")
 def fire_door_rating_missing(ctx):
+    from .text_defects import ordered_lines, refers_to_previous
+
     source_format = ctx.input.project.source_document.format
     sections = ctx.input.section_by_id()
     previous_rating: dict[str | None, bool] = {}

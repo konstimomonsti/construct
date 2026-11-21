@@ -703,6 +703,31 @@ def generate_dependency_specification(out):
             write_fixture_labels(out / f"{name}.{ext}", f"spec-clean.{ext}", *labels)
 
 
+def generate_fire_attribution(out):
+    """Compare classifications that refer to the same assembly."""
+    out.mkdir(parents=True, exist_ok=True)
+    hardware = "Inkl. Türschließer, Profilzylinder und Drückergarnitur."
+    for name, heading, detail, expected, severity in (
+        ("fire-scope-door", "Brandschutztür EI2 30-C5 Sa, 1000 × 2125 mm",
+         f"Feuerwiderstand: EI2 60-C5 Sa. {hardware}", "L1.TEXT.VALUE_CONFLICT", "warning"),
+        ("fire-scope-wall", "Brandwand F30", "Brandschutz: F60.", "L1.DIN.FIRE_RATING_CONFLICT", "error"),
+        ("fire-scope-unverified", "Brandwand F90", "Brandschutz: REI 90.", "L1.DIN.FIRE_RATING_CONFLICT", "info"),
+        ("fire-scope-frame", "Brandschutztür T30, 1000 × 2125 mm", f"Zarge T90. Wand F90. {hardware}", None, None),
+        ("fire-scope-ceiling", "Wand F30", "Wand F30. Decke F90.", None, None),
+    ):
+        item = Item("01.0010", heading, 2, "St", detail=detail)
+        locators = _write_text_case(out, name, "Leistungsverzeichnis Brandschutz", item, "fire-attribution")
+        locators.update(_write_offer_tables(out, name, item, "Brandschutz"))
+        for ext, locator in locators.items():
+            label = {"control": not expected, "layers": [1], "expect": []}
+            if expected:
+                label.update(match="line", expect=[expected], target={
+                    "line_codes": [item.code], "severity": severity, "source_locator": locator, "bidder_question": True,
+                })
+            baseline = "fire-scope-frame" if expected else name
+            write_fixture_labels(out / f"{name}.{ext}", f"{baseline}.{ext}", label)
+
+
 def generate_grade_scope(out):
     """Test concrete grade conflicts, legitimate component differences and unclear attribution."""
     out.mkdir(parents=True, exist_ok=True)
@@ -819,7 +844,8 @@ if __name__ == "__main__":
               "fire-door-scope": generate_fire_door_scope, "fire-door-products": generate_fire_door_products,
               "fire-door-installation": generate_fire_door_installation,
               "cable-designations": generate_cable_designations, "fix-planning": generate_fix_planning,
-              "dependency-specification": generate_dependency_specification}
+              "dependency-specification": generate_dependency_specification,
+              "fire-attribution": generate_fire_attribution}
     parser.add_argument("--suite", choices=suites, default="tabular")
     args = parser.parse_args()
     suites[args.suite](args.out)
