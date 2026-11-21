@@ -15,6 +15,7 @@ from tender_import.store import original
 
 import analysis_api
 import mvp
+import workspace
 from exports import export
 
 
@@ -331,6 +332,9 @@ class BrowserHandler(BaseHTTPRequestHandler):
         if request.path.startswith("/api/mvp/"):
             self.mvp_request(request, write=False)
             return
+        if request.path.startswith("/api/workspace/"):
+            self.workspace_request(request, write=False)
+            return
         if request.path not in {"/api/tables", "/api/rows", "/api/record"}:
             if request.path.startswith(("/api/", "/admin/")) or not self.frontend(request.path):
                 self.json(HTTPStatus.NOT_FOUND, {"error": "Page not found"})
@@ -368,7 +372,11 @@ class BrowserHandler(BaseHTTPRequestHandler):
         if origin and origin.rstrip("/") not in {f"http://{host}", f"https://{host}"} | ALLOWED_ORIGINS:
             self.json(HTTPStatus.FORBIDDEN, {"error": "Open the workspace directly to upload or edit files."})
             return
-        self.mvp_request(urlsplit(self.path), write=True)
+        request = urlsplit(self.path)
+        if request.path.startswith("/api/workspace/"):
+            self.workspace_request(request, write=True)
+            return
+        self.mvp_request(request, write=True)
 
     def redirect(self, location):
         self.send_response(HTTPStatus.FOUND)
@@ -419,6 +427,55 @@ class BrowserHandler(BaseHTTPRequestHandler):
         """Login name set by the reverse proxy after basic auth (see deploy/Caddyfile)."""
         user = (self.headers.get("X-Remote-User") or "").strip()
         return user[:120] or None
+
+    def workspace_request(self, request, write):
+        """Shared workspace sync: GET/POST state, GET/POST file, POST file-delete."""
+        path = request.path.removeprefix("/api/workspace/")
+        operations = {"state", "file", "file-delete"} if write else {"state", "file"}
+        if path not in operations:
+            self.json(HTTPStatus.NOT_FOUND, {"error": "Action not found"})
+            return
+        try:
+            params = {key: value[-1] for key, value in parse_qs(request.query, max_num_fields=4).items()}
+            content = None
+            if write:
+                limit = MAX_FILE_BYTES if path == "file" else workspace.MAX_STATE_BYTES
+                length = int(self.headers.get("Content-Length", 0))
+                if not 0 < length <= limit:
+                    self.json(HTTPStatus.REQUEST_ENTITY_TOO_LARGE, {"error": "The request is empty or too large."})
+                    return
+                content = self.rfile.read(length)
+            since = int(params["since"]) if "since" in params else None
+            payload = {}
+            if write and path != "file":
+                payload = json.loads(content)
+                if not isinstance(payload, dict):
+                    raise ValueError("Invalid request body.")
+            with psycopg.connect("", autocommit=True, row_factory=dict_row, connect_timeout=3,
+                                 options="-c statement_timeout=30000") as connection:
+                if path == "state" and write:
+                    response = workspace.apply(connection, payload)
+                elif path == "state":
+                    response = workspace.state(connection, since)
+                elif path == "file" and write:
+                    content_type = (self.headers.get("Content-Type") or "").split(";")[0].strip().lower()
+                    response = workspace.save_file(connection, params.get("id"), content_type, content)
+                elif path == "file":
+                    content_type, body = workspace.load_file(connection, params.get("id"))
+                    self.send(HTTPStatus.OK, body, content_type, cache="private, max-age=31536000, immutable")
+                    return
+                else:
+                    response = workspace.delete_files(connection, payload)
+            self.json(HTTPStatus.OK, response)
+        except LookupError as error:
+            self.json(HTTPStatus.NOT_FOUND, {"error": str(error)})
+        except (ValueError, TypeError) as error:
+            self.json(HTTPStatus.BAD_REQUEST, {"error": str(error)})
+        except psycopg.Error as error:
+            self.log_error("Workspace sync failed (%s)", type(error).__name__)
+            self.json(HTTPStatus.SERVICE_UNAVAILABLE, {"error": "The shared workspace is unavailable. Try again."})
+        except (BrokenPipeError, ConnectionResetError):
+            pass
 
     def mvp_request(self, request, write):
         path = request.path.removeprefix("/api/mvp/")

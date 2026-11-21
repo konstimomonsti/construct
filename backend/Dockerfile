@@ -9,7 +9,7 @@ RUN pip install --no-cache-dir -r importer-requirements.txt -r analysis-requirem
     "python-docx==1.2.0" "reportlab==4.5.1" "anthropic>=2.12,<3"
 COPY importer/tender_import /app/tender_import
 COPY analysis /app/analysis
-COPY backend/server.py backend/mvp.py backend/exports.py backend/analysis_api.py schema-dashboard.html /app/
+COPY backend/server.py backend/mvp.py backend/exports.py backend/analysis_api.py backend/workspace.py schema-dashboard.html /app/
 COPY backend/admin /app/admin
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PORT=8080
 RUN install -d -o 65532 -g 65532 -m 0700 /var/cache/tenderdesk/layer3

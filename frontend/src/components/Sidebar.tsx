@@ -12,8 +12,6 @@ const NAV = [
   { to: '/', label: 'All Projects', icon: 'source', end: true },
   { to: '/active', label: 'Active Budgets', icon: 'account_balance_wallet', end: false },
   { to: '/archived', label: 'Archived', icon: 'archive', end: false },
-  { to: '/shared', label: 'Shared with Team', icon: 'group', end: false },
-  { to: '/trash', label: 'Trash', icon: 'delete', end: false },
 ]
 
 export function Sidebar() {

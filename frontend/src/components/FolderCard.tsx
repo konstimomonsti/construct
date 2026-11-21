@@ -158,7 +158,6 @@ export function FolderCard({ folder: f, index, selectMode, selected, onToggle }:
         <span className="flex items-center gap-1.5">
           {!empty && <span className={clsx('size-1.5 rounded-full', dot)} />}
           <span>{plural(f.listMetas.length, 'list', 'lists')} inside</span>
-          {f.shared && <Icon name="group" size={13} className="text-slate-400" />}
         </span>
         <MoreMenu items={folderMenu(f)} label={`Options for ${f.name}`} />
       </div>

@@ -113,6 +113,30 @@ def test_unknown_api_action_and_bad_input(server):
     assert status in {400, 422}
 
 
+
+def test_workspace_sync_routes(server):
+    _, port = server
+    assert request(port, "GET", "/api/workspace/nope")[0] == 404
+    assert request(port, "POST", "/api/workspace/nope", "{}", {"Content-Type": "application/json"})[0] == 404
+    assert request(port, "POST", "/api/workspace/state", "not json", {"Content-Type": "application/json"})[0] == 400
+    assert request(port, "GET", "/api/workspace/state?since=abc")[0] == 400
+    blocked = request(port, "POST", "/api/workspace/state", "{}", {"Origin": "http://evil.example"})
+    assert blocked[0] == 403
+    # Valid requests reach the (unavailable) database.
+    assert request(port, "GET", "/api/workspace/state")[0] == 503
+
+
+def test_workspace_rejects_unknown_collections():
+    import workspace
+
+    for payload in ({}, {"changes": {"secrets": {}}}, {"changes": {"edits": {"set": [], "delete": []}}},
+                    {"changes": {"edits": {"set": {"": 1}}}}):
+        with pytest.raises(ValueError):
+            workspace.apply(None, payload)
+    with pytest.raises(ValueError):
+        workspace.file_id("../etc/passwd")
+
+
 def test_json_values(server):
     module, _ = server
     assert module.json_value(datetime(2026, 1, 2, 3, 4, tzinfo=timezone.utc)) == "2026-01-02T03:04:00+00:00"

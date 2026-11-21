@@ -54,14 +54,6 @@ export function useActions() {
     { label: 'Rename', icon: 'edit', onSelect: () => openDialog({ kind: 'rename-folder', id: f.id }) },
     { label: 'Set budget cap', icon: 'tune', onSelect: () => openDialog({ kind: 'cap', target: 'folder', id: f.id }) },
     {
-      label: f.shared ? 'Unshare' : 'Share with team',
-      icon: f.shared ? 'person_off' : 'group_add',
-      onSelect: () => {
-        useStore.getState().patchFolder(f.id, { shared: !f.shared })
-        toast(f.shared ? `"${f.name}" is no longer shared` : `"${f.name}" shared with team`)
-      },
-    },
-    {
       label: f.archived ? 'Unarchive' : 'Archive',
       icon: f.archived ? 'unarchive' : 'archive',
       onSelect: () => {

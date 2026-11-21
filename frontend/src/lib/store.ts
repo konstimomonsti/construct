@@ -5,6 +5,7 @@ import type { DocMeta, FolderMeta, Library, ListDoc, ListMeta, Position } from '
 import { niceCap } from './format'
 import { positionTotal } from './money'
 import { removeDocuments } from './documents'
+import { withoutLegacyImports } from './legacy'
 
 export type SortKey = 'cost-desc' | 'cost-asc' | 'name' | 'items'
 export const SORT_LABEL: Record<SortKey, string> = {
@@ -18,7 +19,6 @@ interface FolderPatch {
   name?: string
   description?: string
   archived?: boolean
-  shared?: boolean
   trashedAt?: string
   cap?: number | null
 }
@@ -45,8 +45,15 @@ interface Stats {
   positionsCount: number
 }
 
+/** what the shared workspace held at the last exchange (see sync.ts) */
+export interface SyncBase {
+  revision: number
+  hashes: Record<string, Record<string, string>>
+}
+
 interface State {
   base: Library | null
+  sync: SyncBase | null
   userFolders: FolderMeta[]
   userLists: ListDoc[]
   userDocuments: DocMeta[]
@@ -122,6 +129,7 @@ export const useStore = create<State>()(
   persist(
     (set, get) => ({
       base: null,
+      sync: null,
       userFolders: [],
       userLists: [],
       userDocuments: [],
@@ -287,11 +295,11 @@ export const useStore = create<State>()(
     }),
     {
       name: 'vaultbudget:v1',
-      version: 2,
+      version: 3,
       migrate: (persisted: unknown) => {
-        const st = (persisted ?? {}) as { edits?: Record<string, Partial<ListEdits>> }
+        const st = (persisted ?? {}) as { edits?: Record<string, Partial<ListEdits>>; folderPatch?: Record<string, FolderPatch & { shared?: boolean }> }
         if (st.edits) st.edits = Object.fromEntries(Object.entries(st.edits).map(([k, v]) => [k, normEdits(v)]))
-        return st as never
+        return withoutLegacyImports(st as Partial<State>) as never
       },
       partialize: ({ base: _b, ...rest }) => ({
         ...rest,
@@ -308,7 +316,6 @@ export const useStore = create<State>()(
 
 export interface FolderView extends FolderMeta {
   archived: boolean
-  shared: boolean
   trashedAt?: string
   total: number
   cap: number
@@ -407,7 +414,6 @@ function buildFolders(s: State, lists: ListView[], documents: ReturnType<typeof 
         name: patch.name ?? f.name,
         description: patch.description ?? f.description,
         archived: !!patch.archived,
-        shared: !!patch.shared,
         trashedAt: patch.trashedAt,
         total,
         cap: patch.cap ?? (niceCap(baseTotal) || (f.userCreated ? 50_000 : 0)),

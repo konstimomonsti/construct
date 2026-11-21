@@ -108,15 +108,15 @@ export function Header() {
             { label: 'Search (Cmd+K)', icon: 'search', onSelect: () => setPalette(true) },
             'sep',
             {
-              label: 'Reset local changes',
+              label: 'Reload shared workspace',
               icon: 'restart_alt',
               danger: true,
               onSelect: () =>
                 openDialog({
                   kind: 'confirm',
-                  title: 'Reset local changes?',
-                  body: 'This clears all edits, imported lists, new folders, caps and open tabs stored in this browser. The original tender data stays untouched.',
-                  confirmLabel: 'Reset everything',
+                  title: 'Reload the shared workspace?',
+                  body: 'This clears the copy stored in this browser, including open tabs and any edits not yet synced, then downloads the shared workspace again. Nothing is deleted for your team.',
+                  confirmLabel: 'Reload workspace',
                   danger: true,
                   run: () => {
                     void clearDocuments().then(() => {

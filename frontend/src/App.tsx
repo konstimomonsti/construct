@@ -6,12 +6,12 @@ import { GridSkeleton, Page, Skeleton } from './components/Page'
 const AllProjects = lazy(() => import('./pages/AllProjects').then((m) => ({ default: m.AllProjects })))
 const ActiveBudgets = lazy(() => import('./pages/ActiveBudgets').then((m) => ({ default: m.ActiveBudgets })))
 const Archived = lazy(() => import('./pages/Collections').then((m) => ({ default: m.Archived })))
-const Shared = lazy(() => import('./pages/Collections').then((m) => ({ default: m.Shared })))
 const Trash = lazy(() => import('./pages/Trash').then((m) => ({ default: m.Trash })))
 const FolderPage = lazy(() => import('./pages/FolderPage').then((m) => ({ default: m.FolderPage })))
 const ListPage = lazy(() => import('./pages/ListPage').then((m) => ({ default: m.ListPage })))
 import { loadLibrary } from './lib/data'
 import { useStore } from './lib/store'
+import { startSync } from './lib/sync'
 
 function NotFound() {
   return (
@@ -40,6 +40,7 @@ export default function App() {
   const [error, setError] = useState<string | null>(null)
   useEffect(() => {
     loadLibrary().catch((e: Error) => setError(e.message))
+    startSync()
   }, [])
 
   return (
@@ -55,7 +56,6 @@ export default function App() {
               <>
                 <Route path="/active" element={<ActiveBudgets />} />
                 <Route path="/archived" element={<Archived />} />
-                <Route path="/shared" element={<Shared />} />
                 <Route path="/trash" element={<Trash />} />
                 <Route path="/folder/:folderId" element={<FolderPage />} />
                 <Route path="/list/:listId" element={<ListPage />} />

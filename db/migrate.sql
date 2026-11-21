@@ -90,11 +90,20 @@ SELECT NOT EXISTS (
 \endif
 
 SELECT NOT EXISTS (
-    SELECT FROM db_migration.applied_version WHERE version = 10
-) AS apply_catalogue_analytics \gset
+    SELECT FROM db_migration.applied_version WHERE version = 11
+) AND to_regclass('public.catalogue_run') IS NULL AS apply_catalogue_analytics \gset
 \if :apply_catalogue_analytics
     \ir migrations/010_catalogue_analytics.sql
-    INSERT INTO db_migration.applied_version (version) VALUES (10);
+\endif
+-- Recorded as 11: it was merged under the version 10 already used by 010_mvp_drafts.sql.
+INSERT INTO db_migration.applied_version (version) VALUES (11) ON CONFLICT DO NOTHING;
+
+SELECT NOT EXISTS (
+    SELECT FROM db_migration.applied_version WHERE version = 12
+) AS apply_workspace_sync \gset
+\if :apply_workspace_sync
+    \ir migrations/012_workspace_sync.sql
+    INSERT INTO db_migration.applied_version (version) VALUES (12);
 \endif
 
 \ir runtime_role.sql

@@ -33,6 +33,29 @@ Use relative URLs such as `/api/mvp/workspace` for browser requests.
   handles the prompt and resends credentials on every same-origin `fetch`, so the frontend needs
   no login code. The backend receives the login name as `X-Remote-User`.
 
+## Shared BillBuild workspace
+
+The BillBuild frontend syncs its folders, lists, edits and uploaded files here, so every browser sees
+the same workspace. There is one workspace and no access control: everyone with the site login can
+see and change everything. State is stored as records in collections (`userFolders`, `userLists`,
+`userDocuments`, `documentLinks`, `documentFolders`, `folderPatch`, `listPatch`, `edits`, `stats`).
+
+### `GET /api/workspace/state?since=<revision>`
+
+Returns `{"revision": 12, "collections": {"userFolders": {"<id>": {...}}, ...}}`. When `since`
+equals the current revision, the response is only `{"revision": 12, "unchanged": true}`.
+
+### `POST /api/workspace/state`
+
+Body: `{"changes": {"<collection>": {"set": {"<id>": <value>}, "delete": ["<id>"]}}}`. The changes
+are applied atomically as one new revision and the full state is returned. Changes to different
+records never conflict. When two browsers change the same record, the later write wins.
+
+### `GET|POST /api/workspace/file?id=<id>`
+
+Stores or returns an uploaded file. POST sends the raw bytes with `Content-Type: application/pdf` or
+`application/octet-stream`. `POST /api/workspace/file-delete` with `{"ids": [...]}` removes files.
+
 ## Workspace
 
 ### `GET /api/mvp/workspace?project=<id>`

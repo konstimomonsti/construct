@@ -53,6 +53,10 @@ export function loadList(id: string): Promise<ListDoc> {
   return p
 }
 
+export function forgetUserList(id: string) {
+  listCache.delete(`user:${id}`)
+}
+
 export function resetLoaders() {
   libraryPromise = null
   listCache.clear()

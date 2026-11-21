@@ -146,15 +146,6 @@ export function FolderCollection({
               done()
             },
           },
-          {
-            label: 'Share with Team',
-            icon: 'group_add',
-            onSelect: () => {
-              sel.forEach((id) => useStore.getState().patchFolder(id, { shared: true }))
-              toast(`Shared ${plural(sel.size, 'folder', 'folders')} with team`)
-              done()
-            },
-          },
         ]}
         onOpen={() => {
           openLists(listsOf(sel))
