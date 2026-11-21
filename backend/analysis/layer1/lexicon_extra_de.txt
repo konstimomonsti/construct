@@ -1,0 +1,17 @@
+# Correct construction words that the German dictionary does not know and that are rare in the tender corpus,
+# so L1.TEXT.TYPO would otherwise "correct" them into another word (Sohlhöhe -> Sollhöhe).
+# One word per line, any case. Add a word here when a review finds a false typo alarm.
+abfang
+absanden
+abwinklung
+anarbeiten
+eindringung
+marshall
+schottung
+sickerung
+sohlhöhe
+unterlagscheibe
+unterlagscheiben
+abwinkelung
+unterlagsscheibe
+unterlagsscheiben

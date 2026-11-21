@@ -329,6 +329,9 @@ expected (info), while in a bid or award (84/86) they're a defect (warning).
 | `L1.TEXT.MISSING` | error | no short and no long text. GAEB 84 bids carry no texts: one BOM-level info instead | - |
 | `L1.TEXT.BIDDER_INPUT` | info (83) / warning (84, 86) | blanks for the bidder: `.....`, `____`, `vom Bieter einzutragen` | - |
 | `L1.TEXT.OR_EQUIVALENT` | info | reference product "oder gleichwertig": bidder must name the product, pricing should use the reference | - |
+| `L1.TEXT.TYPO` | info | word unknown to the domain lexicon and the German hunspell dictionary, one edit from a known word (not an inflection, cut word or product name). Silent without the dictionary | `SetField` short/long text per item |
+| `L1.TEXT.SPELLING_VARIANT` | info | one word spelled two ways in the document (ß/ss, hyphen, c/k) | `SetField` to the dictionary or majority form |
+| `L1.TEXT.NOTATION_VARIANT` | info | one unit or value written differently (St/Stk, DN 100/DN100, 5 x 25/5x25) | - |
 | `L1.CODE.MISSING` | error | no valid OZ (damaged code) | - |
 | `L1.CODE.DUPLICATE` | error | same OZ twice | - |
 | `L1.CODE.OUTSIDE_SECTION` | warning | OZ prefix ≠ section code | - |

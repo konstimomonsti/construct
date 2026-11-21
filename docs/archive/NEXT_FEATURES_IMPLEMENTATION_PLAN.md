@@ -113,7 +113,11 @@ Measured: 6 real concrete-class conflicts ("Betonbord C20/25" in the short text 
 - **`L1.TEXT.SPEC_ATTRIBUTE_MISSING`** (info): a table of item type → required attributes. Pipe needs DN or a dimension plus material; cable needs a cross-section or type code; in-situ concrete needs a class; screed needs a type and thickness; insulation needs a thickness; tile needs a size; door needs a size. The attributes may come from the item, from section notes, or from the item a "wie vor" points to.
 - **`L3.TEXT.UNDERSPECIFIED`**: runs only on candidates (any pre-signal, or a long text under 60 characters). The model returns a `missing_property` from a fixed list, a verbatim quote, and a draft bidder question. Confidence is capped at 0.6.
 
-### 2.3 Typos and inconsistent spelling: `analysis/layer1/text_quality.py` (M)
+### 2.3 Typos and inconsistent spelling: `backend/analysis/layer1/text_quality.py` (M) — DONE
+Implemented as planned (see ANALYSIS_PHASE_SUMMARY.md §3b). Differences: projects in the lexicon are also
+grouped by content (the same tender under different file names), and `L1.TEXT.TYPO` stays silent without the
+hunspell dictionary, because with the lexicon alone about half the alarms were real words.
+
 Edit distance alone gave 30–170 false candidates per file (German inflections, real word pairs). The recommended approach:
 - **Lexicon:** a domain lexicon mined from `data/tenders/`, counting words that appear in at least 3 *projects*. Counting files would make repeated typos look like words.
 - **Compounds:** split them into known parts.

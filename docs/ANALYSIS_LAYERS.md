@@ -73,7 +73,7 @@ python -m pytest backend/analysis/tests                               # all anal
 
 ## 3. Layer 1: deterministic checks (done)
 
-`backend/analysis/layer1/`: 34 rules in four modules, with thresholds in `common.py`. Full catalogue in
+`backend/analysis/layer1/`: 37 rules in five modules, with thresholds in `common.py`. Full catalogue in
 ANALYSIS_CONTRACT.md §7.
 
 - **Completeness** (`completeness.py`): missing, negative or zero quantity (an error when the line has
@@ -90,6 +90,14 @@ ANALYSIS_CONTRACT.md §7.
 - **Prices** (`pricing.py`): missing in a bid, not found by the pricing phase, zero, unit or currency
   mismatch, outliers against reference prices, low-confidence or AI matches, file price vs our price,
   stale prices. Import warnings are surfaced too.
+- **Text quality** (`text_quality.py`, `spelling.py`), all info and without an LLM:
+  - `L1.TEXT.TYPO`: a word unknown to the domain lexicon (`lexicon_de.txt`, words in ≥ 3 projects) and to
+    the German hunspell dictionary, one edit away from a known word. Inflections, cut or broken words and
+    product names are skipped. The fix replaces the word in every item. It runs only when `spylls` and a
+    local de_DE dictionary are available (`ANALYSIS_SPELL_DIC`, or MiKTeX / `/usr/share/hunspell`
+    auto-detected); the dictionary is GPL and never shipped.
+  - `L1.TEXT.SPELLING_VARIANT`: one word written two ways (Anschluß/Anschluss, Baustrom-Kabel/Baustromkabel).
+  - `L1.TEXT.NOTATION_VARIANT`: St/Stk, psch/Psch, DN 100/DN100, 5 x 25/5x25.
 
 What it found in `data/tenders/`: 38 change-order items priced but with quantity 0 and no unit, a
 subtotal off by exactly the amount of an item with a damaged OZ, a duplicate item, empty bidder

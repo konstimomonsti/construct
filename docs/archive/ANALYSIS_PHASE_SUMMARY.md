@@ -45,9 +45,9 @@ Wahlpositionen need a Grundposition; Bedarfspositionen are generally not allowed
 fields ("Fabrikat: ……", "oder gleichwertig") must be filled in a bid. Sources are listed in the contract doc.
 We also mined the real files in `data/tenders/` to see which errors actually occur.
 
-### 3. Layer 1: deterministic checks (34 rules)
+### 3. Layer 1: deterministic checks (37 rules)
 
-`analysis/layer1/`, in four modules:
+`backend/analysis/layer1/`, in five modules (the typo checks are described in §3b):
 
 - **Completeness:** missing, negative or zero quantity, fractional piece counts, missing or unknown unit,
   missing text, missing or duplicate OZ.
@@ -68,6 +68,60 @@ Severity depends on the document phase: an empty bidder field is *info* in a ten
 | `Angebot AN24-0305.D84` | 20 bidder fields left empty in the bid |
 | `501-24-01_GAEB-XML_sas.x83` | A duplicated item (02.03.0005 / 02.03.0007) |
 | Clean tenders | Only informational notes |
+
+### 3b. Layer 1: typos and inconsistent spelling, without AI (3 rules)
+
+`backend/analysis/layer1/text_quality.py` and `spelling.py`. No language model is used: the result is the same every
+time, costs nothing, and every suggestion can be checked.
+
+**How a typo is recognised.** A word is *known* when any of these is true:
+- it is in the **domain lexicon** (`lexicon_de.txt`, 3,234 words). The lexicon is built from the tenders in
+  `data/tenders/` and `data/fixtures/`, and a word only enters if it appears in **at least 3 different projects**. Projects
+  are counted, not files, so a typo repeated inside one tender never becomes a "word". The same tender saved
+  under different names (X83, D86 and PDF copies) counts once: files that share almost all their words are
+  grouped. Rebuild it with `python -m analysis.layer1.build_lexicon data/tenders data/fixtures`;
+- the **German hunspell dictionary** accepts it (it also understands compounds such as
+  "Trittschalldämmung");
+- it splits into known parts ("Abfang" + "konstruktion");
+- it is in `lexicon_extra_de.txt`, a short hand-made list of correct trade words the dictionary lacks
+  (Sohlhöhe, Sickerung, Schottung...).
+
+An unknown word is reported only if a known word is **one letter away** (two for words of 12+ letters:
+one letter added, missing, changed or two letters swapped), and only if the difference is not:
+- a German ending ("bauseitigem" / "bauseitigen");
+- a cut word or abbreviation ("Bodenb elag", "WC-Trennw,", "Verschiebew.");
+- half of a word broken at the line end ("Desin-" / "fizierung") or split by a space ("st atischen");
+- umlauts typed as ae/oe/ue ("Graeben" = "Gräben").
+
+Product names (after "Fabrikat", "Typ", "z. B."...), quoted text, links, ALLCAPS words, placeholders such
+as [FIRMA_096] and English texts are skipped.
+
+**The three rules (all *info*):**
+
+| Rule | What it finds | Proposed fix |
+|---|---|---|
+| `L1.TEXT.TYPO` | A probable typo, one finding per distinct word with all the items where it appears | Replace the word in every item (one `SetField` per text) |
+| `L1.TEXT.SPELLING_VARIANT` | The same word written two ways in one document: Anschluß / Anschluss, Baustrom-Kabel / Baustromkabel, Sectionaltor / Sektionaltor | Use one spelling: the dictionary form, otherwise the most common |
+| `L1.TEXT.NOTATION_VARIANT` | The same unit or value written differently: St / Stk / Stck, psch / Psch, m2 / m², DN 100 / DN100, 5 x 25 / 5x25 | None (cosmetic) |
+
+**The German dictionary.** It is the hunspell `de_DE_frami` dictionary, read with the pure-Python package
+`spylls` (`pip install spylls`, or the `spell` extra). The dictionary is GPL, so it is **not in the repo**: it
+is read from the computer. On this machine MiKTeX already has it
+(`%LOCALAPPDATA%\Programs\MiKTeX\hunspell\dicts\de_DE_frami.dic`); on Linux, `apt install hunspell-de-de`
+puts it in `/usr/share/hunspell/`. Both places are found automatically. `ANALYSIS_SPELL_DIC` can point to
+another `.dic` file, or be set to `off`. Loading takes about 3 s once per process.
+
+**Without the dictionary, `L1.TEXT.TYPO` stays silent.** With the lexicon alone about half the alarms were
+real words ("Mutter" → "Muster", "Norden" → "Normen"). The two variant rules work without it. The CI has no
+dictionary, so there the typo tests use a small fake dictionary, and the test with the real one is skipped.
+
+**Tested on the real files** (all `data/tenders/` and `data/fixtures/` tenders plus the 27 `LV_xx` PDFs): 121 distinct
+typos. A manual review found about 9 in 10 to be real, for example Auftragnehemer, erfoderlichen (also
+erfolderlichen, erfordelichen, erforderlcihen), Elektotechnik, Materail, Inbetriebnhame, Scihtprüfung,
+Hilfskonstuktion, Untergrundverbessserung, Stundenverrechnugssatz and Arbeitstättenverordnung. Doubtful
+cases left: abbreviations without a dot ("verdicht"), first parts of compounds ("Einsetz-") and "Terasse",
+which is a real typo but gets "Trasse" instead of "Terrasse". Spelling variants: 123 findings, all real.
+Notation variants: 93 findings, most of them St/Stk and DN spacing. The slowest file takes about 1 s.
 
 ### 4. Layer 2: review and fixes (built by a teammate)
 
@@ -313,11 +367,11 @@ findings and evidence. It also fixed the adapter so PDF items land in their sect
 | Part | State |
 |---|---|
 | Contract, adapter, runner, CLI | Done |
-| Layer 1 (34 rules) | Done, tested on the real files |
+| Layer 1 (37 rules) | Done, tested on the real files. Typo checks need the German dictionary on the server |
 | Layer 2 (15 trades, 46 checks) | Done for these trades. Tested on the `LV_xx` building PDFs in `data/tenders/` (the earlier "no building projects" note was wrong); windows only on sample files |
 | Layer 3 (2 checks) | First version; precision not measured yet |
 | Web report | Minimal version works |
-| Tests | 165 passing (`python -m pytest`) |
+| Tests | 197 passing (`python -m pytest backend/analysis/tests`) |
 | `from_db` + migration 009 | Written, **never run against PostgreSQL** |
 | Pricing phase | Not built; price rules tested only on synthetic data |
 | Accept/reject in the UI, apply fixes to a new BOM version | Not built |
@@ -331,6 +385,9 @@ findings and evidence. It also fixed the adapter so PDF items land in their sect
 3. Run migration 009 and `from_db` against the database.
 4. Add accept/reject to the web report and apply accepted fixes to a new BOM version.
 5. Connect the pricing phase through `line_pricing` so the price rules get real data.
+6. Typo checks in production: add `spylls` and `hunspell-de-de` to the backend Docker image, otherwise
+   `L1.TEXT.TYPO` is silent there. Team decision: the lexicon is mined from the tenders, so confirm it can
+   stay in the repo (plan §8.3).
 
 ## How to try it
 
