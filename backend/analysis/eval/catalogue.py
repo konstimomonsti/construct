@@ -211,8 +211,10 @@ def plan_quantity(kind: str):
             ops = planted + derive(ctx.doc, planted, [line["id"]])
             rule = {"ZERO": "L1.QTY.ZERO", "MISSING": "L1.QTY.MISSING", "NEGATIVE": "L1.QTY.NEGATIVE"}[kind]
             wording = {"ZERO": "set to 0", "MISSING": "removed", "NEGATIVE": f"set to {value}"}[kind]
+            # Removing the quantity also removes the derived amount, so written totals may need review.
+            total_reviews = ["L1.ARITH.SECTION_TOTAL", "L1.ARITH.NET_TOTAL"] if kind == "MISSING" else []
             yield Plan(f"QTY-{kind}-{number:02d}", f"QTY-{kind}", f"Quantity of {line['code']} {wording}", ops,
-                       label(target=line_target(line), expect=[rule], match="line"),
+                       label(target=line_target(line), expect=[rule], match="line", also=total_reviews),
                        {"line": line["code"], "old": str(line["quantity"]), "new": None if value is None else str(value)})
     return planner
 

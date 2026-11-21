@@ -338,6 +338,67 @@ def test_parent_totals_use_discounted_subsection_amounts():
     assert not {"L1.ARITH.SECTION_TOTAL", "L1.ARITH.NET_TOTAL"} & rules(result)
 
 
+@pytest.mark.parametrize("stated", [D(125), D(150)])
+def test_partial_totals_request_source_review_even_when_known_amount_matches(stated):
+    section_locator = {"row": 9, "sheet": "Dach"}
+    net_locator = {"row": 10, "sheet": "Dach"}
+    missing_locator = {"row": 7, "sheet": "Dach"}
+    section = SECTION.model_copy(update={"stated_total": stated, "stated_total_locator": section_locator})
+    result = run(
+        make_line(1, source_amounts=SourceAmounts(line_amount=D(25))),
+        make_line(2, source_amounts=SourceAmounts(unit_price=D(10))),
+        make_line(3, source_locator=missing_locator, price=PriceInfo(unit_price=D(2), source="catalogue")),
+        make_line(4, total_rule="unit_price_only"),
+        make_line(5, total_rule="conditional"),
+        sections=[section], bom=Bom(stated_net_total=stated, stated_net_total_locator=net_locator), phase="84",
+    )
+    for rule_id, locator in [("L1.ARITH.SECTION_TOTAL", section_locator), ("L1.ARITH.NET_TOTAL", net_locator)]:
+        finding, = only(result, rule_id)
+        assert finding.severity == "info"
+        assert finding.source_locator == locator
+        assert finding.related_line_ids == ["l3"]
+        assert finding.evidence == {
+            "reason": "incomplete_source_amounts", "stated": str(stated), "known_amount": "125.00",
+            "missing_count": 1, "reconstructed_count": 1,
+            "missing_positions": [{"line_id": "l3", "code": "01.0003", "source_locator": missing_locator}],
+        }
+        assert finding.suggested_fix.rationale and not finding.suggested_fix.operations
+
+
+@pytest.mark.parametrize("stated", [D("2.51"), D("2.61")])
+def test_totals_reconstruct_and_round_missing_line_amount(stated):
+    section = SECTION.model_copy(update={"stated_total": stated})
+    result = run(
+        make_line(1, quantity=D("2.5"), source_amounts=SourceAmounts(unit_price=D("1.005"))),
+        make_line(2, quantity=None, source_amounts=SourceAmounts(line_amount=D(0))),
+        make_line(3, total_rule="conditional"),
+        sections=[section], bom=Bom(stated_net_total=stated), phase="84",
+    )
+    findings = [finding for finding in result.findings if finding.rule_id.startswith("L1.ARITH.")]
+    if stated == D("2.51"):
+        assert not findings
+    else:
+        assert {finding.rule_id for finding in findings} == {"L1.ARITH.SECTION_TOTAL", "L1.ARITH.NET_TOTAL"}
+        assert all(finding.severity == "error" and finding.evidence["computed"] == "2.51"
+                   and finding.evidence["difference"] == "0.10" for finding in findings)
+
+
+@pytest.mark.parametrize("carry_field", [None, "stated_lump_sum_total", "stated_total_after_discount"])
+def test_incomplete_child_propagates_only_without_explicit_override(carry_field):
+    parent = SECTION.model_copy(update={"stated_total": D(100)})
+    child = Section(id="s2", parent_id="s1", code="01.01", sort_order=1, stated_total=D(25))
+    if carry_field:
+        child = child.model_copy(update={carry_field: D(0)})
+    result = run(
+        make_line(1, source_amounts=SourceAmounts(line_amount=D(100))),
+        make_line(2, section_id="s2", quantity=None, source_amounts=SourceAmounts(unit_price=D(10))),
+        sections=[parent, child], bom=Bom(stated_net_total=D(100)), phase="84",
+    )
+    findings = [finding for finding in result.findings if finding.rule_id.startswith("L1.ARITH.")]
+    assert {finding.target.section_id for finding in findings} == ({"s2"} if carry_field else {"s1", "s2", None})
+    assert all(finding.evidence["reason"] == "incomplete_source_amounts" for finding in findings)
+
+
 # ---------------------------------------------------------------- pricing
 
 

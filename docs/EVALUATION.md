@@ -442,6 +442,12 @@ WORKSPACE_PARSE_ORIGIN=http://127.0.0.1:8080 \
   | python -m analysis.eval.uploads
 ```
 
+## Verifying written subtotals and net totals
+
+Layer 1 uses the written line amount when available. A blank line amount can be reconstructed from the source quantity and unit price, rounded to cents before summing. When a nonzero written total depends on incomplete source prices or quantities, the finding cites the total and affected positions and asks the reviewer to retrieve the original figures. The scope checks carry explicitly stated discounted or lump-sum child totals to the parent. The child subtotal can still need review.
+
+Four synthetic GAEB X84 uploads tested identical printed subtotals and net totals with different evidence. The fully priced and reconstructed controls produced zero findings. A €25 mismatch produced two arithmetic errors. The incomplete upload produced two informational arithmetic reviews, both linked to the missing line. The original roadworks award `StBALV23040.D86` still reports the €982.20 discrepancy in section 08.01 and its parent 08 and links both to the damaged position code. The 274-position bid `Angebot AN24-0305.D84` produced zero subtotal or net-total findings.
+
 ## Legacy Excel workbook replay
 
 The upload worker now assesses the original Excel 97–2003 workbook and retains its worksheet structure. It checks each printed section subtotal and worksheet net total against the positions in that worksheet, citing the worksheet and row. A single-sheet workbook retains its net total at bill level. A multi-sheet workbook keeps sheet totals at their own roots. Position codes can repeat on separate sheets, and the automatic dependency check uses each worksheet as its own bill. Explicit analysis scope overrides remain available in the standalone dependency runner.
