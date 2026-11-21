@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 import { motion, useReducedMotion } from 'motion/react'
 import { Icon, Menu, Meter } from './ui'
 import { easeOutExpo } from './Page'
-import { moneyCompact, plural, usageTone } from '../lib/format'
+import { count, moneyCompact, plural, usageTone } from '../lib/format'
 import { useActions } from '../lib/actions'
 import { pickAndImport } from '../lib/import'
 import type { FolderView } from '../lib/store'
@@ -219,7 +219,7 @@ export function FolderGrid({
                 </div>
               </td>
               <td className="px-3 py-3 text-right font-mono text-slate-600">{f.listMetas.length}</td>
-              <td className="px-3 py-3 text-right font-mono text-slate-600">{f.positions.toLocaleString('en-US')}</td>
+              <td className="px-3 py-3 text-right font-mono text-slate-600">{count(f.positions)}</td>
               <td className="px-3 py-3 text-right font-mono font-semibold text-slate-900">{moneyCompact(f.total)}</td>
               <td className="px-3 py-3">{f.cap ? <Meter value={pct} tone={f.total === 0 ? 'ok' : usageTone(pct)} /> : <span className="text-slate-400">—</span>}</td>
               <td className="px-3 py-3 text-right font-mono text-slate-500">

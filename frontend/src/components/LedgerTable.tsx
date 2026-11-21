@@ -2,7 +2,7 @@ import { clsx } from 'clsx'
 import { memo, useEffect, useMemo, useRef, useState } from 'react'
 import { Icon, Menu, toast } from './ui'
 import { QtyStepper } from './QtyStepper'
-import { money } from '../lib/format'
+import { inputNumber, money, parseNumber } from '../lib/format'
 import { positionTotal } from '../lib/money'
 import { unitIcon } from '../lib/actions'
 import { useStore } from '../lib/store'
@@ -20,12 +20,11 @@ function PriceCell({ value, onSave, label }: { value: number | null; onSave: (v:
     if (done.current) return
     done.current = true
     setEdit(false)
-    const t = text.trim().replace(/\s/g, '')
-    if (t === '') {
+    if (text.trim() === '') {
       if (value !== null) onSave(null)
       return
     }
-    const n = Number(t.includes(',') ? t.replace(/\./g, '').replace(',', '.') : t)
+    const n = parseNumber(text)
     if (Number.isFinite(n) && n >= 0 && n !== value) onSave(Math.round(n * 100) / 100)
   }
 
@@ -56,7 +55,7 @@ function PriceCell({ value, onSave, label }: { value: number | null; onSave: (v:
       aria-label={`Edit unit price of ${label}`}
       onClick={() => {
         done.current = false
-        setText(value == null ? '' : String(value))
+        setText(value == null ? '' : inputNumber(value))
         setEdit(true)
       }}
       className="group/price -my-1 rounded-md px-1.5 py-1 text-right font-mono font-medium text-slate-600 transition-colors hover:bg-slate-100"

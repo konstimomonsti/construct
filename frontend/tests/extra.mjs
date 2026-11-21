@@ -10,11 +10,11 @@ const before = await row.innerText()
 await row.getByRole('button', { name: /increase|plus|\+/i }).first().click()
 await p.waitForTimeout(300)
 const after = await row.innerText()
-ok(before.includes('€5,700.00') && after.includes('€11,400.00'), 'qty + doubles subtotal')
+ok(/5\.700,00\s€/.test(before) && /11\.400,00\s€/.test(after), 'qty + doubles subtotal')
 // alert reacts to a lowered cap
 await p.goto('http://localhost:5173/', { waitUntil: 'networkidle' })
 const sidebar = await p.locator('aside').innerText()
-ok(/€3\.84M|€3\.85M/.test(sidebar), 'sidebar total includes edit: ' + sidebar.match(/€[\d.]+M/)?.[0])
+ok(/3,8[45]\sMio\.\s€/.test(sidebar), 'sidebar total includes edit: ' + sidebar.match(/[\d,]+\sMio\.\s€/)?.[0])
 // import real GAEB XML into new empty folder
 await p.getByRole('button', { name: /new folder/i }).first().click()
 await p.getByRole('dialog').locator('input').first().fill('Import Test')

@@ -3,7 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom'
 import { useEffect } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { Icon, Menu, Meter } from './ui'
-import { moneyCompact } from '../lib/format'
+import { moneyCompact, pct as percent } from '../lib/format'
 import { useStore, useWorkspaceBudget } from '../lib/store'
 import { useUi } from '../lib/ui-store'
 import { useMedia } from '../lib/hooks'
@@ -134,7 +134,7 @@ export function Sidebar() {
             type="button"
             onClick={toggle}
             aria-label="Expand sidebar"
-            title={`Allocated budget ${Math.round(pct)}%`}
+            title={`Allocated budget ${percent(pct)}`}
             className="flex w-full items-center justify-center rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
           >
             <Icon name="dock_to_right" size={18} />

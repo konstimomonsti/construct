@@ -5,7 +5,7 @@ import { EmptyFolder } from '../components/EmptyFolder'
 import { DropOverlay, useDropImport } from '../components/DropImport'
 import { ListGrid } from '../components/ListCard'
 import { FolderGrid, MoreMenu, toneTile } from '../components/FolderCard'
-import { money, plural, usageTone } from '../lib/format'
+import { count, money, plural, usageTone } from '../lib/format'
 import { pickAndImport } from '../lib/import'
 import { folderPath, SORT_LABEL, useModel, useStore, type SortKey } from '../lib/store'
 import { useUi } from '../lib/ui-store'
@@ -119,7 +119,7 @@ export function FolderPage() {
           <span className="shrink-0 font-mono text-xs text-slate-500">of {money(f.cap)}</span>
         </div>
         <div className="text-xs text-slate-500">
-          <span className="font-mono font-semibold text-slate-700">{f.positions.toLocaleString('en-US')}</span> positions · <span className="font-mono font-semibold text-slate-700">{f.priced.toLocaleString('en-US')}</span> priced
+          <span className="font-mono font-semibold text-slate-700">{count(f.positions)}</span> positions · <span className="font-mono font-semibold text-slate-700">{count(f.priced)}</span> priced
         </div>
       </div>
 
