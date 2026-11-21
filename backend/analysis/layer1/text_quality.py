@@ -9,7 +9,7 @@ from __future__ import annotations
 from collections import Counter, defaultdict
 import re
 
-from ..contracts import Fix, Line, SetField
+from ..contracts import Fix, Line, Section, SetField
 from ..registry import rule
 from . import spelling
 from .common import label, text_of
@@ -63,7 +63,9 @@ def replacement_fix(places: list[tuple[Line, str]], forms: dict[str, str], confi
             continue
         seen.add((line.id, field))
         old = getattr(line, field)
-        new = pattern.sub(lambda m: forms[m.group(0)], old)
+        new = old
+        for match in reversed(list(pattern.finditer(spelling.mask(old)))):
+            new = new[:match.start()] + forms[match[0]] + new[match.end():]
         if new != old:
             operations.append(SetField(line_id=line.id, field=field, old_value=old, new_value=new))
     return Fix(operations=operations, confidence=confidence, rationale=rationale)
@@ -75,17 +77,82 @@ def where(places: list[tuple[Line, str]]) -> tuple[list[Line], str]:
     return lines, codes
 
 
+def _title_source_words(line: Line, sections: dict[str, Section]) -> dict[str, dict[str, str | None]]:
+    evidence = {token.text.lower(): {"field": "long_text", "position": line.code, "term": token.text}
+                for token in spelling.tokens(line.long_text or "")}
+    seen = set()
+    section = sections.get(line.section_id)
+    while section and section.id not in seen:
+        seen.add(section.id)
+        for token in spelling.tokens(section.title or ""):
+            word = token.text.lower()
+            source = {"field": "section_title", "section": section.code, "term": token.text}
+            evidence.setdefault(word, source)
+            for suffix in ("arbeiten", "leistungen"):
+                if word.endswith(suffix) and len(word) - len(suffix) >= spelling.MIN_WORD_LENGTH:
+                    evidence.setdefault(word[:-len(suffix)], source)
+        section = sections.get(section.parent_id)
+    return evidence
+
+
+def _title_transpositions(line: Line, sections: dict[str, Section], checker: spelling.SpellChecker):
+    source = _title_source_words(line, sections)
+    for token in spelling.tokens(line.short_text or ""):
+        word = token.text
+        if not spelling.checkable(word) or len(word) < 9 or "-" in word or checker.known(word):
+            continue
+        lower = word.lower()
+        if lower in source:
+            continue
+        variants = {lower[:i] + lower[i+1] + lower[i] + lower[i+2:] for i in range(len(lower) - 1)
+                    if lower[i] != lower[i+1]}
+        supported = variants & source.keys()
+        if len(supported) != 1:
+            if supported or checker.hunspell is None:
+                continue
+            supported = {variant for variant in variants if checker.known(variant)}
+        if len(supported) != 1:
+            continue
+        candidate = supported.pop()
+        yield token, spelling.match_case(word, candidate), source.get(candidate)
+
+
 @rule("L1.TEXT.TYPO", layer=1, category="text", severity="info", title="Possible typo",
-      description="A word that is neither in the domain lexicon nor in the German dictionary, one letter away from "
-                  "a known word ('Auftragnehemer' -> 'Auftragnehmer'). Runs only when the hunspell dictionary "
-                  "is installed.")
+      description="Adjacent letters in a short description appear reversed when the position, its section heading "
+                  "or the German dictionary supports a unique correction. The optional dictionary also supports "
+                  "general spelling checks.")
 def typo(ctx):
     lines = ctx.input.lines
     if not lines or not is_german(lines):
         return
     checker = spelling.default_checker()
+    sections = ctx.input.section_by_id()
+    corrected = set()
+    for line in lines:
+        if not line.short_text:
+            continue
+        replacements = list(_title_transpositions(line, sections, checker))
+        if not replacements:
+            continue
+        new_text = line.short_text
+        corrections = []
+        for token, candidate, support in reversed(replacements):
+            new_text = new_text[:token.start] + candidate + new_text[token.end:]
+            corrected.add((line.id, token.text.lower()))
+            corrections.append({"word": token.text, "suggestion": candidate,
+                                "source": support or {"dictionary": checker.dictionary_name}})
+        corrections.reverse()
+        first = corrections[0]
+        yield ctx.finding(
+            line=line, field="short_text", discriminator="title-transposition",
+            message=f"Check '{first['word']}' against '{first['suggestion']}' in {line.code or '(no code)'}.",
+            evidence={**first, "corrections": corrections},
+            suggested_fix=Fix(operations=[SetField(line_id=line.id, field="short_text",
+                                                   old_value=line.short_text, new_value=new_text)],
+                              confidence=0.7, rationale="The proposed spelling reverses adjacent letters and "
+                                                       "matches the supporting text or dictionary."),
+        )
     if checker.hunspell is None:
-        # With the lexicon alone about half the alarms are real words ("Mutter" -> "Muster"): stay silent.
         return
     glued: dict[str, list[tuple[str, str]]] = defaultdict(list)
     found = occurrences(lines, whole_tokens=False, glued=glued)
@@ -103,7 +170,8 @@ def typo(ctx):
             continue
         # Drop occurrences that are half of a word split by a space ("st atischen" = "statischen").
         places = [place for form in forms for place, (left, right) in zip(found[form], glued[form])
-                  if not ((left and checker.known(left)) or (right and checker.known(right)))]
+                  if not (place[1] == "short_text" and (place[0].id, lower) in corrected)
+                  and not ((left and checker.known(left)) or (right and checker.known(right)))]
         if not places:
             continue
         related, codes = where(places)

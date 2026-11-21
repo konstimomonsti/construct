@@ -12,12 +12,10 @@ from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 
 from analysis import adapter
-from analysis.contracts import SourceDocument
 from analysis.runner import DEFAULT_LAYERS, analyze
 from tender_import.common import detect_format
-from tender_import.legacy import gaeb_1990
-from tender_import.structured import gaeb_xml
-from workspace_parse import read_document
+from workspace_parse import original_document
+from workspace_product_evidence import add_to_snapshot
 
 
 LOG = logging.getLogger(__name__)
@@ -52,17 +50,11 @@ def _source(connection, workspace, list_id, file_id, filename):
         return None
     content, name = bytes(row["content"]), row["name"]
     kind = detect_format(name, content)
-    if kind in {"pdf", "xls"}:
-        snapshots, _ = read_document(name, content)
-        # The preview and upload use the same content-derived IDs. Combine sheets for position
-        # evidence without replacing the editable list's section hierarchy.
-        return snapshots[0].model_copy(update={
-            "lines": [line for source in snapshots for line in source.lines],
-        })
+    if kind in {"pdf", "xls", "docx"}:
+        return original_document(name, content)
     if kind not in {"gaeb_xml", "gaeb_1990"}:
         return None
-    parsed = gaeb_xml(content) if kind == "gaeb_xml" else gaeb_1990(content)
-    return adapter.from_import(parsed, document=SourceDocument(filename=name, format=kind))
+    return adapter.from_bytes(name, content)
 
 
 def _attach_source(snapshot, source, original_codes):
@@ -86,7 +78,7 @@ def _attach_source(snapshot, source, original_codes):
     for line, match in pairs:
         line.gaeb_flags = match.gaeb_flags
         line.source_locator = match.source_locator
-        if match.source_locator and source.project.source_document.format in {"xls", "pdf"}:
+        if match.source_locator and source.project.source_document.format in {"xls", "pdf", "docx"}:
             # The editable table needs numeric placeholders. Analysis keeps missing source fields missing.
             if match.quantity is None and line.quantity == 0:
                 line.quantity = None
@@ -100,11 +92,49 @@ def _attach_source(snapshot, source, original_codes):
         if (match.source_amounts and line.source_amounts and line.quantity == match.quantity
                 and line.source_amounts.unit_price == match.source_amounts.unit_price and line.unit == match.unit):
             line.source_amounts.line_amount = match.source_amounts.line_amount
-        elif (source.project.source_document.format in {"xls", "pdf"} and match.source_amounts
+        elif (source.project.source_document.format in {"xls", "pdf", "docx"} and match.source_amounts
                 and line.quantity == match.quantity and line.unit == match.unit
                 and (line.price.unit_price if line.price else None) == match.source_amounts.unit_price):
             line.source_amounts = match.source_amounts
     return bool(pairs)
+
+def _unique_keys(objects, key_of):
+    by_key = defaultdict(list)
+    for obj in objects:
+        if key := key_of(obj):
+            by_key[key].append(obj.id)
+    return {key: ids[0] for key, ids in by_key.items() if len(ids) == 1}
+
+
+def _original_tender(uploaded, source, original_refs):
+    """Analyze the complete tender and retain workspace IDs where a match is unambiguous."""
+    def source_ref(line):
+        return (line.source_locator.get("source_id") or line.source_locator.get("sequence", "")).strip()
+
+    upload_refs = _unique_keys(uploaded.lines, lambda line: original_refs.get(line.id))
+    upload_codes = _unique_keys(uploaded.lines, lambda line: _code(line.code) if line.code else None)
+    file_refs = _unique_keys(source.lines, source_ref)
+    file_codes = _unique_keys(source.lines, lambda line: _code(line.code) if line.code else None)
+    line_ids = {key: key for key in source.line_by_id().keys() & uploaded.line_by_id().keys()}
+    line_ids.update({file_refs[key]: upload_refs[key] for key in file_refs.keys() & upload_refs.keys()
+                     if file_refs[key] not in line_ids and upload_refs[key] not in line_ids})
+    matched_upload_ids = set(line_ids.values())
+    for key in file_codes.keys() & upload_codes.keys():
+        source_id, upload_id = file_codes[key], upload_codes[key]
+        if source_id not in line_ids and upload_id not in matched_upload_ids:
+            line_ids[source_id] = upload_id
+
+    upload_sections = _unique_keys(uploaded.sections, lambda section: _code(section.id))
+    file_sections = _unique_keys(source.sections, lambda section: _code(section.code) if section.code else None)
+    section_ids = {file_sections[key]: upload_sections[key] for key in file_sections.keys() & upload_sections.keys()}
+    for section in source.sections:
+        section.id = section_ids.get(section.id, section.id)
+        section.parent_id = section_ids.get(section.parent_id, section.parent_id)
+    for line in source.lines:
+        line.id = line_ids.get(line.id, line.id)
+        line.section_id = section_ids.get(line.section_id, line.section_id)
+        line.alternative_for = line_ids.get(line.alternative_for, line.alternative_for)
+    return source
 
 
 def prepare(payload):
@@ -134,7 +164,7 @@ def prepare(payload):
     return snapshot, layers
 
 
-def run(payload, connection=None, workspace=None, list_id=None, file_id=None, filename=None):
+def run(payload, connection=None, workspace=None, list_id=None, file_id=None, filename=None, *, original_upload=False):
     snapshot, layers = prepare(payload)
     used_source = False
     source_notice = None
@@ -144,13 +174,22 @@ def run(payload, connection=None, workspace=None, list_id=None, file_id=None, fi
         except (LookupError, ValueError, SyntaxError):
             source = None
             source_notice = "The original tender file could not be checked. Findings are based on the editable list."
-        if source:
-            original_codes = payload.get("original_codes")
-            if isinstance(original_codes, dict):
-                used_source = _attach_source(snapshot, source, original_codes)
-            if used_source and source.project.source_document.format in {"xls", "pdf"}:
-                snapshot.import_warnings = source.import_warnings
+        if source and source.lines:
+            kind = source.project.source_document.format
+            native_preview = kind in {"pdf", "docx", "xls"} and source.line_by_id().keys() & snapshot.line_by_id().keys()
+            if original_upload and (native_preview or kind in {"gaeb_xml", "gaeb_1990"}):
+                snapshot = _original_tender(snapshot, source, payload.get("original_refs", {}))
+                used_source = True
+            else:
+                original_codes = payload.get("original_codes")
+                if isinstance(original_codes, dict):
+                    used_source = _attach_source(snapshot, source, original_codes)
+                if used_source and source.project.source_document.format in {"xls", "pdf", "docx"}:
+                    snapshot.import_warnings = source.import_warnings
             snapshot = snapshot.with_hash()
+    evidence_files = add_to_snapshot(connection, workspace, list_id, snapshot) if connection is not None and list_id else []
+    if evidence_files:
+        snapshot = snapshot.with_hash()
     try:
         result = analyze(snapshot, layers)
     except Exception:
@@ -161,7 +200,15 @@ def run(payload, connection=None, workspace=None, list_id=None, file_id=None, fi
         LOG.exception("Layer 3 failed; storing the layer 1 and 2 findings only")
         result = analyze(snapshot, [layer for layer in layers if layer != 3])
         result.errors.append("layer 3: failed unexpectedly; findings are from layers 1 and 2 only")
-    return {**result.model_dump(mode="json"), "used_source": used_source, "source_notice": source_notice}
+    return {**result.model_dump(mode="json"), "used_source": used_source, "source_notice": source_notice,
+            "product_evidence_files": evidence_files}
+
+
+def _source_decimal_text(value):
+    if not isinstance(value, str):
+        return None
+    return re.sub(r"\s*(?:€|EUR)$", "", value, flags=re.I).replace("−", "-").strip() or None
+
 
 
 def _uploaded_input(document):
@@ -169,6 +216,7 @@ def _uploaded_input(document):
     phase = phase_match[1] if phase_match else None
     currency = document.get("currency")
     bid = phase in {"84", "86"}
+    kind = document["source"]["kind"]
     sections = {}
 
     def add_section(code, label, parent_id):
@@ -183,12 +231,16 @@ def _uploaded_input(document):
     visit(document.get("tree") or [])
     lines = []
     original_codes = {}
+    original_refs = {}
     for position in document["positions"]:
         section_id = None
         for part in position.get("path") or []:
             add_section(part["oz"], part.get("label"), section_id)
             section_id = part["oz"]
-        unit = position.get("unit")
+        cells = position.get("sourceCells")
+        if kind not in {"csv", "xlsx", "json", "docx", "pdf"} or not isinstance(cells, dict):
+            cells = None
+        unit = cells.get("unit") if cells is not None else position.get("unit")
         short = position.get("short")
         line = {
             "id": position["id"],
@@ -200,31 +252,55 @@ def _uploaded_input(document):
             "unit": unit,
             "pricing_basis": "lump_sum" if position.get("lumpSum") or (unit or "").lower().rstrip(".") == "psch" else "unit_rate",
         }
-        if bid:
+        if cells is not None:
+            if "code" in cells:
+                line["code"] = cells["code"] or None
+            quantity = cells.get("quantity")
+            line["quantity"] = _source_decimal_text(quantity)
+            line["quantity_raw"] = quantity or None
+            locator = {key: cells[key] for key in ("sheet", "row") if cells.get(key)}
+            if locator:
+                line["source_locator"] = locator
+            price, amount = (_source_decimal_text(cells.get(key)) for key in ("unitPrice", "amount"))
+            if price is not None or amount is not None:
+                line["source_amounts"] = {"unit_price": price, "line_amount": amount}
+        elif bid:
             line["source_amounts"] = {"unit_price": position.get("up")}
         elif position.get("up") is not None:
             line["price"] = {"unit_price": position["up"], "currency": currency, "source": "client"}
         if line["code"]:
             original_codes[line["id"]] = line["code"]
+        if isinstance(position.get("srcRef"), str):
+            original_refs[line["id"]] = position["srcRef"].strip()
         lines.append(line)
     return {
         "snapshot": {
             "project": {"currency": currency, "gaeb_phase": phase,
-                        "source_document": {"filename": document.get("fileName"), "format": document["source"]["kind"]}},
+                        "source_document": {"filename": document.get("fileName"), "format": kind}},
             "bom": {"title": document.get("title")},
             "sections": list(sections.values()),
             "lines": lines,
         },
         "original_codes": original_codes,
+        "original_refs": original_refs,
         "layers": [*DEFAULT_LAYERS, 3] if options()["ai_available"] else list(DEFAULT_LAYERS),
     }
 
 
-def enqueue(connection, workspace, writes):
+def requeue_product_evidence(connection, workspace, list_ids):
+    if list_ids:
+        connection.execute(
+            "UPDATE workspace_assessment SET state='queued', report=NULL WHERE workspace=%s AND list_id=ANY(%s)",
+            (workspace, list(list_ids)),
+        )
+
+
+def enqueue(connection, workspace, writes, evidence_lists=()):
     list_ids = {key for collection, key, _ in writes if collection == "userLists"}
     list_ids.update(value["listId"] for collection, _, value in writes
                     if collection == "userDocuments" and isinstance(value, dict) and value.get("original") is True
                     and isinstance(value.get("listId"), str))
+    list_ids.update(evidence_lists)
     if not list_ids:
         return
     connection.execute(
@@ -244,6 +320,7 @@ def enqueue(connection, workspace, writes):
         ON CONFLICT (workspace, list_id) DO NOTHING
         """, (workspace, list(list_ids)),
     )
+    requeue_product_evidence(connection, workspace, evidence_lists)
 
 
 def status(connection, workspace, list_id):
@@ -258,11 +335,21 @@ def status(connection, workspace, list_id):
 
 def assess_next(connection):
     with connection.transaction():
+        # Claim the job without holding its row lock during analysis. A concurrent evidence
+        # update can requeue it, changing its version and invalidating this worker's result.
         job = connection.execute(
             """
-            SELECT a.workspace, a.list_id, d.value FROM workspace_assessment a
+            WITH claimed AS MATERIALIZED (
+                SELECT workspace, list_id
+                FROM workspace_assessment
+                WHERE state='queued'
+                  AND pg_try_advisory_xact_lock(hashtextextended(workspace || chr(31) || list_id, 1685013603))
+                LIMIT 1
+            )
+            SELECT a.workspace, a.list_id, a.xmin::text AS generation, d.value
+            FROM claimed c
+            JOIN workspace_assessment a USING (workspace, list_id)
             JOIN workspace_record d ON (d.workspace, d.collection, d.record_id)=(a.workspace, 'userLists', a.list_id)
-            WHERE a.state='queued' ORDER BY a.workspace, a.list_id LIMIT 1 FOR UPDATE OF a SKIP LOCKED
             """,
         ).fetchone()
         if not job:
@@ -270,8 +357,8 @@ def assess_next(connection):
         workspace, list_id, document = job["workspace"], job["list_id"], job["value"]
         try:
             with connection.transaction():
-                filename = document.get("fileName") if document["source"]["kind"] in {"gaeb-xml", "gaeb90", "pdf", "xlsx"} else None
-                report = run(_uploaded_input(document), connection, workspace, list_id, filename=filename)
+                filename = document.get("fileName") if document["source"]["kind"] in {"gaeb-xml", "gaeb90", "pdf", "docx", "xlsx"} else None
+                report = run(_uploaded_input(document), connection, workspace, list_id, filename=filename, original_upload=True)
         except psycopg.OperationalError:
             raise
         except Exception:
@@ -280,8 +367,8 @@ def assess_next(connection):
         else:
             state, report = "ready", Jsonb(report)
         connection.execute(
-            "UPDATE workspace_assessment SET state=%s, report=%s WHERE workspace=%s AND list_id=%s",
-            (state, report, workspace, list_id),
+            "UPDATE workspace_assessment SET state=%s, report=%s WHERE workspace=%s AND list_id=%s AND xmin::text=%s",
+            (state, report, workspace, list_id, job["generation"]),
         )
         return True
 

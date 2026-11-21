@@ -4,7 +4,7 @@
     "Category": "Floor screed and finishes",
     "TriggerRegex": "(?i)\\b([a-zäöüß]*estrich[a-zäöüß]*|hohlraumboden|doppelboden|(?:ct|ca|caf|ma|as)\\s*,\\s*\\d+\\s*mm)\\b",
     "TriggerIn": "short_text",
-    "ExcludeRegex": "(?i)\\b(abbrechen|abbruch\\w*|rückbau\\w*|zurückbauen|ausbauen|demontage|demontieren|entfernen|entsorg\\w*|aufnehmen|abtragen|stemmen|fräsen|messung\\w*|\\w*feuchte\\w*|belegreife\\w*|aussparung\\w*|zul|zulage\\w*)\\b",
+    "ExcludeRegex": "(?i)^\\s*(?:trittschall|wärme)?dämm(?:ung|platten?)\\b[^;]{0,45}\\b(?:unter|für)\\s+(?:dem\\s+)?\\w*estrich\\b|\\b(abbrechen|abbruch\\w*|rückbau\\w*|zurückbauen|ausbauen|demontage|demontieren|entfernen|entsorg\\w*|aufnehmen|abtragen|stemmen|fräsen|messung\\w*|\\w*feuchte\\w*|belegreife\\w*|aussparung\\w*|zul|zulage\\w*)\\b",
     "Required_Dependencies": [
       {"DependencyName": "Edge insulation", "Regex": "(?i)\\b(randdämmstreifen)\\b", "CheckType": "Boolean", "SuggestedText": "Randdämmstreifen", "SuggestedUnit": "m"},
       {"DependencyName": "Underlays and insulation", "Regex": "(?i)\\b(?:trittschall)?dämmung\\b|\\b(?:eps|xps)\\b", "CheckType": "Boolean", "SuggestedText": "Trittschalldämmung unter Estrich", "SuggestedUnit": "m²"},
@@ -203,7 +203,7 @@
       },
       {
         "DependencyName": "Joint sealing",
-        "Regex": "(?i)\\b(?:\\w*fugen(?:abdichtung|dichtung|versiegelung|verschluss)\\w*|\\w*fugendicht\\w*|abdichtung\\s+der\\s+(?:\\w*-)?fugen)|\\b(?:dicht\\w*|wind-\\s*und\\s*dampfdicht\\w*)[^\\n.;]{0,60}\\w*fugen\\b|\\b\\w*fugen\\b[^\\n.;]{0,60}\\bdicht\\w*|\\bdampfdicht\\w*[^\\n.;]{0,60}\\w*fugen\\b",
+        "Regex": "(?i)\\bdampfdicht\\w*\\s+Ausführung\\s+der\\s+[\\w-]*fugen\\b|\\b(?:\\w*fugen(?:abdichtung|dichtung|versiegelung|verschluss)\\w*|\\w*fugendicht\\w*|abdichtung\\s+der\\s+(?:\\w*-)?fugen)|\\b(?:dicht\\w*|wind-\\s*und\\s*dampfdicht\\w*)[^\\n.;]{0,60}\\w*fugen\\b|\\b\\w*fugen\\b[^\\n.;]{0,60}\\bdicht\\w*|\\bdampfdicht\\w*[^\\n.;]{0,60}\\w*fugen\\b",
         "CheckType": "Boolean",
         "SuggestedText": "Abdichtung der Fertigteilfugen",
         "SuggestedUnit": "m"

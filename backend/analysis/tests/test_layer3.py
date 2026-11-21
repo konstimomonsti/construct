@@ -10,7 +10,7 @@ from analysis.layer2.adapter import from_data
 from analysis.layer3.provider import (
     FakeProvider, LLMRequest, OllamaProvider, ProviderError, ProviderUnavailable, ResponseCache, provider_from_env,
 )
-from analysis.layer3.prompts import CONTRADICTION_VERSION
+from analysis.layer3.prompts import CONTRADICTION_VERSION, PRECAST_VERSION
 from analysis.layer3.schema import CONTRADICTION_SCHEMA, L2_CONFIRM_SCHEMA, MAX_CONFIDENCE, quote_in
 from analysis.registry import rules_for
 from analysis.runner import analyze
@@ -113,7 +113,7 @@ def test_contradiction_found_with_verified_quotes():
     assert finding.evidence["short_quote"] == "DN 150" and finding.evidence["long_quote"] == "DN 200"
     assert finding.evidence["confidence"] == MAX_CONFIDENCE
     assert finding.evidence["prompt_version"].startswith("l3-contradiction-")
-    assert finding.suggested_fix is None
+    assert finding.suggested_fix.operations == [] and "drawings" in finding.suggested_fix.rationale
 
 
 def test_prefilter_sends_only_lines_with_values_and_two_texts():
@@ -154,6 +154,29 @@ def test_invalid_items_dropped_but_valid_ones_kept():
     findings, _ = run3(pipe_input(), FakeProvider([answer]))
     found = by_rule(findings, CONTRA)
     assert len(found) == 1 and found[0].evidence["confidence"] == 0.5
+
+
+@pytest.mark.parametrize(("format", "detail", "severity"), [
+    ("pdf", "Hängedachrinne aus Titanzink herstellen.", "warning"),
+    ("pdf", "Hängedachrinne aus Titanzink oder Kupfer herstellen.", "info"),
+    ("docx", "Hängedachrinne aus Titanzink herstellen.", "info"),
+])
+def test_contradiction_checks_pdf_body_without_heading_echo(format, detail, severity):
+    title = "Dachrinne Kupfer halbrund"
+    snapshot = from_data({
+        "project": {"source_document": {"format": format}},
+        "lines": [line("01.0010", title, f"{title}\n{detail}", source_locator={"page": 1})],
+    })
+    answer = {"findings": [{"line_ref": "#1", "property": "material", "short_quote": "Kupfer",
+                            "long_quote": "Titanzink", "message": "The gutter materials differ.", "confidence": .95}]}
+    provider = FakeProvider(lambda request: answer if request.prompt_version == CONTRADICTION_VERSION else {"findings": []})
+    findings, errors = run3(snapshot, provider)
+    assert complete_coverage(errors)
+    found, = by_rule(findings, CONTRA)
+    assert found.severity == severity
+    assert found.source_locator == {"page": 1}
+    assert found.evidence["long_quote"] == "Titanzink"
+
 
 
 def test_value_also_in_long_text_is_downgraded_to_info():
@@ -388,6 +411,23 @@ def test_l2_confirm_sends_triggers_and_section_neighbours_only():
     assert "01.0020" in codes and "02.0010" not in codes
 
 
+@pytest.mark.parametrize("text,expected", [
+    ("Flachdecke herstellen, Beton C30/37 liefern.", False),
+    ("Flachdecke mit d = 240 mm herstellen.", False),
+    ("Flachdecke mit d = 22 cm herstellen.", True),
+])
+def test_dimension_contradiction_requires_two_different_stated_lengths(text, expected):
+    analysis_input = from_data({"lines": [
+        {"id": "a", "code": "01", "short_text": "Stahlbetondecke, d = 24 cm", "long_text": text},
+    ]})
+    findings = {"findings": [{"line_ref": "#1", "property": "thickness", "short_quote": "d = 24 cm",
+                              "long_quote": text, "message": "Thickness differs.", "confidence": 0.8}]}
+    result = by_rule(run3(analysis_input, FakeProvider([findings]))[0], CONTRA)
+    assert bool(result) is expected
+    if expected:
+        assert result[0].suggested_fix.rationale
+
+
 def test_no_l2_findings_means_no_l2_calls():
     provider = FakeProvider(lambda request: {"findings": []})
     run3(pipe_input(), provider, prior=[])
@@ -397,7 +437,14 @@ def test_no_l2_findings_means_no_l2_calls():
 def test_eval_harness_runs_offline(monkeypatch):
     from analysis.layer3.eval import evaluate
     monkeypatch.setenv("ANALYSIS_L3_CACHE", "off")
-    result = evaluate(FakeProvider(lambda request: {"findings": [], "reviews": []}))
-    assert result["model"] == "fake" and all(e.startswith("layer 3 coverage: ") for e in result["errors"])
+    def clean_answer(request):
+        if request.prompt_version == PRECAST_VERSION:
+            payload = json.loads(request.prompt.split("\n\n", 1)[1])
+            return {"items": [{"line_ref": item["ref"], "item_type": "other"} for item in payload["items"]]}
+        return {"findings": [], "reviews": []}
+
+    result = evaluate(FakeProvider(clean_answer))
+    assert result["model"] == "fake" and result["errors"]
+    assert all(re.fullmatch(r"layer 3 coverage: (\d+)/\1 batches", error) for error in result["errors"])
     assert result["contradiction"]["recall"] == 0
     assert all(row["got"] == "unclear" for row in result["l2_confirm"]["cases"])

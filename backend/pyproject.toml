@@ -33,3 +33,4 @@ include = ["analysis*"]
 
 [tool.pytest.ini_options]
 testpaths = ["analysis/tests"]
+markers = ["integration: requires a configured model provider"]

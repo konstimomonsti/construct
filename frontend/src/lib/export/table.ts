@@ -54,6 +54,7 @@ export function toCsvTable(o: TableOpts): string {
 export function toJson(o: TableOpts, resolvedTree: unknown): string {
   const positions = o.positions.map((p) => {
     const q = { ...p }
+    delete q.sourceCells
     if (!o.longTexts) delete q.long
     if (!o.prices) q.up = null
     return q

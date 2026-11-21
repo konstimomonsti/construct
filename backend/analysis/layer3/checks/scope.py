@@ -15,13 +15,14 @@ The three rules share one audit per run (session memo); each emits only its own 
 
 from __future__ import annotations
 
+import json
 from typing import Any
 
 from ...contracts import Line
 from ...registry import rule
 from .. import prompts
 from ..common import current
-from ..provider import LLMRequest
+from ..provider import LLMRequest, OllamaProvider
 from ..schema import SCOPE_SCHEMA, ScopeItem, clamp_confidence, items
 from .precast import extracted
 
@@ -36,6 +37,21 @@ RULE_FOR_CHECK = {"REBAR_AMBIGUOUS": REBAR, "SHOP_DRAWINGS_OVERLAP": SHOP_DRAWIN
 CHANGE_ORDER = {REBAR, EMBEDDED}  # scope gaps that typically end in a Nachtrag
 
 Group = list[tuple[Line, dict[str, Any]]]
+_LOCAL_VERSION = "l3-scope-local-v1"
+_LOCAL_SYSTEM = """Review the listed candidate issues against extracted items of a German precast bill.
+An unassigned rebar position beside precast elements warrants REBAR_AMBIGUOUS.
+Shop drawings overlap when a precast element already supplies anchor design.
+An embedded part without an assigned element warrants EMBEDDED_UNALLOCATED.
+Return only the ref of each supported candidate in findings. Return an empty array if there are none."""
+_LOCAL_WORDING = {
+    "REBAR_AMBIGUOUS": ("A separate rebar item leaves factory reinforcement and site connection scope unclear.",
+                        "Handelt es sich um die Bewehrung der Fertigteile oder um Anschlussbewehrung auf der Baustelle?"),
+    "SHOP_DRAWINGS_OVERLAP": ("The shop drawings may overlap with anchor design included in the precast elements.",
+                              "In welcher Position ist die Ankerplanung zu kalkulieren?"),
+    "EMBEDDED_UNALLOCATED": ("The embedded part has no stated element assignment.",
+                             "Welchen Fertigteilelementen ist das Einbauteil zugeordnet?"),
+}
+
 
 
 def possible(check: str, group: Group) -> bool:
@@ -66,17 +82,23 @@ def audit(ctx) -> dict[str, list[tuple[Line, ScopeItem, list[Line]]]]:
     for line, data in extracted(ctx):
         groups.setdefault(line.section_id, []).append((line, data))
     titles = {section.id: section.title for section in ctx.input.sections}
-    to_send = [(section_id, group) for section_id, group in groups.items()
+    local = isinstance(session.audit_provider or session.provider, OllamaProvider)
+    to_send = [(section_id, group, _local_candidates(group) if local else {}) for section_id, group in groups.items()
                if any(possible(check, group) for check in RULE_FOR_CHECK)]
-    requests = [LLMRequest(system=prompts.SCOPE_SYSTEM,
-                           prompt=prompts.scope_prompt(titles.get(section_id), [_payload(l, d) for l, d in group]),
-                           schema=SCOPE_SCHEMA, prompt_version=prompts.SCOPE_VERSION)
-                for section_id, group in to_send]
+    if local:
+        to_send = [batch for batch in to_send if batch[2]]
+    requests = [
+        _local_request(group, choices) if local else
+        LLMRequest(system=prompts.SCOPE_SYSTEM,
+                   prompt=prompts.scope_prompt(titles.get(section_id), [_payload(line, data) for line, data in group]),
+                   schema=SCOPE_SCHEMA, prompt_version=prompts.SCOPE_VERSION)
+        for section_id, group, choices in to_send
+    ]
     result: dict[str, list[tuple[Line, ScopeItem, list[Line]]]] = {rule_id: [] for rule_id in RULE_FOR_CHECK.values()}
-    for (_, group), answer in zip(to_send, session.ask_many(AUDIT, requests, audit=True)):
+    for (_, group, choices), answer in zip(to_send, session.ask_many(AUDIT, requests, audit=True)):
         if answer is None:
             continue
-        answers, dropped = items(answer, "findings", ScopeItem)
+        answers, dropped = _local_answers(answer, group, choices) if local else items(answer, "findings", ScopeItem)
         session.dropped[AUDIT] += dropped
         by_code = {line.code: (line, data) for line, data in group if line.code}
         seen: set[tuple[str, str]] = set()
@@ -95,14 +117,48 @@ def audit(ctx) -> dict[str, list[tuple[Line, ScopeItem, list[Line]]]]:
     return result
 
 
+def _local_candidates(group: Group) -> dict[str, tuple[str, str]]:
+    pairs = [(check, line.code) for check in RULE_FOR_CHECK if possible(check, group)
+             for line, data in group if line.code and anchor_ok(check, data)]
+    return {f"F{index}": pair for index, pair in enumerate(pairs, start=1)}
+
+
+def _local_request(group: Group, choices: dict[str, tuple[str, str]]) -> LLMRequest:
+    schema = {"type": "object", "additionalProperties": False, "required": ["findings"],
+              "properties": {"findings": {"type": "array", "maxItems": len(choices),
+                                          "items": {"type": "string", "enum": list(choices)}}}}
+    data = {"items": [_payload(line, item) for line, item in group],
+            "candidates": [{"ref": ref, "check": check, "line_code": code} for ref, (check, code) in choices.items()]}
+    return LLMRequest(_LOCAL_SYSTEM, "Review these candidates.\n\n" + json.dumps(data, ensure_ascii=False),
+                      schema, _LOCAL_VERSION)
+
+
+def _local_answers(answer: dict, group: Group, choices: dict[str, tuple[str, str]]) -> tuple[list[ScopeItem], int]:
+    refs = answer.get("findings")
+    if not isinstance(refs, list):
+        return [], 1
+    accepted = []
+    for ref in refs:
+        if not isinstance(ref, str) or ref not in choices:
+            continue
+        check, code = choices[ref]
+        related = [line.code for line, data in group if line.code and data["item_type"] in ELEMENTS
+                   and (check != "SHOP_DRAWINGS_OVERLAP" or data["includes_anchor_engineering"])]
+        message, question = _LOCAL_WORDING[check]
+        accepted.append(ScopeItem(check=check, line_code=code, related_codes=related, message=message,
+                                  bieterfrage_de=f"Zu Pos. {code}: {question}", confidence=0.6))
+    return accepted, len(refs) - len(accepted)
+
+
 def _emit(ctx, rule_id: str):
     session = current()
+    local = isinstance(session.audit_provider or session.provider, OllamaProvider)
     for line, item, related in audit(ctx)[rule_id]:
         question = item.bieterfrage_de.strip()
         if not question.startswith("Zu Pos."):
             question = f"Zu Pos. {line.code}: {question}"
         evidence = {"bieterfrage_de": question, "related_codes": [r.code for r in related],
-                    "confidence": clamp_confidence(item.confidence), "prompt_version": prompts.SCOPE_VERSION}
+                    "confidence": clamp_confidence(item.confidence), "prompt_version": _LOCAL_VERSION if local else prompts.SCOPE_VERSION}
         if rule_id in CHANGE_ORDER:
             evidence["change_order"] = True
         yield ctx.finding(line=line, related_line_ids=[r.id for r in related], message=item.message.strip(),
@@ -141,11 +197,6 @@ def _unallocated(data: dict[str, Any]) -> bool:
 
 def _payload(line: Line, data: dict[str, Any]) -> dict[str, Any]:
     """Compact item JSON for the audit: the line's own facts plus the non-empty extracted fields."""
-    fields = {key: value for key, value in data.items()
-              if value not in (None, False, [], "") and key not in ("oz", "has_redacted_or_unclear_text",
-                                                                    "unclear_text_evidence")}
-    if fields.get("rebar_purpose") == "not_applicable":
-        fields.pop("rebar_purpose")
-    if isinstance(fields.get("layers"), dict):
-        fields["layers"] = {k: v for k, v in fields["layers"].items() if v is not None} or None
-    return {"code": line.code, "short_text": line.short_text, **fields}
+    fields = ("item_type", "element_code", "rebar_purpose", "includes_anchor_engineering", "assigned_element_codes")
+    return {"code": line.code, "short_text": line.short_text,
+            **{key: data[key] for key in fields if data[key] not in (None, False, [], "", "not_applicable")}}

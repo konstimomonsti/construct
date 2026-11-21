@@ -95,11 +95,13 @@ test('Excel imports an ordinary workbook and preserves a zero numeric price', as
   sheet.addRows([
     ['Position', 'Description', 'Quantity', 'Unit', 'Unit price (EUR)', 'Category'],
     ['0010', 'Unpriced by supplier', 1.75, 'm', 0, 'Works'],
+    ['0020', 'Uncalculated by supplier', { formula: '5*2' }, 'm', 1, 'Works'],
   ])
   const parsed = await parseListFile(asFile('ordinary.xlsx', new Uint8Array(await workbook.xlsx.writeBuffer())))
   assert.ok(parsed)
   assert.equal(parsed.positions[0].qty, 1.75)
   assert.equal(parsed.positions[0].up, 0)
+  assert.equal(parsed.positions[1].sourceCells?.quantity, '=5*2')
 })
 
 test('plain PDF and Word files are available as attachments', async () => {
@@ -181,4 +183,55 @@ test('GAEB 90 preserves signed figures and rejects values that overflow fixed-wi
 
   const overflow = { ...negative, positions: [{ ...negative.positions[0], qty: 100_000_000 }] }
   await assert.rejects(run('d83', { doc: overflow, resolved: resolveList(overflow) }), /GAEB 90 field width/)
+})
+
+test('tabular imports preserve blank and invalid cells, written amounts, and source rows', async () => {
+  for (const [ext, sep] of [['csv', ';'], ['tsv', '\t']]) {
+    const input = [
+      ['OZ', 'Kurztext', 'Menge', 'ME', 'EP', 'GP'].join(sep),
+      ['01.10', '"Zeile 1\r\nZeile 2"', '', '', '', ''].join(sep),
+      '',
+      ['01.20', 'Weitere Leistung', 'aus Aufmaß', 'm', '10,00', '32,50'].join(sep),
+    ].join('\r\n')
+    const parsed = await parseListFile(asFile('risk.' + ext, input))
+    assert.ok(parsed)
+    assert.equal(parsed.positions[0].qty, 1)
+    assert.equal(parsed.positions[0].unit, 'St')
+    assert.equal(parsed.positions[0].sourceCells?.quantity, '')
+    assert.equal(parsed.positions[0].sourceCells?.unit, '')
+    assert.equal(parsed.positions[0].sourceCells?.row, 2)
+    assert.equal(parsed.positions[1].sourceCells?.quantity, 'aus Aufmaß')
+    assert.equal(parsed.positions[1].sourceCells?.amount, '32,50')
+    assert.equal(parsed.positions[1].sourceCells?.row, 5)
+  }
+})
+
+test('Excel imports every readable visible sheet and preserves distinct worksheet row locators', async () => {
+  const workbook = new ExcelJS.Workbook()
+  for (const name of ['Elektro', 'Trockenbau', 'Vorlage']) {
+    const sheet = workbook.addWorksheet(name, { state: name === 'Vorlage' ? 'hidden' : 'visible' })
+    sheet.addRow(['OZ', 'Kurztext', 'Menge', 'ME', 'EP', 'GP'])
+    sheet.getRow(5).values = ['0010', name, name === 'Elektro' ? 2 : null, 'm', 10, 25]
+  }
+  const parsed = await parseListFile(asFile('multi.xlsx', new Uint8Array(await workbook.xlsx.writeBuffer())))
+  assert.ok(parsed)
+  assert.deepEqual(parsed.positions.map((p) => [p.id, p.oz, p.path?.[0].label, p.sourceCells?.row]), [
+    ['S1-p0', '0010', 'Elektro', 5], ['S2-p0', '0010', 'Trockenbau', 5],
+  ])
+  assert.equal(parsed.positions[1].sourceCells?.quantity, '')
+  assert.equal(parsed.positions[0].sourceCells?.amount, '25')
+})
+
+test('ordinary Word files use the tender preview and keep its source position IDs', async (context) => {
+  const content = await sample('LV-Positionen.docx')
+  context.mock.method(globalThis, 'fetch', async (url: string) => {
+    assert.equal(url, '/api/workspace/parse?filename=LV-Positionen.docx')
+    return Response.json({
+      title: 'Word tender', positions: [{ id: 'source-word-position', oz: '01.0010', short: 'Position', qty: 0, unit: '' }],
+    })
+  })
+  const result = await parseListFile(asFile('LV-Positionen.docx', content))
+  assert.equal(result?.source?.kind, 'docx')
+  assert.equal(result?.positions[0].id, 'source-word-position')
+  assert.equal(result?.positions[0].sourceCells, undefined)
 })

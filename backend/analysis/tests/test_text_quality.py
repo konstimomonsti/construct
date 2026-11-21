@@ -104,6 +104,48 @@ def test_no_dictionary_no_typo_findings():
     assert by_rule(run(line(1, "Leistung", "Der Auftragnehemer und das Material")), "L1.TEXT.TYPO") == []
 
 
+def test_title_transposition_uses_corresponding_description_without_dictionary():
+    spelling.use_checker(spelling.SpellChecker(LEXICON, use_hunspell=False))
+    short = "Brandschutzkalppe montieren. Typ: Brandschutzkalppe"
+    correct = "Die Brandschutzklappe für den Schacht montieren."
+    [finding] = by_rule(run(line(1, short, correct)), "L1.TEXT.TYPO")
+    assert finding.evidence["source"] == {
+        "field": "long_text", "position": "01.0001", "term": "Brandschutzklappe",
+    }
+    [edit] = finding.suggested_fix.operations
+    assert edit.old_value == short
+    assert edit.new_value == "Brandschutzklappe montieren. Typ: Brandschutzkalppe"
+    assert by_rule(run(line(1, short, "Montieren und prüfen."), line(2, "Position", correct)), "L1.TEXT.TYPO") == []
+
+
+def test_title_transposition_uses_ancestor_heading_without_dictionary():
+    spelling.use_checker(spelling.SpellChecker(LEXICON, use_hunspell=False))
+    parent = Section(id="parent", code="03", title="Trockenbauarbeiten", sort_order=0)
+    sub = SECTION.model_copy(update={"parent_id": parent.id})
+    data = AnalysisInput(
+        project=Project(gaeb_phase="83"), sections=[parent, sub],
+        lines=[line(1, "Revisionsklappe für Trcokenbau", "Die Klappe in die Decke einbauen.")],
+    )
+    [finding] = by_rule(analyze(data, [1]).findings, "L1.TEXT.TYPO")
+    assert finding.evidence["source"] == {
+        "field": "section_title", "section": "03", "term": "Trockenbauarbeiten",
+    }
+    assert finding.suggested_fix.operations[0].new_value == "Revisionsklappe für Trockenbau"
+
+
+def test_title_transposition_requires_unique_dictionary_correction():
+    spelling.use_checker(spelling.SpellChecker(LEXICON, FakeHunspell("Verpackungsabfälle")))
+    [finding] = by_rule(run(line(1, "Bauschutt und Verpackugnsabfälle entsorgen")), "L1.TEXT.TYPO")
+    assert finding.evidence["source"] == {"dictionary": "hunspell de_DE"}
+    assert finding.suggested_fix.operations[0].new_value == "Bauschutt und Verpackungsabfälle entsorgen"
+
+
+def test_general_spelling_replacement_keeps_masked_product_terms():
+    text = "Der Auftragnehemer liefert das Produkt. Typ: Auftragnehemer"
+    [finding] = by_rule(run(line(1, "Leistung", text)), "L1.TEXT.TYPO")
+    assert finding.suggested_fix.operations[0].new_value == "Der Auftragnehmer liefert das Produkt. Typ: Auftragnehemer"
+
+
 def test_dictionary_location_setting(monkeypatch, tmp_path):
     monkeypatch.setenv("ANALYSIS_SPELL_DIC", "off")
     assert spelling.dictionary_path() is None

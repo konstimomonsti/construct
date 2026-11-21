@@ -17,7 +17,8 @@ ROOT = Path(__file__).resolve().parents[3]
     ("backend/analysis/eval/seeds/building_hall.json", (0, 24), (5000, 20000)),
     ("data/demo/building_hall_planted.X83", (50, 70), (8000, 30000)),
     ("backend/analysis/tests/fixtures/lv11_precast.json", (25, 49), None),
-    ("data/tenders/8209.003_Leistungsverzeichnis_leer.X83", (50, 74), None),
+    # Anonymized example suppliers do not count as unresolved product specifications.
+    ("data/tenders/8209.003_Leistungsverzeichnis_leer.X83", (35, 49), None),
     ("data/tenders/StBALV23040.D86", (50, 74), (20000, 70000)),
     ("data/tenders/[ORT_024] LV24069.D86", (75, 90), (20000, 70000)),
 ])

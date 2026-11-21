@@ -6,7 +6,12 @@ from dataclasses import dataclass
 from decimal import ROUND_HALF_UP, Decimal
 import re
 
-from ..contracts import AnalysisInput, Line, Section
+from ..contracts import AnalysisInput, Fix, Line, Section
+
+
+def review_fix(rationale: str) -> Fix:
+    """Suggest a source check or manual correction when the source cannot justify an edit."""
+    return Fix(operations=[], confidence=0.7, rationale=rationale)
 
 
 @dataclass(frozen=True)
@@ -51,6 +56,16 @@ def label(line: Line) -> str:
 
 def text_of(line: Line) -> str:
     return "\n".join(part for part in (line.short_text, line.long_text) if part)
+
+
+def source_detail(line: Line, source_format: str | None) -> str | None:
+    """Exclude the heading copied into the detail by the printed PDF layout extractor."""
+    if source_format != "pdf" or not line.source_locator.get("page") or not line.short_text or not line.long_text:
+        return line.long_text
+    header, _, detail = line.long_text.partition("\n")
+    if " ".join(header.casefold().split()) == " ".join(line.short_text.casefold().split()):
+        return detail or None
+    return line.long_text
 
 
 def section_subtrees(analysis_input: AnalysisInput) -> dict[str, set[str]]:

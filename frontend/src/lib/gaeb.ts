@@ -20,6 +20,8 @@ export interface Position {
   path?: CategoryRef[]
   /** source-specific ids for lossless same-format export (GAEB XML Item ID, GAEB90 first record line no., PDF page) */
   srcRef?: string
+  /** Values written in a table or structured export before editable defaults are applied. */
+  sourceCells?: { code?: string; quantity: string; unit: string; unitPrice: string; amount: string; row?: number; sheet?: string }
 }
 
 export interface CategoryRef {
@@ -541,13 +543,15 @@ export function parseCsv(text: string): ParsedList {
   const firstLine = text.split(/\r?\n/, 1)[0]
   const delimiters = firstLine.replace(/"(?:[^"]|"")*"/g, '')
   const delim = ['\t', ';', ','].sort((a, b) => delimiters.split(b).length - delimiters.split(a).length)[0]
-  const rows: string[][] = []
+  const rows: TableRow[] = []
+  let rowNumber = 1
+  let rowStart = 1
   let row: string[] = []
   let cell = ''
   let quoted = false
   const finishRow = () => {
     row.push(cell)
-    if (row.some((value) => value.trim())) rows.push(row)
+    if (row.some((value) => value.trim())) rows.push({ cells: row, row: rowStart })
     row = []
     cell = ''
   }
@@ -561,18 +565,35 @@ export function parseCsv(text: string): ParsedList {
     } else if (c === delim && !quoted) {
       row.push(cell)
       cell = ''
-    } else if ((c === '\n' || c === '\r') && !quoted) {
-      finishRow()
-      if (c === '\r' && text[i + 1] === '\n') i++
+    } else if (c === '\n' || c === '\r') {
+      const crlf = c === '\r' && text[i + 1] === '\n'
+      if (quoted) cell += crlf ? '\r\n' : c
+      else finishRow()
+      if (crlf) i++
+      rowNumber++
+      if (!quoted) rowStart = rowNumber
     } else cell += c
   }
   if (quoted) throw new Error('Unclosed quoted field.')
   finishRow()
-  const [header = [], ...items] = rows
-  return parseTable(header, items, 'csv')
+  const [header, ...items] = rows
+  return parseTable(header?.cells ?? [], items, 'csv')
 }
 
-export function parseTable(header: string[], rows: string[][], kind: 'csv' | 'xlsx'): ParsedList {
+export type TableRow = { cells: string[]; row: number; sheet?: string }
+
+export function sourceNumber(value: string): number {
+  const number = value.trim().replace(/(?:€|EUR)$/i, '').replace(/[\s\u00a0\u202f]/g, '').replaceAll('−', '-')
+  const lastComma = number.lastIndexOf(',')
+  const lastDot = number.lastIndexOf('.')
+  let decimal = number
+  if (lastComma >= 0) {
+    decimal = lastComma > lastDot ? number.replaceAll('.', '').replace(',', '.') : number.replaceAll(',', '')
+  }
+  return /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/i.test(decimal) ? Number(decimal) : NaN
+}
+
+export function parseTable(header: string[], rows: TableRow[], kind: 'csv' | 'xlsx'): ParsedList {
   const normalized = header.map((h) => h.trim().toLowerCase().replace(/\s*\([^)]*\)$/, ''))
   const idx = (...names: string[]) => normalized.findIndex((h) => names.includes(h))
   const iOz = idx('oz', 'pos', 'position', 'position no.', 'sku')
@@ -581,15 +602,12 @@ export function parseTable(header: string[], rows: string[][], kind: 'csv' | 'xl
   const iQty = idx('menge', 'qty', 'quantity')
   const iUnit = idx('einheit', 'unit', 'me')
   const iUp = idx('ep', 'einheitspreis', 'unit price', 'price')
+  const iAmount = idx('gp', 'gb', 'gesamtpreis', 'gesamtbetrag', 'betrag', 'amount', 'line amount', 'total price')
   const iCat = idx('kategorie', 'category', 'titel')
   if (iShort < 0 && iOz < 0) throw new Error('No item or position column found.')
-  const num = (s?: string) => {
-    const t = s?.replace(/[^\d,.-]/g, '') ?? ''
-    return t.includes(',') && t.lastIndexOf(',') > t.lastIndexOf('.') ? parseFloat(t.replace(/\./g, '').replace(',', '.')) : parseFloat(t.replace(/,/g, ''))
-  }
   const categories = new Map<string, CategoryRef>()
   const childCounts = new Map<string, number>()
-  const positions = rows.map((r, i): Position => {
+  const positions = rows.map(({ cells: r, row, sheet }, i): Position => {
     let parent = ''
     const labels = (r[iCat]?.trim() || 'Import').split(/\s*›\s*/).filter(Boolean)
     const path = labels.map((label) => {
@@ -604,15 +622,21 @@ export function parseTable(header: string[], rows: string[][], kind: 'csv' | 'xl
       parent = ref.oz
       return ref
     })
-    const qty = num(r[iQty])
-    const up = num(r[iUp])
+    const sourceCells = {
+      code: iOz >= 0 ? (r[iOz]?.trim() ?? '') : undefined,
+      quantity: r[iQty]?.trim() ?? '', unit: r[iUnit]?.trim() ?? '',
+      unitPrice: r[iUp]?.trim() ?? '', amount: r[iAmount]?.trim() ?? '', row, sheet,
+    }
+    const qty = sourceNumber(sourceCells.quantity)
+    const up = sourceNumber(sourceCells.unitPrice)
     return {
       id: `p${i}`,
       oz: r[iOz]?.trim() || String(i + 1),
       short: (iShort >= 0 ? r[iShort] : r[0])?.trim() || '(ohne Kurztext)',
       long: r[iLong]?.trim() || undefined,
       qty: Number.isFinite(qty) ? qty : 1,
-      unit: r[iUnit]?.trim() || 'St',
+      unit: sourceCells.unit || 'St',
+      sourceCells,
       up: Number.isFinite(up) ? up : null,
       category: path.at(-1)?.label ?? 'Import',
       path,

@@ -33,11 +33,22 @@ export function FindingBadge({ severity, children }: { severity: Severity; child
 /** what layer 3 or a DIN rule found, shown under the message in the drawer */
 function FindingEvidence({ finding }: { finding: Finding }) {
   const din = finding.evidence?.din
+  const standard = finding.evidence?.din_standard
+  const declarations = finding.evidence?.declarations ?? []
+  const requirement = finding.rule_id === 'L1.PRODUCT.DECLARED_PROPERTY' ? finding.evidence?.requirement : undefined
   const extracted = Object.entries(finding.evidence?.extracted ?? {})
-  if (!din && !extracted.length) return null
+  const locator = finding.source_locator
+  const source = locator?.page ? `Source page ${locator.page}`
+    : locator?.table && locator.row ? `Table ${locator.table} · Row ${locator.row}`
+    : locator?.paragraph ? `Source paragraph ${locator.paragraph}`
+    : locator?.row ? (locator.sheet ? `${locator.sheet} · Row ${locator.row}` : `Source row ${locator.row}`)
+    : locator?.record ? `Source record ${locator.record}`
+    : locator?.source_id ? `Source item ${locator.source_id}` : null
+  if (!source && !din && !standard && !requirement && !declarations.length && !extracted.length) return null
   const show = (v: unknown) => (v === null || v === undefined || v === '' ? '—' : Array.isArray(v) ? v.join(', ') || '—' : String(v))
   return (
     <div className="mt-2 space-y-2 text-[13px]">
+      {source && <p className="text-slate-700">{source}</p>}
       {din && (
         <p className="flex flex-wrap gap-x-3 gap-y-1 text-slate-700">
           <span className="font-semibold text-slate-900">DIN 1045-2</span>
@@ -45,6 +56,21 @@ function FindingEvidence({ finding }: { finding: Finding }) {
           {!!din.exposure?.length && <span>Exposure <span className="num font-medium">{din.exposure.join(', ')}</span></span>}
           {din.required_min && <span>Minimum <span className="num font-medium">{din.required_min}</span></span>}
         </p>
+      )}
+      {standard && /^https:\/\/www\.dinmedia\.de\//.test(standard.url) && (
+        <a className="font-medium text-brand-700 underline" href={standard.url} target="_blank" rel="noreferrer">
+          Published scope · {standard.identifier}:{standard.edition}
+        </a>
+      )}
+      {requirement && <p className="text-slate-700"><span className="font-semibold">Requirement</span> — {requirement.document} · {requirement.locator}</p>}
+      {declarations.length > 0 && (
+        <ul className="space-y-1 text-slate-700">
+          {declarations.map(({ manufacturer, product_code, document, revision, locator }, index) => (
+            <li key={index}>
+              <span className="font-semibold">{manufacturer} · {product_code}</span> — {document} · {revision} · {locator}
+            </li>
+          ))}
+        </ul>
       )}
       {extracted.length > 0 && (
         <table className="w-full max-w-sm text-left">

@@ -6,6 +6,7 @@ so the corrected amount is quantity x unit price.
 
 from decimal import Decimal
 
+from ..contracts import Fix
 from ..registry import rule
 from .common import THRESHOLDS, is_counted, label, money, section_label
 
@@ -28,6 +29,9 @@ def line_amount(ctx):
                         f"{amounts.line_amount}. The unit price prevails, so the amount should be {expected}.",
                 evidence={"quantity": line.quantity, "unit_price": amounts.unit_price,
                           "stated_amount": amounts.line_amount, "expected_amount": expected, "difference": difference},
+                suggested_fix=Fix(operations=[], confidence=0.9,
+                                  rationale=f"Verify the source quantity and unit price. If both are correct, "
+                                            f"recalculate the written line amount to {expected}."),
             )
 
 
@@ -96,6 +100,7 @@ def section_total(ctx):
             continue
         if section.stated_total == 0:
             yield ctx.finding(section=section, severity="info", title="Section subtotal not filled in",
+                              source_locator=section.stated_total_locator or None,
                               message=f"Section {section_label(section)} states 0.00 but its items add up to {computed}.",
                               evidence={"stated": section.stated_total, "computed": computed})
             continue
@@ -104,10 +109,14 @@ def section_total(ctx):
         discounted = sums.discounted_children(section.id)
         basis = f" (using the discounted or lump-sum totals of {', '.join(discounted)})" if discounted else ""
         yield ctx.finding(section=section, related_line_ids=explained,
+                          source_locator=section.stated_total_locator or None,
                           message=f"Section {section_label(section)} states {section.stated_total}, its items add up "
                                   f"to {computed}{basis} (difference {difference}).{hint}",
                           evidence={"stated": section.stated_total, "computed": computed, "difference": difference,
-                                    "discounted_subsections": discounted})
+                                    "discounted_subsections": discounted},
+                          suggested_fix=Fix(operations=[], confidence=0.7,
+                                            rationale="Confirm which positions belong to this section and resolve any "
+                                                      "line amount, discount, or lump-sum discrepancies. Then recalculate the subtotal."))
 
 
 @rule("L1.ARITH.NET_TOTAL", layer=1, category="arithmetic", severity="error", title="Net total is wrong",
@@ -122,10 +131,15 @@ def net_total(ctx):
         return
     if stated == 0:
         yield ctx.finding(severity="info", title="Net total not filled in",
+                          source_locator=ctx.input.bom.stated_net_total_locator or None,
                           message=f"The file states a net total of 0.00 but its items add up to {computed}.",
                           evidence={"stated": stated, "computed": computed})
         return
     yield ctx.finding(message=f"The file states a net total of {stated}, its items add up to {computed} "
                               f"(difference {difference}).",
                       related_line_ids=_unplaced_match(ctx, difference),
-                      evidence={"stated": stated, "computed": computed, "difference": difference})
+                      source_locator=ctx.input.bom.stated_net_total_locator or None,
+                      evidence={"stated": stated, "computed": computed, "difference": difference},
+                      suggested_fix=Fix(operations=[], confidence=0.7,
+                                        rationale="Reconcile the counted positions and corrected section totals, "
+                                                  "including discounts and lump sums, then recalculate the net total."))

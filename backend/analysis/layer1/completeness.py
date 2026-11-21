@@ -5,7 +5,7 @@ from collections import defaultdict
 from .. import units
 from ..contracts import Fix, SetField
 from ..registry import rule
-from .common import BID_PHASE, label
+from .common import BID_PHASE, label, review_fix
 
 
 def is_markup(line) -> bool:
@@ -23,6 +23,7 @@ def bid_file_summary(ctx, missing, field: str, title: str):
         message=f"{len(missing)} of {len(ctx.input.lines)} items have no {field}. GAEB 84 bids only carry prices; "
                 f"analyze them together with the tender (GAEB 83) to check the {field}s.",
         evidence={f"lines_without_{field}": len(missing)}, related_line_ids=[line.id for line in missing][:50],
+        suggested_fix=review_fix(f"Attach the corresponding tender and verify the {field} against its position numbers."),
     )
 
 
@@ -38,7 +39,9 @@ def quantity_missing(ctx):
     for line in missing:
         raw = f" The source contains {line.quantity_raw!r}, which is not a number." if line.quantity_raw else ""
         yield ctx.finding(line=line, field="quantity", message=f"{label(line)} has no quantity.{raw}",
-                          evidence={"quantity_raw": line.quantity_raw})
+                          evidence={"quantity_raw": line.quantity_raw},
+                          suggested_fix=review_fix("Confirm the quantity in the tender or approved takeoff, then enter it "
+                                                   "in the stated billing unit and recheck the line amount."))
 
 
 @rule("L1.QTY.NEGATIVE", layer=1, category="completeness", severity="error", title="Negative quantity",
@@ -47,7 +50,9 @@ def quantity_negative(ctx):
     for line in ctx.input.lines:
         if line.quantity is not None and line.quantity < 0:
             yield ctx.finding(line=line, field="quantity", message=f"{label(line)} has quantity {line.quantity}.",
-                              evidence={"quantity": line.quantity})
+                              evidence={"quantity": line.quantity},
+                              suggested_fix=review_fix("Verify the sign against the takeoff. Enter the approved quantity "
+                                                       "or confirm how an intended credit should be recorded."))
 
 
 @rule("L1.QTY.ZERO", layer=1, category="completeness", severity="warning", title="Quantity is zero",
@@ -62,10 +67,14 @@ def quantity_zero(ctx):
             message = (f"{label(line)} has a unit price of {unit_price} but quantity 0, so it adds nothing to the "
                        f"total. Either the quantity is missing or the item should be unit-price-only.")
             yield ctx.finding(line=line, field="quantity", severity="error", message=message,
-                              evidence={"quantity": line.quantity, "unit_price": unit_price})
+                              evidence={"quantity": line.quantity, "unit_price": unit_price},
+                              suggested_fix=review_fix("Check whether the tender intends a unit-price-only position. "
+                                                       "For a counted position, enter the approved quantity and recalculate."))
         else:
             yield ctx.finding(line=line, field="quantity", message=f"{label(line)} has quantity 0.",
-                              evidence={"quantity": line.quantity})
+                              evidence={"quantity": line.quantity},
+                              suggested_fix=review_fix("Confirm whether the zero quantity is intentional. If work is "
+                                                       "included, enter the measured quantity from the takeoff."))
 
 
 @rule("L1.QTY.FRACTIONAL_COUNT", layer=1, category="completeness", severity="warning",
@@ -78,7 +87,9 @@ def fractional_count(ctx):
             yield ctx.finding(line=line, field="quantity",
                               message=f"{label(line)} is counted in {line.unit_raw or line.unit} but has quantity "
                                       f"{line.quantity}.",
-                              evidence={"quantity": line.quantity, "unit": line.unit})
+                              evidence={"quantity": line.quantity, "unit": line.unit},
+                              suggested_fix=review_fix("Confirm the whole count in the takeoff or correct the billing unit "
+                                                       "if the work is measured. Recheck the amount after the correction."))
 
 
 @rule("L1.UNIT.MISSING", layer=1, category="completeness", severity="error", title="Unit missing",
@@ -90,10 +101,12 @@ def unit_missing(ctx):
         yield bid_file_summary(ctx, missing, "unit", "Bid file without units")
         return
     for line in missing:
-        fix = None
         if line.pricing_basis == "lump_sum":
             fix = Fix(operations=[SetField(line_id=line.id, field="unit", old_value=None, new_value="lump_sum")],
                       confidence=0.9, rationale="The item is flagged as a lump sum.")
+        else:
+            fix = review_fix("Copy the confirmed billing unit from the tender or measurement specification. "
+                             "Verify that the quantity and rate use that same unit.")
         yield ctx.finding(line=line, field="unit", message=f"{label(line)} has no unit.", suggested_fix=fix,
                           evidence={"quantity": line.quantity, "pricing_basis": line.pricing_basis})
 
@@ -103,8 +116,11 @@ def unit_missing(ctx):
 def unit_unknown(ctx):
     for line in ctx.input.lines:
         if line.unit is not None and not units.is_known(line.unit):
-            yield ctx.finding(line=line, field="unit", message=f"{label(line)} uses the unknown unit {line.unit_raw!r}.",
-                              evidence={"unit_raw": line.unit_raw})
+            source_unit = line.unit_raw or line.unit
+            yield ctx.finding(line=line, field="unit", message=f"{label(line)} uses the unknown unit {source_unit!r}.",
+                              evidence={"unit_raw": source_unit},
+                              suggested_fix=review_fix("Confirm what the stated unit measures. Use its recognized "
+                                                       "equivalent and check that any conversion also updates the quantity and rate."))
 
 
 @rule("L1.TEXT.MISSING", layer=1, category="completeness", severity="error", title="Description missing",
@@ -117,7 +133,9 @@ def text_missing(ctx):
         yield bid_file_summary(ctx, missing, "text", "Bid file without descriptions")
         return
     for line in missing:
-        yield ctx.finding(line=line, field="short_text", message=f"{label(line)} has no description.")
+        yield ctx.finding(line=line, field="short_text", message=f"{label(line)} has no description.",
+                          suggested_fix=review_fix("Restore the description from the corresponding tender position "
+                                                   "or obtain a specification from the issuer."))
 
 
 @rule("L1.CODE.MISSING", layer=1, category="structure", severity="error", title="OZ code missing or damaged",
@@ -129,7 +147,9 @@ def code_missing(ctx):
             yield ctx.finding(line=line, field="code",
                               message=f"Item '{label(line)}' has no valid OZ code"
                                       + (f" (source: {raw!r})." if raw else "."),
-                              evidence={"code_parts": line.code_parts})
+                              evidence={"code_parts": line.code_parts},
+                              suggested_fix=review_fix("Check the source record against the tender position and section. "
+                                                       "Confirm the intended number before repairing the position and its references."))
 
 
 @rule("L1.CODE.DUPLICATE", layer=1, category="structure", severity="error", title="Duplicate OZ code",
@@ -138,10 +158,13 @@ def code_duplicate(ctx):
     by_code = defaultdict(list)
     for line in ctx.input.lines:
         if line.code:
-            by_code[line.code].append(line)
-    for code, lines in by_code.items():
+            sheet = line.source_locator.get("sheet")
+            by_code[(sheet if isinstance(sheet, str) else None, line.code)].append(line)
+    for (sheet, code), lines in by_code.items():
         first, *repeats = lines
         for line in repeats:
             yield ctx.finding(line=line, field="code", related_line_ids=[first.id],
-                              message=f"OZ {code} is used {len(lines)} times.",
-                              evidence={"code": code, "occurrences": len(lines)})
+                              message=f"OZ {code} is used {len(lines)} times" + (f" on sheet {sheet}." if sheet else "."),
+                              evidence={"code": code, "occurrences": len(lines), **({"sheet": sheet} if sheet else {})},
+                              suggested_fix=review_fix("Compare the linked positions with the tender. Remove a confirmed "
+                                                       "duplicate or give distinct work unique numbers and update references."))

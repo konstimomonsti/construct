@@ -67,7 +67,7 @@ export interface ImportResult {
   failed: string[]
 }
 
-async function addFile(file: File, listId: string, original: boolean, list?: ListDoc) {
+async function addFile(file: File, listId: string, original: boolean, list?: ListDoc, productEvidence = false) {
   const doc: DocMeta = {
     id: `d-${uid()}`,
     name: file.name,
@@ -77,6 +77,7 @@ async function addFile(file: File, listId: string, original: boolean, list?: Lis
     listId,
     stored: true,
     original,
+    ...(productEvidence ? { productEvidence: true } : {}),
   }
   await saveDocument(doc.id, file)
   if (!useStore.getState().addImportedFile(doc, list)) {
@@ -85,10 +86,10 @@ async function addFile(file: File, listId: string, original: boolean, list?: Lis
   }
 }
 
-export async function importFiles(files: File[], folderId: string, activeListId?: string): Promise<ImportResult> {
+export async function importFiles(files: File[], folderId: string, activeListId?: string, evidenceOnly = false): Promise<ImportResult> {
   const { parseListFile } = await import('./parse-list-file')
   const res: ImportResult = { lists: [], positions: 0, docs: 0, failed: [] }
-  const documents: File[] = []
+  const documents: { file: File; productEvidence?: boolean }[] = []
   const importErrors: string[] = []
   const offerFiles = new Set([
     ...files.map((file) => file.name),
@@ -100,13 +101,21 @@ export async function importFiles(files: File[], folderId: string, activeListId?
     const name = f.name
     const ext = name.split('.').pop()?.toLowerCase() ?? ''
     try {
+      if (ext === 'json' && f.size <= 1048576) {
+        const candidate = await f.text().then((data) => JSON.parse(data)).catch(() => null)
+        if (candidate?.schema === 'billbuild.product-evidence.v1') {
+          documents.push({ file: f, productEvidence: true })
+          continue
+        }
+      }
+      if (evidenceOnly) throw new Error('Choose a billbuild.product-evidence.v1 JSON file up to 1 MB.')
       if (ext === 'pdf' && offerFiles.has(fileStem(name).toLowerCase())) {
-        documents.push(f)
+        documents.push({ file: f })
         continue
       }
       const parsed = await parseListFile(f) ?? await readSampleDocument(f)
       if (!parsed) {
-        documents.push(f)
+        documents.push({ file: f })
         continue
       }
       const list = makeListDoc(folderId, parsed.title || fileStem(name), name, parsed.positions, parsed)
@@ -122,7 +131,7 @@ export async function importFiles(files: File[], folderId: string, activeListId?
   }
 
   const importedListIds = [...res.lists]
-  for (const file of documents) {
+  for (const { file, productEvidence } of documents) {
     try {
       const lists = selectModel(useStore.getState()).lists.filter((list) => list.folderId === folderId && !list.trashedAt)
       const name = fileStem(file.name)
@@ -131,8 +140,9 @@ export async function importFiles(files: File[], folderId: string, activeListId?
         ?? (matching.length === 1 ? matching[0] : undefined)
         ?? (importedListIds.length === 1 ? lists.find((list) => list.id === importedListIds[0]) : undefined)
       if (selected) {
-        await addFile(file, selected.id, false)
+        await addFile(file, selected.id, false, undefined, productEvidence)
       } else {
+        if (productEvidence) throw new Error('Open the destination list or import one list with its product evidence.')
         const pdf = /\.pdf$/i.test(file.name)
         const list = makeListDoc(folderId, name, file.name, [], { format: pdf ? 'PDF' : 'Word', source: { kind: pdf ? 'pdf' : 'docx' } })
         await addFile(file, list.id, true, list)
@@ -142,6 +152,7 @@ export async function importFiles(files: File[], folderId: string, activeListId?
     } catch (err) {
       console.warn(`import failed: ${file.name}`, err)
       res.failed.push(file.name)
+      if (err instanceof Error) importErrors.push(`${file.name}: ${err.message}`)
     }
   }
   const parts: string[] = []
@@ -153,7 +164,7 @@ export async function importFiles(files: File[], folderId: string, activeListId?
 }
 
 /** open the native file picker and import into a folder */
-export function pickAndImport(folderId: string, onDone?: (r: ImportResult) => void, accept = ACCEPT, activeListId?: string) {
+export function pickAndImport(folderId: string, onDone?: (r: ImportResult) => void, accept = ACCEPT, activeListId?: string, evidenceOnly = false) {
   const input = document.createElement('input')
   input.type = 'file'
   input.multiple = true
@@ -164,7 +175,7 @@ export function pickAndImport(folderId: string, onDone?: (r: ImportResult) => vo
     const files = [...(input.files ?? [])]
     input.remove()
     if (!files.length) return
-    const r = await importFiles(files, folderId, activeListId)
+    const r = await importFiles(files, folderId, activeListId, evidenceOnly)
     onDone?.(r)
   }
   document.body.appendChild(input)

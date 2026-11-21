@@ -1,13 +1,14 @@
 """Values that are present but contradict each other: unit vs text, lump sums, structure, duplicates, texts."""
 
-from collections import defaultdict
+from collections import Counter, defaultdict
 from decimal import Decimal
+import re
 
 from .. import units
-from ..contracts import Fix, MergeLines, SetField
+from ..contracts import Fix, SetField
 from ..registry import rule
 from .common import (
-    BILLING_UNIT, BIDDER_INPUT, OR_EQUIVALENT, THRESHOLDS, excerpt, label, phase_has_prices, section_label,
+    BILLING_UNIT, BIDDER_INPUT, OR_EQUIVALENT, THRESHOLDS, excerpt, label, phase_has_prices, review_fix, section_label,
     section_subtrees, text_of,
 )
 
@@ -40,7 +41,10 @@ def lump_inconsistent(ctx):
         if line.unit == "lump_sum" and line.quantity is not None and line.quantity != 1:
             yield ctx.finding(line=line, field="quantity", discriminator="quantity",
                               message=f"{label(line)} is a lump sum (psch) with quantity {line.quantity}.",
-                              evidence={"quantity": line.quantity, "unit": line.unit})
+                              evidence={"quantity": line.quantity, "unit": line.unit},
+                              suggested_fix=review_fix("Confirm whether the price covers one lump sum or several "
+                                                       "measured items. For a single lump sum, use quantity 1 and "
+                                                       "verify the price covers the full scope."))
         elif line.unit == "lump_sum" and line.quantity is None:
             fix = Fix(operations=[SetField(line_id=line.id, field="quantity", old_value=None, new_value=Decimal(1))],
                       confidence=0.8, rationale="Lump sums are quantity 1.")
@@ -51,7 +55,36 @@ def lump_inconsistent(ctx):
             yield ctx.finding(line=line, field="unit", discriminator="unit",
                               message=f"{label(line)} is flagged as a lump sum but measured in "
                                       f"{line.unit_raw or line.unit} (quantity {line.quantity}).",
-                              evidence={"unit": line.unit, "quantity": line.quantity})
+                              evidence={"unit": line.unit, "quantity": line.quantity},
+                              suggested_fix=review_fix("Check whether the quoted amount is a lump sum or a unit rate. "
+                                                       "Align the pricing basis, unit and quantity with the confirmed offer."))
+
+
+_EFFORT_CLAUSE = re.compile(r"\bnach\s+(?:tatsächlichem\s+)?Aufwand\b", re.I)
+_NEGATED_EFFORT = re.compile(r"\b(?:nicht|keine?\w*|ohne)\b[^.;\n]{0,32}\bnach\s+(?:tatsächlichem\s+)?Aufwand", re.I)
+_EFFORT_CONTEXT = re.compile(r"\b(?:abrechn\w*|Abrechnung|vergüt\w*|ausführ\w*|zu bezahlen)\b", re.I)
+
+
+@rule("L1.LUMP.OPEN_SCOPE", layer=1, category="pricing", severity="warning",
+      title="Lump sum leaves the pricing basis open",
+      description="The position is a lump sum and describes work based on actual effort.")
+def open_lump_sum_scope(ctx):
+    for line in ctx.input.lines:
+        if line.pricing_basis != "lump_sum" and line.unit != "lump_sum":
+            continue
+        for field, text in (("short_text", line.short_text or ""), ("long_text", line.long_text or "")):
+            clauses = re.split(r"[.;\n]", text)
+            matches = [clause.strip() for clause in clauses
+                       if _EFFORT_CLAUSE.search(clause) and not _NEGATED_EFFORT.search(clause)
+                       and (field == "short_text" or _EFFORT_CONTEXT.search(clause))]
+            if matches:
+                yield ctx.finding(line=line, field=field,
+                    message=f"{label(line)} gives a lump sum and describes work priced by effort. Confirm which basis applies.",
+                    evidence={"pricing_basis": line.pricing_basis, "unit": line.unit, "pricing_clause": matches[0],
+                              "bieterfrage_de": f"Zu Pos. {line.code}: Bitte grenzen Sie den Leistungsumfang der "
+                                               "Pauschale ab und bestätigen Sie, welche Leistungen gegebenenfalls "
+                                               "nach Aufwand abgerechnet werden."})
+                break
 
 
 @rule("L1.TEXT.BIDDER_INPUT", layer=1, category="text", severity="warning", title="Bidder field not filled in",
@@ -155,24 +188,107 @@ def unit_price_only_in_total(ctx):
                               evidence={"line_amount": amount})
 
 
+_PRECEDING_SCOPE = re.compile(
+    r"\b(?:für|zu)\s+(?:(?:den|die|das|dem)\s+)?vorbeschrieben\w*\s+([\w-]{4,})", re.I,
+)
+
+
 @rule("L1.DUP.SUSPECTED", layer=1, category="duplicate", severity="warning", title="Possible duplicate item",
       description="Same description and unit twice in the same section: possible double counting.")
 def suspected_duplicate(ctx):
     groups = defaultdict(list)
-    for line in ctx.input.lines:
+    previous_by_section = {}
+    base_work = {}
+    for line in sorted(ctx.input.lines, key=lambda item: item.sort_order):
+        previous = previous_by_section.get(line.section_id)
+        previous_by_section[line.section_id] = line
         if not line.short_text:
             continue
         key = (line.section_id, line.short_text.casefold(), (line.long_text or "").casefold(), line.unit)
         groups[key].append(line)
+        reference = _PRECEDING_SCOPE.search(line.short_text)
+        if reference and previous and previous.code and previous.short_text:
+            previous_text = text_of(previous).casefold()
+            term = re.escape(reference[1].casefold())
+            if re.search(rf"\b{term}\b", previous_text) and not _PRECEDING_SCOPE.search(previous_text):
+                base_work[line.id] = previous_text
+
     for lines in groups.values():
-        first, *repeats = lines
-        for line in repeats:
-            total = (first.quantity or 0) + (line.quantity or 0)
-            fix = Fix(operations=[MergeLines(keep_line_id=first.id, remove_line_ids=[line.id], new_quantity=total)],
-                      confidence=0.3, rationale="Only if both items describe the same work.")
-            yield ctx.finding(line=line, related_line_ids=[first.id], suggested_fix=fix,
+        resolved = all(line.id in base_work for line in lines)
+        first_by_scope = {}
+        for line in lines:
+            scope = base_work[line.id] if resolved else None
+            first = first_by_scope.setdefault(scope, line)
+            if line is first:
+                continue
+            yield ctx.finding(line=line, related_line_ids=[first.id],
                               message=f"{label(line)} has the same description and unit as {first.code}.",
-                              evidence={"same_as": first.code, "quantities": [first.quantity, line.quantity]})
+                              evidence={"same_as": first.code, "quantities": [first.quantity, line.quantity]},
+                              suggested_fix=review_fix("Check whether these positions duplicate the same work or "
+                                                       "cover separate quantities. If work is counted twice, remove the "
+                                                       "duplicate and reconcile the amount with the approved takeoff."))
+
+
+_WORD = re.compile(r"\b[^\W\d_]+\b")
+_NUMBER = re.compile(r"\d+(?:[.,/]\d+)*")
+_SCOPE_QUALIFIER = re.compile(
+    r"\b(?:links|rechts|oben|unten|innen|außen|unter|über|vor|nach|mit|ohne|nur|kein\w*|nicht|bauseits|Bestand)\b",
+    re.I,
+)
+_EXECUTION_PREFIX = re.compile(r"^\s*Ausführung\s*:\s*", re.I)
+
+
+def _overlap_identity(text: str) -> tuple:
+    nouns = (word.casefold() for word in _WORD.findall(text) if word[0].isupper())
+    return (tuple(sorted(nouns)), tuple(sorted(_NUMBER.findall(text))),
+            tuple(sorted(word.casefold() for word in _SCOPE_QUALIFIER.findall(text))))
+
+
+def _overlap_words(words: Counter, other: Counter) -> float:
+    return 2 * (words & other).total() / (words.total() + other.total())
+
+
+@rule("L1.DUP.NEAR_TEXT", layer=1, category="duplicate", severity="warning",
+      title="Possible overlap between similarly worded positions",
+      description="Within a section, closely worded positions with the same named work, numeric specifications, "
+                  "scope qualifiers, quantity, unit and written unit price may overlap.")
+def reworded_duplicate(ctx):
+    candidates = defaultdict(dict)
+    for line in sorted(ctx.input.lines, key=lambda item: item.sort_order):
+        amounts = line.source_amounts
+        if (not line.short_text or not line.long_text or not line.unit or not line.quantity or line.quantity <= 0
+                or line.total_rule != "include" or not amounts or amounts.unit_price is None
+                or _PRECEDING_SCOPE.search(line.short_text)):
+            continue
+        short = _EXECUTION_PREFIX.sub("", line.short_text)
+        long = _EXECUTION_PREFIX.sub("", line.long_text)
+        brief, detail = Counter(_WORD.findall(short.casefold())), Counter(_WORD.findall(long.casefold()))
+        if brief.total() < 3 or detail.total() < 7:
+            continue
+        key = (line.section_id, line.unit, line.quantity, line.pricing_basis, amounts.unit_price,
+               _overlap_identity(short), _overlap_identity(long))
+        wording = (line.short_text.casefold(), line.long_text.casefold())
+        candidates_in_scope = candidates[key]
+        if wording in candidates_in_scope:
+            continue
+        for first, first_brief, first_detail in candidates_in_scope.values():
+            short_overlap = _overlap_words(brief, first_brief)
+            long_overlap = _overlap_words(detail, first_detail)
+            min_detail_overlap = 0.8 if brief == first_brief else 0.85
+            if short_overlap < 0.8 or long_overlap < min_detail_overlap:
+                continue
+            terms = sorted((set(brief) ^ set(first_brief)) | (set(detail) ^ set(first_detail)))
+            yield ctx.finding(line=line, related_line_ids=[first.id],
+                message=f"{label(line)} may overlap with {first.code}. Both positions use the same quantity, "
+                        "billing unit and written rate.",
+                evidence={"same_as": first.code, "quantity": line.quantity, "unit": line.unit,
+                          "unit_price": amounts.unit_price, "short_overlap": round(short_overlap, 2),
+                          "long_overlap": round(long_overlap, 2), "differing_terms": terms},
+                suggested_fix=review_fix("Compare both descriptions and their takeoff references. Retain both "
+                                         "positions if they cover distinct work. If they overlap, remove or "
+                                         "clarify the duplicated scope and reconcile the amounts."))
+            break
+        candidates_in_scope[wording] = (line, brief, detail)
 
 
 @rule("L1.DIST.SUM_MISMATCH", layer=1, category="arithmetic", severity="warning",

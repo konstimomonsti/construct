@@ -21,6 +21,7 @@ import { AddSectionDialog, PricingLegend, PricingMeter, pricingSections } from '
 import { useActions } from '../lib/actions'
 import { DetailDrawer } from '../components/DetailDrawer'
 import { loadList } from '../lib/data'
+import { pickAndImport } from '../lib/import'
 import { ExportMenu } from '../components/ExportMenu'
 import { CatalogueDetails, CatalogueOverview, type ResearchView } from '../components/WorkspaceCatalogue'
 import { useWorkspaceCatalogue } from '../lib/workspace-catalogue'
@@ -307,7 +308,8 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   const pending = usePriceSuggestions(report, positions, dismissedPrices)
   const st = useMemo(() => statsOf(positions), [positions])
   // findings from the automatic check that runs once on upload
-  const assessment = useUploadAssessment(catalogueEnabled && original ? imported.id : null)
+  const evidenceSignature = attached.filter((document) => document.productEvidence).map(({ id }) => id).sort().join(',')
+  const assessment = useUploadAssessment(catalogueEnabled && original ? imported.id : null, evidenceSignature)
   const fixtureReport = useFixtureReport(params.get('risk') === 'fixture')
   const uploadReport = fixtureReport ?? (assessment?.state === 'ready' ? assessment.report : null)
   const risk = uploadReport?.risk ?? null
@@ -666,6 +668,11 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
     { label: 'Rename list', icon: 'edit', onSelect: () => openDialog({ kind: 'rename-list', id: doc.id }) },
     ...(editedCount ? [{ label: 'Reset all edits', icon: 'restart_alt', onSelect: resetAll }] : []),
     ...(live ? [{ label: 'Move to another project…', icon: 'drive_file_move', onSelect: () => openDialog({ kind: 'folder-target', action: 'move-list', listId: doc.id }) }] : []),
+    ...(live && catalogueEnabled && original ? [{
+      label: 'Attach product evidence…',
+      icon: 'attach_file',
+      onSelect: () => pickAndImport(live.folderId, undefined, '.json', imported.id, true),
+    }] : []),
     ...(attached.length
       ? (['sep' as const, ...attached.map((d) => ({ label: d.name, icon: 'attach_file', onSelect: () => openDialog({ kind: 'doc', doc: d }) }))] as (MenuItem | 'sep')[])
       : []),

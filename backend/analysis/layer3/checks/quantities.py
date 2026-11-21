@@ -8,8 +8,11 @@ with a layer 1 error on the quantity or unit are left out (their values aren't r
 from __future__ import annotations
 
 import json
+from decimal import Decimal
+import re
 
-from ...contracts import Line
+from ... import units
+from ...contracts import Fix, Line
 from ...registry import rule
 from .. import prompts
 from ..common import batches, current, l1_error_fields, line_label, packed_sections
@@ -19,6 +22,13 @@ from ..schema import QUANTITY_SCHEMA, QuantityItem, clamp_confidence, items
 RULE_ID = "L3.QTY.IMPLAUSIBLE"
 MAX_LINES = 40
 MIN_LINES = 2
+_ONE_OFF = re.compile(r"\b(?:Baustelleneinrichtung|Werkstattzeichnungen)\b", re.I)
+_EXPECTED_MEASURE = re.compile(r"\s*~?\s*(\d+(?:[.,]\d+)?)\s+(\S+?)(?:\s+\([^)]*\))?\s*")
+
+
+def _quantity_text(quantity: Decimal) -> str:
+    number = format(quantity, "f")
+    return number.rstrip("0").rstrip(".") if "." in number else number
 
 
 @rule(RULE_ID, layer=3, category="quantity", severity="warning", title="Quantity implausible",
@@ -41,7 +51,7 @@ def implausible_quantity(ctx):
         if len(section_lines) < MIN_LINES:
             continue
         sized = [(line, len(json.dumps({"ref": "#40", "code": line.code, "short_text": line.short_text,
-                                       "quantity": format(line.quantity, "f"), "unit": line.unit_raw or line.unit,
+                                       "quantity": _quantity_text(line.quantity), "unit": line.unit_raw or line.unit,
                                        "section": titles.get(section_id) or section_id or "Ohne Abschnitt"},
                                       ensure_ascii=False, indent=1)) + 4) for line in section_lines]
         sizes.update((line.id, size) for line, size in sized)
@@ -52,7 +62,7 @@ def implausible_quantity(ctx):
         chunk = [(section_id, line) for section_id, lines in group for line in lines]
         multi_section = len({section_id for section_id, _ in chunk}) > 1
         payload = [{"ref": f"#{index}", "code": line.code, "short_text": line.short_text,
-                    "quantity": format(line.quantity, "f"), "unit": line.unit_raw or line.unit,
+                    "quantity": _quantity_text(line.quantity), "unit": line.unit_raw or line.unit,
                     **({"section": titles.get(section_id) or section_id or "Ohne Abschnitt"} if multi_section else {})}
                    for index, (section_id, line) in enumerate(chunk, start=1)]
         system = prompts.QUANTITY_SYSTEM
@@ -75,14 +85,38 @@ def implausible_quantity(ctx):
             if line is None or line.id in seen:
                 session.dropped[RULE_ID] += 1
                 continue
+            expected = _EXPECTED_MEASURE.fullmatch(item.expected)
+            comparison = units.convert(Decimal(expected[1].replace(",", ".")),
+                                       units.normalize(expected[2]), line.unit) if expected else None
+            cited = refs.get((item.comparison_ref or "").strip())
+            cited_quantity = (
+                units.convert(cited.quantity, cited.unit, line.unit)
+                if cited is not None and cited.id != line.id else None
+            )
+            one_off = line.unit == "lump_sum" and line.quantity > 1 and comparison == 1 and _ONE_OFF.search(line.short_text)
+            if comparison is None or comparison == line.quantity or (cited_quantity != comparison and not one_off):
+                session.dropped[RULE_ID] += 1
+                continue
             seen.add(line.id)
-            quantity = f"{format(line.quantity, 'f')} {line.unit_raw or line.unit or ''}".strip()
+            use_citation = cited_quantity == comparison
+            comparison_evidence = ({"line_code": cited.code, "quantity": _quantity_text(cited.quantity),
+                                    "unit": cited.unit_raw or cited.unit, "source_locator": cited.source_locator}
+                                   if use_citation else {"basis": "one-off lump-sum position"})
+            if use_citation:
+                stated = f"{comparison_evidence['quantity']} {comparison_evidence['unit']}"
+                basis = f"Compare position {cited.code or cited.id}, which states {stated}."
+            else:
+                basis = "Confirm whether this lump-sum position was intended to be counted once."
+            quantity = f"{_quantity_text(line.quantity)} {line.unit_raw or line.unit or ''}".strip()
             yield ctx.finding(
                 line=line, field="quantity", origin="llm", model=session.model_id,
-                message=f"{line_label(line)}: quantity {quantity} looks implausible. {item.reason.strip()}"
-                        + (f" Expected about {item.expected.strip()}." if item.expected.strip() else ""),
+                message=f"{line_label(line)}: review the stated quantity of {quantity}. {item.reason.strip()} {basis}",
+                related_line_ids=[cited.id] if use_citation else [],
                 evidence={"quantity": format(line.quantity, "f"), "unit": line.unit_raw or line.unit,
-                          "reason": item.reason.strip(), "expected": item.expected.strip(),
+                          "reason": item.reason.strip(), "expected": item.expected.strip(), "comparison": comparison_evidence,
                           "confidence": clamp_confidence(item.confidence),
                           "prompt_version": prompts.QUANTITY_VERSION},
+                suggested_fix=Fix(operations=[], confidence=clamp_confidence(item.confidence),
+                                  rationale="Check the source quantity, billing unit, and takeoff. "
+                                            "Use the approved quantity after reconciling the scope."),
             )

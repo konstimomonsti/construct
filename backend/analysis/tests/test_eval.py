@@ -8,8 +8,8 @@ import pytest
 from analysis import adapter
 from analysis.eval import SEED_PATH, catalogue, docio, gaeb_writer, labels, mutate, ops
 from analysis.eval.cli import main as eval_main
-from analysis.eval.harness import evaluate, run_all
-from analysis.eval.report import format_report
+from analysis.eval.harness import evaluate, label_files, run_all
+from analysis.eval.report import format_report, guidance_rows, recall_rows
 from analysis.eval.seeds import make_building_hall
 from analysis.layer2.schema import load_rules
 from analysis.runner import analyze
@@ -122,8 +122,8 @@ def test_dependency_is_removed_only_if_no_remaining_text_names_it(seed_doc):
 def test_gaps_and_controls_are_labelled(seed_doc):
     plans = catalogue.plan_all(seed_doc, 1, 1)
     by_type = {p.type: p for p in plans}
-    for name in ("DUP-REWORDED", "TEXT-TYPO", "TEXT-VAGUE"):
-        assert by_type[name].label["gap"] is True and by_type[name].label["expect"]
+    assert by_type["TEXT-TYPO"].label["gap"] is True and by_type["TEXT-TYPO"].label["expect"]
+    assert by_type["DUP-REWORDED"].label["expect"] == ["L1.DUP.NEAR_TEXT", "L3.DUP.SEMANTIC"]
     for name in ("TEXT-CONFLICT-CLASS", "TEXT-CONFLICT-DN"):
         assert by_type[name].label["gap"] is False
     for name in ("TEXT-CONFLICT-CLASS", "TEXT-CONFLICT-DN"):
@@ -185,7 +185,7 @@ def test_end_to_end_catches_every_detectable_error_with_no_false_alarm(evaluated
     gaps = {t.name for t in catalogue.TYPES if t.gap}
     for name, found in outcomes.items():
         if name in gaps:
-            assert found == {"gap"}, name
+            assert found <= {"gap", "caught"}, (name, found)
         elif name.startswith("CTRL"):
             assert found == {"clean"}, name
         else:
@@ -198,10 +198,25 @@ def test_end_to_end_catches_every_detectable_error_with_no_false_alarm(evaluated
 def test_report_has_recall_precision_controls_and_gaps(evaluated):
     out, evaluation = evaluated
     text = format_report(evaluation)
-    for heading in ("Recall per mutation type", "Controls", "Precision per rule", "Known gaps", "Presenter files"):
+    for heading in ("Recall per mutation type", "Controls", "Precision per rule", "Presenter files"):
         assert heading in text
     assert "Excluding the known gaps" in text and "`L1.QTY.ZERO`" in text
-    assert "TEXT-TYPO" in text and "(gap)" in text
+    assert "L1.TEXT.TYPO" in text
+    if any(outcome.outcome == "gap" for outcome in evaluation.outcomes):
+        assert "TEXT-TYPO" in text and "Known gaps" in text and "(gap)" in text
+    assert "Corrective guidance on matched findings" in text
+    counts = guidance_rows(evaluation)
+    assert any(layer == 2 and patches > 0 for layer, patches, *_ in counts)
+    assert sum(sum(row[1:]) for row in counts) == sum(c["tp"] for c in evaluation.per_rule.values())
+    assert all(row[-2:] == [0, 0] for row in counts)
+    _, totals, supported = recall_rows(evaluation)
+    assert supported["n"] == totals["n"] - totals["gap"]
+    assert supported["caught"] == totals["caught"]
+    arithmetic_guidance = [finding["guidance"] for outcome in evaluation.outcomes
+                           for finding in outcome.matched if finding["rule_id"].startswith("L1.ARITH.")]
+    assert arithmetic_guidance and set(arithmetic_guidance) == {"review"}
+
+
 
 
 def test_a_missed_error_and_a_false_alarm_are_reported(evaluated, tmp_path):
@@ -228,6 +243,17 @@ def test_a_missed_error_and_a_false_alarm_are_reported(evaluated, tmp_path):
     assert evaluation.per_rule["L1.QTY.ZERO"]["fp"] == 2
 
 
+def test_nested_replay_is_ignored_by_parent_report(tmp_path):
+    mutate.generate(out_dir=tmp_path, only={"QTY-ZERO"}, per_type=1, backends=("x83",), demo=False)
+    nested = tmp_path / "model-replay"
+    mutate.generate(out_dir=nested, only={"QTY-ZERO"}, per_type=1, backends=("x83",), demo=False)
+    outer = label_files(tmp_path)
+    assert len(outer) == len(label_files(nested)) == 2
+    assert all(path.parent == tmp_path / "mutated" for path in outer)
+    run_all(tmp_path, [1, 2])
+    assert evaluate(tmp_path).files == len(outer)
+
+
 def test_a_label_whose_layer_did_not_run_counts_as_not_run(tmp_path, monkeypatch):
     mutate.generate(out_dir=tmp_path, seed=1, per_type=1, only={"QTY-ZERO"}, backends=("x83",), demo=False)
     labels_path = tmp_path / "mutated" / "QTY-ZERO-01.X83.labels.json"
@@ -237,8 +263,10 @@ def test_a_label_whose_layer_did_not_run_counts_as_not_run(tmp_path, monkeypatch
     monkeypatch.setenv("ANALYSIS_L3_PROVIDER", "none")  # layer 3 is asked for but has no model
     run_all(tmp_path, [1, 2, 3])
     evaluation = evaluate(tmp_path)
-    assert {o.file: o.outcome for o in evaluation.outcomes}["QTY-ZERO-01.X83"] == "not_run"
+    outcomes = {o.file: o.outcome for o in evaluation.outcomes}
+    assert outcomes["QTY-ZERO-01.X83"] == outcomes["building_hall_clean.X83"] == "not_run"
     assert 3 in evaluation.layers_not_run
+    assert eval_main(["fp", "--layers", "1,2,3", "--out", str(tmp_path)]) == 2
     assert "Not run: 3" in format_report(evaluation)
 
 
@@ -290,6 +318,10 @@ def test_precast_seed_and_mutations_round_trip_cleanly(tmp_path):
     assert "Unrelated traffic-control quantity increases by 5%" in rendered
     assert "L3.PRECAST.MISSING_SPEC" in rendered
     assert not evaluation.false_alarms
+    questions = [finding for outcome in evaluation.outcomes for finding in outcome.matched
+                 if finding["rule_id"] == "L1.PRECAST.LAYER_SUM"]
+    assert len(questions) == 2
+    assert all(finding["guidance"] == "bidder_question" for finding in questions)
     for backend in ("x83", "json"):
         results = {row.label["mutation_type"]: row.outcome for row in evaluation.outcomes if row.backend == backend}
         for plan in precast.plans(docio.load(PRECAST_PATH)):

@@ -93,12 +93,13 @@ def main(argv=None) -> int:
         from .harness import evaluate, run_all
         run_all(out, args.layers, only_controls=True)
         evaluation = evaluate(out, controls_only=True)
-        _echo(f"Controls and clean seed: {len([o for o in evaluation.outcomes])} files checked, "
-              f"{len(evaluation.false_alarms)} false alarms.")
+        incomplete = sum(outcome.outcome == "not_run" for outcome in evaluation.outcomes)
+        _echo(f"Controls and clean seed: {len(evaluation.outcomes)} files assessed, "
+              f"{len(evaluation.false_alarms)} false alarms, {incomplete} incomplete.")
         for file, finding in evaluation.false_alarms:
             _echo(f"  {file}: {finding['rule_id']} on {finding['line_code'] or finding['section_code'] or 'the BoQ'} "
                   f"- {finding['title']}")
-        return 1 if evaluation.false_alarms else 0
+        return 1 if evaluation.false_alarms else 2 if incomplete else 0
 
     if args.command == "label-template":
         from .labels import template_csv, template_rows

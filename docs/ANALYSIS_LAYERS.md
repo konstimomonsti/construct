@@ -91,11 +91,11 @@ ANALYSIS_CONTRACT.md §7.
   mismatch, outliers against reference prices, low-confidence or AI matches, file price vs our price,
   stale prices. Import warnings are surfaced too.
 - **Text quality** (`text_quality.py`, `spelling.py`), all info and without an LLM:
-  - `L1.TEXT.TYPO`: a word unknown to the domain lexicon (`lexicon_de.txt`, words in ≥ 3 projects) and to
-    the German hunspell dictionary, one edit away from a known word. Inflections, cut or broken words and
-    product names are skipped. The fix replaces the word in every item. It runs only when `spylls` and a
-    local de_DE dictionary are available (`ANALYSIS_SPELL_DIC`, or MiKTeX / `/usr/share/hunspell`
-    auto-detected); the dictionary is GPL and never shipped.
+  - `L1.TEXT.TYPO`: an adjacent-letter transposition in a short description can be corrected using the
+    corresponding long description or a section heading. The finding cites the supporting text. A local
+    German dictionary also supports transpositions without a source match and runs the broader spelling
+    check alongside the domain lexicon. Protected product terms and other masked text stay outside the
+    proposed edits. The optional dictionary uses `spylls` and `ANALYSIS_SPELL_DIC` or a detected local installation.
   - `L1.TEXT.SPELLING_VARIANT`: one word written two ways (Anschluß/Anschluss, Baustrom-Kabel/Baustromkabel).
   - `L1.TEXT.NOTATION_VARIANT`: St/Stk, psch/Psch, DN 100/DN100, 5 x 25/5x25.
 
@@ -148,7 +148,7 @@ review, never an automatic change.
 | `L3.UNIT.SEMANTIC_MISMATCH` | Unit doesn't fit what the item is ("Bodenfliesen verlegen" in `St`, "Rohrleitung" in `m²`) when the text states no unit | Needs to understand the item |
 | `L3.QTY.IMPLAUSIBLE` | Quantity implausible for the item (50 × "Baustelleneinrichtung", 0.5 m² of facade, 10 000 h) | Needs domain sense |
 | `L3.TEXT.UNDERSPECIFIED` | Item can't be priced from its text: no dimensions, material, class or thickness where they're needed | Judgement |
-| `L3.DUP.SEMANTIC` | Same work with different wording, or overlapping scope (an item "inkl. Schalung" plus a separate formwork item) | Paraphrase |
+| `L3.DUP.SEMANTIC` | Closely related positions with different wording that may cover the same work | Paraphrase |
 | `L3.STRUCT.WRONG_TRADE` | Item placed in an unrelated section or trade | Semantics |
 | `L3.TEXT.REFERENCE_UNRESOLVED` | "Leistung wie Position …", "wie vor", "gemäß Pos. …" pointing at a missing or different item | Reference resolution |
 | `L3.REVIEW.L2_CONFIRM` | Re-check each layer 2 finding against the full texts: is the dependency included in another line ("inkl. Randdämmstreifen"), excluded ("bauseits"), or really missing? Downgrade or confirm with a reason | Reduces layer 2 false positives |
@@ -210,22 +210,29 @@ order in which the call budget is spent (`checks/__init__.py`):
   title or a short text names Fertigteil / Sandwich / FT-) goes to `ANALYSIS_L3_MODEL` in batches; the answer
   is the spec's `PrecastElementItem` (item type, element mark, length, height, layer thicknesses, concrete
   grade, exposure, surfaces, through-coloured, RAL/pigment, anchor design, transport/assembly, placeholders)
-  plus `rebar_purpose` and `assigned_element_codes`. Values must be backed by the text (grade, colour and
-  element mark written there; a height/length next to a height/length word; "durchgefärbt" for
-  through-coloured), otherwise they count as not stated. The result is shared with the scope audit.
+  plus `rebar_purpose` and `assigned_element_codes`. Length, height and total thickness come from unique
+  labelled measurements in the text, normalized to metres or centimetres. Grade, colour, element mark,
+  and through-coloured concrete require matching text. A missing or invalid model response for a position
+  appears in the run errors as partial coverage. The result is shared with the scope audit.
+  Ollama batches up to four items for classification and reads explicit dimensions, grades and RAL
+  numbers from the position text. Rebar has a separate short request. Its purpose must be supported by
+  a cited clause or an explicit description of the steel this position supplies.
 - **`L3.PRECAST.MISSING_SPEC`** (warning): deterministic on the extracted fields. Spec `DEP_001` (a sandwich
   element needs height, length, concrete grade, total thickness) and `DEP_002` (through-coloured concrete
   needs a RAL colour or pigment). One finding per line, discriminator = the missing fields;
   `evidence.extracted`, `evidence.bieterfrage_de`.
-- **`L3.OPT.BUNDLED_FORMWORK`** (info, section scope): elements with the same thickness, grade and
-  surfaces, with `evidence.total_bundled_precast_length_m` (spec `LLM_OPT_01`, computed in code).
+- **`L3.OPT.BUNDLED_FORMWORK`** (info, section scope): elements with matching stated height, thickness,
+  grade, surfaces, and any specified pigment and sandwich layer thicknesses. The finding includes
+  `evidence.total_bundled_precast_length_m` and asks the reviewer to check the drawings before pricing
+  shared formwork (spec `LLM_OPT_01`).
 - **`L3.SCOPE.REBAR_AMBIGUOUS` / `SHOP_DRAWINGS_OVERLAP` / `EMBEDDED_UNALLOCATED`** (warning,
   `checks/scope.py`, spec `LLM_SCOPE_01..03`). One call per precast section to `ANALYSIS_L3_AUDIT_MODEL`
   with the extracted items as JSON (no raw text). A section is sent only when its item types make a problem
   possible, and each answer must cite an item of the right type (open-purpose rebar next to precast
   elements, a shop-drawing item next to elements that include anchor design, an embedded part assigned to
   no element). Each finding carries `evidence.bieterfrage_de`; rebar and embedded parts also set
-  `evidence.change_order`.
+  `evidence.change_order`. With Ollama the audit selects from validated candidate references and BillBuild
+  drafts the bidder questions from the selected position and its related elements.
 
 - **`L3.TEXT.SHORT_LONG_CONTRADICTION`** (`checks/contradictions.py`). Sends lines that have both texts,
   differing texts, and a value in the short text (a number or a material word); skips lines with a
@@ -245,7 +252,14 @@ order in which the call budget is spent (`checks/__init__.py`):
   (checked), a draft question (`evidence.bieterfrage_de`); confidence at most 0.6.
 - **`L3.QTY.IMPLAUSIBLE`** (warning, `checks/quantities.py`). One call per section (up to 40 lines: short text,
   quantity and unit only; sections with fewer than 2 quantified lines are skipped); lines with a layer 1
-  error on quantity or unit are left out.
+  error on quantity or unit are left out. Quantities use a decimal point without grouping or padding.
+  A finding needs a numeric comparison in a compatible unit that differs from the source quantity.
+
+- **`L3.DUP.SEMANTIC`** (warning, `checks/overlap.py`). The check compares similar titles and descriptions
+  within a section when quantities, units, and stated numeric values agree. It keeps explicit cable,
+  documentation, paving-layer, and reducer variants separate. The finding requires a work quote from
+  each position, includes both source locations, and asks the reviewer to compare the approved takeoff.
+  Dimension contradictions likewise require two stated measurements that differ after unit conversion.
 
 Infrastructure:
 
@@ -268,8 +282,8 @@ Configuration (environment variables):
 | `ANALYSIS_L3_TIMEOUT` | `120` | seconds per request |
 | `ANALYSIS_L3_MAX_CALLS` | `12` | model calls per run (cache hits are free); the P0 precast checks spend it first |
 | `ANALYSIS_L3_DEADLINE` | `75` | seconds of model calls per run; later batches are reported in `errors`, not sent. Prod timeout is 30 s, so layer 3 ends in about 90 s at worst |
-| `ANALYSIS_L3_CONCURRENCY` | `4` | parallel requests within one check |
-| `ANALYSIS_L3_MAX_BATCH_LINES` / `_CHARS` | `12` / `12000` | contradiction batch size |
+| `ANALYSIS_L3_CONCURRENCY` | `4` (`1` for Ollama) | parallel requests within one check |
+| `ANALYSIS_L3_MAX_BATCH_LINES` / `_CHARS` | `12` (`4` for Ollama) / `12000` | contradiction batch size |
 | `ANALYSIS_L3_CACHE` | `.cache/layer3` | directory, or `off` |
 
 The API provider needs `pip install -e ".[llm-api]"` and credentials the SDK can resolve

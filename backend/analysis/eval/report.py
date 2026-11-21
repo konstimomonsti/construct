@@ -35,7 +35,7 @@ def recall_rows(evaluation: Evaluation) -> tuple[list[list], Counter, Counter]:
     for outcome in planted:
         by_type[outcome.label["mutation_type"]].append(outcome)
     rows = []
-    total, detectable = Counter(), Counter()
+    total = Counter()
     order = list(catalogue.TYPES_BY_NAME) + sorted(set(by_type) - catalogue.TYPES_BY_NAME.keys())
     for name in order:
         outcomes = by_type.get(name)
@@ -45,17 +45,15 @@ def recall_rows(evaluation: Evaluation) -> tuple[list[list], Counter, Counter]:
         label = outcomes[0].label
         title = mutation_type.title if mutation_type else label["description"]
         expected = mutation_type.expect if mutation_type else " / ".join(label["expect"])
-        gap = bool(label.get("gap"))
         tally = _tally(outcomes)
         denominator = len(outcomes) - tally["not_run"]
-        rows.append([title + (" (gap)" if gap else ""), f"`{expected}`",
+        rows.append([title + (" (gap)" if tally["gap"] else ""), f"`{expected}`",
                      len(outcomes), tally["caught"], tally["missed"], tally["gap"], tally["not_run"],
                      pct(tally["caught"], denominator)])
         total.update(tally)
         total["n"] += len(outcomes)
-        if not gap:
-            detectable.update(tally)
-            detectable["n"] += len(outcomes)
+    detectable = total.copy()
+    detectable["n"] -= detectable.pop("gap", 0)
     return rows, total, detectable
 
 
@@ -72,8 +70,8 @@ def control_rows(evaluation: Evaluation) -> list[list]:
             continue
         title = (catalogue.TYPES_BY_NAME[mutation_type].title if mutation_type in catalogue.TYPES_BY_NAME
                  else outcomes[0].label["description"])
-        bad = sum(1 for o in outcomes if o.outcome == "false_alarm")
-        rows.append([title, len(outcomes), len(outcomes) - bad, bad])
+        tally = _tally(outcomes)
+        rows.append([title, len(outcomes), tally["clean"], tally["false_alarm"], tally["not_run"]])
     return rows
 
 
@@ -83,6 +81,17 @@ def precision_rows(evaluation: Evaluation) -> list[list]:
         tp, fp, other = counts["tp"], counts["fp"], counts["acceptable"]
         rows.append([f"`{rule_id}`", tp, fp, other, pct(tp, tp + fp)])
     return rows
+
+
+def guidance_rows(evaluation: Evaluation) -> list[list]:
+    by_layer: dict[int, Counter] = defaultdict(Counter)
+    for outcome in evaluation.outcomes:
+        if outcome.suite != "catalogue" or outcome.outcome != "caught":
+            continue
+        for finding in outcome.matched:
+            by_layer[finding["layer"]][finding.get("guidance", "unknown")] += 1
+    return [[layer, counts["patch"], counts["bidder_question"], counts["review"], counts["none"], counts["unknown"]]
+            for layer, counts in sorted(by_layer.items())]
 
 
 def format_report(evaluation: Evaluation, *, seed_info: str = "") -> str:
@@ -108,12 +117,19 @@ def format_report(evaluation: Evaluation, *, seed_info: str = "") -> str:
     out.append(f"\n*n counts files: each error is written once per format ({', '.join(backends)}).*")
 
     out.append("\n### Controls (nothing may be reported)\n")
-    out.append(table(["Control", "Files", "Clean", "False alarms"], control_rows(evaluation)))
+    out.append(table(["Control", "Files", "Clean", "False alarms", "Incomplete"], control_rows(evaluation)))
 
     out.append("\n### Precision per rule (new findings on the mutated files)\n")
     out.append(table(["Rule", "Correct", "False alarm", "Consequence", "Precision"], precision_rows(evaluation)))
     out.append("\n*Consequence*: a finding the label lists as an acceptable result of the change (for example a "
                "subtotal that no longer matches a changed line amount). It is neither correct nor false.")
+
+    out.append("\n### Corrective guidance on matched findings\n")
+    out.append(table(["Layer", "Patch", "Bidder question", "Review guidance", "None", "Unavailable"],
+                     guidance_rows(evaluation)))
+    out.append("\nA proposed patch takes precedence over a bidder question or review guidance. "
+               "These counts measure presence. The proposed corrections still need review. "
+               "Unavailable means the stored run predates guidance scoring.")
 
     missed = [o for o in evaluation.outcomes if o.outcome == "missed"]
     if missed:
