@@ -40,8 +40,8 @@ Other useful commands:
 # Exit 1 on warnings/errors, useful in a validation job.
 .\.venv\Scripts\python.exe -m analysis.layer2 examples/items.json --scope trade --fail-on warning
 
-# Run the regression tests.
-.\.venv\Scripts\python.exe -m unittest discover -v
+# Run all analysis tests (layers 1 and 2), configured in pyproject.toml.
+.\.venv\Scripts\python.exe -m pytest
 ```
 
 Exit codes: `0` = successful run; `1` = the selected finding threshold was met; `2` = invalid input/configuration or an I/O error. Without `--fail-on`, findings do not change exit code 0. JSON is the default output; `--format table` is a compact console view. The output file must differ from all input/configuration files.
@@ -108,7 +108,7 @@ dependency_quantity < trigger_quantity × (1 − 0.10)
 
 Equality at the boundary passes; excess dependency quantities pass. All seven bundled quantity checks compare **areas in m²**, converting compatible area units exactly. Quantities with incompatible units are never added together. Missing/unreliable values produce `info` with reasons and known subtotals, rather than a claimed numerical shortage. `variance` is dependency quantity minus trigger quantity; `shortfall_to_minimum` is the amount below the tolerated boundary. Both are serialized as decimal strings. When quantity problems exist, these are partial observations, not a confirmed shortage.
 
-Dependency absences and reliable shortages are `warning`, because a reviewer must confirm the work belongs in this package. For quantity shortages, a proposed line covers the difference to full trigger coverage. For Boolean dependencies, proposed quantity and unit are `null`: dimensions or counts cannot be inferred from mere presence. Proposal confidence is deliberately below 1.0. Proposals are never executed.
+Dependency absences and reliable shortages are `warning`, because a reviewer must confirm the work belongs in this package. For quantity shortages, a proposed line covers the difference to full trigger coverage. For Boolean dependencies the proposed quantity is `null`, because it can't be inferred from mere presence. The unit comes from the dependency's `SuggestedUnit` (e.g. `m` for skirting, `t` for reinforcement), and the rationale tells the reviewer to enter the quantity before accepting. A line added without one would be flagged by `L1.QTY.MISSING`. Proposal confidence is deliberately below 1.0. Proposals are never executed.
 
 These are text heuristics. The supplied regexes have limited compound-word coverage and do not understand negations, exclusions, repeated coats/layers, construction sequencing, or engineering exceptions. A result reports what was found in the reviewed scope. It does not establish that the complete project contains or lacks that work.
 
@@ -158,18 +158,18 @@ Rules live in [analysis/layer2/rules.json](../analysis/layer2/rules.json); no co
 ]
 ```
 
-Rule-level `TriggerIn` (`short_text` by default, or `all`) chooses where the trigger is searched, and `ExcludeRegex` drops lines from the triggers. A dependency can also have its own `ExcludeRegex`, which drops triggers for that dependency only, e.g. `unbewehrt` for reinforcement. `TolerancePct` is a fraction in `[0, 1)` and overrides the CLI/global tolerance for that dependency. `QuantityUnit` defaults to `m²` and must be canonical. A dependency-level `TriggerRegex` narrows the parent trigger, used for concrete floor slabs. `SuggestedText` enables a reviewable proposal. Python regexes and `/pattern/i` notation are supported. Derived finding IDs append `_NEEDS_<DEPENDENCY_NAME>` to the group's `RuleID`; dependency names must yield distinct ASCII keys. Keep names stable when human decisions already reference them.
+Rule-level `TriggerIn` (`short_text` by default, or `all`) chooses where the trigger is searched, and `ExcludeRegex` drops lines from the triggers. A dependency can also have its own `ExcludeRegex`, which drops triggers for that dependency only, e.g. `unbewehrt` for reinforcement. `TolerancePct` is a fraction in `[0, 1)` and overrides the CLI/global tolerance for that dependency. `QuantityUnit` defaults to `m²` and must be canonical. A dependency-level `TriggerRegex` narrows the parent trigger, used for concrete floor slabs. `SuggestedText` enables a reviewable proposal, and `SuggestedUnit` (canonical) gives its unit when the quantity can't be derived. Python regexes and `/pattern/i` notation are supported. Derived finding IDs append `_NEEDS_<DEPENDENCY_NAME>` to the group's `RuleID`; dependency names must yield distinct ASCII keys. Keep names stable when human decisions already reference them.
 
 ## Files
 
 - `analysis/contracts.py`: shared Pydantic input, result, finding, and fix models.
-- `analysis/units.py`: existing shared canonical vocabulary.
-- `analysis/layer2/quantities.py`: compatible conversions and standalone normalization.
-- `analysis/adapter.py`: existing shared database, importer, and normalized JSON adapter.
-- `analysis/layer2/adapter.py`: standalone Item-array/JSON normalization with raw values retained.
+- `analysis/units.py`: shared canonical vocabulary, dimensions and exact conversions (`convert`).
+- `analysis/layer2/quantities.py`: thin layer 2 wrapper over `analysis/units.py`.
+- `analysis/adapter.py`: shared adapter for GAEB files, the database and JSON. `from_json`/`from_data` accept an AnalysisInput object, an Item array or `{"items": [...]}`, with lenient number parsing.
+- `analysis/layer2/adapter.py`: re-exports the shared JSON loader.
 - `analysis/layer2/schema.py`: validated ruleset and UI rule metadata.
 - `analysis/layer2/engine.py`: deterministic checks and scope handling.
-- `analysis/runner.py`: existing shared pipeline runner; now discovers registered layer 2 checks.
+- `analysis/runner.py`: shared pipeline runner; discovers registered layer 2 checks.
 - `analysis/layer2/report.py`: standalone layer 2 report and result summaries.
-- `analysis/cli.py`: JSON/table reports and command-line options.
-- `tests/test_validator.py`: regression and end-to-end tests.
+- `analysis/layer2/cli.py`: layer 2 command line (`python -m analysis.layer2`, `gaeb-check`). The full pipeline is `python -m analysis`.
+- `analysis/tests/test_layer2.py`: regression and end-to-end tests.

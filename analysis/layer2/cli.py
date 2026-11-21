@@ -1,4 +1,4 @@
-"""Command-line entry point; JSON on stdout is always machine-readable."""
+"""Layer 2 command line (python -m analysis.layer2). JSON on stdout is always machine-readable."""
 
 import argparse
 from decimal import Decimal, InvalidOperation
@@ -8,10 +8,10 @@ import sys
 
 from pydantic import ValidationError
 
-from .layer2.adapter import from_json
-from .contracts import Finding
-from .layer2.schema import load_rules, rule_metadata
-from .layer2.report import analyze
+from ..adapter import from_json
+from ..contracts import Finding
+from .schema import load_rules, rule_metadata
+from .report import analyze
 
 
 def _tolerance(value: str) -> Decimal:

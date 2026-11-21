@@ -11,6 +11,9 @@ __pycache__/
 # Output files
 *.csv
 *.json
+# ...except rule sets, fixtures and examples that belong to the code
+!analysis/**/*.json
+!examples/*.json
 
 # Local database files
 .env

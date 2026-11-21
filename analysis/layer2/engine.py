@@ -145,14 +145,19 @@ def _proposal(dep: DependencySpec, triggers: list[Entry], context: Context,
     if not eligible or not dep.suggested_text:
         return None
     first = triggers[0].line
+    rationale = ("Heuristic complement inferred from BoQ text; confirm specification, scope, "
+                 "and quantity before adding it to a new BOM version.")
+    if quantity is None:
+        # Presence checks can't infer an amount: the reviewer must enter it, otherwise the new line
+        # would be flagged by L1.QTY.MISSING after it is applied.
+        rationale += " The quantity cannot be derived: enter it before accepting."
     return Fix(
         confidence=0.55 if quantity is not None else 0.4,
-        rationale=("Heuristic complement inferred from BoQ text; confirm specification, scope, "
-                   "and quantity before adding it to a new BOM version."),
+        rationale=rationale,
         operations=[AddLine(
             section_id=first.section_id, after_line_id=first.id,
             line=NewLine(short_text=dep.suggested_text, quantity=quantity,
-                              unit=dep.quantity_unit if quantity is not None else None),
+                         unit=dep.quantity_unit if quantity is not None else dep.suggested_unit),
             distributions=([Distribution(area_id=context.target.area_id, quantity=quantity)]
                            if context.target.area_id and quantity is not None else []),
         )],

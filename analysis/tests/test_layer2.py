@@ -8,14 +8,14 @@ import unittest
 from contextlib import redirect_stdout, redirect_stderr
 
 from analysis.layer2.adapter import canonical_hash, from_data, from_json, parse_number
-from analysis.cli import main
+from analysis.layer2.cli import main
 from analysis.contracts import Finding, Target
 from analysis.layer2 import run
 from analysis.layer2.schema import RuleSpec, compile_regex, load_rules, rule_metadata
 from analysis.layer2.report import analyze
 from analysis.layer2.quantities import convert, dimension, normalize_unit
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 
 
 def line(id, text, quantity="100", unit="m²", **kwargs):
@@ -169,7 +169,8 @@ class RuleTests(unittest.TestCase):
         finding = selected(input_for(line("p", "Dispersionsfarbe")), "MASKING_AND_PROTECTION")[0]
         proposal = finding.suggested_fix.operations[0]
         self.assertIsNone(proposal.line.quantity)
-        self.assertIsNone(proposal.line.unit)
+        self.assertEqual(proposal.line.unit, "m²")  # SuggestedUnit: only the quantity is left to the reviewer
+        self.assertIn("enter it before accepting", finding.suggested_fix.rationale)
         self.assertLess(finding.suggested_fix.confidence, 1)
         self.assertEqual(proposal.after_line_id, "p")
 

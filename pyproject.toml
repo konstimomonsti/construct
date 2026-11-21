@@ -3,14 +3,20 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "gaeb-dependency-validator"
+name = "construct-analysis"
 version = "0.1.0"
-description = "Deterministic layer 2 dependency checks for parsed construction bills of quantities"
+description = "Error detection for construction bills of quantities: deterministic checks, dependency checks and LLM checks"
 requires-python = ">=3.10"
-dependencies = ["pydantic>=2.8,<3"]
+# lxml is needed to read GAEB files through the importer (importer/ must be in the checkout).
+dependencies = ["pydantic>=2.8,<3", "lxml>=5"]
+
+[project.optional-dependencies]
+db = ["psycopg[binary]>=3.2"]
+test = ["pytest>=8"]
 
 [project.scripts]
-gaeb-check = "analysis.cli:main"
+construct-analysis = "analysis.__main__:main"
+gaeb-check = "analysis.layer2.cli:main"
 
 [tool.setuptools.packages.find]
 include = ["analysis*"]
@@ -18,3 +24,5 @@ include = ["analysis*"]
 [tool.setuptools.package-data]
 "analysis.layer2" = ["rules.json"]
 
+[tool.pytest.ini_options]
+testpaths = ["analysis/tests"]

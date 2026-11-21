@@ -41,6 +41,8 @@ class DependencySpec(BaseModel):
     trigger_regex: str | None = Field(default=None, alias="TriggerRegex")
     exclude_regex: str | None = Field(default=None, alias="ExcludeRegex")
     suggested_text: str | None = Field(default=None, alias="SuggestedText")
+    # Unit of a proposed line when the quantity can't be derived (Boolean checks), e.g. "m" for skirting.
+    suggested_unit: str | None = Field(default=None, alias="SuggestedUnit")
 
     @field_validator("regex", "trigger_regex", "exclude_regex")
     @classmethod
@@ -49,11 +51,11 @@ class DependencySpec(BaseModel):
             compile_regex(value)
         return value
 
-    @field_validator("quantity_unit")
+    @field_validator("quantity_unit", "suggested_unit")
     @classmethod
-    def valid_unit(cls, value: str) -> str:
-        if value not in UNITS:
-            raise ValueError("QuantityUnit must use the canonical unit vocabulary")
+    def valid_unit(cls, value: str | None) -> str | None:
+        if value is not None and value not in UNITS:
+            raise ValueError("QuantityUnit and SuggestedUnit must use the canonical unit vocabulary")
         return value
 
     @field_validator("name")
