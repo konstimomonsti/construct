@@ -1,6 +1,6 @@
 import { clsx } from 'clsx'
 import { NavLink, useLocation } from 'react-router-dom'
-import { useEffect } from 'react'
+import { useEffect, useId, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { Icon } from './ui'
 import { useStore } from '../lib/store'
@@ -11,8 +11,6 @@ import { useMedia } from '../lib/hooks'
 const NAV_GROUPS = [
   { label: 'Projects', links: [
     { to: '/', label: 'All Projects', icon: 'source', end: true },
-    { to: '/active', label: 'Active Budgets', icon: 'account_balance_wallet', end: false },
-    { to: '/archived', label: 'Archived', icon: 'archive', end: false },
   ] },
   { label: 'Catalogues', links: [
     { to: '/catalogues/products', label: 'Products', icon: 'package_2', end: true },
@@ -21,6 +19,43 @@ const NAV_GROUPS = [
   ] },
 ]
 
+const OPTION_LINKS = [
+  { to: '/settings', label: 'Settings', icon: 'settings', end: true },
+  { to: '/archived', label: 'Archived', icon: 'archive', end: false },
+]
+
+const sidebarRow = 'relative flex h-11 items-center gap-3 overflow-hidden rounded-md pl-[14px] text-[15px] transition-colors'
+const inactiveRow = 'font-medium text-slate-700 hover:bg-slate-200/50 hover:text-slate-900'
+
+function SidebarLink({ link, rail, labelClass, parentActive = false }: {
+  link: { to: string; label: string; icon: string; end: boolean }
+  rail: boolean
+  labelClass: string
+  parentActive?: boolean
+}) {
+  return (
+    <NavLink
+      to={link.to}
+      end={link.end}
+      title={rail ? link.label : undefined}
+      aria-current={parentActive ? 'location' : undefined}
+      className={({ isActive }) => clsx(
+        sidebarRow,
+        isActive || parentActive
+          ? clsx('font-semibold text-slate-900 before:absolute before:inset-y-2 before:left-0 before:w-0.5 before:rounded-full before:bg-brand-600', isActive ? 'bg-slate-200/70' : 'hover:bg-slate-200/50')
+          : inactiveRow,
+      )}
+    >
+      {({ isActive }) => (
+        <>
+          <Icon name={link.icon} size={20} fill={isActive || parentActive} className={clsx('shrink-0', isActive || parentActive ? 'text-brand-700' : 'text-slate-500')} />
+          <span className={labelClass}>{link.label}</span>
+        </>
+      )}
+    </NavLink>
+  )
+}
+
 export function Sidebar() {
   const collapsedPref = useStore((s) => s.sidebarCollapsed)
   const toggle = useStore((s) => s.toggleSidebar)
@@ -28,6 +63,8 @@ export function Sidebar() {
   const setMobile = useUi((s) => s.setMobileNav)
   const isLg = useMedia('(min-width: 1024px)')
   const { pathname } = useLocation()
+  const [optionsOpen, setOptionsOpen] = useState(false)
+  const optionsId = useId()
   const rail = collapsedPref && isLg
   // project and list pages live under All Projects, so it stays lit as their parent
   const nested = /^\/(folder|list)\//.test(pathname)
@@ -114,7 +151,7 @@ export function Sidebar() {
         </button>
       </div>
 
-      <div className="mt-2 min-h-0 space-y-4 overflow-x-hidden overflow-y-auto px-3 pb-3">
+      <div className="mt-2 min-h-0 flex-1 space-y-4 overflow-x-hidden overflow-y-auto px-3 pb-3">
         {NAV_GROUPS.map(({ label: group, links }, gi) => (
           <nav key={group} aria-label={group} className="space-y-1">
             {gi > 0 && (
@@ -125,34 +162,34 @@ export function Sidebar() {
               </div>
             )}
             {links.map((n) => (
-              <NavLink
+              <SidebarLink
                 key={n.to}
-                to={n.to}
-                end={n.end}
-                title={rail ? n.label : undefined}
-                aria-current={nested && n.to === '/' ? 'location' : undefined}
-                className={({ isActive }) =>
-                  clsx(
-                    'relative flex h-11 items-center gap-3 overflow-hidden rounded-md pl-[14px] text-[15px] transition-colors',
-                    isActive || (nested && n.to === '/')
-                      ? clsx('font-semibold text-slate-900 before:absolute before:inset-y-2 before:left-0 before:w-0.5 before:rounded-full before:bg-brand-600', isActive ? 'bg-slate-200/70' : 'hover:bg-slate-200/50')
-                      : 'font-medium text-slate-700 hover:bg-slate-200/50 hover:text-slate-900',
-                  )
-                }
-              >
-                {({ isActive: active }) => {
-                  const isActive = active || (nested && n.to === '/')
-                  return (
-                    <>
-                      <Icon name={n.icon} size={20} fill={isActive} className={clsx('shrink-0', isActive ? 'text-brand-700' : 'text-slate-500')} />
-                      <span className={label}>{n.label}</span>
-                    </>
-                  )
-                }}
-              </NavLink>
+                link={n}
+                rail={rail}
+                labelClass={label}
+                parentActive={nested && n.to === '/'}
+              />
             ))}
           </nav>
         ))}
+      </div>
+
+      <div className="shrink-0 space-y-1 border-t border-slate-200 px-3 py-2">
+        <button
+          type="button"
+          aria-expanded={optionsOpen}
+          aria-controls={optionsId}
+          title={rail ? 'Options' : undefined}
+          onClick={() => setOptionsOpen((open) => !open)}
+          className={clsx(sidebarRow, inactiveRow, 'w-full text-left')}
+        >
+          <Icon name="more_horiz" size={20} className="shrink-0 text-slate-500" />
+          <span className={label}>Options</span>
+          <Icon name="expand_more" size={18} className={clsx('mr-3 ml-auto shrink-0 text-slate-500 transition-transform', optionsOpen && 'rotate-180', rail && 'invisible')} />
+        </button>
+        <nav id={optionsId} aria-label="Options" hidden={!optionsOpen} className="space-y-1">
+          {OPTION_LINKS.map((link) => <SidebarLink key={link.to} link={link} rail={rail} labelClass={label} />)}
+        </nav>
       </div>
     </aside>
   )
