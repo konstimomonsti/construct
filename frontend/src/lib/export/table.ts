@@ -126,7 +126,10 @@ export async function toXlsx(o: TableOpts): Promise<Uint8Array> {
       if (o.prices) {
         if (p.up != null) r.getCell(upI).value = p.up
         r.getCell(upI).numFmt = '#,##0.00 "€"'
-        r.getCell(gpI).value = { formula: `${qL}${row}*${uL}${row}`, result: gp(p) }
+        if (!p.totalRule && (!p.quantityMissing || p.lumpSum)) {
+          const quantity = p.quantityMissing ? '1' : `${qL}${row}`
+          r.getCell(gpI).value = { formula: `ROUND(${quantity}*${uL}${row},2)`, result: gp(p) }
+        }
         r.getCell(gpI).numFmt = '#,##0.00 "€"'
       }
       r.getCell(idx('cat') + 1).value = paths.get(p.id) ?? p.category

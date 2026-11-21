@@ -4,11 +4,12 @@ from collections import defaultdict
 from dataclasses import dataclass
 from decimal import Decimal
 import re
-from typing import Literal
+from typing import Any, Literal
 
 from ..contracts import (
     AddLine, AnalysisInput, Distribution, Finding, Fix, Line, NewLine, Target, finding_key,
 )
+from ..graph import validate_graph
 from ..units import Dimension, dimension as shared_dimension
 from .quantities import convert
 from .schema import DependencySpec, RuleSpec, compile_regex, load_rules
@@ -29,6 +30,13 @@ class Context:
     target: Target
     label: str
     entries: list[Entry]
+
+
+_L2_INDEX_CACHE: dict[tuple[Any, str], dict[str, Any]] = {}
+
+
+def _input_key(inp: AnalysisInput) -> Any:
+    return inp.input_hash or inp.compute_hash()
 
 
 def _text(line: Line) -> str:
@@ -63,7 +71,8 @@ def _active(line: Line) -> bool:
 
 
 def _contexts(input: AnalysisInput, mode: ScopeMode) -> list[Context]:
-    lines = [line for line in input.lines if _active(line)]
+    invalid_lines = validate_graph(input).invalid_line_ids
+    lines = [line for line in input.lines if line.id not in invalid_lines and _active(line)]
     if mode == "auto":
         mode = "area" if any(line.distributions for line in lines) else "document"
     if mode == "document":
@@ -301,11 +310,22 @@ def run(input: AnalysisInput, prior_findings: list[Finding], *,
     if not tolerance.is_finite() or not Decimal(0) <= tolerance < Decimal(1):
         raise ValueError("Tolerance must be a fraction >= 0 and < 1 (0.10 means 10%)")
     blocked = _blocked_lines(prior_findings)
-    contexts = _contexts(input, scope)
     rules = load_rules() if rules is None else rules
-    texts = {line.id: _text(line) for line in input.lines}
-    short_texts = {line.id: _trigger_text(line) for line in input.lines}
-    unassigned = [entry for context in contexts if context.scope == "bom" for entry in context.entries]
+
+    cache_key = (_input_key(input), scope)
+    if cache_key in _L2_INDEX_CACHE:
+        idx = _L2_INDEX_CACHE[cache_key]
+        contexts, texts, short_texts, unassigned = idx["contexts"], idx["texts"], idx["short_texts"], idx["unassigned"]
+    else:
+        contexts = _contexts(input, scope)
+        texts = {line.id: _text(line) for line in input.lines}
+        short_texts = {line.id: _trigger_text(line) for line in input.lines}
+        unassigned = [entry for context in contexts if context.scope == "bom" for entry in context.entries]
+        if len(_L2_INDEX_CACHE) > 32:
+            _L2_INDEX_CACHE.clear()
+        _L2_INDEX_CACHE[cache_key] = {
+            "contexts": contexts, "texts": texts, "short_texts": short_texts, "unassigned": unassigned
+        }
     findings = []
     for rule in rules:
         trigger_texts = short_texts if rule.trigger_in == "short_text" else texts

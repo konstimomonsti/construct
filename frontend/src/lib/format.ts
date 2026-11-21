@@ -60,6 +60,22 @@ export const pct = (v: number) => `${whole.format(Math.round(v))}${NBSP}%`
 /** 94,3 % */
 export const pct1 = (v: number) => `${oneDecimal.format(v)}${NBSP}%`
 
+export function budgetMoney(value: number, currency: string) {
+  return /^[A-Z]{3}$/.test(currency) ? new Intl.NumberFormat(LOCALE, {
+    style: 'currency', currency, currencyDisplay: 'code',
+  }).format(value) : amount(value)
+}
+
+export function budgetStatus(total: number, cap: number | null) {
+  if (cap == null || !Number.isFinite(cap) || cap < 0 || !Number.isFinite(total)) return { tone: 'none', word: 'No confirmed cap', pct: 0 }
+  const pct = cap > 0 ? total / cap * 100 : 0
+  if (total > cap) return { tone: 'over', word: 'Over cap', pct }
+  if (total === cap) return { tone: 'warn', word: 'At cap', pct }
+  if (total * 100 >= cap * 90) return { tone: 'warn', word: 'Almost at cap', pct }
+  if (total * 100 >= cap * 75) return { tone: 'caution', word: 'Near cap', pct }
+  return { tone: 'ok', word: 'On track', pct }
+}
+
 /** Plain decimal for editable inputs, without grouping: 1234,5 */
 export const inputNumber = (v: number) => String(Math.round(v * 1000) / 1000).replace('.', ',')
 

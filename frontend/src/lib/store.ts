@@ -1,9 +1,9 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { useShallow } from 'zustand/react/shallow'
-import type { DocMeta, FolderMeta, Library, ListDoc, ListMeta, Position, Tone } from './types'
+import type { ConfirmedCap, DocMeta, FolderMeta, Library, ListDoc, ListMeta, PhaseLink, Position, Tone } from './types'
 import { gaebPhase } from './format'
-import { positionTotal } from './money'
+import { sumPositionTotals } from './money'
 import { removeDocuments } from './documents'
 import { withoutLegacyImports } from './legacy'
 import { applyDecision, decisionsOf, type Decision, type Decisions } from './risk-assessment'
@@ -30,7 +30,10 @@ interface ListPatch {
   title?: string
   trashedAt?: string
   cap?: number | null
+  capApproval?: ConfirmedCap
+  phaseLink?: PhaseLink
   folderId?: string
+  sourceListId?: string
   reviewedFindings?: string[]
   /** reviewer decisions on findings and change-order signals (CLAUDE.md §5.5) */
   findingDecisions?: Decisions
@@ -385,6 +388,12 @@ export interface ListView extends ListMeta {
   phaseName?: string
   /** phase code of a later version of the same tender in this folder (e.g. "D86"); this one is not counted in totals */
   supersededBy?: string
+  pairedX86Id?: string
+  pairedX83Id?: string
+  confirmedCap?: ConfirmedCap
+  phaseLink?: PhaseLink
+  phasePositionKeys?: string[]
+  duplicateAwardWarning?: boolean
 }
 
 /** descriptions seeded by older builds; never shown */
@@ -392,23 +401,56 @@ const PLACEHOLDER_DESCRIPTIONS = new Set(['Awaiting initial line allocations'])
 export const folderDescription = (f: Pick<FolderMeta, 'description'>) =>
   PLACEHOLDER_DESCRIPTIONS.has(f.description?.trim()) ? '' : (f.description ?? '').trim()
 
-const stem = (name: string) => name.replace(/\.[^.]+$/, '').trim().toLowerCase()
-
-/** mark earlier GAEB phases of the same tender (same file stem, same folder) as superseded */
-function markVersions(lists: ListView[]): ListView[] {
-  const groups = new Map<string, ListView[]>()
-  for (const l of lists) {
-    if (l.trashedAt || !l.phaseCode) continue
-    const k = `${l.folderId}|${stem(l.fileName)}`
-    groups.set(k, [...(groups.get(k) ?? []), l])
+/** Link only explicit phase revisions whose package and position identities agree. */
+export function markVersions(lists: ListView[]): ListView[] {
+  const active = lists.filter(list => !list.trashedAt && list.phaseIdentity?.packageId)
+  const byId = new Map(active.map(list => [list.id, list]))
+  const phase = (list: ListView) => list.phase?.match(/^[XDP]?(83|84|86)$/i)?.[1]
+  const awards = new Map<string, ListView[]>()
+  for (const list of active) {
+    if (phase(list) !== '86') continue
+    const packageId = list.phaseIdentity!.packageId
+    const peers = awards.get(packageId) ?? []
+    peers.push(list)
+    awards.set(packageId, peers)
   }
-  const latest = new Map<string, string>()
-  for (const g of groups.values()) {
-    if (g.length < 2) continue
-    const top = g.reduce((a, b) => (Number(b.phaseCode!.slice(1)) > Number(a.phaseCode!.slice(1)) ? b : a))
-    for (const l of g) if (l !== top) latest.set(l.id, top.phaseCode!)
+  const predecessors = new Map<string, ListView>()
+  for (const list of active) {
+    const link = list.phaseLink
+    if (!link) continue
+    const prior = byId.get(link.predecessorId)
+    if (!prior || prior.id === list.id || prior.phaseIdentity!.packageId !== list.phaseIdentity!.packageId
+        || !list.currency || prior.currency !== list.currency || !list.phaseIdentity!.revision || !prior.phaseIdentity!.revision
+        || prior.phaseIdentity!.revision !== link.predecessorRevision || list.phaseIdentity!.revision !== link.revision) continue
+    const step = phase(prior) + ':' + phase(list)
+    if (step !== '83:84' && step !== '84:86') continue
+    if (phase(list) === '86' && (awards.get(list.phaseIdentity!.packageId)?.length ?? 0) > 1) continue
+    const priorKeys = prior.phasePositionKeys ?? []
+    const keys = list.phasePositionKeys ?? []
+    const priorSet = new Set(priorKeys)
+    if (priorSet.size !== priorKeys.length || new Set(keys).size !== keys.length
+        || priorKeys.some(key => !key) || keys.some(key => !key) || !keys.some(key => priorSet.has(key))) continue
+    predecessors.set(list.id, prior)
   }
-  return latest.size ? lists.map((l) => (latest.has(l.id) ? { ...l, supersededBy: latest.get(l.id) } : l)) : lists
+  const updates = new Map<string, Partial<ListView>>()
+  const put = (id: string, patch: Partial<ListView>) => updates.set(id, { ...updates.get(id), ...patch })
+  for (const duplicates of awards.values()) {
+    if (duplicates.length > 1) duplicates.forEach(list => put(list.id, { duplicateAwardWarning: true }))
+  }
+  for (const list of active) {
+    const prior = predecessors.get(list.id)
+    if (!prior) continue
+    const root = predecessors.get(prior.id)
+    if (phase(list) === '86') {
+      put(prior.id, { supersededBy: list.phaseCode, pairedX86Id: list.id })
+      if (root) put(root.id, { supersededBy: list.phaseCode, pairedX86Id: list.id })
+      if (root) put(list.id, { pairedX83Id: root.id })
+    } else {
+      if (!updates.get(prior.id)?.pairedX86Id) put(prior.id, { supersededBy: list.phaseCode })
+      put(list.id, { pairedX83Id: prior.id })
+    }
+  }
+  return lists.map(list => updates.has(list.id) ? { ...list, ...updates.get(list.id) } : list)
 }
 
 /** lists that count toward money totals */
@@ -422,18 +464,22 @@ export function applyEdits(doc: ListDoc, e?: ListEdits): Position[] {
     .map((p) => {
       const q = e.qty[p.id]
       const up = p.id in e.up ? e.up[p.id] : p.up
-      return q === undefined && up === p.up ? p : { ...p, qty: q ?? p.qty, up }
+      return q === undefined && up === p.up ? p : {
+        ...p, qty: q ?? p.qty, up, quantityMissing: q === undefined ? p.quantityMissing : undefined,
+      }
     })
 }
 
 export const statsOf = (positions: Position[]) => ({
-  total: Math.round(positions.reduce((s, p) => s + positionTotal(p), 0) * 100) / 100,
+  total: sumPositionTotals(positions),
   pricedCount: positions.filter((p) => (p.up ?? 0) > 0).length,
   positionsCount: positions.length,
 })
 
 function buildLists(s: State): ListView[] {
   const metas: ListMeta[] = [...(s.base?.lists ?? []), ...s.userLists.map(({ positions: _p, notes: _n, ...m }) => m)]
+  const packageKeys = new Map(s.userLists.filter(list => list.phaseIdentity)
+    .map(list => [list.id, list.positions.map(position => position.positionKey ?? '')]))
   return markVersions(metas.map((m) => {
     const phase = gaebPhase(m.fileName, m.phase, m.format)
     const patch = s.listPatch[m.id] ?? {}
@@ -450,6 +496,9 @@ function buildLists(s: State): ListView[] {
       trashedAt: s.folderPatch[folderId]?.trashedAt === 'purged' ? 'purged' : patch.trashedAt,
       phaseCode: phase?.code,
       phaseName: phase?.name,
+      confirmedCap: patch.capApproval,
+      phaseLink: patch.phaseLink,
+      phasePositionKeys: packageKeys.get(m.id),
     }
   }))
 }

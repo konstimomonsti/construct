@@ -15,9 +15,12 @@ function normalizeJson(raw: unknown): Position[] {
     category: String(r.category ?? 'Import'),
     group: r.group ? String(r.group) : undefined,
     lumpSum: r.lumpSum ? true : undefined,
+    quantityMissing: r.quantityMissing === true || undefined,
+    totalRule: r.totalRule === 'unit_price_only' || r.totalRule === 'conditional' ? r.totalRule : undefined,
     path: Array.isArray(r.path) && r.path.every((part) => part && typeof part.oz === 'string' && typeof part.label === 'string')
       ? r.path : undefined,
     srcRef: r.srcRef ? String(r.srcRef) : undefined,
+    positionKey: typeof r.positionKey === 'string' && r.positionKey ? r.positionKey : undefined,
   }))
 }
 

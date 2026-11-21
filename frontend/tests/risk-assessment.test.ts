@@ -87,3 +87,43 @@ test('findings on removed positions remain reviewable with the whole list', () =
   assert.deepEqual(indexed.listWide, [finding])
   assert.equal(indexed.byRow.size, 0)
 })
+import { canApplyAssessmentFix, currentDecisions, openExposure, openSections, type Report } from '../src/lib/risk-assessment'
+
+test('only the current graph-safe snapshot can apply a fix', () => {
+  const report: Report = {
+    findings: [], errors: [], source_notice: null, graph_valid: true, assessed_revision: 8, target_revision: 8,
+    assessed_edits: { up: { a: 4 }, qty: { a: 2 } },
+  }
+  assert.equal(canApplyAssessmentFix({ state: 'ready', report }, { qty: { a: 2 }, up: { a: 4 } }), true)
+  assert.equal(canApplyAssessmentFix({ state: 'ready', report }, { qty: { a: 3 }, up: { a: 4 } }), false)
+  assert.equal(canApplyAssessmentFix({ state: 'stale', report }, report.assessed_edits), false)
+  assert.equal(canApplyAssessmentFix({ state: 'partial', report: { ...report, graph_valid: false } }, report.assessed_edits), false)
+})
+
+test('review decisions follow stable evidence keys', () => {
+  const report: Report = { findings: [
+    { id: 'same', review_key: 'stable' } as Report['findings'][0],
+    { id: 'changed', review_key: 'new' } as Report['findings'][0],
+    { id: 'legacy' } as Report['findings'][0],
+  ], errors: [], source_notice: null, reopened_finding_ids: ['legacy'] }
+  assert.deepEqual(Object.keys(currentDecisions({
+    same: { status: 'accepted', at: '', reviewKey: 'stable' },
+    changed: { status: 'dismissed', at: '', reviewKey: 'earlier' },
+    legacy: { status: 'accepted', at: '' },
+  }, report)), ['same'])
+})
+
+test('dismissing a finding recalculates section points and shared line exposure', () => {
+  const risk = {
+    ...riskReport.risk!,
+    priced: true,
+    points: { a: 10, b: 5, c: 2 },
+    by_section: [{ section_id: 's', code: '01', title: 'Trade', open: 3, points: 17 }],
+    item_sections: { a: 's', b: 's', c: 's' },
+    item_exposure: { a: ['p1', '2.00'], b: ['p1', '1.00'], c: ['p2', '3.00'] } as Record<string, [string, string]>,
+  }
+  const decisions = { a: { status: 'dismissed' as const, at: '' } }
+  assert.equal(openExposure(risk, {}), '5.00')
+  assert.equal(openExposure(risk, decisions), '4.00')
+  assert.deepEqual(openSections(risk, decisions)[0], { section_id: 's', code: '01', title: 'Trade', open: 2, points: 7 })
+})

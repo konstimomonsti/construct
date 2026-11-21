@@ -73,8 +73,10 @@ def preview(filename: str, content: bytes) -> dict:
             positions.append({
                 "id": line.id, "oz": line.code, "short": line.short_text, "long": line.long_text,
                 "qty": float(line.quantity) if line.quantity is not None else 0,
+                "quantityMissing": line.quantity is None,
                 "unit": line.unit_raw or line.unit or "", "up": float(price) if price is not None else None,
                 "lumpSum": line.pricing_basis == "lump_sum", "path": path,
+                "totalRule": line.total_rule,
                 "category": path[0]["label"] if path else "Import",
             })
     return {

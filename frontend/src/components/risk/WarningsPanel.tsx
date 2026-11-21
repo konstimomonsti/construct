@@ -20,11 +20,12 @@ const KIND_PLURAL: Record<Severity | 'change', string> = { error: 'Critical', wa
  * "Fix all" for every warning that carries an applicable fix, and a one-at-a-time review that walks the open warnings
  * without scrolling the list. Nothing changes without a click; every bulk change can be undone.
  */
-export function WarningsPanel({ entries, decisions, settled, positions, onOpen, onFilter, onDecide, onApplyFixes }: {
+export function WarningsPanel({ entries, decisions, settled, positions, allowFixes, onOpen, onFilter, onDecide, onApplyFixes }: {
   entries: WarningEntry[]
   decisions: Decisions
   settled: Set<string>
   positions: Position[]
+  allowFixes: boolean
   onOpen: (positionId: string) => void
   onFilter: (filter: string) => void
   onDecide: (ids: string[], decision: Decision | null, title?: string) => void
@@ -32,10 +33,10 @@ export function WarningsPanel({ entries, decisions, settled, positions, onOpen, 
 }) {
   const open = useMemo(() => entries.filter(({ item }) => !settled.has(item.id)), [entries, settled])
   const plans = useMemo(() => open.flatMap(({ item }) => {
-    if (!isFinding(item)) return []
+    if (!allowFixes || !isFinding(item) || item.origin === 'llm') return []
     const plan = planFix(item, positions)
     return plan.steps.length ? [{ finding: item, plan }] : []
-  }), [open, positions])
+  }), [open, positions, allowFixes])
   const counts = useMemo(() => {
     const out = new Map<Severity | 'change', number>()
     for (const { item } of open) out.set(kindOf(item), (out.get(kindOf(item)) ?? 0) + 1)
@@ -94,7 +95,7 @@ export function WarningsPanel({ entries, decisions, settled, positions, onOpen, 
       </div>
 
       {reviewing && open.length > 0 ? (
-        <ReviewStepper open={open} positions={positions} decisions={decisions} onOpen={onOpen} onDecide={onDecide}
+        <ReviewStepper open={open} positions={positions} decisions={decisions} allowFixes={allowFixes} onOpen={onOpen} onDecide={onDecide}
           onApplyFixes={onApplyFixes} onClose={() => setReviewing(false)} />
       ) : open.length > 0 && (
         <ul className="mt-3 divide-y divide-slate-200 border-y border-slate-200">
@@ -162,9 +163,10 @@ function FixAllDialog({ open, plans, remaining, onClose, onConfirm }: {
 }
 
 /** one open warning at a time; after each decision the next open one comes up. ← / → move, A accepts, F applies the fix */
-function ReviewStepper({ open, positions, decisions, onOpen, onDecide, onApplyFixes, onClose }: {
+function ReviewStepper({ open, positions, decisions, allowFixes, onOpen, onDecide, onApplyFixes, onClose }: {
   open: WarningEntry[]
   positions: Position[]
+  allowFixes: boolean
   decisions: Decisions
   onOpen: (positionId: string) => void
   onDecide: (ids: string[], decision: Decision | null, title?: string) => void
@@ -179,7 +181,7 @@ function ReviewStepper({ open, positions, decisions, onOpen, onDecide, onApplyFi
   const entry = open[index]
   const item = entry?.item
   const currentId = item?.id
-  const plan = item && isFinding(item) ? planFix(item, positions) : null
+  const plan = allowFixes && item && isFinding(item) && item.origin !== 'llm' ? planFix(item, positions) : null
   const move = (step: number) => {
     const next = (index + step + open.length) % open.length
     setCursor({ id: open[next]?.item.id, index: next })

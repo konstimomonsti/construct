@@ -1,10 +1,37 @@
 """Prices: those written in a bid/award file and those found by the pricing phase (line.price)."""
 
 from datetime import date
+import re
 
 from .. import units
 from ..registry import rule
 from .common import THRESHOLDS, is_counted, label, phase_has_prices
+
+
+CREDIT_PATTERN = re.compile(
+    r"\b(gutschrift|abzug|nachlass|rabatt|skonto|vergütung|ablagern|rückbau\s*erlös)\b",
+    re.IGNORECASE,
+)
+
+
+def is_credit(line) -> bool:
+    text = (line.short_text or "") + " " + (line.long_text or "")
+    return bool(CREDIT_PATTERN.search(text)) or line.gaeb_flags.get("discount") == "Yes"
+
+
+@rule("L1.PRICE.NEGATIVE", layer=1, category="price", severity="error", title="Negative unit price",
+      description="Unit prices in a bill of quantities cannot be negative unless explicitly marked as a credit or deduction.")
+def price_negative(ctx):
+    for line in ctx.input.lines:
+        for origin, unit_price in (("file", line.source_amounts.unit_price if line.source_amounts else None),
+                                   ("pricing", line.price.unit_price if line.price else None)):
+            if unit_price is not None and unit_price < 0:
+                if not is_credit(line):
+                    yield ctx.finding(
+                        line=line, field="unit_price", discriminator=origin,
+                        message=f"{label(line)} has a negative unit price of {unit_price} ({origin}) without being marked as a credit or deduction.",
+                        evidence={"unit_price": unit_price, "origin": origin},
+                    )
 
 
 @rule("L1.PRICE.MISSING_IN_FILE", layer=1, category="price", severity="error", title="Bid item without price",

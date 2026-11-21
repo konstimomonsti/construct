@@ -1,4 +1,5 @@
 import type { CategoryNode, ListDoc, Position, SourceInfo } from '../types'
+import { includedPositionTotal, round2, sumPositionTotals } from '../money'
 
 /* ------------------------------------------------------------------ */
 /* numbers                                                             */
@@ -23,8 +24,8 @@ export function deQty(n: number): string {
   return group(i) + (f ? ',' + f : '')
 }
 
-export const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100
-export const gp = (p: { qty: number; up: number | null }) => round2((p.up ?? 0) * p.qty)
+export { round2 }
+export const gp = includedPositionTotal
 
 /* ------------------------------------------------------------------ */
 /* text                                                                */
@@ -182,7 +183,7 @@ export function buildCats(positions: Position[], tree?: CategoryNode[]): CatTree
 }
 
 export function catSum(c: Cat): number {
-  return round2(c.items.reduce((s, p) => s + gp(p), 0) + c.cats.reduce((s, k) => s + catSum(k), 0))
+  return round2(sumPositionTotals(c.items) + c.cats.reduce((s, k) => s + catSum(k), 0))
 }
 export function catCount(c: Cat): number {
   return c.items.length + c.cats.reduce((s, k) => s + catCount(k), 0)

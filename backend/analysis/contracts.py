@@ -350,6 +350,8 @@ class RiskReport(_Model):
     by_section: list[SectionRisk] = Field(default_factory=list)
     by_category: dict[str, float] = Field(default_factory=dict)
     change_order_signals: list[ChangeOrderSignal] = Field(default_factory=list)
+    item_sections: dict[str, str | None] = Field(default_factory=dict, exclude=True)
+    item_exposure: dict[str, tuple[str, Decimal]] = Field(default_factory=dict, exclude=True)
 
 
 class BidderQuestion(_Model):
@@ -373,3 +375,6 @@ class AnalysisResult(_Model):
     errors: list[str] = Field(default_factory=list)  # rules that crashed, layers not available
     risk: RiskReport | None = None
     questions: list[BidderQuestion] = Field(default_factory=list)
+    l3_status: dict[str, Any] | None = None
+    graph_valid: bool | None = None
+    totals: dict[str, Any] | None = None

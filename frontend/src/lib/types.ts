@@ -15,6 +15,24 @@ export interface DocMeta {
   blobUrl?: string
 }
 
+export interface PhaseIdentity {
+  packageId: string
+  revision: string
+}
+
+export interface PhaseLink {
+  predecessorId: string
+  predecessorRevision: string
+  revision: string
+}
+
+export interface ConfirmedCap {
+  amount: string
+  currency: string
+  basis: 'working_line_net'
+  confirmationReference: string
+}
+
 export interface FolderMeta {
   id: string
   parentId?: string
@@ -36,6 +54,7 @@ export interface ListMeta {
   title: string
   format: string
   phase?: string
+  phaseIdentity?: PhaseIdentity
   project?: string
   projectLabel?: string
   date?: string

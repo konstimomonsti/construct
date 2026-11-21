@@ -267,16 +267,23 @@ class ScopeTests(unittest.TestCase):
         self.assertIsNone(finding.suggested_fix)
 
     def test_partial_distribution_keeps_residual(self):
-        input = input_for(line("s", "Estrich", distributions=[{"area_id": "a", "quantity": "60"}]))
+        input = input_for(line("s", "Estrich", distributions=[{"area_id": "a", "quantity": "60"}]),
+                          areas=[{"id": "a", "name": "Office"}])
         findings = selected(input, "FLOOR_COVERING")
         self.assertEqual(len(findings), 2)
         self.assertEqual({Decimal(f.evidence["trigger_quantity"]) for f in findings}, {Decimal(60), Decimal(40)})
         self.assertEqual(len({f.id for f in findings}), 2)
 
+    def test_orphan_allocation_does_not_produce_a_dependency_fix(self):
+        input = input_for(line("s", "Estrich", distributions=[{"area_id": "missing", "quantity": "60"}]))
+        self.assertEqual(selected(input, "FLOOR_COVERING"), [])
+
     def test_overallocated_or_missing_distribution_is_unreliable(self):
         for quantity in (None, "110"):
-            input = input_for(line("s", "Estrich", distributions=[{"area_id": "a", "quantity": quantity}]))
+            input = input_for(line("s", "Estrich", distributions=[{"area_id": "a", "quantity": quantity}]),
+                              areas=[{"id": "a", "name": "Office"}])
             findings = selected(input, "FLOOR_COVERING")
+            self.assertTrue(findings)
             self.assertTrue(all(f.severity == "info" for f in findings))
             self.assertTrue(all(f.suggested_fix is None for f in findings))
 

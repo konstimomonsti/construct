@@ -14,7 +14,7 @@
 import type { CategoryNode, CategoryRef, ListDoc, Position } from './types'
 import type { ListEdits } from './store'
 import { flatTree, newNode, treeFromPaths } from './cat'
-import { positionTotal } from './money'
+import { includedPositionTotal, round2 } from './money'
 
 export interface ResolvedList {
   positions: Position[]
@@ -208,14 +208,14 @@ export interface CatStat {
 export function treeStats(positions: Position[]): Map<string, CatStat> {
   const m = new Map<string, CatStat>()
   for (const p of positions) {
-    const t = positionTotal(p)
+    const t = includedPositionTotal(p)
     for (const r of p.path ?? []) {
       let s = m.get(r.oz)
       if (!s) m.set(r.oz, (s = { count: 0, total: 0, pids: [], zero: 0, unpriced: 0 }))
       s.count++
       if (p.up == null) s.unpriced++
       else if (!p.qty) s.zero++
-      s.total += t
+      s.total = round2(s.total + t)
       s.pids.push(p.id)
     }
   }
@@ -255,7 +255,9 @@ export function resolveList(doc: ListDoc, editsIn?: Partial<ListEdits>): Resolve
       const q = e.qty[p.id]
       const up = p.id in e.up ? e.up[p.id] : p.up
       const patch = e.patch[p.id]
-      return q === undefined && up === p.up && !patch ? p : { ...p, ...patch, qty: q ?? p.qty, up }
+      return q === undefined && up === p.up && !patch ? p : {
+        ...p, ...patch, qty: q ?? p.qty, up, quantityMissing: q === undefined ? p.quantityMissing : undefined,
+      }
     })
 
   // ---- tree

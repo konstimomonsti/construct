@@ -1,5 +1,4 @@
-import { REASONS, rescore, type Decision, type Decisions, type Finding, type Report, type Severity } from './risk-assessment'
-import { partialAnalysis } from './risk-labels'
+import { analysisCoverage, openExposure, openSections, REASONS, reportRisk, rescore, type Decision, type Decisions, type Finding, type Report, type Severity } from './risk-assessment'
 
 const LAYER = ['', 'Layer 1 (rules)', 'Layer 2 (dependencies)', 'Layer 3 (AI)']
 const SEVERITY_FILL: Record<Severity, string> = { error: 'FFFFC7CE', warning: 'FFFFEB9C', info: 'FFDDEBF7' }
@@ -49,9 +48,10 @@ export async function riskXlsx({ title, report, decisions, codes, questionTexts 
     ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: names.length } }
   }
 
-  const risk = report.risk
-  const partial = partialAnalysis(report.errors)
+  const risk = reportRisk(report)
+  const coverage = analysisCoverage(report)
   const live = risk ? rescore(risk, decisions) : null
+  const exposure = risk ? openExposure(risk, decisions) : null
   const open = report.findings.filter((f) => !decisions[f.id])
   const summary = wb.addWorksheet('Summary')
   summary.columns = [{ width: 30 }, { width: 60 }]
@@ -59,7 +59,15 @@ export async function riskXlsx({ title, report, decisions, codes, questionTexts 
     ['List', title],
     ['Exported', now.toISOString().slice(0, 10)],
     ...(live && risk ? [['Risk score', live.score], ['Risk level', live.level], ['Score at upload', risk.score]] as [string, string | number][] : []),
-    ['Money at stake', risk?.money_at_stake ? `${risk.money_at_stake} ${risk.currency}` : 'not priced'],
+    ['Assessment', report.outdated ? 'Previous assessment' : 'Assessment results'],
+    ['Analysis coverage', coverage.message],
+    ...(report.totals ? [
+      ['Working net', report.totals.working_net == null ? 'Unavailable' : `${report.totals.working_net} ${report.totals.currency ?? ''}`.trim()],
+      ['Working net coverage', `${report.totals.counted_positions - report.totals.missing_amounts}/${report.totals.counted_positions} included positions priced`],
+      ['Original net', report.totals.source_net ?? 'Unavailable for this revision'],
+    ] as [string, string][] : []),
+    ['Money at stake', exposure != null ? `${exposure} ${risk?.currency ?? ''}`.trim() : 'Unavailable'],
+    ...(report.graph_valid === false ? [['Suggested fixes', 'Blocked by invalid references']] as [string, string][] : []),
     ['Findings', report.findings.length],
     ['Reviewed', `${report.findings.length - open.length} of ${report.findings.length}`],
     ['Open errors', open.filter((f) => f.severity === 'error').length],
@@ -74,8 +82,8 @@ export async function riskXlsx({ title, report, decisions, codes, questionTexts 
     row.getCell(1).font = { bold: true }
     row.getCell(2).value = v
   })
-  if (partial) {
-    const row = summary.addRow(['Analysis coverage', `Based on partial analysis. ${partial.message}`])
+  if (coverage.details.length) {
+    const row = summary.addRow(['Coverage details', coverage.details.join('\n')])
     row.font = { bold: true }
     row.alignment = { wrapText: true }
   }
@@ -86,13 +94,14 @@ export async function riskXlsx({ title, report, decisions, codes, questionTexts 
   const lineCode = (f: Finding) => f.target.line_code ?? (f.target.line_id ? codes.get(f.target.line_id) : undefined) ?? f.target.section_id ?? ''
 
   const log = wb.addWorksheet('Findings_Log', { views: [{ state: 'frozen', ySplit: 1 }] })
-  log.columns = [14, 30, 22, 10, 14, 60, 45, 60, 22, 30].map((width) => ({ width }))
-  header(log, ['OZ', 'Rule', 'Layer / source', 'Severity', 'Category', 'Message', 'Recommended action', 'Bieterfrage', 'Decision', 'Reason / note'])
+  log.columns = [14, 30, 22, 10, 16, 14, 60, 45, 60, 22, 30].map((width) => ({ width }))
+  header(log, ['OZ', 'Rule', 'Layer / source', 'Severity', 'Priority / Action', 'Category', 'Message', 'Recommended action', 'Bieterfrage', 'Decision', 'Reason / note'])
   report.findings.forEach((f, i) => {
     const d = decisions[f.id]
     const row = log.getRow(i + 2)
     row.values = [
-      lineCode(f), f.rule_id, `${LAYER[f.layer] ?? `Layer ${f.layer}`}${f.origin === 'llm' && f.model ? ` · ${f.model}` : ''}`, f.severity, f.category ?? '',
+      lineCode(f), f.rule_id, `${LAYER[f.layer] ?? `Layer ${f.layer}`}${f.origin === 'llm' && f.model ? ` · ${f.model}` : ''}`, f.severity,
+      f.severity === 'error' ? 'Critical' : f.severity === 'warning' ? 'High' : 'Normal', f.category ?? '',
       `${f.title}: ${f.message}`, f.suggested_fix?.rationale ?? '', questionOf.get(f.id) ?? f.evidence?.bieterfrage_de ?? '',
       decisionText(d), [d?.reason ? REASONS[d.reason] : '', d?.note ?? ''].filter(Boolean).join(' – '),
     ]
@@ -108,6 +117,14 @@ export async function riskXlsx({ title, report, decisions, codes, questionTexts 
     row.values = [s.line_code ?? '', s.kind, s.title, s.message, s.points, decisionText(decisions[s.id])]
     row.alignment = { wrapText: true, vertical: 'top' }
   })
+  if (risk?.by_section.length) {
+    const sections = wb.addWorksheet('Section_Risk')
+    sections.columns = [15, 42, 15, 15].map(width => ({ width }))
+    header(sections, ['OZ', 'Section', 'Open items', 'Risk points'])
+    for (const section of openSections(risk, decisions)) {
+      sections.addRow([section.code ?? '', section.title ?? 'Whole list', section.open, section.points])
+    }
+  }
 
   return new Uint8Array(await wb.xlsx.writeBuffer())
 }
