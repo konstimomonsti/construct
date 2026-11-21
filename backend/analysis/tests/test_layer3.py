@@ -9,7 +9,7 @@ from analysis.layer2.adapter import from_data
 from analysis.layer3.provider import (
     FakeProvider, LLMRequest, OllamaProvider, ProviderError, ProviderUnavailable, ResponseCache, provider_from_env,
 )
-from analysis.layer3.prompts import CONTRADICTION_VERSION
+from analysis.layer3.prompts import CONTRADICTION_VERSION, PRECAST_VERSION
 from analysis.layer3.schema import CONTRADICTION_SCHEMA, L2_CONFIRM_SCHEMA, MAX_CONFIDENCE, quote_in
 from analysis.registry import rules_for
 from analysis.runner import analyze
@@ -392,7 +392,13 @@ def test_no_l2_findings_means_no_l2_calls():
 def test_eval_harness_runs_offline(monkeypatch):
     from analysis.layer3.eval import evaluate
     monkeypatch.setenv("ANALYSIS_L3_CACHE", "off")
-    result = evaluate(FakeProvider(lambda request: {"findings": [], "reviews": []}))
+    def clean_answer(request):
+        if request.prompt_version == PRECAST_VERSION:
+            payload = json.loads(request.prompt.split("\n\n", 1)[1])
+            return {"items": [{"line_ref": item["ref"], "item_type": "other"} for item in payload["items"]]}
+        return {"findings": [], "reviews": []}
+
+    result = evaluate(FakeProvider(clean_answer))
     assert result["model"] == "fake" and result["errors"] == []
     assert result["contradiction"]["recall"] == 0
     assert all(row["got"] == "unclear" for row in result["l2_confirm"]["cases"])

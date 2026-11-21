@@ -8,8 +8,8 @@ import pytest
 from analysis import adapter
 from analysis.eval import SEED_PATH, catalogue, docio, gaeb_writer, labels, mutate, ops
 from analysis.eval.cli import main as eval_main
-from analysis.eval.harness import evaluate, run_all
-from analysis.eval.report import format_report
+from analysis.eval.harness import evaluate, label_files, run_all
+from analysis.eval.report import format_report, guidance_rows
 from analysis.eval.seeds import make_building_hall
 from analysis.layer2.schema import load_rules
 from analysis.runner import analyze
@@ -202,6 +202,16 @@ def test_report_has_recall_precision_controls_and_gaps(evaluated):
         assert heading in text
     assert "Excluding the known gaps" in text and "`L1.QTY.ZERO`" in text
     assert "TEXT-TYPO" in text and "(gap)" in text
+    assert "Corrective guidance on matched findings" in text
+    counts = guidance_rows(evaluation)
+    assert any(layer == 2 and patches > 0 for layer, patches, *_ in counts)
+    assert sum(sum(row[1:]) for row in counts) == sum(c["tp"] for c in evaluation.per_rule.values())
+    assert all(row[-1] == 0 for row in counts)
+    arithmetic_guidance = [finding["guidance"] for outcome in evaluation.outcomes
+                           for finding in outcome.matched if finding["rule_id"].startswith("L1.ARITH.")]
+    assert arithmetic_guidance and set(arithmetic_guidance) == {"review"}
+
+
 
 
 def test_a_missed_error_and_a_false_alarm_are_reported(evaluated, tmp_path):
@@ -226,6 +236,17 @@ def test_a_missed_error_and_a_false_alarm_are_reported(evaluated, tmp_path):
     assert ("CTRL-REORDER-01.X83", result["findings"][-1]) in evaluation.false_alarms
     # The control's invented finding, plus the real L1.QTY.ZERO of QTY-ZERO-01 which its altered label no longer expects.
     assert evaluation.per_rule["L1.QTY.ZERO"]["fp"] == 2
+
+
+def test_nested_replay_is_ignored_by_parent_report(tmp_path):
+    mutate.generate(out_dir=tmp_path, only={"QTY-ZERO"}, per_type=1, backends=("x83",), demo=False)
+    nested = tmp_path / "model-replay"
+    mutate.generate(out_dir=nested, only={"QTY-ZERO"}, per_type=1, backends=("x83",), demo=False)
+    outer = label_files(tmp_path)
+    assert len(outer) == len(label_files(nested)) == 2
+    assert all(path.parent == tmp_path / "mutated" for path in outer)
+    run_all(tmp_path, [1, 2])
+    assert evaluate(tmp_path).files == len(outer)
 
 
 def test_a_label_whose_layer_did_not_run_counts_as_not_run(tmp_path, monkeypatch):
@@ -290,6 +311,10 @@ def test_precast_seed_and_mutations_round_trip_cleanly(tmp_path):
     assert "Unrelated traffic-control quantity increases by 5%" in rendered
     assert "L3.PRECAST.MISSING_SPEC" in rendered
     assert not evaluation.false_alarms
+    questions = [finding for outcome in evaluation.outcomes for finding in outcome.matched
+                 if finding["rule_id"] == "L1.PRECAST.LAYER_SUM"]
+    assert len(questions) == 2
+    assert all(finding["guidance"] == "bidder_question" for finding in questions)
     for backend in ("x83", "json"):
         results = {row.label["mutation_type"]: row.outcome for row in evaluation.outcomes if row.backend == backend}
         for plan in precast.plans(docio.load(PRECAST_PATH)):

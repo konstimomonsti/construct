@@ -23,7 +23,7 @@ DEFAULT_LAYERS = [1, 2]
 
 
 def label_files(out_dir: Path) -> list[Path]:
-    return sorted(out_dir.rglob("*.labels.json"))
+    return sorted(path for folder in ("mutated", "demo") for path in (out_dir / folder).glob("*.labels.json"))
 
 
 def result_path(out_dir: Path, mutated: Path) -> Path:

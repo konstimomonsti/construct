@@ -32,7 +32,7 @@ import io
 import json
 from pathlib import Path
 
-from ..contracts import AnalysisResult
+from ..contracts import AnalysisResult, Finding
 from ..runner import analyze
 
 SCHEMA = "construct-eval-labels/1"
@@ -73,6 +73,18 @@ def finding_matches(label: dict, finding: dict) -> bool:
 # --------------------------------------------------------------------------- compact findings and runs
 
 
+def guidance_kind(finding: Finding) -> str:
+    fix = finding.suggested_fix
+    if fix and fix.operations:
+        return "patch"
+    question = finding.evidence.get("bieterfrage_de")
+    if isinstance(question, str) and question.strip():
+        return "bidder_question"
+    if fix and fix.rationale.strip():
+        return "review"
+    return "none"
+
+
 def compact(result: AnalysisResult, analysis_input) -> list[dict]:
     """Findings reduced to what labels can refer to. No ids, no hashes."""
     sections = {section.id: section.code for section in analysis_input.sections}
@@ -87,6 +99,7 @@ def compact(result: AnalysisResult, analysis_input) -> list[dict]:
             "trigger_codes": [code for code in triggers if code],
             "related_codes": [codes.get(line_id) for line_id in finding.related_line_ids if codes.get(line_id)],
             "title": finding.title, "message": finding.message[:300],
+            "guidance": guidance_kind(finding),
         })
     return rows
 

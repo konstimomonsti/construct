@@ -247,6 +247,38 @@ def test_extracted_values_not_in_the_text_are_ignored():
     assert finding.evidence["extracted"]["height_m"] is None
 
 
+def test_explicit_dimensions_override_unsupported_model_values():
+    def wrong_units(item):
+        data = extract_like_a_model(item)
+        if data["item_type"] == "sandwich_plinth":
+            data.update(height_m=80, length_m=635, layers={"total_thickness_cm": 3},
+                        color_pigment_ral=None)
+        return data
+
+    bill = complete_precast_input()
+    line = bill.lines[0]
+    bill.lines[0] = line.model_copy(update={
+        "long_text": line.long_text.replace("d=30cm gesamt", "Gesamtdicke: 300 mm").replace("Höhe: 0,80 m.", "80 cm hoch."),
+    })
+    findings, errors = run3(bill.with_hash(), FakeProvider(lambda r: fake_model(r, extract=wrong_units)))
+    assert errors == []
+    finding, = by_rule(findings, MISSING)
+    assert finding.evidence["missing_fields"] == ["color_pigment_ral"]
+    measured = finding.evidence["extracted"]
+    assert (measured["height_m"], measured["length_m"], measured["layers"]["total_thickness_cm"]) == (0.8, 6.35, 30)
+
+
+def test_model_omitting_a_position_reports_partial_coverage():
+    def incomplete(request):
+        if request.prompt_version == prompts.PRECAST_VERSION:
+            return {"items": [extract_like_a_model(item) for item in payload(request)["items"] if item["code"] != "1.20"]}
+        return fake_model(request)
+
+    findings, errors = run3(complete_precast_input(), FakeProvider(incomplete))
+    assert not by_rule(findings, MISSING)
+    assert errors == ["L3.PRECAST.EXTRACTION: no valid extraction for 1.20"]
+
+
 def test_audit_answers_that_break_the_preconditions_are_dropped():
     def bad_audit(request):
         return {"findings": [

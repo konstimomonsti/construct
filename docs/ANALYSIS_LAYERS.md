@@ -210,9 +210,10 @@ order in which the call budget is spent (`checks/__init__.py`):
   title or a short text names Fertigteil / Sandwich / FT-) goes to `ANALYSIS_L3_MODEL` in batches; the answer
   is the spec's `PrecastElementItem` (item type, element mark, length, height, layer thicknesses, concrete
   grade, exposure, surfaces, through-coloured, RAL/pigment, anchor design, transport/assembly, placeholders)
-  plus `rebar_purpose` and `assigned_element_codes`. Values must be backed by the text (grade, colour and
-  element mark written there; a height/length next to a height/length word; "durchgefärbt" for
-  through-coloured), otherwise they count as not stated. The result is shared with the scope audit.
+  plus `rebar_purpose` and `assigned_element_codes`. Length, height and total thickness come from unique
+  labelled measurements in the text, normalized to metres or centimetres. Grade, colour, element mark,
+  and through-coloured concrete require matching text. A missing or invalid model response for a position
+  appears in the run errors as partial coverage. The result is shared with the scope audit.
 - **`L3.PRECAST.MISSING_SPEC`** (warning): deterministic on the extracted fields. Spec `DEP_001` (a sandwich
   element needs height, length, concrete grade, total thickness) and `DEP_002` (through-coloured concrete
   needs a RAL colour or pigment). One finding per line, discriminator = the missing fields;

@@ -85,6 +85,17 @@ def precision_rows(evaluation: Evaluation) -> list[list]:
     return rows
 
 
+def guidance_rows(evaluation: Evaluation) -> list[list]:
+    by_layer: dict[int, Counter] = defaultdict(Counter)
+    for outcome in evaluation.outcomes:
+        if outcome.suite != "catalogue" or outcome.outcome != "caught":
+            continue
+        for finding in outcome.matched:
+            by_layer[finding["layer"]][finding.get("guidance", "unknown")] += 1
+    return [[layer, counts["patch"], counts["bidder_question"], counts["review"], counts["none"], counts["unknown"]]
+            for layer, counts in sorted(by_layer.items())]
+
+
 def format_report(evaluation: Evaluation, *, seed_info: str = "") -> str:
     out: list[str] = []
     ran = [layer for layer in evaluation.layers_requested if layer not in evaluation.layers_not_run]
@@ -114,6 +125,13 @@ def format_report(evaluation: Evaluation, *, seed_info: str = "") -> str:
     out.append(table(["Rule", "Correct", "False alarm", "Consequence", "Precision"], precision_rows(evaluation)))
     out.append("\n*Consequence*: a finding the label lists as an acceptable result of the change (for example a "
                "subtotal that no longer matches a changed line amount). It is neither correct nor false.")
+
+    out.append("\n### Corrective guidance on matched findings\n")
+    out.append(table(["Layer", "Patch", "Bidder question", "Review guidance", "None", "Unavailable"],
+                     guidance_rows(evaluation)))
+    out.append("\nA proposed patch takes precedence over a bidder question or review guidance. "
+               "These counts measure presence. The proposed corrections still need review. "
+               "Unavailable means the stored run predates guidance scoring.")
 
     missed = [o for o in evaluation.outcomes if o.outcome == "missed"]
     if missed:

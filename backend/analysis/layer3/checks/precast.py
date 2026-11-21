@@ -10,8 +10,8 @@ session memo so the scope audit (`scope.py`) reuses it. The checks on top are de
   and pigment costs can be spread over the bundled length.
 
 Anti-hallucination: a value the model "extracts" must be backed by the text. Grade, colour and element mark
-must be written there; a height or length needs a height/length word next to it; "through-coloured" needs
-the word. Otherwise the field is treated as not stated.
+must be written there. Supported dimension values are read from the labelled measurement and normalized
+to the target unit. "Through-coloured" needs the word.
 """
 
 from __future__ import annotations
@@ -21,6 +21,8 @@ import re
 from typing import Any
 
 from ...contracts import Line
+from ...layer1.precast import LAYERS
+from ...layer1.textvalues import DIMENSIONS, MEASURE, centimetres
 from ...registry import rule
 from .. import prompts
 from ..common import batches, clip, current
@@ -33,8 +35,15 @@ EXTRACTION = "L3.PRECAST.EXTRACTION"  # budget/error label for the extraction ca
 MEMO_KEY = "precast_items"
 
 PRECAST_ELEMENT = re.compile(r"fertigteil|\bft-|sandwich", re.IGNORECASE)
-_HEIGHT = re.compile(r"h(ö|oe)he|\bh\s*=|\bhoch\b", re.IGNORECASE)
-_LENGTH = re.compile(r"l(ä|ae)nge|\bl\s*=|\blang\b", re.IGNORECASE)
+_HEIGHT = (
+    re.compile(rf"\b(?:h\s*=|H(?:ö|oe)he\s*[:=]?)\s*(?:ca\.?\s*)?{MEASURE}", re.I),
+    re.compile(rf"{MEASURE}\s+hoch\b", re.I),
+)
+_LENGTH = (DIMENSIONS["length"], re.compile(rf"{MEASURE}\s+lang\b", re.I))
+_THICKNESS = (
+    LAYERS["total_thickness_cm"],
+    re.compile(rf"\bGesamtdicke\s*[:=]?\s*(?:ca\.?\s*)?{MEASURE}", re.I),
+)
 _COLOURED = re.compile(r"durchgef(ä|ae)rbt|eingef(ä|ae)rbt|farbbeton", re.IGNORECASE)
 
 # DEP_001 required fields, in question order, with the German wording for the Bieterfrage.
@@ -97,6 +106,9 @@ def extracted(ctx) -> list[tuple[Line, dict[str, Any]]]:
                 continue
             seen.add(line.id)
             result.append((line, verified(line, item)))
+        unchecked = [line.code or line.id for line in chunk if line.id not in seen]
+        if unchecked:
+            session.errors.append(f"{EXTRACTION}: no valid extraction for {', '.join(unchecked)}")
     session.memo[MEMO_KEY] = result
     return result
 
@@ -113,13 +125,20 @@ def verified(line: Line, item: PrecastItem) -> dict[str, Any]:
     for key in ("concrete_grade", "color_pigment_ral", "element_code"):
         if data[key] and not value_in(data[key], line.short_text, line.long_text):
             data[key] = None
-    if data["height_m"] is not None and not _HEIGHT.search(text):
-        data["height_m"] = None
-    if data["length_m"] is not None and not _LENGTH.search(text):
-        data["length_m"] = None
+    if data["item_type"] in {"sandwich_plinth", "precast_element"}:
+        data["height_m"] = _measurement(text, _HEIGHT, scale=100)
+        data["length_m"] = _measurement(text, _LENGTH, scale=100)
+        total = _measurement(text, _THICKNESS)
+        if data["layers"] is not None or total is not None:
+            data["layers"] = {**(data["layers"] or {}), "total_thickness_cm": total}
     if data["is_through_colored"] and not _COLOURED.search(text):
         data["is_through_colored"] = False
     return data
+
+
+def _measurement(text: str, patterns: tuple[re.Pattern, ...], *, scale: int = 1) -> float | None:
+    values = {centimetres(match[1], match[2]) for pattern in patterns for match in pattern.finditer(text)}
+    return float(values.pop() / scale) if len(values) == 1 else None
 
 
 def missing_fields(data: dict[str, Any]) -> list[str]:
@@ -146,12 +165,11 @@ def missing_spec(ctx):
         wanted = [REQUIRED_FIELDS.get(name, COLOUR_TEXT) for name in missing]
         element = f" ({data['element_code']})" if data.get("element_code") else ""
         question = (f"Zu Pos. {line.code}{element}: Bitte teilen Sie uns {_join_de(wanted)} mit; "
-                    f"die Leistungsbeschreibung enthält dazu keine Angabe.")
+                    "die Angabe ist in der Leistungsbeschreibung nicht eindeutig belegt.")
         labels = ", ".join(FIELD_LABELS[name] for name in missing)
         yield ctx.finding(
             line=line, discriminator=",".join(missing), origin="llm", model=session.model_id,
-            message=f"{line.code}: the precast element description does not state the {labels}; "
-                    f"it can't be priced or produced reliably without it.",
+            message=f"{line.code}: the precast element description does not establish the {labels}.",
             evidence={"missing_fields": missing, "spec_checks": _checks(missing), "extracted": data,
                       "bieterfrage_de": question, "prompt_version": prompts.PRECAST_VERSION},
         )
