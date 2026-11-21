@@ -1,8 +1,8 @@
-import { RowMenu, Row, RowList, BudgetBadge, BudgetMini, budgetPhrase } from './Kit'
+import { RowMenu, Row, RowList, BudgetBadge, BudgetMini, budgetPhrase, heroStatus } from './Kit'
 import { Meter } from './ui'
-import { int, money, plural } from '../lib/format'
+import { budgetStatus, int, money, plural } from '../lib/format'
 import { useActions } from '../lib/actions'
-import { folderDescription, type FolderView } from '../lib/store'
+import { counts, folderDescription, type FolderView } from '../lib/store'
 
 export { toneTile } from './Kit'
 export { RowMenu as MoreMenu } from './Kit'
@@ -10,16 +10,18 @@ export { RowMenu as MoreMenu } from './Kit'
 export function FolderRow({ folder: f, selectMode, selected, onToggle }: { folder: FolderView; selectMode?: boolean; selected?: boolean; onToggle?: () => void }) {
   const { folderMenu } = useActions()
   const lists = f.listMetas.length ? plural(f.listMetas.length, 'list', 'lists') : 'No lists yet'
+  // the project can be fine while one of its lists is at its own cap: say so on the row
+  const listFlag = heroStatus(f, f.listMetas.filter((l) => counts(l) && l.total > 0).map((l) => ({ tone: budgetStatus(l.total, l.cap).tone })), ['list', 'lists'])?.word
   return (
     <Row
       dataRow="folder"
       to={`/folder/${f.id}`}
-      label={`${f.name}, ${lists}, ${f.total ? money(f.total) : 'not priced yet'}, ${budgetPhrase(f.total, f.cap)}`}
+      label={`${f.name}, ${lists}, ${f.total ? money(f.total) : 'not priced yet'}, ${budgetPhrase(f.total, f.cap)}${listFlag ? `, ${listFlag}` : ''}`}
       icon={f.icon}
       tone={f.tone}
       title={f.name}
       badge={<BudgetBadge total={f.total} cap={f.cap} />}
-      subtitle={[lists, folderDescription(f).split(' · ')[0]].filter(Boolean).join(' · ')}
+      subtitle={[lists, listFlag ?? folderDescription(f).split(' · ')[0]].filter(Boolean).join(' · ')}
       amount={f.total ? money(f.total) : <span className="font-medium text-slate-500">Not priced</span>}
       meta={
         !f.total && f.positions ? (

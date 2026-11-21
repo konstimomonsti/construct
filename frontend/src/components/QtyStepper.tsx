@@ -6,12 +6,12 @@ import { parseNumber, qty } from '../lib/format'
  * row is hovered or focused, and always outlined on touch screens where there is no hover.
  */
 export const editableCls =
-  'num h-9 rounded-md border border-dotted border-transparent border-b-slate-400 px-2 text-right text-sm text-slate-900 transition-colors group-hover:border-solid group-hover:border-slate-400 group-hover:bg-white hover:border-slate-500 focus:border-solid [@media(pointer:coarse)]:border-solid [@media(pointer:coarse)]:border-slate-400'
+  'num h-9 rounded-md border border-transparent px-2 text-right text-sm transition-colors group-hover:border-slate-500 group-hover:bg-white group-focus-within:border-slate-500 hover:border-slate-600 focus:border-brand-600 focus:bg-white max-lg:border-b-slate-500 max-lg:bg-slate-50 [@media(pointer:coarse)]:border-b-slate-500'
 
 const round = (n: number) => Math.round(n * 1000) / 1000
 
 /** typed quantity field: dotted underline at rest, a full field on hover/focus; arrows step by 1 */
-export function QtyInput({ value, onChange, label, edited }: { value: number; onChange: (n: number) => void; label: string; edited?: boolean }) {
+export function QtyInput({ value, onChange, label, edited, muted }: { value: number; onChange: (n: number) => void; label: string; edited?: boolean; muted?: boolean }) {
   const [text, setText] = useState(qty(value))
   useEffect(() => setText(qty(value)), [value])
 
@@ -42,7 +42,7 @@ export function QtyInput({ value, onChange, label, edited }: { value: number; on
         }
       }}
       onFocus={(e) => e.currentTarget.select()}
-      className={`${editableCls}${edited ? ' font-semibold text-brand-700' : ''} w-16 outline-none focus:border-brand-600 focus:bg-white focus:ring-1 focus:ring-brand-600 max-xl:text-left xl:w-full`}
+      className={`${editableCls}${edited ? ' font-semibold text-brand-700' : muted ? ' text-slate-500' : ' text-slate-900'} w-16 outline-none focus:border-brand-600 focus:bg-white focus:ring-1 focus:ring-brand-600 lg:w-full`}
     />
   )
 }

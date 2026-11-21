@@ -6,13 +6,16 @@ import { Button, Dialog, Field, inputCls } from './ui'
 
 export interface PricingSection { id: string; name: string; cost: number; color: string }
 
-/** top-level categories with their cost and a stable, well-separated colour */
+/** brand and slate tones only: section colours must never read as a budget status (green/amber/red) */
+const RAMP = ['hsl(217 72% 34%)', 'hsl(217 62% 58%)', 'hsl(215 22% 38%)', 'hsl(217 70% 76%)', 'hsl(215 16% 62%)', 'hsl(220 80% 22%)', 'hsl(215 14% 80%)']
+
+/** top-level categories with their cost and a stable colour from the ramp */
 export function pricingSections(tree: CategoryNode[], stats: Map<string, CatStat>): PricingSection[] {
   return tree.map((category, index) => ({
     id: category.oz,
     name: category.label || category.oz,
     cost: stats.get(category.oz)?.total ?? 0,
-    color: `hsl(${(217 + index * 137.508) % 360} 62% 42%)`,
+    color: RAMP[index % RAMP.length],
   }))
 }
 

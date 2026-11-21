@@ -13,7 +13,7 @@ function EditDot({ on }: { on: boolean }) {
   return <span aria-hidden title="Edited" className="absolute top-1/2 left-0 size-1.5 -translate-y-1/2 rounded-full bg-brand-600" />
 }
 
-function PriceCell({ value, onSave, oz, edited, className }: { value: number | null; onSave: (v: number | null) => void; oz: string; edited?: boolean; className?: string }) {
+function PriceCell({ value, onSave, oz, edited, muted, className }: { value: number | null; onSave: (v: number | null) => void; oz: string; edited?: boolean; muted?: boolean; className?: string }) {
   const [edit, setEdit] = useState(false)
   const [text, setText] = useState('')
   const done = useRef(false)
@@ -61,7 +61,7 @@ function PriceCell({ value, onSave, oz, edited, className }: { value: number | n
         setEdit(true)
       }}
       className={clsx(
-        value != null ? clsx(editableCls, edited && 'font-semibold text-brand-700') : 'h-9 rounded-lg px-2 text-right text-sm font-semibold text-brand-700 hover:bg-brand-50',
+        value != null ? clsx(editableCls, edited ? 'font-semibold text-brand-700' : muted ? 'text-slate-500' : 'text-slate-900') : 'h-9 rounded-lg px-2 text-right text-sm font-semibold text-brand-700 hover:bg-brand-50',
         className ?? 'w-full',
       )}
     >
@@ -99,7 +99,7 @@ const Row = memo(function Row({ listId, p, showCategory, selected, flash, edited
       data-row="position"
       className={clsx(
         'group transition-colors',
-        selected ? 'bg-brand-50/70' : 'hover:bg-slate-50',
+        selected ? 'bg-brand-50/70' : 'hover:bg-slate-100',
         flash && 'bg-brand-50 outline-2 -outline-offset-2 outline-brand-300',
       )}
     >
@@ -116,34 +116,36 @@ const Row = memo(function Row({ listId, p, showCategory, selected, flash, edited
           onClick={() => onOpen(p)}
           aria-haspopup="dialog"
           title="Show full description"
-          className={clsx('block max-w-full text-left text-[15px] underline-offset-4 hover:underline max-xl:line-clamp-2 max-xl:font-medium xl:truncate', zero ? 'text-slate-500' : 'text-slate-900')}
+          className={clsx('block max-w-full text-left text-[15px] underline-offset-4 hover:underline max-lg:line-clamp-2 max-lg:font-medium lg:truncate', zero ? 'text-slate-500' : 'text-slate-900')}
         >
+          {/* cards lead with the OZ, the way the group headers do */}
+          <span className="num mr-1.5 font-normal text-slate-600 lg:hidden">{p.oz}</span>
           {hasShort ? nbHyphen(p.short) : <span className="text-slate-600 italic">(ohne Kurztext)</span>}
           <span className="sr-only">, open details</span>
         </button>
-        <div className={clsx('mt-0.5 truncate text-[13px] text-slate-600', !showCategory && 'xl:hidden')}>
-          <span className="num xl:hidden">{p.oz}</span>
-          {showCategory && <><span className="xl:hidden"> · </span>{p.category}</>}
-        </div>
+        {showCategory && <div className="mt-0.5 truncate text-[13px] text-slate-600">{p.category}</div>}
       </td>
       <td data-a="qty" className="relative w-24 py-1 pr-1 pl-2 text-right">
-        <span className="hidden xl:inline"><EditDot on={qtyEdited} /></span>
-        <div className="flex items-center gap-1.5 xl:block">
-          <QtyInput value={p.qty} label={p.oz} edited={qtyEdited} onChange={(n) => useStore.getState().setQty(listId, p.id, n)} />
-          <span className="text-sm whitespace-nowrap text-slate-600 xl:hidden">{p.unit} ×</span>
-          <span className="relative xl:hidden">
-            <PriceCell value={p.up} oz={p.oz} edited={upEdited} onSave={setUp} className="w-auto min-w-20" />
+        <span className="hidden lg:inline"><EditDot on={qtyEdited} /></span>
+        <div className="flex items-center gap-1.5 lg:block">
+          <QtyInput value={p.qty} label={p.oz} edited={qtyEdited} muted={zero} onChange={(n) => useStore.getState().setQty(listId, p.id, n)} />
+          <span className="text-sm whitespace-nowrap text-slate-600 lg:hidden">{p.unit || '—'} ×</span>
+          <span className="relative lg:hidden">
+            <PriceCell value={p.up} oz={p.oz} edited={upEdited} muted={zero} onSave={setUp} className="w-auto min-w-20" />
           </span>
-          {edited && <span className="size-1.5 shrink-0 rounded-full bg-brand-600 xl:hidden" aria-hidden title="Edited" />}
+          {edited && <span className="size-1.5 shrink-0 rounded-full bg-brand-600 lg:hidden" aria-hidden title="Edited" />}
         </div>
       </td>
-      <td data-a="hide" className="w-16 py-1 pr-2 pl-1 text-sm whitespace-nowrap text-slate-600">{p.unit}</td>
+      <td data-a="hide" className={clsx('w-16 py-1 pr-2 pl-1 text-sm whitespace-nowrap', zero ? 'text-slate-500' : 'text-slate-600')}>{p.unit || <span aria-label="no unit">—</span>}</td>
       <td data-a="hide" className="relative w-[120px] py-1 pr-1 pl-2 text-right">
         <EditDot on={upEdited} />
-        <PriceCell value={p.up} oz={p.oz} edited={upEdited} onSave={setUp} />
+        <PriceCell value={p.up} oz={p.oz} edited={upEdited} muted={zero} onSave={setUp} />
       </td>
-      <td data-a="total" className={clsx('num w-32 px-2 py-1 text-right text-[15px] whitespace-nowrap', p.up == null || zero ? 'text-slate-500' : 'text-slate-800')}>
-        {p.up == null ? <span className="text-sm">Not priced</span> : zero ? <span aria-label="0 €">—</span> : <>{amount(total)}<span className="xl:hidden"> €</span></>}
+      {/* desktop GP sits under the "GP (€)" header; cards have no header, so they carry the € */}
+      <td data-a="total" className={clsx('num w-32 px-2 py-1 text-right text-sm whitespace-nowrap', p.up == null || zero ? 'text-slate-500' : 'font-medium text-slate-900')}>
+        <span className="inline-flex h-9 items-center justify-end">
+          {p.up == null ? 'Not priced' : zero ? <span aria-label="0 €, quantity 0">—</span> : <>{amount(total)}<span className="lg:hidden">&nbsp;€</span></>}
+        </span>
       </td>
       <td data-a="menu" className="w-11 py-1 pr-1 text-right">
         <Menu
@@ -311,16 +313,16 @@ EP (€)
                     >
                       <Icon name="expand_more" size={20} className={clsx('shrink-0 text-slate-500 transition-transform', !open && '-rotate-90')} />
                       <span className="num shrink-0 font-semibold text-slate-600">{cat.oz}</span>
-                      <span className="xl:truncate">{cat.label || cat.oz}</span>
+                      <span className="line-clamp-2 lg:line-clamp-1">{cat.label || cat.oz}</span>
                     </button>
                   </th>
                   <td colSpan={2} className={clsx('num px-2 pr-[3.25rem] text-right whitespace-nowrap', top ? 'pt-6 text-base font-bold text-slate-900' : 'pt-3 text-sm font-semibold text-slate-800')}>
                     {!stats.has(cat.oz) ? (
                       <span className="text-sm font-normal text-slate-600">No positions yet</span>
                     ) : stats.get(cat.oz)!.total === 0 ? (
-                      <span className="font-normal text-slate-500" aria-label="0 €">—</span>
+                      <span className="text-sm font-normal text-slate-600">All quantities 0</span>
                     ) : (
-                      <>{amount(stats.get(cat.oz)!.total)}<span className="xl:hidden"> €</span></>
+                      <>{amount(stats.get(cat.oz)!.total)}<span className="lg:hidden">&nbsp;€</span></>
                     )}
                   </td>
                 </tr>

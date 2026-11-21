@@ -99,7 +99,7 @@
 
 /* row checkboxes: on desktop with a mouse they appear on row hover; touch screens show them
    only while selecting (see the ledger card layout below) */
-@media (min-width: 1280px) and (hover: hover) {
+@media (min-width: 1024px) and (hover: hover) {
   .ledger:not([data-selecting]) tbody tr:not(:hover) .cb-reveal:not(:focus-within),
   .ledger:not([data-selecting]):not(:hover) thead .cb-reveal:not(:focus-within) { opacity: 0; }
 }
@@ -115,8 +115,8 @@ h1, h2, h3 { text-wrap: balance; }
   }
 }
 
-/* ledger: real table on wide screens, stacked two-line cards below 1280px */
-@media (max-width: 1279px) {
+/* ledger: real table on wide screens, stacked two-line cards below 1024px */
+@media (max-width: 1023px) {
   .ledger, .ledger tbody { display: block; }
   .ledger thead { display: none; }
   .ledger tr {

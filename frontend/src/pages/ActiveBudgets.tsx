@@ -3,7 +3,7 @@ import { BudgetBadge, BudgetMini, Chips, EmptyState, PageFrame, PageHeader, Row,
 import { Dock } from '../components/Dock'
 import { toast } from '../components/ui'
 import { counts, useModel, useStore, type ListView } from '../lib/store'
-import { money, needsAttention, plural } from '../lib/format'
+import { budgetStatus, money, needsAttention, plural } from '../lib/format'
 import { useActions } from '../lib/actions'
 import { completeness, displayTitle, listLabel, phaseLabel } from '../components/ListCard'
 
@@ -42,10 +42,6 @@ export function ActiveBudgets() {
   const total = live.reduce((x, l) => x + l.total, 0)
   const left = budget.cap - budget.total
   const folderCount = new Set(live.map((l) => l.folderId)).size
-  const show = () => {
-    setView('attention')
-    requestAnimationFrame(() => document.getElementById('sec-budgets')?.focus())
-  }
   const toggle = (id: string) =>
     setSel((s) => {
       const n = new Set(s)
@@ -62,7 +58,7 @@ export function ActiveBudgets() {
     <PageFrame>
       <PageHeader
         title="Active Budgets"
-        subtitle={live.length ? `${plural(live.length, 'priced list', 'priced lists')} in ${plural(folderCount, 'project', 'projects')}, measured against their own caps` : undefined}
+        subtitle={live.length ? `${plural(live.length, 'priced list', 'priced lists')} in ${plural(folderCount, 'project', 'projects')}` : undefined}
       />
       {live.length === 0 ? (
         <EmptyState icon="account_balance_wallet" title="No priced lists yet" text="Lists with unit prices (offers, GAEB X84/X86, D84/D86) show up here." />
@@ -75,8 +71,9 @@ export function ActiveBudgets() {
             cap={budget.cap}
             capLabel="in list caps"
             hideLeft
-            status={heroStatus(budget, live, ['list', 'lists'], show)}
-            meta={<span className="num"><strong className="font-semibold text-slate-900">{money(total)}</strong> priced across {plural(live.length, 'list', 'lists')}</span>}
+            status={heroStatus(budget, live.map((l) => ({ tone: budgetStatus(l.total, l.cap).tone })), ['list', 'lists'])}
+            meta={<span className="num">{money(total)} priced across {plural(live.length, 'list', 'lists')}</span>}
+            note="Measured against each list's own cap."
           />
           <Section
             title="Budgets"
@@ -85,14 +82,14 @@ export function ActiveBudgets() {
             count={rows.length}
             tools={
               <>
-                <SortMenu value={key} options={SORTS} onChange={setKey} noun="budgets" />
+                {live.length > 3 && <SortMenu value={key} options={SORTS} onChange={setKey} noun="budgets" />}
                 <ToolButton icon={selectMode ? 'close' : 'checklist'} active={selectMode} aria-pressed={selectMode} onClick={() => (selectMode ? done() : setSelectMode(true))}>
                   {selectMode ? 'Cancel' : 'Select'}
                 </ToolButton>
               </>
             }
           >
-            {(flagged > 0 || view !== 'all') && (
+            {((live.length > 3 && flagged > 0) || view !== 'all') && (
               <div className="mb-3">
                 <Chips
                   label="Filter budgets"
@@ -111,7 +108,8 @@ export function ActiveBudgets() {
             ) : (
               <RowList>
                 {rows.map((l) => {
-                  const folder = folderById.get(l.folderId)?.name
+                  const project = folderById.get(l.folderId)
+                  const folder = project?.name
                   const title = displayTitle(listLabel(l, live).title, folder)
                   return (
                     <Row
@@ -119,7 +117,7 @@ export function ActiveBudgets() {
                       to={`/list/${l.id}`}
                       label={`${title}, ${folder}, ${money(l.total)}, ${budgetPhrase(l.total, l.cap)}`}
                       icon="request_quote"
-                      tone="slate"
+                      tone={project?.tone ?? 'slate'}
                       title={title}
                       badge={<BudgetBadge total={l.total} cap={l.cap} />}
                       subtitle={[folder, phaseLabel(l), completeness(l)].filter(Boolean).join(' · ')}

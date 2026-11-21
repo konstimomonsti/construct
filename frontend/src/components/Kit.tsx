@@ -117,12 +117,18 @@ const statusIcon: Record<string, string> = {
   none: 'remove_circle_outline',
 }
 
-export const NEAR_CAP_HINT = 'Near cap: 75% or more of the cap is used'
+/** one threshold per status word; spoken after the word, never a mouse-only tooltip */
+export const STATUS_HINT: Record<string, string> = {
+  ok: 'below 75% of the cap used',
+  caution: '75 to 89% of the cap used',
+  warn: '90 to 100% of the cap used',
+  over: 'more than the cap used',
+  none: '',
+}
 
-export function StatusTag({ tone, word, small }: { tone: string; word: string; small?: boolean }) {
+export function StatusTag({ tone, word, small, hint }: { tone: string; word: string; small?: boolean; hint?: boolean }) {
   return (
     <span
-      title={tone === 'ok' || tone === 'none' ? undefined : NEAR_CAP_HINT}
       className={clsx(
         'inline-flex items-center gap-1 rounded-full font-semibold whitespace-nowrap',
         small ? 'py-px pr-2 pl-1 text-xs' : 'py-0.5 pr-2.5 pl-1.5 text-[13px]',
@@ -131,6 +137,7 @@ export function StatusTag({ tone, word, small }: { tone: string; word: string; s
     >
       <Icon name={statusIcon[tone] ?? 'info'} size={small ? 14 : 16} fill />
       {word}
+      {hint && STATUS_HINT[tone] && <span className="sr-only">, {STATUS_HINT[tone]}</span>}
     </span>
   )
 }
@@ -157,7 +164,7 @@ export function BudgetMini({ total, cap, label }: { total: number; cap: number; 
   if (!cap) return <span className="text-sm text-slate-600">No cap set</span>
   return (
     <span className="flex items-center justify-end gap-2 text-sm whitespace-nowrap text-slate-600">
-      <span className="num">{Math.round(st.pct)}% of {moneyWhole(cap)}</span>
+      <span className="num">{Math.round(st.pct)}%<span className="max-sm:hidden"> of {moneyWhole(cap)}</span></span>
       <Meter value={st.pct} tone={st.tone} className="w-12 flex-none sm:w-14" label={label} />
     </span>
   )
@@ -182,8 +189,6 @@ export function BigMoney({ value, className }: { value: string; className?: stri
 export interface HeroStatus {
   tone: string
   word: string
-  /** turns the pill into the filter for the flagged rows below */
-  onClick?: () => void
 }
 
 /**
@@ -191,8 +196,12 @@ export interface HeroStatus {
  * The pill always shows the worst state (a project near its cap makes the whole page "1 near cap").
  */
 export function Summary({
-  label, amount, total, cap, actions, meta, capLabel = 'cap', compact, status, bar, extra, hideLeft,
+  label, amount, total, cap, actions, meta, capLabel = 'cap', compact, status, bar, extra, hideLeft, note, onEditCap,
 }: {
+  /** one muted line under the status line, e.g. which caps the figure is measured against */
+  note?: ReactNode
+  /** makes "x% of cap" a button that opens the cap editor */
+  onEditCap?: () => void
   compact?: boolean
   /** the hero number already is the headroom */
   hideLeft?: boolean
@@ -220,52 +229,73 @@ export function Summary({
         {cap ? (
           <>
             {bar ?? <Meter value={st.pct} tone={st.tone} height="h-2" className="max-w-md" label={`${label}: share of ${capLabel} used`} />}
-            <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm text-slate-700">
-              {pill.onClick ? (
-                <button type="button" onClick={pill.onClick} title={`${NEAR_CAP_HINT}. Show them.`} className="rounded-full transition-[filter] hover:brightness-95">
-                  <span className="inline-flex items-center">
-                    <StatusTag tone={pill.tone} word={pill.word} />
-                  </span>
-                </button>
-              ) : (
-                <StatusTag tone={pill.tone} word={pill.word} />
-              )}
+            <div className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1.5 text-sm text-slate-700">
+              <StatusTag tone={pill.tone} word={pill.word} hint />
               <span className="num">
-                <strong className="font-semibold text-slate-900">{Math.round(st.pct)}%</strong> of {moneyWhole(cap)}
-                <span className="max-sm:hidden"> {capLabel}</span>
+                <strong className="font-semibold text-slate-900">{Math.round(st.pct)}%</strong>
+                {onEditCap ? (
+                  <>
+                    <span className="max-sm:hidden"> of </span>
+                    <button type="button" onClick={onEditCap} className="rounded underline decoration-slate-400 decoration-dotted underline-offset-4 hover:decoration-slate-900 max-sm:hidden" aria-label={`${capLabel === 'cap' ? 'Cap' : capLabel}: ${moneyWhole(cap)}. Edit budget cap`}>
+                      {moneyWhole(cap)}
+                    </button>
+                  </>
+                ) : (
+                  <span className="max-sm:hidden"> of {moneyWhole(cap)}</span>
+                )}
+                {!hideLeft && (
+                  <>
+                    <span aria-hidden className="px-1.5 text-slate-400">·</span>
+                    <span className="font-medium text-slate-900">{left >= 0 ? `${money(left)} left` : `${money(-left)} over`}</span>
+                  </>
+                )}
               </span>
-              {!hideLeft && <span className="num text-slate-600">{left >= 0 ? `${money(left)} left` : `${money(-left)} over`}</span>}
             </div>
+            {note && <p className="mt-1.5 text-sm text-slate-600">{note}</p>}
           </>
         ) : (
           <div className="flex flex-wrap items-center gap-3 text-sm text-slate-700">
             <StatusTag tone="none" word="No cap set" />
+            {onEditCap && (
+              <button type="button" onClick={onEditCap} className="h-9 rounded-full bg-slate-100 px-3 font-medium text-slate-900 hover:bg-slate-200">Set a cap</button>
+            )}
           </div>
         )}
       </div>
       {meta && <div className="mt-2 text-sm text-slate-600">{meta}</div>}
       {extra}
-      {actions && <div className="mt-6 flex flex-wrap items-center gap-2">{actions}</div>}
+      {actions && <div className={clsx('flex flex-wrap items-center gap-2', compact ? 'mt-4' : 'mt-6')}>{actions}</div>}
     </section>
   )
 }
 
 const RANK: Record<string, number> = { none: 0, ok: 0, caution: 1, warn: 2, over: 3 }
 
+const PHRASE: Record<string, string> = { over: 'over cap', warn: 'almost at cap', caution: 'near cap' }
+
 /**
  * Aggregate pill: the worst state wins. When the total itself is fine but children are flagged,
- * the pill names them ("1 project near cap") and becomes their filter.
+ * the pill counts them per level, worst first ("1 list almost at cap · 1 near cap").
  */
-export function heroStatus(own: { total: number; cap: number }, children: { total: number; cap: number }[], noun: [string, string], onClick?: () => void): HeroStatus | undefined {
+export function heroStatus(own: { total: number; cap: number }, children: { tone: string }[], noun: [string, string]): HeroStatus | undefined {
   const mine = budgetStatus(own.total, own.cap)
-  const flagged = children.map((c) => budgetStatus(c.total, c.cap)).filter((st) => RANK[st.tone] > 0)
+  const flagged = children.filter((c) => RANK[c.tone] > 0)
   if (!flagged.length) return undefined
-  const worst = flagged.reduce((w, st) => (RANK[st.tone] > RANK[w] ? st.tone : w), 'caution' as string)
+  const worst = flagged.reduce((w, c) => (RANK[c.tone] > RANK[w] ? c.tone : w), 'caution')
   if (RANK[mine.tone] >= RANK[worst]) return undefined
-  const over = flagged.filter((st) => st.tone === 'over').length
-  const n = over || flagged.length
-  const word = `${n} ${n === 1 ? noun[0] : noun[1]} ${over ? 'over' : 'near'} cap`
-  return { tone: worst, word, onClick }
+  const parts = (['over', 'warn', 'caution'] as const)
+    .map((t) => [t, flagged.filter((c) => c.tone === t).length] as const)
+    .filter(([, n]) => n > 0)
+    .map(([t, n], i) => (i === 0 ? `${n} ${n === 1 ? noun[0] : noun[1]} ${PHRASE[t]}` : `${n} ${PHRASE[t]}`))
+  return { tone: worst, word: parts.join(' · ') }
+}
+
+/** worst status of an object's own cap and its children's caps (a project is as bad as its worst list) */
+export function worstTone(own: { total: number; cap: number }, children: { total: number; cap: number }[] = []) {
+  return [own, ...children]
+    .filter((x) => x.total > 0 && x.cap > 0)
+    .map((x) => budgetStatus(x.total, x.cap).tone as string)
+    .reduce((w, t) => (RANK[t] > RANK[w] ? t : w), 'ok')
 }
 
 /** a filter link inside hero meta: only the action words are underlined */
@@ -366,13 +396,18 @@ export function Row({
         <Avatar icon={icon} tone={tone} />
       )}
       <div className="pointer-events-none relative grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-3 gap-y-0.5 sm:gap-x-6">
-        <div className="col-start-1 row-start-1 flex min-w-0 items-center gap-2">
-          <span className="line-clamp-2 text-[15px] leading-snug font-semibold break-words text-slate-900 sm:line-clamp-1">{title}</span>
-          {badge && <span className="pointer-events-auto shrink-0">{badge}</span>}
+        <div className="col-span-2 row-start-1 flex min-w-0 items-center gap-2 sm:col-span-1">
+          <span lang="de" className="line-clamp-2 text-[15px] leading-snug font-semibold break-normal hyphens-auto text-slate-900 sm:line-clamp-1">{title}</span>
+          {badge && <span className="shrink-0 max-sm:hidden">{badge}</span>}
         </div>
-        {amount && <div className="num col-start-2 row-start-1 text-right text-[15px] font-semibold whitespace-nowrap text-slate-900">{amount}</div>}
-        {subtitle && <div className="col-span-2 row-start-2 truncate text-sm text-slate-600 sm:col-span-1 sm:col-start-1">{subtitle}</div>}
-        {meta && <div className="col-span-2 row-start-3 flex justify-end sm:col-span-1 sm:col-start-2 sm:row-start-2">{meta}</div>}
+        {(subtitle || badge) && (
+          <div className="col-span-2 row-start-2 flex min-w-0 items-center gap-2 text-sm text-slate-600 sm:col-span-1 sm:col-start-1">
+            {badge && <span className="shrink-0 sm:hidden">{badge}</span>}
+            {subtitle && <span className="truncate">{subtitle}</span>}
+          </div>
+        )}
+        {amount && <div className="num col-start-1 row-start-3 text-[15px] font-semibold whitespace-nowrap text-slate-900 sm:col-start-2 sm:row-start-1 sm:text-right">{amount}</div>}
+        {meta && <div className="col-start-2 row-start-3 flex justify-end sm:row-start-2">{meta}</div>}
       </div>
       {menu && !selectMode && <div className="relative z-10 -my-1.5 -mr-1 sm:my-0">{menu}</div>}
     </div>
@@ -390,12 +425,12 @@ export function ToolButton({ icon, children, className, active, ...rest }: React
       type="button"
       className={clsx(
         'inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-sm font-medium whitespace-nowrap transition-colors',
-        active ? 'bg-brand-50 text-brand-700 ring-1 ring-brand-300 ring-inset' : 'bg-slate-100 text-slate-800 ring-1 ring-slate-300 ring-inset hover:bg-slate-200',
+        active ? 'bg-slate-900 text-white hover:bg-slate-800' : 'bg-slate-100 text-slate-800 hover:bg-slate-200',
         className,
       )}
       {...rest}
     >
-      {icon && <Icon name={icon} size={18} className={active ? 'text-brand-700' : 'text-slate-600'} />}
+      {icon && <Icon name={icon} size={18} className={active ? 'text-white' : 'text-slate-600'} />}
       {children}
     </button>
   )
@@ -431,11 +466,11 @@ export function Chips<K extends string>({ value, options, onChange, label }: { v
             onClick={() => onChange(o.key)}
             className={clsx(
               'inline-flex h-10 items-center gap-2 rounded-full px-4 text-sm font-medium transition-colors',
-              on ? 'bg-brand-50 font-semibold text-brand-700 ring-1 ring-brand-300 ring-inset' : 'bg-slate-100 text-slate-800 ring-1 ring-slate-300 ring-inset hover:bg-slate-200',
+              on ? 'bg-slate-900 font-semibold text-white' : 'bg-slate-100 text-slate-800 hover:bg-slate-200',
             )}
           >
             {o.label}
-            {o.count !== undefined && <span className={clsx('num', on ? 'text-brand-700' : 'text-slate-600')}>{o.count}</span>}
+            {o.count !== undefined && <span className={clsx('num', on ? 'text-slate-200' : 'text-slate-600')}>{o.count}</span>}
           </button>
         )
       })}
@@ -446,16 +481,16 @@ export function Chips<K extends string>({ value, options, onChange, label }: { v
 /** calm empty state, left-aligned with the page title so every page has one axis */
 export function EmptyState({ icon, title, text, children, hint, className }: { icon?: string; title: string; text?: ReactNode; children?: ReactNode; hint?: ReactNode; className?: string }) {
   return (
-    <div className={clsx('max-w-xl py-10 sm:py-14', className)}>
+    <div className={clsx('max-w-xl pt-6 pb-12 sm:pt-8', className)}>
       {icon && (
-        <span className="mb-5 flex size-16 items-center justify-center rounded-full bg-slate-100 text-slate-600">
-          <Icon name={icon} size={32} />
+        <span className="mb-5 flex size-20 items-center justify-center rounded-full bg-slate-100 text-slate-600">
+          <Icon name={icon} size={36} />
         </span>
       )}
       <h2 className="font-heading text-xl font-bold tracking-tight text-balance text-slate-900">{title}</h2>
       {text && <p className="mt-2 text-[15px] leading-relaxed text-pretty text-slate-600">{text}</p>}
-      {children && <div className="mt-7 flex flex-col gap-2 min-[400px]:flex-row min-[400px]:flex-wrap">{children}</div>}
-      {hint && <p className="mt-5 text-[13px] leading-relaxed text-slate-500">{hint}</p>}
+      {children && <div className="mt-7 flex flex-col gap-2 sm:flex-row sm:flex-wrap [&>*]:max-sm:w-full">{children}</div>}
+      {hint && <p className="mt-5 text-[13px] leading-relaxed text-slate-600">{hint}</p>}
     </div>
   )
 }
@@ -463,7 +498,7 @@ export function EmptyState({ icon, title, text, children, hint, className }: { i
 /** secondary pill as a link ("Go to All Projects") */
 export function PillLink({ to, icon, children }: { to: string; icon?: string; children: ReactNode }) {
   return (
-    <Link to={to} className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-slate-100 px-5 text-sm font-semibold text-slate-900 ring-1 ring-slate-300 ring-inset hover:bg-slate-200">
+    <Link to={to} className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-slate-100 px-5 text-sm font-semibold text-slate-900 hover:bg-slate-200">
       {icon && <Icon name={icon} size={18} />}
       {children}
     </Link>

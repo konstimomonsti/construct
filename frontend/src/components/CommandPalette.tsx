@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import { useNavigate } from 'react-router-dom'
 import { Icon, useInertRoot } from './ui'
 import { loadList } from '../lib/data'
-import { money, plural } from '../lib/format'
+import { int, money, plural } from '../lib/format'
 import { toneTile } from './Kit'
 import { listLabel, phaseLabel } from './ListCard'
 import { positionTotal } from '../lib/money'
@@ -20,6 +20,9 @@ interface PosIndexEntry {
   category: string
   total: number
   priced: boolean
+  /** unit price (EP), null = not priced */
+  up: number | null
+  unit: string
 }
 type Group = 'Projects' | 'Lists' | 'Positions'
 interface Result {
@@ -29,23 +32,34 @@ interface Result {
   tile?: string
   title: string
   sub: string
+  /** right column; empty for unpriced items */
   right?: string
+  /** smaller muted line under `right` (the GP under a position's EP) */
+  rightSub?: string
+  priced: boolean
   /** 0 = title (or OZ) starts with the query, 1 = title contains it, 2 = matched elsewhere */
   score: number
   go: () => void
 }
 type Option =
   | { kind: 'result'; key: string; r: Result }
-  | { kind: 'more'; key: string; group: Group; hidden: number; total: number }
-interface GroupView { group: Group; count: number; options: { o: Option; i: number }[] }
+  | { kind: 'more'; key: string; group: Group; next: number }
+interface GroupView {
+  group: Group
+  count: number
+  options: { o: Option; i: number }[]
+  /** none of the visible results has a price */
+  nonePriced: boolean
+  /** expanded but capped at POS_MAX: how many are listed */
+  capped?: number
+}
 
-const NOT_PRICED = 'Not priced'
-/** rows per group before the "Show all" row */
+/** rows per group before the "Show N more" row */
 const CAP = 3
 /** most positions listed when the group is expanded */
 const POS_MAX = 50
 const GROUP_ORDER: Group[] = ['Projects', 'Lists', 'Positions']
-const NOUN: Record<Group, string> = { Projects: 'projects', Lists: 'lists', Positions: 'positions' }
+const NOUN: Record<Group, [string, string]> = { Projects: ['project', 'projects'], Lists: ['list', 'lists'], Positions: ['position', 'positions'] }
 
 /** bold the matched part of a result title or subtitle */
 function Hl({ text, q }: { text: string; q: string }) {
@@ -70,7 +84,11 @@ export function CommandPalette() {
   const [activeKey, setActiveKey] = useState<string | null>(null)
   const [expanded, setExpanded] = useState<Set<Group>>(() => new Set())
   const [index, setIndex] = useState<PosIndexEntry[] | null>(null)
-  const [loading, setLoading] = useState(false)
+  // the position index is built once, on first open
+  const loadStarted = useRef(false)
+  const loading = open && index === null
+  // the results overflow below the visible area: show the bottom fade
+  const [fade, setFade] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const closeRef = useRef<HTMLButtonElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
@@ -89,29 +107,31 @@ export function CommandPalette() {
 
   // lazily load all lists for position search
   useEffect(() => {
-    if (!open || index || loading) return
-    setLoading(true)
+    if (!open || index || loadStarted.current) return
+    loadStarted.current = true
     const ids = lists.filter((l) => !l.trashedAt).map((l) => l.id)
     Promise.allSettled(ids.map((id) => loadList(id))).then((rs) => {
       const out: PosIndexEntry[] = []
       rs.forEach((r, i) => {
         if (r.status !== 'fulfilled') return
         for (const p of r.value.positions) {
-          out.push({ listId: ids[i], id: p.id, oz: p.oz, short: p.short, category: p.category, total: positionTotal(p), priced: p.up != null })
+          out.push({ listId: ids[i], id: p.id, oz: p.oz, short: p.short, category: p.category, total: positionTotal(p), priced: p.up != null, up: p.up, unit: p.unit ?? '' })
         }
       })
       setIndex(out)
-      setLoading(false)
     })
-  }, [open, index, loading, lists])
+  }, [open, index, lists])
 
-  useEffect(() => {
+  // start each opening with a fresh query (state adjusted during render, not in an effect)
+  const [wasOpen, setWasOpen] = useState(open)
+  if (open !== wasOpen) {
+    setWasOpen(open)
     if (open) {
       setQ('')
       setActiveKey(null)
       setExpanded(new Set())
     }
-  }, [open])
+  }
 
   const close = () => setOpen(false)
 
@@ -133,6 +153,7 @@ export function CommandPalette() {
         .map((x) => ({ x, s: score(title(x)) }))
         .sort((a, b) => a.s - b.s)
     const folderName = new Map(folders.map((f) => [f.id, f.name]))
+    const folderTile = new Map(folders.map((f) => [f.id, toneTile[f.tone] ?? toneTile.indigo]))
     const live = lists.filter((l) => !l.trashedAt)
     const listById = new Map(live.map((l) => [l.id, l]))
     const displayName = (l: ListView) => listLabel(l, live.filter((x) => x.folderId === l.folderId)).title
@@ -140,14 +161,14 @@ export function CommandPalette() {
       .map(({ x: f, s }) => ({
         key: `f-${f.id}`, group: 'Projects', icon: f.icon, tile: toneTile[f.tone] ?? toneTile.indigo, title: f.name,
         sub: [plural(f.listMetas.length, 'list', 'lists'), folderDescription(f)].filter(Boolean).join(' · '),
-        right: f.total ? money(f.total) : undefined, score: s,
+        right: f.total ? money(f.total) : undefined, priced: !!f.total, score: s,
         go: go(`/folder/${f.id}`),
       }))
     const lRes: Result[] = rank(live, displayName, (l) => `${l.title} ${folderName.get(l.folderId) ?? ''} ${l.projectLabel ?? ''}`)
       .map(({ x: l, s }) => ({
-        key: `l-${l.id}`, group: 'Lists', icon: 'request_quote', title: displayName(l),
+        key: `l-${l.id}`, group: 'Lists', icon: 'request_quote', tile: folderTile.get(l.folderId) ?? toneTile.indigo, title: displayName(l),
         sub: [folderName.get(l.folderId), phaseLabel(l) ?? plural(l.positionsCount, 'position', 'positions')].filter(Boolean).join(' · '),
-        right: l.total ? money(l.total) : NOT_PRICED, score: s, go: go(`/list/${l.id}`, l.id),
+        right: l.total ? money(l.total) : undefined, priced: !!l.total, score: s, go: go(`/list/${l.id}`, l.id),
       }))
     let pRes: Result[] = []
     if (t.length >= 2 && index) {
@@ -160,14 +181,20 @@ export function CommandPalette() {
       hit.sort((a, b) => a.s - b.s)
       pRes = hit.map(({ e, s }) => {
         const l = listById.get(e.listId)
+        const project = l ? folderName.get(l.folderId) : undefined
+        const where = l ? `in ${displayName(l)}${project ? ` (${project})` : ''}` : null
+        const ep = e.up != null && e.unit ? `EP ${money(e.up)} / ${e.unit}` : undefined
         return {
           key: `p-${e.listId}-${e.id}`,
           group: 'Positions',
-          icon: 'receipt_long',
+          icon: 'tag',
           title: e.short,
-          sub: [`OZ ${e.oz}`, l ? displayName(l) : null, e.category].filter(Boolean).join(' · '),
+          // category first, then the list it lives in, so the two don't read alike
+          sub: [`OZ ${e.oz}`, e.category, where].filter(Boolean).join(' · '),
           tile: 'bg-slate-100 text-slate-700',
-          right: e.priced ? money(e.total) : NOT_PRICED,
+          right: !e.priced ? undefined : ep ?? money(e.total),
+          rightSub: e.priced && ep ? `GP ${money(e.total)}` : undefined,
+          priced: e.priced,
           score: s,
           go: go(`/list/${e.listId}?pos=${encodeURIComponent(e.id)}`, e.listId),
         }
@@ -186,11 +213,18 @@ export function CommandPalette() {
     const options: Option[] = []
     const groups: GroupView[] = order.map((g) => {
       const rs = byGroup.get(g)!
-      const limit = expanded.has(g) ? (g === 'Positions' ? POS_MAX : rs.length) : CAP
-      const view: GroupView = { group: g, count: rs.length, options: [] }
+      const max = g === 'Positions' ? POS_MAX : rs.length
+      const open = expanded.has(g)
+      const limit = open ? max : CAP
+      const shown = rs.slice(0, limit)
+      const view: GroupView = { group: g, count: rs.length, options: [], nonePriced: shown.every((r) => !r.priced) }
       const push = (o: Option) => { view.options.push({ o, i: options.length }); options.push(o) }
-      rs.slice(0, limit).forEach((r) => push({ kind: 'result', key: r.key, r }))
-      if (rs.length > limit && !expanded.has(g)) push({ kind: 'more', key: `more-${g}`, group: g, hidden: rs.length - limit, total: rs.length })
+      shown.forEach((r) => push({ kind: 'result', key: r.key, r }))
+      if (rs.length > limit) {
+        // collapsed: offer the next batch; expanded and capped: explain the rest in a note row
+        if (!open) push({ kind: 'more', key: `more-${g}`, group: g, next: Math.min(rs.length, max) - limit })
+        else view.capped = limit
+      }
       return view
     })
     const firstTitle = options.findIndex((o) => o.kind === 'result' && o.r.score < 2)
@@ -203,6 +237,20 @@ export function CommandPalette() {
   useEffect(() => {
     listRef.current?.querySelector(`[data-idx="${active}"]`)?.scrollIntoView({ block: 'nearest' })
   }, [active])
+
+  // measure after layout (and on resize) whether more results sit below the fold
+  const measureFade = () => {
+    const el = listRef.current
+    setFade(!!el && el.scrollHeight - el.scrollTop - el.clientHeight > 4)
+  }
+  useEffect(() => {
+    if (!open) return
+    const raf = requestAnimationFrame(measureFade)
+    const el = listRef.current
+    const ro = el ? new ResizeObserver(measureFade) : null
+    if (el) ro?.observe(el)
+    return () => { cancelAnimationFrame(raf); ro?.disconnect() }
+  }, [open, groups])
 
   const choose = (o: Option | undefined) => {
     if (!o) return
@@ -226,6 +274,9 @@ export function CommandPalette() {
   }
 
   const needle = q.trim().toLowerCase()
+  const cappedNote = (g: GroupView) => `Showing ${int(g.capped ?? 0)} of ${int(g.count)}. Type more to narrow the search.`
+  const status = !needle ? '' : !results.length ? 'No matches'
+    : [plural(results.length, 'result', 'results'), ...groups.filter((g) => g.capped).map((g) => `${NOUN[g.group][1]}: ${cappedNote(g)}`)].join('. ')
   return createPortal(
     <AnimatePresence>
       {open && (
@@ -246,10 +297,10 @@ export function CommandPalette() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -4, transition: { duration: 0.1 } }}
             transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-            className="relative flex h-full w-full max-w-2xl flex-col overflow-hidden bg-white shadow-[0_24px_60px_-12px_rgba(15,23,42,0.35)] sm:h-auto sm:rounded-3xl"
+            className="relative flex h-full w-full flex-col overflow-hidden bg-white sm:h-auto sm:max-w-2xl sm:rounded-3xl sm:shadow-[0_24px_60px_-12px_rgba(15,23,42,0.35)]"
             onKeyDown={onKey}
           >
-            <div className="flex items-center gap-3 border-b border-slate-100 px-5">
+            <div className="flex shrink-0 items-center gap-3 border-b border-slate-100 px-5 pt-[env(safe-area-inset-top)] sm:pt-0">
               <Icon name="search" size={22} className="text-slate-500" />
               <input
                 ref={inputRef}
@@ -269,8 +320,9 @@ export function CommandPalette() {
                 <span className="max-sm:hidden">Esc</span><span className="sm:hidden">Cancel</span>
               </button>
             </div>
-            <div role="status" aria-live="polite" className="sr-only">{needle ? (results.length ? plural(results.length, 'result', 'results') : 'No matches') : ''}</div>
-            <div ref={listRef} id="palette-list" role="listbox" aria-label="Results" className="min-h-0 flex-1 overflow-y-auto px-2 pb-2 sm:max-h-[56vh] sm:flex-none">
+            <div role="status" aria-live="polite" className="sr-only">{status}</div>
+            <div className="relative flex min-h-0 flex-1 flex-col sm:flex-none">
+            <div ref={listRef} onScroll={measureFade} id="palette-list" role="listbox" aria-label="Results" className="min-h-0 flex-1 overflow-y-auto px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:max-h-[56vh] sm:flex-none">
               {results.length === 0 && (
                 <div className="px-3 py-12 text-center text-sm text-slate-600">{loading ? 'Searching positions…' : `Nothing matches “${q.trim()}”`}</div>
               )}
@@ -279,15 +331,17 @@ export function CommandPalette() {
                 return (
                   <div key={g.group} role="presentation">
                     {/* labels the group below; hidden from browse mode so it isn't read twice */}
-                    <div id={headingId} aria-hidden="true" className="flex items-baseline gap-1.5 px-3 pt-5 pb-2 text-xs font-semibold tracking-wide text-slate-500 uppercase">
-                      {g.group}<span className="num">{g.count}</span>
+                    <div id={headingId} aria-hidden="true" className="flex items-baseline gap-2 px-3 pt-5 pb-2 text-xs text-slate-600">
+                      <span className="font-semibold tracking-wide uppercase">{g.group}</span>
+                      <span className="num font-medium">{int(g.count)}{g.nonePriced && <span className="font-sans font-normal"> · none priced</span>}</span>
                     </div>
                     <div role="group" aria-labelledby={headingId}>
                       {g.options.map(({ o, i }) => {
                         const on = i === active
                         const rowCls = clsx(
                           'relative flex w-full items-center gap-3.5 rounded-2xl px-3 text-left',
-                          on && 'bg-brand-50 before:absolute before:inset-y-2 before:left-0 before:w-[3px] before:rounded-full before:bg-brand-600',
+                          // the bar sits inside the rounded fill, never on the panel edge
+                          on && 'bg-brand-50 before:absolute before:inset-y-3 before:left-1 before:w-[3px] before:rounded-full before:bg-brand-600',
                         )
                         if (o.kind === 'more') {
                           return (
@@ -304,7 +358,7 @@ export function CommandPalette() {
                               className={clsx(rowCls, 'py-2 text-sm font-medium text-brand-700')}
                             >
                               <span className="flex w-10 shrink-0 justify-center"><Icon name="expand_more" size={20} /></span>
-                              {o.group === 'Positions' && o.total > POS_MAX ? `Show ${POS_MAX} of ${o.total} positions` : `Show all ${o.total} ${NOUN[o.group]}`}
+                              {`Show ${int(o.next)} more ${NOUN[o.group][o.next === 1 ? 0 : 1]}`}
                             </button>
                           )
                         }
@@ -329,16 +383,30 @@ export function CommandPalette() {
                               <span className="block truncate text-[15px] font-medium text-slate-900"><Hl text={r.title} q={needle} /></span>
                               <span className="block truncate text-sm text-slate-600"><Hl text={r.sub} q={needle} /></span>
                             </span>
-                            {r.right && <span className={r.right === NOT_PRICED ? 'shrink-0 text-sm text-slate-600' : 'num shrink-0 text-sm font-semibold text-slate-900'}>{r.right}</span>}
+                            {r.right && (
+                              <span className="flex shrink-0 flex-col items-end">
+                                <span className="num text-sm font-semibold text-slate-900">{r.right}</span>
+                                {r.rightSub && <span className="num text-xs text-slate-600">{r.rightSub}</span>}
+                              </span>
+                            )}
                           </button>
                         )
                       })}
                     </div>
+                    {g.capped != null && (
+                      // explains the hidden rest; not an option, so the arrow keys skip it (announced via the status region)
+                      <div aria-hidden="true" className="flex items-center gap-3.5 px-3 py-2 text-sm text-slate-600">
+                        <span className="flex w-10 shrink-0 justify-center"><Icon name="info" size={18} /></span>
+                        {cappedNote(g)}
+                      </div>
+                    )}
                   </div>
                 )
               })}
             </div>
-            <div className="flex items-center gap-4 border-t border-slate-100 px-5 py-3 text-[13px] text-slate-600 [@media(pointer:coarse)]:hidden">
+            <div aria-hidden="true" className={clsx('pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-white to-transparent transition-opacity', fade ? 'opacity-100' : 'opacity-0')} />
+            </div>
+            <div className="flex items-center gap-4 border-t border-slate-100 px-5 py-3 text-[13px] text-slate-600 max-sm:hidden [@media(pointer:coarse)]:hidden">
               <span className="flex items-center gap-1.5"><Kbd label="Up arrow">↑</Kbd><Kbd label="Down arrow">↓</Kbd> to move</span>
               <span className="flex items-center gap-1.5"><Kbd label="Enter">↵</Kbd> to open</span>
             </div>

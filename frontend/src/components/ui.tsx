@@ -27,7 +27,7 @@ type Size = 'sm' | 'md' | 'lg'
 
 const variants: Record<Variant, string> = {
   primary: 'bg-brand-600 hover:bg-brand-700 text-white font-semibold',
-  secondary: 'bg-slate-100 hover:bg-slate-200 text-slate-900 font-semibold ring-1 ring-inset ring-slate-300',
+  secondary: 'bg-slate-100 hover:bg-slate-200 text-slate-900 font-semibold',
   ghost: 'text-slate-700 hover:text-slate-900 hover:bg-slate-100 font-medium',
   danger: 'bg-rose-600 hover:bg-rose-700 text-white font-semibold',
   soft: 'bg-brand-50 text-brand-700 hover:bg-brand-100 font-semibold',
@@ -334,7 +334,7 @@ export function Field({ label, hint, children }: { label: string; hint?: string;
 }
 
 export const inputCls =
-  'w-full h-10 px-3.5 rounded-xl bg-white border border-slate-400 text-slate-900 placeholder:text-slate-500 text-sm outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20 transition-[border-color,box-shadow]'
+  'w-full h-10 px-3.5 rounded-xl bg-white border border-slate-500 hover:border-slate-600 text-slate-900 placeholder:text-slate-500 text-sm outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20 transition-[border-color,box-shadow]'
 
 /* ------------------------------------------------------------------ */
 /* Toasts                                                              */
@@ -358,7 +358,6 @@ function ToastItem({ t, drop }: { t: Toast; drop: (id: number) => void }) {
   return (
     <motion.div
       layout
-      role={t.tone === 'error' ? 'alert' : 'status'}
       onPointerEnter={() => setPaused(true)}
       onPointerLeave={() => setPaused(false)}
       onFocus={() => setPaused(true)}
@@ -403,12 +402,19 @@ export function useInertRoot(active: boolean) {
 /* portaled so toasts (and their Undo) stay usable while the app behind a drawer is inert */
 export function Toaster() {
   const { toasts, drop } = useToasts()
+  // always-mounted live regions: screen readers skip regions that arrive already filled
+  const polite = [...toasts].reverse().find((t) => t.tone !== 'error')
+  const urgent = [...toasts].reverse().find((t) => t.tone === 'error')
   return createPortal(
-    <div className="pointer-events-none fixed right-4 bottom-24 z-[90] flex w-[calc(100%-2rem)] max-w-sm flex-col items-end gap-2 sm:bottom-20">
-      <AnimatePresence initial={false}>
-        {toasts.map((t) => <ToastItem key={t.id} t={t} drop={drop} />)}
-      </AnimatePresence>
-    </div>,
+    <>
+      <div className="sr-only" aria-live="polite" aria-atomic="true">{polite ? `${polite.text}${polite.action ? `. ${polite.action.label} is available.` : ''}` : ''}</div>
+      <div className="sr-only" aria-live="assertive" aria-atomic="true">{urgent?.text ?? ''}</div>
+      <div className="pointer-events-none fixed right-4 bottom-24 z-[90] flex w-[calc(100%-2rem)] max-w-sm flex-col items-end gap-2 sm:bottom-20">
+        <AnimatePresence initial={false}>
+          {toasts.map((t) => <ToastItem key={t.id} t={t} drop={drop} />)}
+        </AnimatePresence>
+      </div>
+    </>,
     document.body,
   )
 }

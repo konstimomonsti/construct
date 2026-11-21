@@ -53,9 +53,9 @@ export function Trash() {
 
   return (
     <PageFrame>
-      <PageHeader title="Trash" subtitle="Items stay here until you delete them forever." />
+      <PageHeader title="Trash" subtitle="Restore or delete items forever from their More options menu." />
       {!tf.length && !tl.length ? (
-        <EmptyState icon="delete" title="Trash is empty" text="Projects and lists you move to Trash can be restored from here. Removed positions are restored with Undo in their list.">
+        <EmptyState icon="delete" title="Trash is empty" text="Projects and lists you move to Trash show up here.">
           <PillLink to="/" icon="arrow_back">Go to All Projects</PillLink>
         </EmptyState>
       ) : (

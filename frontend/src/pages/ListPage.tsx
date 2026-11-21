@@ -115,7 +115,7 @@ function TabsBar({ activeId, folderId }: { activeId: string; folderId: string })
 const pillCls = (on: boolean) =>
   clsx(
     'inline-flex h-10 shrink-0 items-center gap-2 rounded-full px-3.5 text-sm whitespace-nowrap transition-colors',
-    on ? 'bg-brand-50 font-semibold text-brand-700 ring-1 ring-brand-300 ring-inset' : 'bg-slate-100 font-medium text-slate-800 ring-1 ring-slate-300 ring-inset hover:bg-slate-200',
+    on ? 'bg-slate-900 font-semibold text-white hover:bg-slate-800' : 'bg-slate-100 font-medium text-slate-800 hover:bg-slate-200',
   )
 
 /** toggles one quick filter; the pressed state is the filter's only visible state */
@@ -209,7 +209,7 @@ function CategoryFilter({ tree, stats, value, onChange }: { tree: CategoryNode[]
             className="absolute left-0 z-40 mt-2 w-[26rem] max-w-[calc(100vw-2rem)] rounded-2xl bg-white p-2 shadow-[0_8px_30px_-4px_rgba(15,23,42,0.18)] ring-1 ring-slate-200"
           >
             <div className="flex items-center gap-2 px-1.5 py-1.5">
-              <input ref={search} aria-label="Search categories" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search categories…" className="h-10 min-w-0 flex-1 rounded-full bg-white px-4 text-sm ring-1 ring-slate-400 outline-none ring-inset placeholder:text-slate-500 focus:ring-2 focus:ring-brand-600" />
+              <input ref={search} aria-label="Search categories" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search categories…" className="h-10 min-w-0 flex-1 rounded-full bg-white px-4 text-sm ring-1 ring-slate-500 outline-none ring-inset placeholder:text-slate-500 hover:ring-slate-600 focus:ring-2 focus:ring-brand-600" />
               <span className="flex gap-1 text-sm font-semibold text-slate-800">
                 <button type="button" className="h-10 rounded-full px-3 hover:bg-slate-100" onClick={() => onChange(null)}>All</button>
                 <button type="button" className="h-10 rounded-full px-3 hover:bg-slate-100" onClick={() => onChange(new Set())}>None</button>
@@ -480,7 +480,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   return (
     <>
       <PageHeader
-        crumbs={[{ label: 'All Projects', to: '/' }, { label: folder?.name ?? 'Folder', to: `/folder/${folder?.id ?? doc.folderId}` }]}
+        crumbs={[{ label: 'All Projects', to: '/' }, { label: folder?.name ?? 'Project', to: `/folder/${folder?.id ?? doc.folderId}` }]}
         title={heading}
         subtitle={[sameAsFile ? null : doc.fileName, ...meta].filter(Boolean).join(' · ')}
         aside={<RowMenu items={more} label={`More actions for ${title}`} />}
@@ -508,13 +508,11 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
         amount={money(st.total)}
         total={st.total}
         cap={cap}
-        bar={sections.length > 1 ? <PricingMeter sections={sections} total={st.total} cap={cap} className="max-w-md" /> : undefined}
-        extra={sections.length > 1 && (
-          <div className="mt-2">
-            <button type="button" aria-expanded={showSections} aria-controls="pricing-legend" onClick={() => setShowSections((v) => !v)} className="-ml-1 inline-flex h-8 items-center gap-1 rounded-full px-1 text-sm font-medium text-slate-700 hover:text-slate-900">
-              Cost by section<Icon name="expand_more" size={18} className={clsx('text-slate-500 transition-transform', showSections && 'rotate-180')} />
-            </button>
-            {showSections && <PricingLegend id="pricing-legend" sections={sections} />}
+        onEditCap={live ? () => openDialog({ kind: 'edit-cap', target: 'list', id: doc.id }) : undefined}
+        extra={sections.length > 1 && showSections && (
+          <div id="pricing-legend" className="mt-4 max-w-xl rounded-2xl bg-slate-50 p-4">
+            <PricingMeter sections={sections} total={st.total} cap={cap || st.total} className="max-w-md" />
+            <PricingLegend sections={sections} />
           </div>
         )}
         meta={
@@ -536,6 +534,14 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
               <>
                 <span aria-hidden>·</span>
                 <MetaLink onClick={() => only('edited')} pressed={onlyEdited}><span className="num">{int(editedCount)}</span> edited</MetaLink>
+              </>
+            )}
+            {sections.length > 1 && (
+              <>
+                <span aria-hidden>·</span>
+                <button type="button" aria-expanded={showSections} aria-controls="pricing-legend" onClick={() => setShowSections((v) => !v)} className="group inline-flex items-center gap-0.5 rounded font-medium text-slate-800">
+                  <span className="underline decoration-slate-400 underline-offset-4 group-hover:decoration-slate-900">Cost by section</span><Icon name="expand_more" size={18} className={clsx('text-slate-500 transition-transform', showSections && 'rotate-180')} />
+                </button>
               </>
             )}
             {(status.tone === 'warn' || status.tone === 'over') && largest && (
@@ -571,7 +577,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Search positions"
-              className="h-10 w-full rounded-full bg-white pr-4 pl-11 text-sm text-slate-900 ring-1 ring-slate-400 transition-shadow outline-none ring-inset placeholder:text-slate-500 hover:ring-slate-500 focus:ring-2 focus:ring-brand-600"
+              className="h-10 w-full rounded-full bg-white pr-4 pl-11 text-sm text-slate-900 ring-1 ring-slate-500 transition-shadow outline-none ring-inset placeholder:text-slate-500 hover:ring-slate-600 focus:ring-2 focus:ring-brand-600"
             />
           </div>
           <CategoryFilter tree={tree} stats={catStats} value={cats} onChange={setCats} />
@@ -595,7 +601,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
           >
             <Icon name="checklist" size={18} />Select
           </button>
-          <div className="ml-auto">
+          <div className="sm:ml-auto">
             <SortMenu value={sortTotal ? 'amount' : 'oz'} options={{ oz: 'Position order', amount: 'Highest amount' }} onChange={(k) => setSortTotal(k === 'amount')} noun="positions" />
           </div>
         </div>

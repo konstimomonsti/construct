@@ -310,7 +310,7 @@ export function CategoryTree(props: CategoryTreeProps) {
               />
             ) : (
               <span className={clsx('min-w-0 flex-1 truncate', isCat ? 'font-medium text-slate-800' : '')} title={isCat ? n!.label : r.pos!.short}>
-                {isCat ? n!.label : r.pos!.short && r.pos!.short !== '(ohne Kurztext)' ? r.pos!.short : <span className="text-slate-400 italic">(ohne Kurztext)</span>}
+                {isCat ? n!.label : r.pos!.short && r.pos!.short !== '(ohne Kurztext)' ? r.pos!.short : <span className="text-slate-600 italic">(ohne Kurztext)</span>}
               </span>
             )}
             {isCat && onRename && renaming !== n!.oz && (

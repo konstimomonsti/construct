@@ -22,12 +22,12 @@ export function phaseLabel(l: ListView) {
   return SOURCES[ext] ?? (l.fileName ? 'Import' : 'Blank list')
 }
 
-/** "all priced", "12 to price" or "38 with quantity 0", so a list's completeness shows on every row */
+/** only the exception ("12 to price", "no positions yet"); a fully priced list says nothing */
 export function completeness(l: ListView) {
   const unpriced = l.positionsCount - l.pricedCount
   if (!l.positionsCount) return 'no positions yet'
   if (unpriced > 0) return `${unpriced} to price`
-  return 'all priced'
+  return ''
 }
 
 /** display-only: a list title that repeats its project ("RINGSCHLUSS …, Projekt") is shortened to the part that differs */
@@ -37,7 +37,8 @@ export function displayTitle(title: string, project?: string) {
     t = t.slice(project.length).replace(/^[\s,–\-:·]+/, '')
   }
   if (t.length > 8 && t === t.toUpperCase() && /[A-ZÄÖÜ]{4}/.test(t)) {
-    t = t.toLowerCase().replace(/(^|[\s\-/(])(\p{L})/gu, (_, a, b) => a + b.toUpperCase())
+    // title-case word by word; codes and placeholders ("[PERSON_132]", "D86", "BA2") stay verbatim
+    t = t.split(/(\s+|[-/(])/).map((w) => (/[\d_[\]]/.test(w) || w.length < 2 ? w : w.charAt(0) + w.slice(1).toLowerCase())).join('')
   }
   return t
 }

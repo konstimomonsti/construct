@@ -1,17 +1,20 @@
 import { useMemo, useState } from 'react'
 import { Button, toast } from '../components/ui'
-import { Chips, EmptyState, MetaLink, PageFrame, PageHeader, PillLink, RowMenu, Section, SortMenu, Summary, ToolButton, heroStatus } from '../components/Kit'
+import { Chips, EmptyState, PageFrame, PageHeader, PillLink, RowMenu, Section, SortMenu, Summary, ToolButton, heroStatus, worstTone } from '../components/Kit'
 import { FolderGrid } from '../components/FolderCard'
 import { Dock } from '../components/Dock'
-import { SORT_LABEL, portfolioBudget, useModel, useStore, type FolderView, type SortKey } from '../lib/store'
+import { SORT_LABEL, counts, portfolioBudget, useModel, useStore, type FolderView, type SortKey } from '../lib/store'
 import { useUi } from '../lib/ui-store'
 import { useActions } from '../lib/actions'
-import { money, needsAttention, plural } from '../lib/format'
+import { money, plural } from '../lib/format'
 
 type View = 'all' | 'attention' | 'unpriced'
+/** a project is as bad as its worst counted list, so a list at its cap flags the project too */
+export const projectTone = (f: FolderView) => worstTone(f, f.listMetas.filter(counts))
+const FLAGGED = new Set(['caution', 'warn', 'over'])
 const VIEWS: Record<View, (f: FolderView) => boolean> = {
   all: () => true,
-  attention: (f) => needsAttention(f.total, f.cap),
+  attention: (f) => FLAGGED.has(projectTone(f)),
   unpriced: (f) => !f.total && f.listMetas.length > 0,
 }
 
@@ -47,17 +50,12 @@ export function FolderCollection({
   const [view, setView] = useState<View>('all')
 
   const scoped = useMemo(() => all.filter((f) => !f.trashedAt && filter(f)), [all, filter])
-  const flagged = scoped.filter((f) => needsAttention(f.total, f.cap))
+  const flagged = scoped.filter(VIEWS.attention)
   const unpriced = scoped.filter((f) => !f.total && f.listMetas.length > 0)
   const folders = useMemo(
     () => sortFolders(scoped.filter(VIEWS[view]), sort),
     [scoped, sort, view],
   )
-  /** hero links apply a filter, then move focus to the list and say what it shows */
-  const show = (v: View) => {
-    setView(v)
-    requestAnimationFrame(() => document.getElementById('sec-projects')?.focus())
-  }
   const listsOf = (ids: Iterable<string>) => {
     const set = new Set(ids)
     return folders.filter((f) => set.has(f.id)).flatMap((f) => f.listMetas.map((l) => l.id))
@@ -97,15 +95,9 @@ export function FolderCollection({
           total={budget.total}
           cap={budget.cap}
           capLabel="in project caps"
-          status={heroStatus(budget, flagged, ['project', 'projects'], () => show('attention'))}
-          meta={
-            unpriced.length > 0 && (
-              <>
-                Counts {plural(budget.projects, 'priced project', 'priced projects')} ·{' '}
-                <MetaLink onClick={() => show('unpriced')}>{plural(unpriced.length, 'project', 'projects')} not priced yet</MetaLink>
-              </>
-            )
-          }
+          status={heroStatus(budget, flagged.map((f) => ({ tone: projectTone(f) })), ['project', 'projects'])}
+          meta={unpriced.length > 0 && <span className="num">{budget.projects} of {plural(scoped.length, 'project', 'projects')} priced</span>}
+          note="Measured against project caps. List caps are on Active Budgets."
           actions={
             <>
               <Button variant="primary" size="lg" icon="upload" onClick={() => openDialog({ kind: 'folder-target', action: 'import' })}>Import files</Button>
@@ -122,14 +114,14 @@ export function FolderCollection({
           focusable
           tools={
             <>
-              <SortMenu value={sort} options={SORT_LABEL} onChange={(k: SortKey) => setSort(k)} noun="projects" />
+              {scoped.length > 3 && <SortMenu value={sort} options={SORT_LABEL} onChange={(k: SortKey) => setSort(k)} noun="projects" />}
               <ToolButton icon={selectMode ? 'close' : 'checklist'} active={selectMode} aria-pressed={selectMode} onClick={() => (selectMode ? done() : setSelectMode(true))}>
                 {selectMode ? 'Cancel' : 'Select'}
               </ToolButton>
             </>
           }
         >
-          {(flagged.length > 0 || unpriced.length > 0 || view !== 'all') && (
+          {((scoped.length > 3 && (flagged.length > 0 || unpriced.length > 0)) || view !== 'all') && (
             <div className="mb-3">
               <Chips
                 label="Filter projects"

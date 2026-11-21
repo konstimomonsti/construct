@@ -122,20 +122,20 @@ export function MoveToCategory({
         )}
         {target && (
           <div aria-live="polite" className="rounded-lg border border-slate-200 bg-slate-50/70 p-2.5">
-            <div className="mb-1.5 text-[11px] font-semibold tracking-wider text-slate-400 uppercase">Renumbering preview</div>
+            <div className="mb-1.5 text-xs font-semibold tracking-wider text-slate-600 uppercase">Renumbering preview</div>
             {changed === 0 ? (
               <p className="text-xs text-slate-500">Already in this category.</p>
             ) : (
               <ul className="space-y-1">
                 {preview.slice(0, 6).map(({ p, ch }) => (
                   <li key={p.id} className="flex items-center gap-2 text-xs">
-                    <span className="font-mono text-slate-400">{ch?.from ?? p.oz}</span>
+                    <span className="font-mono text-slate-600">{ch?.from ?? p.oz}</span>
                     <Icon name="arrow_forward" size={13} className="text-slate-300" />
                     <span className="font-mono font-semibold text-brand-700" data-testid="renumber-to">{ch?.to ?? p.oz}</span>
                     <span className="min-w-0 flex-1 truncate text-slate-500">{p.short}</span>
                   </li>
                 ))}
-                {preview.length > 6 && <li className="text-[11px] text-slate-400">+ {preview.length - 6} more</li>}
+                {preview.length > 6 && <li className="text-xs text-slate-600">+ {preview.length - 6} more</li>}
               </ul>
             )}
           </div>

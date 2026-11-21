@@ -230,7 +230,7 @@ function Panel({ onClose, doc, title, positions, tree, folders, folderId, presel
       </div>
       <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-3">
         {!chosen.length && (
-          <div className="flex h-full flex-col items-center justify-center text-center text-xs text-slate-400">
+          <div className="flex h-full flex-col items-center justify-center text-center text-sm text-slate-600">
             <Icon name="checklist" size={30} className="mb-2 text-slate-300" />
             Tick categories or positions on the left to build the new list.
           </div>
@@ -240,7 +240,7 @@ function Panel({ onClose, doc, title, positions, tree, folders, folderId, presel
           return (
             <div key={oz} className="overflow-hidden rounded-xl border border-slate-200 bg-white" data-testid="preview-group" data-oz={oz}>
               <div className="flex items-center gap-2 border-b border-slate-100 bg-slate-50/80 px-3 py-1.5 text-xs">
-                <span className="font-mono text-[11px] text-slate-400">{oz}</span>
+                <span className="font-mono text-xs text-slate-600">{oz}</span>
                 <span className="min-w-0 flex-1 truncate font-semibold text-slate-700">{g?.label ?? list[0].category}</span>
                 <span className="rounded-full bg-white px-1.5 font-mono text-[10px] text-slate-500 ring-1 ring-slate-200">{list.length}</span>
                 <span className="font-mono text-[11px] text-slate-600">{moneyCompact(list.reduce((s, p) => s + positionTotal(p), 0))}</span>
@@ -263,7 +263,7 @@ function Panel({ onClose, doc, title, positions, tree, folders, folderId, presel
                       <span className="shrink-0 font-mono text-[11px]">
                         {ch ? (
                           <>
-                            <span className="text-slate-400 line-through">{ch.from}</span>
+                            <span className="text-slate-600 line-through">{ch.from}</span>
                             <Icon name="arrow_forward" size={12} className="mx-0.5 inline text-slate-300" />
                             <span className="font-semibold text-brand-700" data-testid="new-oz">{ch.to}</span>
                           </>
@@ -273,10 +273,10 @@ function Panel({ onClose, doc, title, positions, tree, folders, folderId, presel
                       </span>
                       <span className="min-w-0 flex-1 truncate text-slate-700" title={p.short}>{p.short}</span>
                       <span className="shrink-0 font-mono text-[11px] text-slate-500">{positionTotal(p) > 0 ? moneyCompact(positionTotal(p)) : '—'}</span>
-                      <button type="button" title="Move to another category" aria-label={`Move ${p.oz} to another category`} onClick={() => setPickFor([p.id])} className="rounded p-0.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700">
+                      <button type="button" title="Move to another category" aria-label={`Move ${p.oz} to another category`} onClick={() => setPickFor([p.id])} className="flex size-9 items-center justify-center rounded-full text-slate-600 hover:bg-slate-100 hover:text-slate-900">
                         <Icon name="drive_file_move" size={16} />
                       </button>
-                      <button type="button" title="Remove from selection" aria-label={`Remove ${p.oz} from selection`} onClick={() => toggle('pos', p.id)} className="rounded p-0.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600">
+                      <button type="button" title="Remove from selection" aria-label={`Remove ${p.oz} from selection`} onClick={() => toggle('pos', p.id)} className="flex size-9 items-center justify-center rounded-full text-slate-600 hover:bg-rose-50 hover:text-rose-700">
                         <Icon name="close" size={16} />
                       </button>
                     </li>
@@ -308,9 +308,9 @@ function Panel({ onClose, doc, title, positions, tree, folders, folderId, presel
           <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-600"><Icon name="call_split" size={20} /></span>
           <div className="min-w-0 flex-1">
             <h2 id="split-title" className="font-heading text-base font-bold tracking-tight text-slate-900">Split list</h2>
-            <p className="truncate font-mono text-[11px] text-slate-400">{doc.fileName}</p>
+            <p className="truncate font-mono text-xs text-slate-600">{doc.fileName}</p>
           </div>
-          <button type="button" aria-label="Close split panel" onClick={onClose} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700">
+          <button type="button" aria-label="Close split panel" onClick={onClose} className="flex size-10 items-center justify-center rounded-full text-slate-600 hover:bg-slate-100 hover:text-slate-900">
             <Icon name="close" size={20} />
           </button>
         </header>

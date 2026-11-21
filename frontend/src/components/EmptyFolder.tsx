@@ -13,7 +13,7 @@ export function EmptyFolder({ folder: f, ancestors, dragging }: { folder: Folder
   const pick = () => pickAndImport(f.id)
   const crumbs = [{ label: 'All Projects', to: '/' }, ...ancestors.map((x) => ({ label: x.name, to: `/folder/${x.id}` }))]
   const menu = [
-    { label: 'New folder inside', icon: 'create_new_folder', onSelect: () => openDialog({ kind: 'new-folder', parent: f.id }) },
+    { label: 'New sub-project', icon: 'create_new_folder', onSelect: () => openDialog({ kind: 'new-folder', parent: f.id }) },
     'sep' as const,
     ...folderMenu(f).filter((it) => it === 'sep' || it.label !== 'Open'),
   ]
@@ -24,15 +24,14 @@ export function EmptyFolder({ folder: f, ancestors, dragging }: { folder: Folder
         crumbs={crumbs}
         title={f.name}
         subtitle={folderDescription(f) || 'No lists yet'}
-        icon={f.icon || 'folder'}
-        tone={f.tone}
         aside={<RowMenu items={menu} label={`More actions for ${f.name}`} />}
       />
 
       <div
         className={clsx(
+          // the dashed outline only appears while files are dragged over the page
           'rounded-3xl border-2 border-dashed px-5 transition-colors sm:px-8',
-          dragging ? 'border-brand-600 bg-brand-50' : 'border-slate-300',
+          dragging ? 'border-brand-600 bg-brand-50' : 'border-transparent',
         )}
       >
         <EmptyState
