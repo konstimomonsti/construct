@@ -4,6 +4,7 @@
     run             analyse every labelled file (layers 1,2 by default) and store the findings
     fp              analyse only the controls and the clean seed; every finding is a false alarm
     label-template  print a CSV skeleton to label the findings of any file by hand
+    real-audit      score source-first labels on frozen repository bills
     report          the results tables: recall per mutation type, precision per rule, gaps
 """
 
@@ -59,6 +60,11 @@ def build_parser() -> argparse.ArgumentParser:
     template.add_argument("--per-finding", action="store_true", help="one row per finding instead of per rule")
     template.add_argument("--out", help="write to this file instead of printing")
 
+    from .real_audit import DEFAULT_MANIFEST, DEFAULT_SOURCE_DIR
+    audit = commands.add_parser("real-audit", help="score position-level source review cases")
+    audit.add_argument("--manifest", type=Path, default=DEFAULT_MANIFEST)
+    audit.add_argument("--source-dir", type=Path, default=DEFAULT_SOURCE_DIR)
+
     report = commands.add_parser("report", help="print the results tables")
     report.add_argument("--out", default=str(DEFAULT_OUT))
     report.add_argument("--backend", choices=["x83", "json"], help="only the files of one backend")
@@ -68,7 +74,8 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv=None) -> int:
-    args = build_parser().parse_args(argv)
+    parser = build_parser()
+    args = parser.parse_args(argv)
     out = Path(getattr(args, "out", None) or DEFAULT_OUT) if args.command != "label-template" else None
 
     if args.command == "mutate":
@@ -110,6 +117,18 @@ def main(argv=None) -> int:
         else:
             _echo(text)
         return 0
+
+    if args.command == "real-audit":
+        import json
+        from .real_audit import audit
+        try:
+            result = audit(args.manifest, args.source_dir)
+        except (ValueError, OSError) as exc:
+            parser.error(str(exc))
+        _echo(json.dumps(result, ensure_ascii=False, indent=2))
+        return int(any(result["counts"].get(key, 0) for key in (
+            "missed", "false_alarm", "caught_needs_evidence", "source_unlinked",
+        )))
 
     if args.command == "report":
         import json

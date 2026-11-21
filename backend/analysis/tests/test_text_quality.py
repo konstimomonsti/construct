@@ -94,6 +94,26 @@ def test_no_typo(text):
     assert by_rule(run(line(1, "Leistung", text)), "L1.TEXT.TYPO") == []
 
 
+def test_doubled_letter_pair_in_description_needs_one_known_replacement():
+    spelling.use_checker(spelling.SpellChecker(LEXICON, FakeHunspell("Montageschiene", "Montageplatte")))
+    text = "Eine Mofontageschiene und eine Montatageplatte montieren."
+    [typo] = by_rule(run(line(1, "Leistung", text)), "L1.TEXT.TYPO")
+    assert typo.evidence["word"] == "Montatageplatte"
+    assert typo.evidence["suggestion"] == "Montageplatte"
+    assert typo.suggested_fix.operations[0].new_value == "Eine Mofontageschiene und eine Montageplatte montieren."
+    assert "2 edits" in typo.suggested_fix.rationale
+
+
+@pytest.mark.parametrize("known,text", [
+    (("Montageplatte", "Montatageplatte"), "Die Montatageplatte verwenden."),
+    ((), "Die Montatageplatte verwenden."),
+    (("Montageplattegege", "Montatageplattege"), "Die Montatageplattegege verwenden."),
+])
+def test_doubled_pair_keeps_known_words_and_ambiguous_corrections(known, text):
+    spelling.use_checker(spelling.SpellChecker(LEXICON, FakeHunspell(*known)))
+    assert by_rule(run(line(1, "Leistung", text)), "L1.TEXT.TYPO") == []
+
+
 def test_english_text_is_not_checked():
     text = "The contractor shall supply the materail and install it according to the drawings."
     assert by_rule(run(line(1, "Supply", text)), "L1.TEXT.TYPO") == []

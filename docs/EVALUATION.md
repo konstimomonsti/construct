@@ -80,6 +80,18 @@ python -m analysis.eval label-template 'data/tenders/StBALV23040.D86'
 
 Use `true_error`, `false_alarm`, `importer_artefact`, or `unsure`. A wildcard finding ID applies a verdict to a whole file-and-rule group. Verify the affected records before replacing an unsure verdict. Independently labelled project cases are still needed for production accuracy and clause-level DIN claims.
 
+### Source-first audit on repository bills
+
+The [position audit](../backend/analysis/eval/labels/repository_audit.json) records source observations from five bills by position, page, paragraph, or record. It includes five confirmed source defects, five controls reviewed for particular rule families, and one unresolved duplicate in an outline with explicit alternatives. A checksum pins each original. The replay separates wrong or absent source links from missed findings and checks whether each caught defect has guidance anchored to the reviewed position.
+
+With the bundled lexicon, Layers 1 and 2 caught three of the five defects with guidance. The two missing Word quantities and the malformed GAEB award position were caught. All five scoped controls were clear, including the explicitly included screed edge strip. The optional German dictionary initially gave the same result. A new dictionary-backed check for doubled letter pairs recovered the roof-drain typo on position .1, page 2, and proposed `Befestigungsflansch`. It requires a unique recognized replacement. All 46 existing synthetic controls passed with the optional dictionary enabled. The Word wording `liefern/aufsetzten` remains a gap because its correction depends on the surrounding grammar.
+
+```sh
+ANALYSIS_SPELL_DIC=off PYTHONPATH=backend:backend/importer python -m analysis.eval real-audit
+```
+
+Run again with `ANALYSIS_SPELL_DIC` pointing to `de_DE.dic` to replay the optional profile. The command returns exit 1 for misses, false alarms, missing guidance, or unlinked cases. Its counts apply to the reviewed position and rule combinations. An independent sample of unseen bills is still needed for a production accuracy estimate.
+
 ## Dependency responsibility and cross-reference replay
 
 Layer 2 distinguishes counted coverage from explicit responsibility statements. A dependency stated as client-supplied, excluded, conditional, or in another position is not counted from that mention. A position reference can be verified when it resolves uniquely to a firm matching line within the assessed scope. That target counts once at its recorded quantity. An unresolved reference is visible even when other quantities look sufficient. Findings quote the source statement and ask the reviewer to confirm the responsible position and quantity before adding work.

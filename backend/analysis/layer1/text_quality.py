@@ -176,8 +176,9 @@ def typo(ctx):
             continue
         related, codes = where(places)
         certain = not suggestion.alternatives and suggestion.distance == 1
+        edits = "one edit" if suggestion.distance == 1 else f"{suggestion.distance} edits"
         fix = replacement_fix(places, {form: spelling.match_case(form, suggestion.candidate) for form in forms},
-                              0.7 if certain else 0.5, f"'{suggestion.candidate}' is a known word one edit away.")
+                              0.7 if certain else 0.5, f"'{suggestion.candidate}' is a known word {edits} away.")
         also = f" (or {', '.join(repr(a) for a in suggestion.alternatives[:3])})" if suggestion.alternatives else ""
         yield ctx.finding(
             line=related[0], field=places[0][1], discriminator=lower, suggested_fix=fix,
