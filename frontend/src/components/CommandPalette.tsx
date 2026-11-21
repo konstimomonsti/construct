@@ -11,6 +11,7 @@ import { listLabel, phaseLabel } from './ListCard'
 import { positionTotal } from '../lib/money'
 import { folderDescription, useModel, useStore, type ListView } from '../lib/store'
 import { useUi } from '../lib/ui-store'
+import { setTheme, useTheme } from '../lib/theme'
 
 interface PosIndexEntry {
   listId: string
@@ -24,7 +25,7 @@ interface PosIndexEntry {
   up: number | null
   unit: string
 }
-type Group = 'Projects' | 'Lists' | 'Positions'
+type Group = 'Actions' | 'Projects' | 'Lists' | 'Positions'
 interface Result {
   key: string
   group: Group
@@ -43,13 +44,11 @@ interface Result {
 }
 type Option =
   | { kind: 'result'; key: string; r: Result }
-  | { kind: 'more'; key: string; group: Group; next: number }
+  | { kind: 'more'; key: string; group: Group; next: number; top?: number }
 interface GroupView {
   group: Group
   count: number
   options: { o: Option; i: number }[]
-  /** none of the visible results has a price */
-  nonePriced: boolean
   /** expanded but capped at POS_MAX: how many are listed */
   capped?: number
 }
@@ -58,8 +57,8 @@ interface GroupView {
 const CAP = 3
 /** most positions listed when the group is expanded */
 const POS_MAX = 50
-const GROUP_ORDER: Group[] = ['Projects', 'Lists', 'Positions']
-const NOUN: Record<Group, [string, string]> = { Projects: ['project', 'projects'], Lists: ['list', 'lists'], Positions: ['position', 'positions'] }
+const GROUP_ORDER: Group[] = ['Actions', 'Projects', 'Lists', 'Positions']
+const NOUN: Record<Group, [string, string]> = { Actions: ['action', 'actions'], Projects: ['project', 'projects'], Lists: ['list', 'lists'], Positions: ['position', 'positions'] }
 
 /** bold the matched part of a result title or subtitle */
 function Hl({ text, q }: { text: string; q: string }) {
@@ -79,6 +78,8 @@ export function CommandPalette() {
   const setOpen = useUi((s) => s.setPalette)
   const { folders, lists } = useModel()
   const navigate = useNavigate()
+  const openDialog = useUi((s) => s.openDialog)
+  const [theme] = useTheme()
   const [q, setQ] = useState('')
   // the option the user moved to; null = use the default (first title match)
   const [activeKey, setActiveKey] = useState<string | null>(null)
@@ -170,6 +171,19 @@ export function CommandPalette() {
         sub: [folderName.get(l.folderId), phaseLabel(l) ?? plural(l.positionsCount, 'position', 'positions')].filter(Boolean).join(' · '),
         right: l.total ? money(l.total) : undefined, priced: !!l.total, score: s, go: go(`/list/${l.id}`, l.id),
       }))
+    // commands: all of them on an empty query, otherwise the ones whose name matches
+    const act = (key: string, icon: string, title: string, sub: string, run: () => void): Result => ({
+      key: `a-${key}`, group: 'Actions', icon, tile: 'bg-slate-100 text-slate-700', title, sub, priced: false, score: t ? score(title) : 1,
+      go: () => { setOpen(false); run() },
+    })
+    const aRes = [
+      act('new-project', 'create_new_folder', 'New project', 'Create an empty project', () => openDialog({ kind: 'new-folder' })),
+      act('import', 'upload', 'Import files', 'GAEB, Excel, CSV, Word or PDF', () => openDialog({ kind: 'folder-target', action: 'import' })),
+      act('budgets', 'account_balance_wallet', 'Go to Active Budgets', 'Every priced list against its cap', go('/active')),
+      act('archived', 'archive', 'Go to Archived', 'Projects set aside', go('/archived')),
+      act('trash', 'delete', 'Go to Trash', 'Restore or delete forever', go('/trash')),
+      act('theme', theme === 'dark' ? 'light_mode' : 'dark_mode', theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode', 'Remembered on this device', () => setTheme(theme === 'dark' ? 'light' : 'dark')),
+    ].filter((a) => !t || a.title.toLowerCase().includes(t))
     let pRes: Result[] = []
     if (t.length >= 2 && index) {
       const hit: { e: PosIndexEntry; s: number }[] = []
@@ -200,8 +214,8 @@ export function CommandPalette() {
         }
       })
     }
-    return [...fRes, ...lRes, ...pRes]
-  }, [q, folders, lists, index, navigate, setOpen])
+    return [...aRes, ...fRes, ...lRes, ...pRes]
+  }, [q, folders, lists, index, navigate, setOpen, openDialog, theme])
 
   // groups ordered by their best match, so a query that names a position term shows Positions first;
   // each group shows CAP rows plus a "Show all" option until expanded
@@ -215,14 +229,14 @@ export function CommandPalette() {
       const rs = byGroup.get(g)!
       const max = g === 'Positions' ? POS_MAX : rs.length
       const open = expanded.has(g)
-      const limit = open ? max : CAP
+      const limit = open || g === 'Actions' ? max : CAP
       const shown = rs.slice(0, limit)
-      const view: GroupView = { group: g, count: rs.length, options: [], nonePriced: shown.every((r) => !r.priced) }
+      const view: GroupView = { group: g, count: rs.length, options: [] }
       const push = (o: Option) => { view.options.push({ o, i: options.length }); options.push(o) }
       shown.forEach((r) => push({ kind: 'result', key: r.key, r }))
       if (rs.length > limit) {
         // collapsed: offer the next batch; expanded and capped: explain the rest in a note row
-        if (!open) push({ kind: 'more', key: `more-${g}`, group: g, next: Math.min(rs.length, max) - limit })
+        if (!open) push({ kind: 'more', key: `more-${g}`, group: g, next: Math.min(rs.length, max) - limit, top: rs.length > max ? max : undefined })
         else view.capped = limit
       }
       return view
@@ -282,7 +296,7 @@ export function CommandPalette() {
       {open && (
         <div className="fixed inset-0 z-[85] flex items-start justify-center sm:px-4 sm:pt-[12vh]">
           <motion.div
-            className="absolute inset-0 bg-black/60 backdrop-blur-[2px]"
+            className="absolute inset-0 bg-black/60"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -311,8 +325,8 @@ export function CommandPalette() {
                 aria-expanded="true"
                 aria-controls="palette-list"
                 aria-activedescendant={options[active] ? `pal-${active}` : undefined}
-                aria-label="Search projects, lists and positions"
-                placeholder="Search projects, lists, OZ or text"
+                aria-label="Search projects, lists and positions, or run a command"
+                placeholder="Search, or type a command"
                 className="h-16 flex-1 bg-transparent text-base text-slate-900 outline-none placeholder:text-slate-500"
               />
               {loading && <Icon name="progress_activity" size={18} className="animate-spin text-slate-500" />}
@@ -333,13 +347,13 @@ export function CommandPalette() {
                     {/* labels the group below; hidden from browse mode so it isn't read twice */}
                     <div id={headingId} aria-hidden="true" className="flex items-baseline gap-2 px-3 pt-5 pb-2 text-xs text-slate-600">
                       <span className="font-semibold text-slate-800">{g.group}</span>
-                      <span className="num font-medium">{int(g.count)}{g.nonePriced && <span className="font-sans font-normal"> · none priced</span>}</span>
+                      {g.group !== 'Actions' && <span className="num font-medium">{int(g.count)}</span>}
                     </div>
                     <div role="group" aria-labelledby={headingId}>
                       {g.options.map(({ o, i }) => {
                         const on = i === active
                         const rowCls = clsx(
-                          'relative flex w-full items-center gap-3.5 rounded-2xl px-3 text-left',
+                          'relative flex w-full items-center gap-3.5 rounded-md px-3 text-left',
                           // the bar sits inside the rounded fill, never on the panel edge
                           on && 'bg-brand-50 before:absolute before:inset-y-3 before:left-1 before:w-[3px] before:rounded-full before:bg-brand-600',
                         )
@@ -358,7 +372,7 @@ export function CommandPalette() {
                               className={clsx(rowCls, 'py-2 text-sm font-medium text-brand-700')}
                             >
                               <span className="flex w-10 shrink-0 justify-center"><Icon name="expand_more" size={20} /></span>
-                              {`Show ${int(o.next)} more ${NOUN[o.group][o.next === 1 ? 0 : 1]}`}
+                              {o.top ? `Show the top ${int(o.top)} ${NOUN[o.group][1]}` : `Show ${int(o.next)} more ${NOUN[o.group][o.next === 1 ? 0 : 1]}`}
                             </button>
                           )
                         }
@@ -381,7 +395,7 @@ export function CommandPalette() {
                             </span>
                             <span className="min-w-0 flex-1">
                               <span className="block truncate text-[15px] font-medium text-slate-900"><Hl text={r.title} q={needle} /></span>
-                              <span className="block truncate text-sm text-slate-600"><Hl text={r.sub} q={needle} /></span>
+                              <span className="block truncate text-sm text-slate-600">{r.sub}</span>
                             </span>
                             {r.right && (
                               <span className="flex shrink-0 flex-col items-end">

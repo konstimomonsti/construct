@@ -88,7 +88,7 @@ export function IconButton({
 /* ------------------------------------------------------------------ */
 
 export const toneBar: Record<string, string> = {
-  ok: 'bg-emerald-500',
+  ok: 'bg-emerald-600',
   caution: 'bg-amber-500',
   warn: 'bg-orange-500',
   over: 'bg-rose-600',
@@ -285,7 +285,7 @@ export function Dialog({
       {open && (
         <div className="fixed inset-0 z-[80] flex items-end justify-center p-0 sm:items-center sm:p-4">
           <motion.div
-            className="absolute inset-0 bg-black/60 backdrop-blur-[4px]"
+            className="absolute inset-0 bg-black/60"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}

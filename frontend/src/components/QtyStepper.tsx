@@ -6,7 +6,7 @@ import { parseNumber, qty } from '../lib/format'
  * row is hovered or focused, and always outlined on touch screens where there is no hover.
  */
 export const editableCls =
-  'num h-9 rounded-md border border-transparent px-2 text-right text-sm transition-colors group-hover:border-slate-500 group-hover:bg-white group-focus-within:border-slate-500 hover:border-slate-600 focus:border-brand-600 focus:bg-white max-lg:border-b-slate-500 max-lg:bg-slate-50 [@media(pointer:coarse)]:border-b-slate-500'
+  'num h-9 rounded-md border border-transparent px-2 text-right text-sm underline decoration-slate-400 decoration-dotted underline-offset-[5px] transition-colors group-hover:border-slate-500 group-hover:bg-white group-hover:no-underline group-focus-within:border-slate-500 group-focus-within:no-underline hover:border-slate-600 focus:border-brand-600 focus:bg-white max-lg:border-slate-400 max-lg:no-underline [@media(pointer:coarse)]:border-slate-400 [@media(pointer:coarse)]:no-underline'
 
 const round = (n: number) => Math.round(n * 1000) / 1000
 

@@ -122,7 +122,7 @@ export function Sidebar() {
         {mobileOpen && !isLg && (
           <motion.div
             key="scrim"
-            className="fixed inset-0 z-40 bg-black/60 backdrop-blur-[2px] lg:hidden"
+            className="fixed inset-0 z-40 bg-black/60 lg:hidden"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}

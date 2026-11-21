@@ -10,7 +10,7 @@ import { completeness, displayTitle, listLabel, phaseLabel } from '../components
 type Key = 'total' | 'usage' | 'title' | 'folder'
 const SORTS: Record<Key, string> = { usage: 'Closest to cap', total: 'Highest amount', title: 'Name A–Z', folder: 'Project A–Z' }
 
-/** this page's own question is "where is money left?", so it leads with headroom, not the All Projects total */
+/** the hero reads like every other: what is priced, against the sum of list caps, with Used and Left on the right */
 export function ActiveBudgets() {
   const { lists, folders } = useModel()
   const { listMenu, openLists } = useActions()
@@ -40,7 +40,6 @@ export function ActiveBudgets() {
 
   const budget = live.reduce((b, l) => (l.cap ? { total: b.total + l.total, cap: b.cap + l.cap } : b), { total: 0, cap: 0 })
   const total = live.reduce((x, l) => x + l.total, 0)
-  const left = budget.cap - budget.total
   const folderCount = new Set(live.map((l) => l.folderId)).size
   const toggle = (id: string) =>
     setSel((s) => {
@@ -65,14 +64,13 @@ export function ActiveBudgets() {
       ) : (
         <>
           <Summary
-            label={left >= 0 ? 'Left in list caps' : 'Over list caps'}
-            amount={money(Math.abs(left))}
+            label="Priced in capped lists"
+            amount={money(budget.total)}
             total={budget.total}
             cap={budget.cap}
             capLabel="in list caps"
-            hideLeft
             status={heroStatus(budget, live.map((l) => ({ tone: budgetStatus(l.total, l.cap).tone })), ['list', 'lists'])}
-            meta={<span className="num">{money(total)} priced across {plural(live.length, 'list', 'lists')}</span>}
+            meta={total !== budget.total ? <span className="num">{money(total)} across all {plural(live.length, 'list', 'lists')}</span> : plural(live.length, 'list', 'lists')}
             note="Measured against each list's own cap."
           />
           <Section

@@ -13,7 +13,7 @@ export function Header() {
   const [theme, setTheme] = useTheme()
 
   return (
-    <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md">
+    <header className="sticky top-0 z-30 bg-white">
       {/* same column as the page content, so the search lines up with the page title */}
       <div className="mx-auto flex h-16 w-full max-w-[1120px] items-center justify-between gap-3 px-4 sm:px-8">
       <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-4">

@@ -14,7 +14,7 @@
   --color-slate-100: #f3efe7;
   --color-slate-200: #e7e0d3;
   --color-slate-300: #d6ccba;
-  --color-slate-400: #a69780;
+  --color-slate-400: #948468;
   --color-slate-500: #7f705a;
   --color-slate-600: #62553f;
   --color-slate-700: #483d2c;
@@ -35,7 +35,7 @@
   --color-emerald-50: #fdf4de;
   --color-emerald-400: #f0c060;
   --color-emerald-500: #edb03e;
-  --color-emerald-600: #d99a1f;
+  --color-emerald-600: #c08712;
   --color-emerald-700: #845a0a;
   --color-emerald-800: #74500a;
   --color-amber-50: #fff1e3;
@@ -55,9 +55,9 @@
   /* signage, not pills: tight radii */
   --radius-md: 0.375rem;
   --radius-lg: 0.5rem;
-  --radius-xl: 0.625rem;
-  --radius-2xl: 0.75rem;
-  --radius-3xl: 1rem;
+  --radius-xl: 0.5rem;
+  --radius-2xl: 0.5rem;
+  --radius-3xl: 0.625rem;
 
   --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);

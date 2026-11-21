@@ -17,7 +17,7 @@ const sharePct = (v: number) => (v > 0 && v < 0.05 ? `< ${pctFmt.format(0.1)}%`
 
 /* text fields: white with a ≥3:1 slate-500 boundary and a brand focus ring (no padding/height, so callers never stack conflicting classes) */
 const fieldCls =
-  'w-full rounded-xl border border-slate-500 bg-white text-sm text-slate-900 outline-none transition-[border-color,box-shadow] placeholder:text-slate-500 hover:border-slate-600 focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20'
+  'w-full rounded-xl border border-slate-500 bg-white text-sm text-slate-900 outline-none transition-[border-color,box-shadow] placeholder:text-slate-500 hover:border-slate-600 focus:border-brand-700 focus:ring-2 focus:ring-brand-700/25'
 /* header icon buttons: 44px hit area on the phone sheet, 40px on desktop */
 const headBtn =
   'inline-flex size-11 shrink-0 items-center justify-center rounded-md text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 active:scale-[0.94] disabled:pointer-events-none disabled:opacity-30 sm:size-10'
@@ -36,7 +36,7 @@ const useIsDesktop = () => useSyncExternalStore(subscribeSm, () => window.matchM
 function Labeled({ label, children, className }: { label: string; children: React.ReactNode; className?: string }) {
   return (
     <label className={`block space-y-1.5 ${className ?? ''}`}>
-      <span className="block text-sm font-medium text-slate-700">{label}</span>
+      <span className="block text-[13px] font-semibold text-slate-600">{label}</span>
       {children}
     </label>
   )
@@ -211,9 +211,9 @@ export function DetailDrawer({
                   )}
                 </div>
                 {catalogue}
-                <div className="rounded-3xl bg-slate-50 px-5 py-4">
+                <div className="border-y border-slate-200 py-4">
                   <div className="text-sm font-medium text-slate-600">GP</div>
-                  <div className="num mt-0.5 text-[26px] leading-tight font-semibold tracking-tight text-slate-900">{p.up == null ? 'Not priced yet' : money(total)}</div>
+                  <div className="num display mt-1 text-[32px] leading-tight text-slate-900">{p.up == null ? 'Not priced yet' : money(total)}</div>
                   <div className="num mt-1 text-sm text-slate-600">{qty(p.qty)} {p.unit} × {p.up == null ? 'no unit price' : money(p.up)}</div>
                   {changed && delta !== 0 && (
                     <div className="num mt-1 text-sm font-medium text-slate-800">{delta > 0 ? '+' : ''}{money(delta)} vs. imported</div>
@@ -233,7 +233,7 @@ export function DetailDrawer({
                 <div className="space-y-2">
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1.5">
-                      <label htmlFor={`${uid}-qty`} className="block text-sm font-medium text-slate-700">Menge</label>
+                      <label htmlFor={`${uid}-qty`} className="block text-[13px] font-semibold text-slate-600">Menge</label>
                       {/* Einheit sits inside the field as a suffix, like € in EP; it opens the unit editor */}
                       <span className="relative block">
                         <input
@@ -314,7 +314,7 @@ export function DetailDrawer({
                   )}
                 </div>
                 <div className="space-y-1.5">
-                  <span id={`${uid}-cat`} className="block text-sm font-medium text-slate-700">Kategorie</span>
+                  <span id={`${uid}-cat`} className="block text-[13px] font-semibold text-slate-600">Kategorie</span>
                   <button
                     id={`${uid}-cat-btn`}
                     type="button"
@@ -348,7 +348,7 @@ export function DetailDrawer({
                   </button>
                 </div>
                 <div className="space-y-1.5">
-                  <span id={`${uid}-long`} className="block text-sm font-medium text-slate-700">Langtext</span>
+                  <span id={`${uid}-long`} className="block text-[13px] font-semibold text-slate-600">Langtext</span>
                   {editLong ? (
                     <textarea
                       aria-labelledby={`${uid}-long`}

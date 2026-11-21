@@ -284,7 +284,7 @@ export function Summary({
 }
 
 const trussInk: Record<string, string> = {
-  ok: 'text-brand-600',
+  ok: 'text-emerald-600',
   caution: 'text-amber-500',
   warn: 'text-orange-500',
   over: 'text-rose-600',
@@ -330,7 +330,7 @@ export function TrussMeter({ total, cap, tone, label }: { total: number; cap: nu
             <rect x="0" y="-2" height="22" className="transition-[width] duration-700 ease-out-expo motion-reduce:transition-none" style={{ width: `${fill}%` }} />
           </clipPath>
         </defs>
-        <g className="text-slate-300" stroke="currentColor">{jib('rest')}</g>
+        <g className="text-slate-400" stroke="currentColor">{jib('rest')}</g>
         <g className={trussInk[tone] ?? trussInk.none} stroke="currentColor" clipPath={`url(#${id}-clip)`}>{jib('lit')}</g>
         <rect x={`${capAt}%`} y="-5" width="3" height="28" className="fill-slate-700" transform="translate(-1.5 0)" />
       </svg>
@@ -555,14 +555,14 @@ export function EmptyState({ icon, title, text, children, hint, className }: { i
   return (
     <div className={clsx('max-w-xl pt-6 pb-12 sm:pt-8', className)}>
       {icon && (
-        <span className="mb-5 flex size-20 items-center justify-center rounded-md bg-slate-100 text-slate-600">
-          <Icon name={icon} size={36} />
+        <span className="mb-4 flex size-14 items-center justify-center rounded-md bg-slate-100 text-slate-500">
+          <Icon name={icon} size={28} />
         </span>
       )}
       <h2 className="font-heading text-xl font-bold tracking-tight text-balance text-slate-900">{title}</h2>
       {text && <p className="mt-2 text-[15px] leading-relaxed text-pretty text-slate-600">{text}</p>}
       {children && <div className="mt-7 flex flex-col gap-2 sm:flex-row sm:flex-wrap [&>*]:max-sm:w-full">{children}</div>}
-      {hint && <p className="mt-5 text-[13px] leading-relaxed text-slate-600">{hint}</p>}
+      {hint && <p className="mt-5 text-[13px] leading-relaxed text-slate-500">{hint}</p>}
     </div>
   )
 }

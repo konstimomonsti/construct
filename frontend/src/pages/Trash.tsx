@@ -53,7 +53,7 @@ export function Trash() {
 
   return (
     <PageFrame>
-      <PageHeader title="Trash" subtitle="Restore or delete items forever from their More options menu." />
+      <PageHeader title="Trash" subtitle="Restore items, or delete them forever, from the ••• menu on each row." />
       {!tf.length && !tl.length ? (
         <EmptyState icon="delete" title="Trash is empty" text="Projects and lists you move to Trash show up here.">
           <PillLink to="/" icon="arrow_back">Go to All Projects</PillLink>

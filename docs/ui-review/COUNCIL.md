@@ -2,12 +2,10 @@
 
 | id | member | lens |
 |---|---|---|
-| visual | Visual designer | hierarchy, type scale, colour, spacing rhythm, polish |
-| ux | UX / interaction designer | information architecture, cognitive load, duplicate actions, flows, affordances |
-| estimator | Construction estimator (domain user) | does each screen show what an estimator needs (totals, caps, positions, edits) quickly and without noise |
-| a11y | Accessibility & responsive specialist | WCAG contrast, targets, focus, colour-only status, mobile layout |
-| fintech | Fintech product lead (Wise benchmark) | compares every screen directly with the Wise web dashboard; calm, premium, trustworthy money UI |
+| visual | Visual designer (Claude) | hierarchy, type scale, colour, spacing rhythm, polish; also scores every rubric category, including accessibility and mobile |
 | sol | GPT‑6.2 Sol (Codex), independent reviewer | an outside model's all-round read, with the Theo test front of mind: would a dev-tool-literate, design-opinionated developer love this UI? |
+
+From round 7 the council is these two members. The ux, estimator, a11y and fintech reviewers sat through round 6; their scores stay in `scores/round-0` … `round-6` for the record.
 
 ## Screens
 

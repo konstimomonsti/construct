@@ -577,7 +577,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Search positions"
-              className="h-10 w-full rounded-md bg-white pr-4 pl-11 text-sm text-slate-900 ring-1 ring-slate-500 transition-shadow outline-none ring-inset placeholder:text-slate-500 hover:ring-slate-600 focus:ring-2 focus:ring-brand-600"
+              className="h-10 w-full rounded-md bg-slate-100 pr-4 pl-11 text-sm text-slate-900 transition-[background-color,box-shadow] outline-none ring-inset placeholder:text-slate-600 hover:bg-slate-200 focus:bg-white focus:ring-2 focus:ring-brand-700"
             />
           </div>
           <CategoryFilter tree={tree} stats={catStats} value={cats} onChange={setCats} />
@@ -624,7 +624,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
         />
 
         {/* sticky footer: the running total, or the batch actions while rows are selected */}
-        <div className={clsx('sticky bottom-0 z-20 -mx-4 mt-2 border-t border-slate-200 bg-white/95 px-4 py-3 backdrop-blur transition-opacity sm:-mx-8 sm:px-8', !(heroGone || selected.size > 0 || rows.length !== positions.length) && 'pointer-events-none opacity-0')} aria-hidden={!(heroGone || selected.size > 0 || rows.length !== positions.length) || undefined}>
+        <div className={clsx('sticky bottom-0 z-20 -mx-4 mt-2 border-t border-slate-200 bg-white px-4 py-3 transition-opacity sm:-mx-8 sm:px-8', !(heroGone || selected.size > 0 || rows.length !== positions.length) && 'pointer-events-none opacity-0')} aria-hidden={!(heroGone || selected.size > 0 || rows.length !== positions.length) || undefined}>
           {selected.size > 0 ? (
             <div role="toolbar" aria-label="Selected positions" className="flex flex-wrap items-center gap-1 text-sm">
               <span className="mr-2 font-semibold text-slate-900" aria-live="polite">{plural(selected.size, 'position', 'positions')} selected</span>

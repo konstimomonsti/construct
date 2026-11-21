@@ -23,14 +23,15 @@ export function EmptyFolder({ folder: f, ancestors, dragging }: { folder: Folder
       <PageHeader
         crumbs={crumbs}
         title={f.name}
-        subtitle={folderDescription(f) || 'No lists yet'}
+        subtitle={folderDescription(f) || undefined}
         aside={<RowMenu items={menu} label={`More actions for ${f.name}`} />}
       />
 
       <div
         className={clsx(
           // the dashed outline only appears while files are dragged over the page
-          'rounded-3xl border-2 border-dashed px-5 transition-colors sm:px-8',
+          // negative margins keep the content on the title's left edge while the outline extends past it
+          '-mx-[22px] rounded-3xl border-2 border-dashed px-5 transition-colors sm:-mx-[34px] sm:px-8',
           dragging ? 'border-brand-600 bg-brand-50' : 'border-transparent',
         )}
       >
@@ -46,7 +47,7 @@ export function EmptyFolder({ folder: f, ancestors, dragging }: { folder: Folder
           hint="Supports GAEB, CSV, TSV, Excel, JSON, Word and PDF. GAEB keeps OZ, Titel and Langtext."
         >
           <Button variant="primary" size="lg" icon="upload" onClick={pick}>Import files</Button>
-          <Button size="lg" icon="add" onClick={() => openDialog({ kind: 'blank-list', folderId: f.id })}>Start a blank list</Button>
+          <Button size="lg" icon="add" onClick={() => openDialog({ kind: 'blank-list', folderId: f.id })}>New list</Button>
         </EmptyState>
       </div>
     </PageFrame>

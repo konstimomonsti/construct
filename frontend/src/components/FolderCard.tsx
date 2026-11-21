@@ -1,4 +1,4 @@
-import { RowMenu, Row, RowList, BudgetBadge, BudgetMini, budgetPhrase, heroStatus } from './Kit'
+import { RowMenu, Row, RowList, BudgetBadge, BudgetMini, StatusTag, budgetPhrase, heroStatus } from './Kit'
 import { Meter } from './ui'
 import { budgetStatus, int, money, plural } from '../lib/format'
 import { useActions } from '../lib/actions'
@@ -11,7 +11,8 @@ export function FolderRow({ folder: f, selectMode, selected, onToggle }: { folde
   const { folderMenu } = useActions()
   const lists = f.listMetas.length ? plural(f.listMetas.length, 'list', 'lists') : 'No lists yet'
   // the project can be fine while one of its lists is at its own cap: say so on the row
-  const listFlag = heroStatus(f, f.listMetas.filter((l) => counts(l) && l.total > 0).map((l) => ({ tone: budgetStatus(l.total, l.cap).tone })), ['list', 'lists'])?.word
+  const listStatus = heroStatus(f, f.listMetas.filter((l) => counts(l) && l.total > 0).map((l) => ({ tone: budgetStatus(l.total, l.cap).tone })), ['list', 'lists'])
+  const listFlag = listStatus?.word
   return (
     <Row
       dataRow="folder"
@@ -20,8 +21,8 @@ export function FolderRow({ folder: f, selectMode, selected, onToggle }: { folde
       icon={f.icon}
       tone={f.tone}
       title={f.name}
-      badge={<BudgetBadge total={f.total} cap={f.cap} />}
-      subtitle={[lists, listFlag ?? folderDescription(f).split(' · ')[0]].filter(Boolean).join(' · ')}
+      badge={listStatus ? <StatusTag small tone={listStatus.tone} word={listStatus.word} /> : <BudgetBadge total={f.total} cap={f.cap} />}
+      subtitle={[lists, folderDescription(f).split(' · ')[0]].filter(Boolean).join(' · ')}
       amount={f.total ? money(f.total) : <span className="font-medium text-slate-500">Not priced</span>}
       meta={
         !f.total && f.positions ? (
