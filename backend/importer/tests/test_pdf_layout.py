@@ -59,6 +59,44 @@ def test_ocr_metres_recovered_from_price_placeholder_row_but_month_unit_kept():
     assert read_quantity(corrected)["line_amount"] is None
     assert [(record["original"], record["unit"]) for record in details] == [("Mo", "m")]
 
+def test_ocr_focused_measurement_corrects_punctuation_and_unit_with_evidence():
+    header = "OZ   Leistungsbeschreibung          Menge ME       Einheitspreis   Gesamtbetrag"
+    damaged = "                          1.250.000 Meee   ....   ...."
+    priced = "                             10,000 MM   EP 12,00   GP 120,00"
+    layout = f"{header}\n01.0010   Kabel liefern\n{damaged}\n01.0020   Blech liefern\n{priced}\n"
+    boxes = b"""
+        <html>
+        <word xMin="269" yMin="106" xMax="296" yMax="114">Menge</word>
+        <word xMin="302" yMin="106" xMax="310" yMax="114">ME</word>
+        <word xMin="335" yMin="106" xMax="380" yMax="114">Einheitspreis</word>
+        <word xMin="259" yMin="180" xMax="295" yMax="188">1.250.000</word>
+        <word xMin="302" yMin="180" xMax="455" yMax="188">Meee</word>
+        <word xMin="260" yMin="201" xMax="295" yMax="209">10,000</word>
+        <word xMin="302" yMin="201" xMax="310" yMax="209">MM</word>
+        </html>
+    """
+    render = mock.Mock()
+    recognize = mock.Mock(return_value=b"1.250,000 m")
+    revised, evidence = pdf_module._reread_ocr_measurements(layout, lambda: boxes, render, recognize)
+    assert revised == layout.replace("1.250.000 Meee", "1.250,000 m")
+    [reread] = evidence
+    assert (reread["line"], reread["original_quantity"], reread["original_unit"]) == (3, "1.250.000", "Meee")
+    result = Result("pdf")
+    extract_pdf_tables([revised], result, ocr_pages=(1,), ocr_evidence={(1, 3): {"measurement_ocr": reread}})
+    recovered, unaffected = [record for record in result.records if record.kind == "item_candidate"]
+    assert recovered.payload["quantity"] == "1250.000"
+    assert recovered.payload["unit"] == "m"
+    assert recovered.payload["unit_price"] is None
+    assert recovered.payload["line_amount"] is None
+    assert recovered.locator["measurement_ocr"] == reread
+    assert unaffected.payload["unit"] == "MM"
+    assert unaffected.payload["line_amount"] == "120.00"
+    assert "measurement_ocr" not in unaffected.locator
+    render.assert_called_once()
+
+    recognize.return_value = b"1.260,000 m"
+    assert pdf_module._reread_ocr_measurements(layout, lambda: boxes, render, recognize) == (layout, [])
+
 
 def warning_codes(result):
     return [issue["code"] for issue in result.issues]

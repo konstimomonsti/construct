@@ -1,5 +1,7 @@
 from base64 import b64encode
+from collections import defaultdict
 from collections.abc import Mapping
+from functools import cache
 from io import BytesIO
 import json
 import os
@@ -38,6 +40,7 @@ _UNIT = re.compile(r"^(?:m(?:[²³23])?(?:wo|d)?|cm[²23]?|mm|km[²2]?|kg|t|to|l
 _TOTAL = re.compile(rf"^\s*(?P<label>(?:Summe|Gesamt(?:betrag|summe|preis)|Angebotssumme|Übertrag|MwSt|USt|zzgl\. Mehrwertsteuer|Mehrwertsteuer|Nachlass)[^\n]*?)[ \t]{{2,}}(?:EUR\s+)?(?P<amount>{_NUMBER})\s*(?:EUR|€)?\s*$", re.I)
 _NOTE_TITLE = re.compile(r"^(?:Spezifikation\s+\S|Vorbemerkung(?:en)?\b|.{1,60}\s+-\s+Vorbemerkung(?:en)?\b)", re.I)
 _REDACTED_LINE = re.compile(r"\[(?:FIRMA|PERSON|ORT|ADRESSE|TELEFON)_\d+\]", re.I)
+_PRICE_PREFIX = re.compile(r"^(?:EP|GP)\s*", re.I)
 _PRICE_ONLY = re.compile(r"nur\s+(?:einh[. -]*pr\.?|einheitspreis|EP)\b", re.I)
 _FORM = re.compile(r"^\s*(\d{3}(?:\.[A-Z][A-Za-z]*)?)\s*$")
 _SUMMARY_TITLE = re.compile(r"^\s*(?:LV-Zusammenfassung|(?:Gesamt)?Zusammenstellung|Inhaltsverzeichnis)\s*$", re.I)
@@ -211,6 +214,96 @@ def _reread_ocr_units(layout, boxes, render, recognize):
     return layout, rereads
 
 
+_OCR_MEASUREMENT_HEADER = re.compile(r"\bMenge\s+ME\s+Einheitspreis\b", re.I)
+_OCR_MEASUREMENT_ROW = re.compile(
+    rf"^(?P<indent>[ \t]+)(?P<quantity>{_NUMBER})[ \t]+(?P<unit>\S+)(?P<tail>.*)$"
+)
+_OCR_MEASUREMENT_LIMIT = 12
+_OCR_NUMBER = re.compile(_NUMBER)
+_NUMERIC_PUNCTUATION = str.maketrans("", "", ".,")
+
+
+def _reread_ocr_measurements(layout, boxes, render, recognize):
+    """Re-read OCR-damaged, unpriced measurement cells using the printed table columns."""
+    lines = layout.splitlines(keepends=True)
+    header = find_header(lines)
+    if not header or not _OCR_MEASUREMENT_HEADER.search(header[1].string):
+        return layout, []
+    rows = defaultdict(list)
+    for number, line in enumerate(lines[header[0]:], header[0] + 1):
+        if row := _OCR_MEASUREMENT_ROW.fullmatch(line.rstrip("\r\n")):
+            rows[(row["quantity"], row["unit"])].append((number, row))
+
+    def eligible(row):
+        quantity, unit, tail = row["quantity"], row["unit"].casefold(), row["tail"]
+        if _UNIT.fullmatch(unit) and unit not in {"mo", "mm"} and quantity.count(".") < 2:
+            return False
+        cells = re.split(r"[ \t]{2,}", tail.strip())
+        return not any(german_decimal(_PRICE_PREFIX.sub("", cell)) is not None for cell in cells)
+
+    if not any(eligible(row) for entries in rows.values() for _, row in entries):
+        return layout, []
+    xml = parse_xml(boxes(), generated=True)
+    scale = OCR_DPI / 72
+    words = sorted(
+        (tuple(round(float(word.get(key, "")) * scale) for key in ("yMin", "xMin", "yMax", "xMax")), word.text)
+        for word in xml.iter() if local_name(word) == "word" and word.text
+    )
+    headings = [bbox for bbox, word in words if word.casefold() == "menge"]
+    if len(headings) != 1:
+        return layout, []
+    top, left, bottom, _ = headings[0]
+    same_row = [(bbox, word.casefold()) for bbox, word in words if top <= bbox[0] <= bottom and bbox[1] > left]
+    columns = {word: bbox[1] for bbox, word in same_row if word in {"me", "einheitspreis"}}
+    unit_x, price_x = columns.get("me", 0), columns.get("einheitspreis", 0)
+    if not 0 < left < unit_x < price_x <= OCR_RASTER_SIZE or price_x - unit_x < 80:
+        return layout, []
+
+    coordinates = defaultdict(list)
+    for index, (quantity_box, quantity) in enumerate(words):
+        y, x, y_end, x_end = quantity_box
+        if y <= bottom or not left - 28 <= x_end < unit_x or not _OCR_NUMBER.fullmatch(quantity):
+            continue
+        candidates = [(bbox, unit) for bbox, unit in words[index + 1:] if abs(bbox[0] - y) <= 5
+                      and unit_x - 8 <= bbox[1] <= unit_x + 24]
+        if len(candidates) == 1:
+            unit_box, token = candidates[0]
+            coordinates[(quantity, token)].append((min(y, unit_box[0]), x, max(y_end, unit_box[2])))
+
+    evidence = []
+    attempts = 0
+    for key, entries in rows.items():
+        matched = coordinates.get(key, [])
+        if len(matched) != len(entries):
+            continue
+        for (number, row), (y, x, bottom) in zip(entries, matched):
+            if attempts >= _OCR_MEASUREMENT_LIMIT or not eligible(row):
+                continue
+            left, top = x - 8, y - 10
+            right, end = price_x - 28, bottom + 8
+            if not (0 <= left < right <= OCR_RASTER_SIZE and 0 <= top < end <= OCR_RASTER_SIZE):
+                continue
+            attempts += 1
+            image = render(["-x", str(left), "-y", str(top), "-W", str(right - left), "-H", str(end - top)])
+            readings = [recognize(image, mode).decode("utf-8", errors="replace").split() for mode in ("6", "7")]
+            if len(readings[0]) != 2 or readings[0] != readings[1]:
+                continue
+            quantity, unit = readings[0]
+            if (not _OCR_NUMBER.fullmatch(quantity) or not _UNIT.fullmatch(unit)
+                    or quantity.translate(_NUMERIC_PUNCTUATION) != key[0].translate(_NUMERIC_PUNCTUATION)):
+                continue
+            if (quantity, unit.casefold()) == (key[0], key[1].casefold()):
+                continue
+            new_line = f'{row["indent"]}{quantity} {unit}{row["tail"]}'
+            if read_quantity(new_line) is None:
+                continue
+            lines[number - 1] = new_line + "\n"
+            evidence.append({"line": number, "original_quantity": key[0], "original_unit": key[1],
+                             "readings": readings, "quantity": quantity, "unit": unit,
+                             "bbox_px": [left, top, right, end]})
+    return "".join(lines), evidence
+
+
 def _ocr_layout(source, pages, result):
     """Use optional local OCR on a bounded set of raster-only pages."""
     if not pages or os.environ.get("PDF_OCR", "").strip().casefold() in {"0", "off", "false"}:
@@ -257,21 +350,35 @@ def _ocr_layout(source, pages, result):
             result.warn("pdf_ocr_incomplete", {"page": number}, "The page could not be read by local OCR.")
             continue
         if len(layouts) == 1 and layouts[0].strip():
-            original = revised = layouts[0]
-            rereads = []
+            original = revised = measurements = layouts[0]
+            unit_rereads, measurement_rereads = [], []
+
+            @cache
+            def boxes():
+                return execute([text_extractor, "-enc", "UTF-8", "-bbox", "-", "-"], data=searchable)
+
+            def render(args):
+                return execute([*raster, *args, str(source)])
+
+            def recognize(crop, mode):
+                return execute([*ocr, "--psm", mode], data=crop)
+
             try:
-                revised, rereads = _reread_ocr_units(
-                    original,
-                    lambda: execute([text_extractor, "-enc", "UTF-8", "-bbox", "-", "-"], data=searchable),
-                    lambda args: execute([*raster, *args, str(source)]),
-                    lambda crop, mode: execute([*ocr, "--psm", mode], data=crop),
-                )
+                revised, unit_rereads = _reread_ocr_units(original, boxes, render, recognize)
+                measurements, measurement_rereads = _reread_ocr_measurements(original, boxes, render, recognize)
             except (OSError, SyntaxError, ValueError, TimeoutExpired):
-                # Preserve the first transcription if the optional cell retry fails.
+                # Preserve completed reads if an optional retry fails.
                 pass
-            found[number] = revised, rereads
+            revised_lines = revised.splitlines(keepends=True)
+            measurement_lines = measurements.splitlines(keepends=True)
+            evidence = {item["line"]: {"unit_ocr": item} for item in unit_rereads}
+            for item in measurement_rereads:
+                line = item["line"]
+                revised_lines[line - 1] = measurement_lines[line - 1]
+                evidence[line] = {"measurement_ocr": item}
+            found[number] = "".join(revised_lines), evidence
             result.add("pdf_ocr_page", {"page": number, "ocr_pages": [number]}, layout=original,
-                       language=language, unit_rereads=rereads)
+                       language=language, unit_rereads=unit_rereads, measurement_rereads=measurement_rereads)
     if len(pages) > OCR_PAGE_LIMIT:
         result.warn("pdf_ocr_page_limit", {"page": pages[OCR_PAGE_LIMIT]},
                     f"Only the first {OCR_PAGE_LIMIT} raster-only pages are eligible for local OCR in one import.")
@@ -338,9 +445,9 @@ def pdf(data: bytes) -> Result:
                 if number not in ocr and not raw_page.strip():
                     result.warn("page_has_no_extractable_text", {"page": number}, "Inspect the page image or run OCR")
             pages = [ocr[number][0] if number in ocr else raw_page for number, raw_page in enumerate(native, 1)]
-            unit_evidence = {(page, reread["line"]): {"page": page, **reread}
-                             for page, (_, rereads) in ocr.items() for reread in rereads}
-            extract_pdf_tables(pages, result, ocr_pages=ocr.keys(), unit_evidence=unit_evidence)
+            ocr_evidence = {(page, row): {field: {"page": page, **item} for field, item in evidence.items()}
+                            for page, (_, rows) in ocr.items() for row, evidence in rows.items()}
+            extract_pdf_tables(pages, result, ocr_pages=ocr.keys(), ocr_evidence=ocr_evidence)
     return result
 
 
@@ -401,7 +508,7 @@ def read_quantity(body, *, ocr=False):
         if len(cells) < 2:
             cells = [unit, *cells]
         unit = None
-    values =[german_decimal(re.sub(r"^(?:EP|GP)\s*", "", cell, flags=re.I)) for cell in cells]
+    values =[german_decimal(_PRICE_PREFIX.sub("", cell)) for cell in cells]
     price_only = bool(_PRICE_ONLY.search(match["tail"]))
     if unit is not None and not _UNIT.fullmatch(unit) and not (
         len(cells) >= 2 and all(value is not None or re.fullmatch(r"\.{2,}", cell) for value, cell in zip(values, cells))
@@ -507,7 +614,7 @@ def detached_note_title(line, following):
     return False
 
 
-def extract_pdf_tables(pages, result, *, ocr_pages=(), unit_evidence=None):
+def extract_pdf_tables(pages, result, *, ocr_pages=(), ocr_evidence=None):
     current = None
     note = None
     section_paths = []
@@ -531,10 +638,9 @@ def extract_pdf_tables(pages, result, *, ocr_pages=(), unit_evidence=None):
                             "The quantity was found by a loose scan of the item text; check it against the source")
         if numbers:
             flags["unit_price_only"] |= numbers["unit_price_only"]
-            if unit_evidence and (quantity_locator := current.get("quantity_locator")):
+            if ocr_evidence and (quantity_locator := current.get("quantity_locator")):
                 key = (quantity_locator["page"], quantity_locator["line"])
-                if reread := unit_evidence.get(key):
-                    locator["unit_ocr"] = reread
+                locator.update(ocr_evidence.get(key, {}))
         else:
             result.warn("pdf_quantity_review", {**locator, "code": current["code"]},
                         "Review the source evidence for quantity and unit")

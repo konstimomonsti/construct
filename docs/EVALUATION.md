@@ -162,13 +162,15 @@ The following preliminary comparison rasterized the original repository page wit
 | Repository tender | Page | Native positions | Linked scan positions | Quantity and unit agree |
 | --- | ---: | ---: | ---: | ---: |
 | LV 18 screed | 3 | 5 | 5 | 5 |
-| LV 13 electrical | 9 | 9 | 9 | 3 |
-| LV 17 drywall | 5 | 6 | 6 | 3 |
+| LV 13 electrical | 9 | 9 | 9 | 9 |
+| LV 17 drywall | 5 | 6 | 6 | 6 |
 | LV 14b roof drainage | 10 | 8 | 0 | 0 |
 | LV 11 precast | 1 | 3 | 3 | 1 |
-| LV 22 joinery | 14 | 4 | 4 | 1 |
+| LV 22 joinery | 14 | 4 | 4 | 4 |
 
-OCR still merged blank price placeholders into electrical and drywall unit cells. On the electrical page it also replaced a decimal comma with a dot in one quantity. The roof drainage layout lost the leading dots on position numbers. These cases need extraction review before their measurements or dependency checks can be trusted.
+Blank price placeholders originally caused the OCR pass to concatenate text such as `Meee` into the unit. One electrical quantity came back as `1.250.000` instead of the printed `1.250,000`. For damaged rows with no readable price, the importer aligns the `Menge`, `ME`, and `Einheitspreis` headers and re-reads the first two fields in isolation. Both crop readings must agree and preserve the first pass’s quantity digits and sign. The locator keeps the original quantity and unit, both focused readings, and the crop coordinates.
+
+The update increased quantity and unit agreement from 13 to 25 of 35 positions across the six pages. It removed 15 false quantity, unit, and import findings on the electrical page’s affected positions and restored the measurements on the drywall and joinery pages. Electrical text OCR still raised an extra notation finding. The roof drainage scan dropped leading dots and two position numbers. Two measurements remain unreadable on the precast page.
 
 Run with the local preview server and replay database. The replay returns a nonzero status when the clean scan triggers false alarms.
 
