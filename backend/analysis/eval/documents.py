@@ -205,20 +205,28 @@ def generate_dimensions(out):
             write_fixture_labels(out / f"{name}.{ext}", f"{baseline}.{ext}", label)
 
 
-def _write_text_case(out, name, title, item, prefix):
+def _write_text_case(out, name, title, item, prefix, *, additional=()):
     identifier = f"{prefix}-item"
     section_id = f"{prefix}-section"
-    pdf_file(out / f"{name}.pdf", [item], title)
-    word_file(out / f"{name}.docx", [item], title)
+    items = [item, *additional]
+    identifiers = [identifier, *(f"{identifier}-{index}" for index in range(2, len(items) + 1))]
+    pdf_file(out / f"{name}.pdf", items, title)
+    word_file(out / f"{name}.docx", items, title)
     (out / f"{name}.json").write_text(json.dumps({
-        "title": title, "positions": [{"id": identifier, "oz": item.code, "short": item.short, "long": item.detail,
-                                       "qty": item.quantity, "unit": item.unit}],
+        "title": title, "positions": [
+            {"id": row_id, "oz": row.code, "short": row.short, "long": row.detail,
+             "qty": row.quantity, "unit": row.unit}
+            for row_id, row in zip(identifiers, items)
+        ],
     }, ensure_ascii=False), encoding="utf-8")
     gaeb_writer.write_file({
         "bom": {"title": title},
         "sections": [{"id": section_id, "code_parts": ["01"], "title": title}],
-        "lines": [{"id": identifier, "section_id": section_id, "code_parts": ["01", "0010"],
-                   "short_text": item.short, "long_text": item.detail, "quantity": item.quantity, "unit": item.unit}],
+        "lines": [
+            {"id": row_id, "section_id": section_id, "code_parts": row.code.split("."),
+             "short_text": row.short, "long_text": row.detail, "quantity": row.quantity, "unit": row.unit}
+            for row_id, row in zip(identifiers, items)
+        ],
     }, out / f"{name}.X83")
     return {"pdf": {"page": 1}, "docx": {"table": 1, "row": 2}, "json": {"row": 1}, "X83": {"source_id": identifier}}
 
@@ -274,6 +282,36 @@ def generate_exposure_scope(out):
 
 
 
+def generate_dependency_scope(out):
+    """Replay explicit responsibility and references for a measured dependency."""
+    out.mkdir(parents=True, exist_ok=True)
+    examples = (
+        ("dep-included", "Einschließlich Rohrdämmung.", False, (), False),
+        ("dep-linked", "Rohrdämmung ist in Pos. 01.0020 enthalten.", False,
+         (Item("01.0020", "Rohrdämmung aus Mineralwolle", 10, "m"),), False),
+        ("dep-missing", "", "warning", (), False),
+        ("dep-excluded", "Ausführung ohne Rohrdämmung.", "warning", (), True),
+        ("dep-client", "Rohrdämmung wird bauseits geliefert.", "info", (), True),
+        ("dep-separate", "Rohrdämmung in gesonderter Position.", "info", (), True),
+        ("dep-dangling", "Rohrdämmung ist in Pos. 01.0090 enthalten.", "info", (), True),
+    )
+    for name, wording, severity, additional, has_quote in examples:
+        detail = f"{wording} Druckprobe. Leitungsspülung. Wasserprobe.".strip()
+        item = Item("01.0010", "TW-Rohrleitung DN 20", 10, "m", detail=detail)
+        for ext, locator in _write_text_case(
+            out, name, "Leistungsverzeichnis Trinkwasserinstallation", item, "dependency", additional=additional,
+        ).items():
+            label = {"control": not severity, "layers": [2], "expect": []}
+            if severity:
+                target = {"trigger_codes": [item.code], "severity": severity}
+                if has_quote:
+                    target["source_locator"] = locator
+                label.update(expect=["L2.SANITARY.POTABLE_WATER_NEEDS_PIPE_INSULATION"],
+                             match="dependency", target=target)
+            write_fixture_labels(out / f"{name}.{ext}", f"dep-included.{ext}", label)
+
+
+
 def generate_dotted(out):
     """Render non-consecutive short position codes, including a planted amount."""
     out.mkdir(parents=True, exist_ok=True)
@@ -301,7 +339,7 @@ if __name__ == "__main__":
     parser.add_argument("out", type=Path)
     suites = {"tabular": generate, "precast": generate_precast, "gutter": generate_gutter,
               "dimensions": generate_dimensions, "dotted": generate_dotted, "grade-scope": generate_grade_scope,
-              "exposure-scope": generate_exposure_scope}
+              "exposure-scope": generate_exposure_scope, "dependency-scope": generate_dependency_scope}
     parser.add_argument("--suite", choices=suites, default="tabular")
     args = parser.parse_args()
     suites[args.suite](args.out)

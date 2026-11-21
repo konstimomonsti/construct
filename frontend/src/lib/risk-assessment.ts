@@ -20,6 +20,7 @@ export type Evidence = {
   family?: string
   short_quote?: string
   long_quote?: string
+  scope_statements?: { line_id: string; line_code?: string | null; role: string; quote: string }[]
   grade_quote?: string
   grade_field?: string
   exposure_quote?: string

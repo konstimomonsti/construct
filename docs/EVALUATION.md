@@ -80,6 +80,16 @@ python -m analysis.eval label-template 'data/tenders/StBALV23040.D86'
 
 Use `true_error`, `false_alarm`, `importer_artefact`, or `unsure`. A wildcard finding ID applies a verdict to a whole file-and-rule group. Verify the affected records before replacing an unsure verdict. Independently labelled project cases are still needed for production accuracy and clause-level DIN claims.
 
+## Dependency responsibility and cross-reference replay
+
+Layer 2 distinguishes counted coverage from explicit responsibility statements. A dependency stated as client-supplied, excluded, conditional, or in another position is not counted from that mention. A position reference can be verified when it resolves uniquely to a firm matching line within the assessed scope. That target counts once at its recorded quantity. An unresolved reference is visible even when other quantities look sufficient. Findings quote the source statement and ask the reviewer to confirm the responsible position and quantity before adding work.
+
+The `dependency-scope` suite caught all 20 expected findings with guidance through PDF, Word, JSON, and GAEB X83 uploads. All eight controls passed, including explicit inclusion and a valid reference. The local six-label Layer 3 replay used the PDF and X83 versions and left all four controls clear. The original 46 deterministic controls also passed.
+
+The earthworks, sanitary, and doors PDF uploads linked all 448 positions. Independent formwork and reinforcing-steel lines covered the full earthworks bill. In a replay restricted to slab positions 3.1.90 and 3.1.100, Layer 2 raised two questions from their statement that formwork and reinforcement belong in a separate position. The distinct missing clean-layer warning remained visible. This checks the scope handling of a partial bill with real text.
+
+To reproduce, use `--suite dependency-scope` with the document generator and the local workspace upload replay.
+
 ## Concrete grade attribution replay
 
 Layer 1 compares concrete grades for explicitly named components. An identical grade on a second component can no longer conceal a conflict on the first. The finding quotes the heading and detail, names the affected component, and asks the reviewer to confirm the governing grade before aligning the two descriptions. Layer 3 checks the source component names when its model cites two grades. Wording that leaves a grade's component uncertain still calls for review.

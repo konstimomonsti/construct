@@ -1,7 +1,7 @@
 """L3.REVIEW.L2_CONFIRM: re-read the texts behind each layer 2 "missing dependency" finding.
 
-Layer 2 matches keywords, so it can't see "inkl. Randdämmstreifen" written differently, or "bauseits".
-For every layer 2 finding that reports missing or insufficient work, the model gets the trigger items,
+Layer 2 uses written quantities and narrowly attributed scope statements.
+For a remaining layer 2 finding about missing or insufficient work, the model gets the trigger items,
 any matched dependency items and the other items of the same section, and decides: included, excluded,
 missing or unclear. This rule never edits the layer 2 finding. It emits its own finding that points at
 it (`evidence.reviews_finding_id`), so the review UI can show both together:

@@ -30,7 +30,7 @@ export function FindingBadge({ severity, children }: { severity: Severity; child
 }
 
 
-/** what layer 3 or a DIN rule found, shown under the message in the drawer */
+/** Source references and evidence shown under the finding in the drawer. */
 function FindingEvidence({ finding }: { finding: Finding }) {
   const evidence = finding.evidence
   const din = evidence?.din
@@ -47,13 +47,14 @@ function FindingEvidence({ finding }: { finding: Finding }) {
     : locator?.record ? `Source record ${locator.record}`
     : locator?.source_id ? `Source item ${locator.source_id}` : null
   const sourceField = (field?: string) => field === 'short_text' ? ' in heading' : field === 'long_text' ? ' in detail' : ''
+  const scopeStatements = evidence?.scope_statements ?? []
   const quotes = [
     ['Grade' + sourceField(evidence?.grade_field), evidence?.grade_quote],
     ['Exposure' + sourceField(evidence?.exposure_field), evidence?.exposure_quote],
     ['Heading', concrete ? evidence.short_quote : undefined],
     ['Detail', concrete ? evidence.long_quote : undefined],
   ].filter(([, quote]) => !!quote)
-  if (!source && !din && !standard && !requirement && !declarations.length && !extracted.length && !quotes.length) return null
+  if (!source && !din && !standard && !requirement && !declarations.length && !extracted.length && !quotes.length && !scopeStatements.length) return null
   const show = (v: unknown) => (v === null || v === undefined || v === '' ? '—' : Array.isArray(v) ? v.join(', ') || '—' : String(v))
   return (
     <div className="mt-2 space-y-2 text-[13px]">
@@ -75,6 +76,16 @@ function FindingEvidence({ finding }: { finding: Finding }) {
             </div>
           ))}
         </dl>
+      )}
+      {scopeStatements.length > 0 && (
+        <ul className="space-y-1 text-slate-700">
+          {scopeStatements.map((statement, index) => (
+            <li key={`${statement.line_id}-${index}`}>
+              {statement.line_code && <span className="mr-2 font-medium text-slate-900">Position {statement.line_code}</span>}
+              <q className="break-words">{statement.quote}</q>
+            </li>
+          ))}
+        </ul>
       )}
       {standard && /^https:\/\/www\.dinmedia\.de\//.test(standard.url) && (
         <a className="font-medium text-brand-700 underline" href={standard.url} target="_blank" rel="noreferrer">
