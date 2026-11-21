@@ -37,6 +37,8 @@ Copy one of the [example inputs](../data/examples/bid-pricing/). The JSON contai
 
 A finding can supply a quantity when its numerical shortfall applies to one existing dependency position and the priced scope matches. Ambiguous shortfalls require an explicit reviewed quantity assumption. Open AI scope reviews accompany the suggested quantity as advice. Accept a review of inclusion or exclusion after verifying the scope. That decision removes the automatically suggested quantity. Enter a reviewed quantity yourself if there is still work to price. A missing position without an original rate requires a separate estimate or clarification. The current model covers increases on existing rate positions, undiscounted position-level pricing, and the base award total. Conditional positions and positions quoted for unit price only are outside that total.
 
+The simulator displays confirmed conflicts between the quantity column and the original description. It uses the as-issued quantity for base pricing and holds manual or detected quantity changes that depend on the disputed value. Use a reconciled tender to model changes for that position. A review decision in the risk drawer records the review and leaves the original source quantities in place.
+
 ## How the comparison works
 
 Awarded profit equals the quoted base total minus the estimated base cost, plus revenue less cost for extra units. Expected profit weights that result by the probability of each awarded scenario. Project overhead, bid preparation costs, and taxes are outside the objective unless accounted for in the supplied costs.

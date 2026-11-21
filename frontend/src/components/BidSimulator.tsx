@@ -31,6 +31,7 @@ export function BidSimulator({ listId, title, standardRates }: {
   const [error, setError] = useState('')
   const positionByKey = new Map(tender?.positions.map((p) => [p.key, p]))
   const currency = tender?.currency ?? 'EUR'
+  const quantityConflicts = (view === 'result' ? result?.quantity_conflicts : undefined) ?? tender?.quantity_conflicts ?? []
 
   async function load() {
     setBusy(true)
@@ -38,10 +39,18 @@ export function BidSimulator({ listId, title, standardRates }: {
     try {
       const data = await bidPricing<PricingTender>(listId)
       setTender(data)
-      setRates(Object.fromEntries(data.positions.map(({key, id}) => {
-        const standard = standardRates.get(id)
-        return [key, { cost: '', standard: standard == null ? '' : inputNumber(standard), floor: '', ceiling: '' }]
-      })))
+      const changed = tender?.input_hash !== data.input_hash
+      if (changed) {
+        setRates(Object.fromEntries(data.positions.map(({key, id}) => {
+          const standard = standardRates.get(id)
+          return [key, { cost: '', standard: standard == null ? '' : inputNumber(standard), floor: '', ceiling: '' }]
+        })))
+        setChanges([])
+      }
+      if (changed || JSON.stringify(tender?.quantity_conflicts ?? []) !== JSON.stringify(data.quantity_conflicts ?? [])) {
+        setResult(undefined)
+        setView('setup')
+      }
     } catch (cause) {
       setError((cause as Error).message)
     } finally {
@@ -81,7 +90,7 @@ export function BidSimulator({ listId, title, standardRates }: {
   return <>
     <Button icon="calculate" aria-label="Bid simulator" onClick={() => {
       setOpen(true)
-      if (!tender && !busy) void load()
+      if (!busy) void load()
     }} className="max-sm:w-10 max-sm:px-0">
       <span className="max-sm:hidden">Bid simulator</span>
     </Button>
@@ -97,6 +106,24 @@ export function BidSimulator({ listId, title, standardRates }: {
         <Icon name="error" size={18} /><div>{error.split('\n')[0]}{!tender && <Button size="sm" onClick={() => void load()} className="ml-2">Retry</Button>}</div>
       </div>}
       {!tender && busy && <div role="status" className="flex items-center gap-2 py-4 text-sm"><Icon className="animate-spin" name="progress_activity" />Loading the original tender…</div>}
+      {quantityConflicts.length > 0 && (
+        <section aria-label="Quantities to confirm" className="mb-4 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-950">
+          <p className="font-semibold">Quantities to confirm</p>
+          <p>The base bid uses the quantities as issued. Resolve each conflict before adding changes to that position.</p>
+          <ul className="mt-2 max-h-40 space-y-2 overflow-auto">
+            {quantityConflicts.map(({ position, quantity, unit, written }) => (
+              <li key={position}>
+                <strong>{position}</strong> · Quantity column {quantity} {unit}
+                <ul className="ml-4">
+                  {written.map(({ quote, quantity: described }, index) => (
+                    <li key={index}><q>{quote}</q> gives {described} {unit}.</li>
+                  ))}
+                </ul>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
       {tender && (view === 'result' && result ? <Comparison result={result} positions={tender.positions} /> :
         <form id={formId} onSubmit={run} className="space-y-5">
           <fieldset disabled={busy} className="space-y-5">

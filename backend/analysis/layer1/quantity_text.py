@@ -77,12 +77,12 @@ def _display(value: Decimal):
     return text.rstrip("0").rstrip(".") if "." in text else text
 
 
-@rule("L1.QTY.WRITTEN_CONFLICT", layer=1, category="arithmetic", severity="error",
-      title="Written quantity disagrees with the position",
-      description="Compare an explicit position quantity or a priced hire quantity formula to the written measurement.")
-def check_written_quantity(ctx):
-    source_format = ctx.input.project.source_document.format
-    for line in ctx.input.lines:
+RULE_ID = "L1.QTY.WRITTEN_CONFLICT"
+
+
+def written_quantity_conflicts(snapshot):
+    source_format = snapshot.project.source_document.format
+    for line in snapshot.lines:
         if line.pricing_basis != "unit_rate" or line.quantity is None or line.quantity <= 0 or not line.unit:
             continue
         written = {}
@@ -93,13 +93,22 @@ def check_written_quantity(ctx):
                     written.setdefault(" ".join(quote.split()), (field, quote, expected, factors))
         if not written:
             continue
-        evidence = [{"field": field, "quote": quote, "quantity": expected, "factors": factors}
-                    for field, quote, expected, factors in written.values()]
-        _, quote, expected, _ = next(iter(written.values()))
+        yield line, [{"field": field, "quote": quote, "quantity": expected, "factors": factors}
+                     for field, quote, expected, factors in written.values()]
+
+
+@rule(RULE_ID, layer=1, category="arithmetic", severity="error",
+      title="Written quantity disagrees with the position",
+      description="Compare an explicit position quantity or a priced hire quantity formula to the written measurement.")
+def check_written_quantity(ctx):
+    for line, evidence in written_quantity_conflicts(ctx.input):
+        first = evidence[0]
+        quote = " ".join(first["quote"].split())
+        unit = line.unit_raw or line.unit
         yield ctx.finding(
             line=line, field="quantity",
-            message=f"The quantity column shows {_display(line.quantity)} {line.unit_raw or line.unit}. "
-                    f"“{' '.join(quote.split())}” gives {_display(expected)} {line.unit_raw or line.unit}.",
+            message=f"The quantity column shows {_display(line.quantity)} {unit}. "
+                    f"“{quote}” gives {_display(first['quantity'])} {unit}.",
             evidence={"quantity": line.quantity, "quantity_raw": line.quantity_raw, "unit": line.unit,
                       "unit_raw": line.unit_raw, "written_quantities": evidence},
             suggested_fix=review_fix("Confirm the intended quantity against the takeoff or hire schedule. "

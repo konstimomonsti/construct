@@ -336,6 +336,11 @@ assessment is reused. An open AI scope review stays advisory and can accompany a
 shortfall. Dismissing the original finding or accepting a review of alternative
 coverage or exclusion removes the related shortfall from the suggested changes.
 
+The response also includes `quantity_conflicts` with the issued value and the quantified source excerpts.
+A conflicting position has `can_change_quantity: false`. The POST response repeats the conflict details.
+The endpoint uses the issued values for the base bid and rejects changes to a conflicting position or
+detected shortfalls that depend on a conflicting trigger.
+
 `POST /api/workspace/bid-pricing?id=<list_id>` takes
 `{"input_hash": "<hash from GET>", "assumptions": {...}}` and returns the three
 strategy comparisons and their proposed unit rates. Use the

@@ -11,6 +11,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from .adapter import to_decimal
 from .contracts import AddLine, AnalysisInput, AnalysisResult, Line
 from .layer1.common import money
+from .layer1.quantity_text import written_quantity_conflicts
 from .units import Dimension, convert, dimension
 
 CENT = Decimal("0.01")
@@ -104,14 +105,18 @@ class Scenario:
     changes: dict[str, Change]
 
 
-def _finding_change(line: Line, rule_id: str, result: AnalysisResult) -> tuple[Decimal, str, tuple[str, ...]]:
+def _finding_change(line: Line, rule_id: str, result: AnalysisResult, blocked: dict) -> tuple[Decimal, str, tuple[str, ...]]:
     matches = [f for f in result.findings if f.rule_id == rule_id and f.layer == 2
                and f.severity == "warning" and f.status not in {"rejected", "stale", "applied"}
                and f.evidence.get("reason") == "quantity_shortfall"
                and f.evidence.get("dependency_line_ids") == [line.id]]
     if len(matches) != 1:
         raise ValueError(f"{line.code or line.id}: {rule_id} must identify one shortfall on this single position")
-    return _resolve_finding(line, matches[0], result)
+    finding = matches[0]
+    if blocked.keys() & set(finding.evidence.get("trigger_line_ids") or []):
+        raise ValueError(f"{line.code or line.id}: confirm the written quantity conflict on the triggering position "
+                         "before using this shortfall")
+    return _resolve_finding(line, finding, result)
 
 
 def _resolve_finding(line, finding, result):
@@ -160,8 +165,21 @@ def included_positions(snapshot: AnalysisInput) -> dict[str, tuple[Line, Decimal
     return positions
 
 
+def bid_quantity_conflicts(snapshot: AnalysisInput) -> dict:
+    """Use original measurements even when the stored report predates the quantity rule."""
+    active = {}
+    for line, evidence in written_quantity_conflicts(snapshot):
+        if line.total_rule == "include":
+            active[line.id] = {
+                "position": line.code or line.id, "quantity": line.quantity, "unit": line.unit_raw or line.unit,
+                "written": [{"quantity": item["quantity"], "quote": " ".join(item["quote"].split())} for item in evidence],
+            }
+    return active
+
+
 def quantity_opportunities(snapshot: AnalysisInput, result: AnalysisResult) -> list[dict]:
     lines = snapshot.line_by_id()
+    blocked = bid_quantity_conflicts(snapshot)
     opportunities = []
     for finding in result.findings:
         ids = finding.evidence.get("dependency_line_ids")
@@ -169,10 +187,10 @@ def quantity_opportunities(snapshot: AnalysisInput, result: AnalysisResult) -> l
                 or not isinstance(ids, list) or len(ids) != 1):
             continue
         line = lines.get(ids[0])
-        if line is None or line.total_rule != "include" or line.pricing_basis != "unit_rate":
+        if line is None or line.id in blocked or line.total_rule != "include" or line.pricing_basis != "unit_rate":
             continue
         try:
-            quantity, finding_id, reviews = _finding_change(line, finding.rule_id, result)
+            quantity, finding_id, reviews = _finding_change(line, finding.rule_id, result, blocked)
         except ValueError:
             continue
         opportunities.append({"position": line.code or line.id, "quantity": quantity,
@@ -197,6 +215,7 @@ def prepare(snapshot: AnalysisInput, result: AnalysisResult,
     positions = {key: Position(quantity, assumptions.prices[key]) for key, (_, quantity) in included.items()}
     lines = {key: line for key, (line, _) in included.items()}
 
+    blocked = bid_quantity_conflicts(snapshot)
     resolved = {}
     scenarios = []
     for scenario in assumptions.scenarios:
@@ -205,11 +224,13 @@ def prepare(snapshot: AnalysisInput, result: AnalysisResult,
             line = lines.get(key)
             if line is None or line.pricing_basis != "unit_rate" or not line.unit:
                 raise ValueError(f"{key}: quantity changes require an included position with a unit rate and unit")
+            if line.id in blocked:
+                raise ValueError(f"{key}: confirm the written quantity conflict before adding a quantity change")
             quantity, finding_id, review_ids = change.extra_quantity, None, ()
             if change.finding_rule:
                 cache_key = (key, change.finding_rule)
                 if cache_key not in resolved:
-                    resolved[cache_key] = _finding_change(line, change.finding_rule, result)
+                    resolved[cache_key] = _finding_change(line, change.finding_rule, result, blocked)
                 quantity, finding_id, review_ids = resolved[cache_key]
             changes[key] = Change(quantity, change.quoted_rate_share, change.other_unit_rate or ZERO,
                                   finding_id, review_ids)
@@ -473,6 +494,7 @@ def report(snapshot: AnalysisInput, result: AnalysisResult, assumptions: Pricing
         "input_hash": result.input_hash,
         "layers_run": result.layers_run,
         "analysis_errors": result.errors,
+        "quantity_conflicts": list(bid_quantity_conflicts(snapshot).values()),
         "currency": assumptions.currency,
         "search_node_budget": search_nodes,
         "strategies": {name: bid.summary() for name, bid in
