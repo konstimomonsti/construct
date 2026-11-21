@@ -39,6 +39,7 @@ export type CatalogueEntry = {
   contact_name?: string | null
   email?: string | null
   phone?: string | null
+  billing_address?: string | null
 }
 
 export type CatalogueListing = { rows: CatalogueEntry[]; has_more: boolean }
@@ -113,7 +114,7 @@ export function catalogueErrorField(message: string): string | undefined {
   const named = text.match(/^enter (?:the|a valid) ([a-z ]+?)(?: of up to|\.)/)?.[1]
   const fields: Record<string, string> = {
     name: 'name', description: 'description', category: 'category', sku: 'sku', unit: 'unit', trade: 'trade',
-    'contact name': 'contact_name', phone: 'phone',
+    'contact name': 'contact_name', phone: 'phone', 'billing address': 'billing_address',
   }
   return named ? fields[named] : undefined
 }

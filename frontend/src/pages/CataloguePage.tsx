@@ -20,7 +20,7 @@ const SUBTITLE: Record<CatalogueKind, string> = {
 const EMPTY_TEXT: Record<CatalogueKind, string> = {
   products: 'Add the items you buy often with their unit prices, so positions can be priced from them.',
   suppliers: 'Add the companies you buy from. Products can then be linked to a supplier.',
-  subcontractors: 'Add each company with its trade, a contact person, email and phone.',
+  subcontractors: 'Add each company with its trade, contact details and billing address.',
 }
 
 type PriceFilter = 'all' | 'priced' | 'unpriced'
@@ -134,7 +134,8 @@ function productDetails(entry: CatalogueEntry) {
  */
 const GUTTER = 'sm:max-[1399px]:[@media(hover:hover)]:pr-[60px] min-[1400px]:[@media(hover:hover)]:-mr-10 min-[1400px]:[@media(hover:hover)]:pr-[52px]'
 const MENU_OVERLAY = 'relative z-10 -my-1.5 -mr-1 transition-opacity sm:my-0 [@media(hover:hover)]:absolute [@media(hover:hover)]:top-1/2 [@media(hover:hover)]:right-1 [@media(hover:hover)]:my-0 [@media(hover:hover)]:mr-0 [@media(hover:hover)]:-translate-y-1/2 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-focus-within:opacity-100 [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:has-[[aria-expanded=true]]:opacity-100 sm:[@media(hover:hover)]:right-2 min-[1400px]:[@media(hover:hover)]:right-1.5'
-const ROW = clsx('group relative flex items-start gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-slate-100 sm:items-center sm:gap-4 sm:px-3', GUTTER)
+const ROW = clsx('group relative flex items-start gap-3 rounded-lg px-2 py-2 transition-colors sm:items-center sm:gap-4 sm:px-3', GUTTER)
+const rowTone = (incomplete: boolean) => incomplete ? 'bg-amber-50 hover:bg-amber-100' : 'hover:bg-slate-100'
 const GRID = 'pointer-events-none relative grid min-w-0 flex-1 grid-cols-[auto_minmax(0,1fr)] items-baseline gap-x-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:gap-x-6'
 const NAME = 'line-clamp-2 min-w-0 text-[15px] leading-snug font-semibold break-normal hyphens-auto text-slate-900'
 /** line two wraps (to two lines) instead of cutting off a supplier or item code; the figures beside it never squeeze */
@@ -146,6 +147,17 @@ type RowActions = {
   onEdit: (entry: CatalogueEntry, focus?: EditorFocus) => void
   onArchive: (entry: CatalogueEntry) => void
   onRestore: (entry: CatalogueEntry) => void
+}
+
+function CatalogueWarning({ label, onClick, actionLabel }: { label: string; onClick?: () => void; actionLabel?: string }) {
+  const content = <><Icon name="warning" size={16} className="shrink-0" /><span>{label}</span></>
+  const style = 'inline-flex items-center gap-1 text-left text-sm font-semibold whitespace-normal text-amber-900'
+  return onClick ? (
+    <button type="button" onClick={onClick} aria-label={actionLabel}
+      className={clsx(style, 'pointer-events-auto relative z-10 rounded-sm underline-offset-4 after:absolute after:-inset-y-2 after:inset-x-0 after:content-[\'\'] hover:underline focus-visible:underline')}>
+      {content}
+    </button>
+  ) : <span className={style}>{content}</span>
 }
 
 function EntryRow({ kind, entry, tag, known, ordinal, onEdit, onArchive, onRestore }: RowActions & {
@@ -168,6 +180,14 @@ function EntryRow({ kind, entry, tag, known, ordinal, onEdit, onArchive, onResto
   const productsLink = `/catalogues/products?supplier=${encodeURIComponent(entry.id)}`
   const descriptionId = `${ids}-description`
   const metaId = `${ids}-meta`
+  const missingPrice = kind === 'products' && !isPriced(entry)
+  const missingContact = kind === 'subcontractors' && (!entry.contact_name?.trim() || !(entry.email?.trim() || entry.phone?.trim()))
+  const missingBilling = kind === 'subcontractors' && !entry.billing_address?.trim()
+  const warning = missingPrice ? 'Missing price'
+    : missingContact && missingBilling ? 'Missing contact and billing info'
+    : missingContact ? 'Missing contact info'
+    : missingBilling ? 'Missing billing address' : ''
+  const warningFocus = missingPrice ? 'price' : missingContact ? 'contact' : 'billing'
 
   // what the row shows besides the name, for the row's own button
   let description = ''
@@ -181,26 +201,17 @@ function EntryRow({ kind, entry, tag, known, ordinal, onEdit, onArchive, onResto
       const extra = tag?.duplicate ? tag.label.replace(/^d/, 'D') : tag?.text
       subtitle = extra && !line.split(' · ').includes(extra) ? `${line} · ${extra}` : line
     }
-    const priceText = isPriced(entry) ? [formatCataloguePrice(entry), entry.unit && `per ${entry.unit}`].filter(Boolean).join(' ') : 'Not priced'
+    const priceText = missingPrice ? warning : [formatCataloguePrice(entry), entry.unit && `per ${entry.unit}`].filter(Boolean).join(' ')
     description = [priceText, !ordinal && tag?.duplicate && tag.label.replace(/^d/, 'D')].filter(Boolean).join('. ')
-    if (isPriced(entry)) {
+    if (!missingPrice) {
       amount = formatCataloguePrice(entry)
       const source = [entry.unit && `per ${entry.unit}`, cataloguePriceSource(entry)].filter(Boolean).join(' · ')
       if (source) meta = <span className="text-sm text-slate-600">{source}</span>
-    } else if (!archived) {
-      // only real prices are printed: an unpriced row leaves the cell empty, and Set price shows there under the
-      // pointer or on keyboard focus (touch opens the row itself). Its own name says which product it prices
-      amount = (
-        <button type="button" onClick={() => onEdit(entry, 'price')} aria-label={`Set price for ${name}`}
-          className="pointer-events-auto relative z-10 rounded-sm text-sm font-medium text-brand-700 underline-offset-4 transition-opacity after:absolute after:-inset-x-2 after:-inset-y-2 after:content-[''] hover:underline focus-visible:opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-focus-within:opacity-100 [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:none)]:hidden">
-          Set price
-        </button>
-      )
     }
   } else {
     const shown = [kind === 'subcontractors' ? entry.trade : null, entry.contact_name, entry.email, entry.phone].filter(Boolean)
     const contact = entry.contact_name || entry.email || entry.phone
-    const contactLine = contact || archived ? (shown.join(' · ') || 'No contact details') : (
+    const contactLine = kind === 'subcontractors' || contact || archived ? (shown.join(' · ') || 'No contact details') : (
       <>
         {shown.length > 0 && `${shown.join(' · ')} · `}
         {/* above the row's own button, so it opens the editor at the contact fields */}
@@ -222,7 +233,7 @@ function EntryRow({ kind, entry, tag, known, ordinal, onEdit, onArchive, onResto
       if (known) coverage = `${int(known.priced)} of ${int(products)} priced${known.latest ? ` · Latest price ${catalogueDate(known.latest)}` : ''}`
       else if (products > COVERAGE_LIMIT) coverage = 'Price coverage unavailable'
     }
-    description = [sells && `Sells ${sells.replaceAll(' · ', ', ')}`, shown.join(', '), !contact && 'No contact details', products && plural(products, 'product', 'products'), coverage].filter(Boolean).join('. ')
+    description = [sells && `Sells ${sells.replaceAll(' · ', ', ')}`, shown.join(', '), warning || (!contact && 'No contact details'), products && plural(products, 'product', 'products'), coverage].filter(Boolean).join('. ')
 
     if (kind === 'suppliers') {
       const figure = plural(products, 'product', 'products')
@@ -239,6 +250,11 @@ function EntryRow({ kind, entry, tag, known, ordinal, onEdit, onArchive, onResto
     }
   }
 
+  if (warning) {
+    amount = <CatalogueWarning label={warning} onClick={archived ? undefined : () => onEdit(entry, warningFocus)}
+      actionLabel={missingPrice ? `Missing price. Set price for ${name}` : `${warning}. Edit ${name}`} />
+  }
+
   const menu = (
     <RowMenu
       label={`More actions for ${name}`}
@@ -253,7 +269,7 @@ function EntryRow({ kind, entry, tag, known, ordinal, onEdit, onArchive, onResto
     />
   )
   return (
-    <div data-row="catalogue" className={ROW}>
+    <div data-row="catalogue" className={clsx(ROW, rowTone(!!warning))}>
       <button
         type="button"
         data-nav
@@ -268,7 +284,7 @@ function EntryRow({ kind, entry, tag, known, ordinal, onEdit, onArchive, onResto
           {ordinal ? `Entry ${ordinal.n} of ${ordinal.of}` : entry.name}
         </span>
         {subtitle != null && <span className={DETAILS}>{subtitle}</span>}
-        {amount != null && <div className={AMOUNT}>{amount}</div>}
+        {amount != null && <div className={clsx(AMOUNT, warning && 'col-span-2 sm:col-span-1')}>{amount}</div>}
         {meta != null && <div className={META}>{meta}</div>}
       </div>
       <span id={descriptionId} hidden>{description}</span>
@@ -284,13 +300,15 @@ function FamilyRow({ entries, actions }: { entries: CatalogueEntry[]; actions: R
   const [first] = entries
   const count = entries.length
   const priced = entries.filter(isPriced)
+  const missing = count - priced.length
+  const warning = missing === count ? 'Missing price' : `${int(missing)} missing a price`
   const prices = [...new Set(priced.map(formatCataloguePrice))]
   const lowest = priced.length ? priced.reduce((a, b) => (Number(b.unit_price) < Number(a.unit_price) ? b : a)) : null
   return (
     <div>
-      <div data-row="catalogue" className={ROW}>
+      <div data-row="catalogue" className={clsx(ROW, rowTone(missing > 0))}>
         <button type="button" data-nav aria-expanded={open} aria-controls={listId} onClick={() => setOpen((v) => !v)}
-          aria-label={`${first.name}, ${count} duplicate entries${priced.length ? `, ${int(priced.length)} priced` : ', not priced'}`}
+          aria-label={`${first.name}, ${count} duplicate entries${missing ? `, ${warning.toLowerCase()}` : ''}`}
           className="absolute inset-0 z-0 rounded-lg" />
         <div className={GRID}>
           <span lang="de" className={clsx('col-span-2 row-start-1 sm:col-span-1', NAME)}>{first.name}</span>
@@ -299,7 +317,7 @@ function FamilyRow({ entries, actions }: { entries: CatalogueEntry[]; actions: R
             <Icon name="expand_more" size={18} className={clsx('ml-0.5 align-[-4px] text-slate-600 transition-transform', open && 'rotate-180')} />
           </span>
           {lowest && <div className={AMOUNT}>{prices.length > 1 && <span className="text-sm font-normal text-slate-600">from </span>}{formatCataloguePrice(lowest)}</div>}
-          {lowest && priced.length < count && <div className={META}><span className="num text-sm text-slate-600">{int(priced.length)} of {int(count)} priced</span></div>}
+          {missing > 0 && <div className={lowest ? META : AMOUNT}><CatalogueWarning label={warning} /></div>}
         </div>
       </div>
       {open && (

@@ -13,14 +13,17 @@ The lead merges PRs and resolves conflicts in this file. Contracts are in [CLAUD
 | 04 | [Risk report UI, reviewer decisions, exports](tasks/04-risk-report-ui.md) | `feat/task-04` | merged | [PR #16](https://github.com/konstimomonsti/construct/pull/16). Built on a fixture (`?risk=fixture`). Re-check against real reports in task 07. |
 | 05 | [Planted-error evaluation and demo files](tasks/05-planted-error-evaluation.md) | `feat/task-05` | merged | [PR #9](https://github.com/konstimomonsti/construct/pull/9). 0 false alarms on 46 controls; precast 6/6 deterministic caught. Lead follow-up [PR #19](https://github.com/konstimomonsti/construct/pull/19) closed four rule gaps. |
 | 06 | [Upload real tender PDFs and .xls (queued)](tasks/06-real-pdf-excel-upload.md) | `feat/task-06` | merged | [PR #17](https://github.com/konstimomonsti/construct/pull/17). Real LV_11 PDF imports all nine positions and runs through the analysis. |
-| 07 | [Usability walkthrough and improvement proposals (queued)](tasks/07-usability-walkthrough.md) | `feat/task-07` | queued | Report only (`docs/ui-review/WALKTHROUGH.md`); next free worker |
+| 07 | [Usability walkthrough and improvement proposals (queued)](tasks/07-usability-walkthrough.md) | `feat/task-07` | PR open | Desktop bug report and prioritized fix plan in PR #22; hall L3 coverage and end-to-end desktop verification remain. |
 | 08 | [Calibrate the risk score and money at stake](tasks/08-risk-calibration.md) | `feat/task-08` | PR open | [PR #23](https://github.com/konstimomonsti/construct/pull/23). Six-file calibration measured; contract scale type updated with user approval; 377 analysis tests passed. |
 | 09 | [Check line amounts and totals on uploaded GAEB files](tasks/09-upload-amount-checks.md) | `feat/task-09` | queued | Demo gap: the planted wrong amount only shows in the CLI |
 | 10 | [Apply accepted fixes (reviewed, undoable, original kept)](tasks/10-apply-accepted-fixes.md) | `feat/task-10` | queued | |
+| 13 | **PRIORITY:** [Subcontractor requests: pick positions + subcontractors, budget, export + email draft](tasks/13-subcontractor-requests.md) | `feat/task-13` | queued | Before 11 and 12 |
 | 11 | [Unusual-quantity rules and layer 2 ratio checks](tasks/11-quantity-rules-and-ratios.md) | `feat/task-11` | queued | |
 | 12 | [Reference prices from past offers and a what-if view](tasks/12-reference-prices-what-if.md) | `feat/task-12` | queued | Opus; P0 = references + price rules |
 
 Suggested merge order: 01 → 03 → 02 → 05 → 04 → 06. Each PR must pass CI (Python tests, frontend lint/build).
+
+Priority for free workers: 09 → 10 → **13** → 08 → 07 → 11 → 12.
 
 ## Lead checklist
 

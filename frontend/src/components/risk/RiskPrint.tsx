@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { createPortal } from 'react-dom'
-import { int } from '../../lib/format'
-import { rescore, type Decisions, type Question, type Report, type Risk } from '../../lib/risk-assessment'
+import { int, money } from '../../lib/format'
+import { rescore, type Decisions, type Question, type Report, type ReviewItem, type Risk } from '../../lib/risk-assessment'
 import { decisionText } from '../../lib/risk-export'
 
 /** print-only copy of the risk review (see `.risk-print` in index.css); the app UI is hidden while printing */
@@ -17,36 +17,42 @@ export function RiskPrint({ title, report, risk, decisions, sections, questions,
 }) {
   const live = rescore(risk, decisions)
   const printedAt = useMemo(() => new Date().toLocaleDateString('de-DE'), [])
-  const groups = new Map<string, typeof report.findings>()
-  for (const f of report.findings) {
-    const key = (f.target.line_id && sections.get(f.target.line_id)?.section) || 'Whole list'
-    groups.set(key, [...(groups.get(key) ?? []), f])
+  const groups = new Map<string, ReviewItem[]>()
+  for (const item of [...report.findings, ...risk.change_order_signals]) {
+    const lineId = 'severity' in item ? item.target.line_id ?? item.related_line_ids[0] : item.line_id
+    const key = (lineId && sections.get(lineId)?.section) || 'Whole list'
+    const group = groups.get(key) ?? []
+    group.push(item)
+    groups.set(key, group)
   }
-  const top = risk.top_risks.filter((t) => t.item_ids.some((id) => !decisions[id])).slice(0, 10)
+  const atStake = risk.money_at_stake == null ? null : Number(risk.money_at_stake)
   return createPortal(
     <div className="risk-print">
       <h1>Risk review: {title}</h1>
       <p>
-        Score {int(live.score)} ({live.level}) · {int(report.findings.filter((f) => !decisions[f.id]).length)} open of {int(report.findings.length)} findings ·{' '}
-        {int(risk.change_order_signals.filter((s) => !decisions[s.id]).length)} change-order signals · {printedAt}
+        Risk score {int(live.score)} ({live.level}) · Money at stake {atStake != null && Number.isFinite(atStake) && risk.priced
+          ? money(atStake) : risk.priced ? 'Unavailable' : 'Not priced'} · {printedAt}
       </p>
-      <h2>Top risks</h2>
-      <ol>{top.map((t) => <li key={t.line_id}><b>{t.line_code}</b> {t.short_text}: {t.reasons.join('; ')}</li>)}</ol>
-      <h2>Findings by section</h2>
+      <h2>Position review</h2>
       {[...groups].map(([section, findings]) => (
         <section key={section}>
           <h3>{section}</h3>
           <table>
             <thead><tr><th>OZ</th><th>Severity</th><th>Finding</th><th>Decision</th></tr></thead>
             <tbody>
-              {findings.map((f) => (
-                <tr key={f.id}>
-                  <td>{f.target.line_code ?? (f.target.line_id && sections.get(f.target.line_id)?.oz) ?? ''}</td>
-                  <td>{f.severity}</td>
-                  <td><b>{f.title}</b>. {f.message}</td>
-                  <td>{decisionText(decisions[f.id])}</td>
-                </tr>
-              ))}
+              {findings.map((item) => {
+                const finding = 'severity' in item
+                const lineId = finding ? item.target.line_id ?? item.related_line_ids[0] : item.line_id
+                const lineCode = finding ? item.target.line_code : item.line_code
+                return (
+                  <tr key={item.id}>
+                    <td>{lineCode ?? (lineId && sections.get(lineId)?.oz) ?? ''}</td>
+                    <td>{finding ? item.severity : 'Change-order signal'}</td>
+                    <td><b>{item.title}</b>. {item.message}</td>
+                    <td>{decisionText(decisions[item.id])}</td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </section>

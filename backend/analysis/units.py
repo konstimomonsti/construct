@@ -42,7 +42,7 @@ _ALIASES: dict[str, str] = {
     "m3": "m³", "m³": "m³", "cbm": "m³", "l": "l", "ltr": "l", "liter": "l",
     "kg": "kg", "t": "t", "to": "t", "to.": "t",
     "min": "min", "std": "h", "std.": "h", "h": "h", "tag": "day", "tage": "day", "d": "day", "td": "day",
-    "wo": "week", "woche": "week", "mt": "month", "mon": "month", "monat": "month",
+    "wo": "week", "woche": "week", "mt": "month", "mt.": "month", "mon": "month", "monat": "month",
     "jahr": "year", "jahre": "year", "jr": "year", "a": "year",
     "psch": "lump_sum", "psch.": "lump_sum", "pschl": "lump_sum", "pausch": "lump_sum",
     "pauschal": "lump_sum", "pau": "lump_sum", "ls": "lump_sum",

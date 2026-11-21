@@ -74,6 +74,11 @@ def apply(connection, payload):
             if revision is None:
                 raise ValueError("The shared workspace has not been initialised. Run the database migrations.")
             revision = revision["revision"]
+            old_folders = ()
+            if workspace_catalogue.configured_model():
+                edited_lists = {key for collection, key, _ in writes if collection in {"userLists", "listPatch"}}
+                edited_lists.update(key for collection, key in deletes if collection in {"userLists", "listPatch"})
+                old_folders = workspace_catalogue.project_folders(connection, WORKSPACE, edited_lists)
             with connection.cursor() as cursor:
                 if deletes:
                     cursor.executemany(
@@ -91,7 +96,7 @@ def apply(connection, payload):
                         [(WORKSPACE, collection, key, Jsonb(value, dumps=_dumps), revision)
                          for collection, key, value in writes],
                     )
-            workspace_catalogue.workspace_changed(connection, WORKSPACE, writes)
+            workspace_catalogue.workspace_changed(connection, WORKSPACE, writes, old_folders)
             workspace_analysis.enqueue(connection, WORKSPACE, writes)
         return state(connection)
 

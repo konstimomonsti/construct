@@ -7,8 +7,7 @@ import {
   type CatalogueEntry, type CatalogueKind, type ProductOptions,
 } from '../lib/catalogues'
 
-/** where the editor puts the cursor when it opens: the name (default), the contact fields or the unit price */
-export type EditorFocus = 'contact' | 'price'
+export type EditorFocus = 'contact' | 'billing' | 'price'
 
 /** the app's one field style (a borderless well, ringed on hover and focus, red after a rejected save) */
 const fieldCls = inputCls
@@ -274,7 +273,12 @@ function ProductFields({ entry, options, priceRef, draft, onDraft, onPicked }: {
   )
 }
 
-function CompanyFields({ kind, entry, contactRef }: { kind: CatalogueKind; entry: CatalogueEntry | null; contactRef: Ref<HTMLInputElement> }) {
+function CompanyFields({ kind, entry, contactRef, billingRef }: {
+  kind: CatalogueKind
+  entry: CatalogueEntry | null
+  contactRef: Ref<HTMLInputElement>
+  billingRef: Ref<HTMLTextAreaElement>
+}) {
   return (
     <>
       {kind === 'subcontractors' && (
@@ -293,6 +297,11 @@ function CompanyFields({ kind, entry, contactRef }: { kind: CatalogueKind; entry
           {(control) => <input type="tel" name="phone" maxLength={60} defaultValue={entry?.phone ?? ''} {...control} className={fieldCls} />}
         </EditorField>
       </div>
+      {kind === 'subcontractors' && (
+        <EditorField label="Billing address" name="billing_address">
+          {(control) => <textarea ref={billingRef} name="billing_address" maxLength={500} rows={3} defaultValue={entry?.billing_address ?? ''} {...control} className={clsx(fieldCls, 'h-auto resize-y py-2')} />}
+        </EditorField>
+      )}
     </>
   )
 }
@@ -330,6 +339,7 @@ export function CatalogueEditor({ kind, entry, focus, onClose, onSaved }: {
   const current = isProduct ? product?.detail : entry
   const nameRef = useRef<HTMLInputElement>(null)
   const contactRef = useRef<HTMLInputElement>(null)
+  const billingRef = useRef<HTMLTextAreaElement>(null)
   const priceRef = useRef<HTMLInputElement>(null)
   const submitting = useRef(false)
 
@@ -403,8 +413,9 @@ export function CatalogueEditor({ kind, entry, focus, onClose, onSaved }: {
     const timer = setTimeout(() => {
       focused.current = true
       if (moved.current) return
-      const target = focus === 'contact' ? contactRef.current : focus === 'price' ? priceRef.current : null
-      ;(target ?? nameRef.current)?.focus()
+      const targets = { contact: contactRef.current, billing: billingRef.current, price: priceRef.current }
+      const target = (focus && targets[focus]) ?? nameRef.current
+      target?.focus()
     }, 60)
     return () => clearTimeout(timer)
   }, [ready, focus])
@@ -526,7 +537,7 @@ export function CatalogueEditor({ kind, entry, focus, onClose, onSaved }: {
             {isProduct && product
               ? <ProductFields options={product.options} entry={product.detail} priceRef={priceRef} draft={draft} onDraft={setDraft}
                 onPicked={(name) => setError((shown) => (shown?.field === name ? null : shown))} />
-              : <CompanyFields kind={kind} entry={entry} contactRef={contactRef} />}
+              : <CompanyFields kind={kind} entry={entry} contactRef={contactRef} billingRef={billingRef} />}
             {error && !error.field && <p id={errorId} role="alert" className="text-sm font-medium text-rose-800">{error.message}</p>}
           </form>
         </SaveErrorContext.Provider>

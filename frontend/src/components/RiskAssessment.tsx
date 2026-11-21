@@ -1,7 +1,8 @@
 import { clsx } from 'clsx'
 import { Icon, Menu, type MenuItem } from './ui'
 import { ToolButton } from './Kit'
-import { REASONS, SEVERITIES, type Decision, type Finding, type Severity } from '../lib/risk-assessment'
+import { money } from '../lib/format'
+import { findingCategory, REASONS, SEVERITIES, type ChangeOrderSignal, type Decision, type Finding, type ReviewItem, type Severity } from '../lib/risk-assessment'
 
 /**
  * severity colours for the risk UI, built on the themed status tokens so they hold in dark mode.
@@ -95,35 +96,60 @@ export function FindingText({ finding, reviewed, decision, changed, hideRational
         <p className="mt-1 text-sm leading-relaxed text-pretty text-slate-600">{details && <span className="font-semibold text-slate-700">Suggested fix: </span>}{finding.suggested_fix.rationale}</p>
       )}
       {details && <FindingEvidence finding={finding} />}
+      {details && finding.evidence?.amount_at_stake != null && Number.isFinite(Number(finding.evidence.amount_at_stake)) && (
+        <p className="mt-1 text-sm text-slate-600">Money at stake <strong>{money(Number(finding.evidence.amount_at_stake))}</strong></p>
+      )}
       {decision?.note && <p className="mt-1 text-sm text-slate-600">Note: {decision.note}</p>}
     </div>
   )
 }
 
-/** filter rows by their upload findings: flagged, reviewed, a severity or one kind of finding */
+export function ChangeOrderText({ signal, decision }: { signal: ChangeOrderSignal; decision?: Decision }) {
+  return (
+    <div className={clsx('min-w-0 border-l-[3px] pl-3', decision ? 'border-slate-300' : 'border-orange-500')}>
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-[13px] font-semibold text-slate-600">
+          {decision?.status === 'accepted' ? 'Accepted' : decision ? `Dismissed${decision.reason ? ` · ${REASONS[decision.reason]}` : ''}` : 'Change-order signal'}
+        </span>
+        <h4 className="text-[15px] font-semibold text-slate-900">{signal.title}</h4>
+      </div>
+      <p className="mt-1 text-sm leading-relaxed text-slate-700">{signal.message}</p>
+      {decision?.note && <p className="mt-1 text-sm text-slate-600">Note: {decision.note}</p>}
+    </div>
+  )
+}
+
 export function FindingFilter({ rows, reviewed, value, onChange }: {
-  rows: Finding[][]
+  rows: ReviewItem[][]
   reviewed: Set<string>
   value: string
   onChange: (value: string) => void
 }) {
   const severities = new Map<Severity, number>()
   const types = new Map<string, { title: string; count: number }>()
+  const categories = new Map<string, number>()
   let flagged = 0
   let reviewedRows = 0
-  for (const findings of rows) {
-    const open = findings.filter((finding) => !reviewed.has(finding.id))
+  let changeOrders = 0
+  for (const items of rows) {
+    const open = items.filter((item) => !reviewed.has(item.id))
+    const findings = items.filter((item) => 'severity' in item)
+    const openFindings = open.filter((item) => 'severity' in item)
     if (open.length) flagged++
-    if (open.length < findings.length) reviewedRows++
-    for (const severity of new Set(open.map((finding) => finding.severity))) {
+    if (open.length < items.length) reviewedRows++
+    if (open.some((item) => !('severity' in item))) changeOrders++
+    for (const severity of new Set(openFindings.map((finding) => finding.severity))) {
       severities.set(severity, (severities.get(severity) ?? 0) + 1)
     }
-    const openTypes = new Set(open.map((finding) => finding.rule_id))
+    for (const category of new Set(openFindings.flatMap((finding) => finding.category ? [finding.category] : []))) {
+      categories.set(category, (categories.get(category) ?? 0) + 1)
+    }
+    const openTypes = new Set(openFindings.map((finding) => finding.rule_id))
     for (const [id, title] of new Map(findings.map((finding) => [finding.rule_id, finding.title]))) {
       types.set(id, { title, count: (types.get(id)?.count ?? 0) + Number(openTypes.has(id)) })
     }
   }
-  if (!types.size && value === 'all') return null
+  if (!rows.length && value === 'all') return null
 
   const option = (key: string, label: string, count?: number, icon?: string): MenuItem => ({
     label, icon, checked: value === key, hint: count === undefined ? undefined : String(count), onSelect: () => onChange(key),
@@ -135,18 +161,23 @@ export function FindingFilter({ rows, reviewed, value, onChange }: {
     option('reviewed', 'Reviewed positions', reviewedRows),
     'sep',
     ...SEVERITIES.filter((severity) => severities.get(severity)).map((severity) => option(severity, RISK_UI[severity].plural, severities.get(severity), RISK_UI[severity].icon)),
+    ...(changeOrders > 0 || value === 'change-orders' ? [option('change-orders', 'Change-order signals', changeOrders)] : []),
+    ...(categories.size ? ['sep' as const, ...[...categories].sort(([a], [b]) => a.localeCompare(b)).map(([id, count]) =>
+      option(`category:${id}`, findingCategory(id), count))] : []),
     ...(sortedTypes.length ? ['sep' as const, ...sortedTypes.map(([id, type]) => option(`rule:${id}`, type.title, type.count))] : []),
   ]
   const current = value === 'all' ? null
     : value === 'flagged' ? 'Flagged'
     : value === 'reviewed' ? 'Reviewed'
+    : value === 'change-orders' ? 'Change-order signals'
+    : value.startsWith('category:') ? findingCategory(value.slice(9))
     : value.startsWith('rule:') ? types.get(value.slice(5))?.title ?? 'Finding'
     : RISK_UI[value as Severity]?.plural ?? null
 
   return (
     <Menu
       label="Filter positions by upload check"
-      width="w-72"
+      width="w-72 max-h-[min(26rem,60dvh)] overflow-y-auto"
       items={items}
       trigger={(p) => (
         <ToolButton {...p} icon="flag" active={!!current}
