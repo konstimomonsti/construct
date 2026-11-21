@@ -71,7 +71,7 @@ export async function toXlsx(o: TableOpts): Promise<Uint8Array> {
   const mod = await import('exceljs')
   const ExcelJS = (mod as unknown as { default?: typeof import('exceljs') }).default ?? mod
   const wb = new ExcelJS.Workbook()
-  wb.creator = 'VaultBudget'
+  wb.creator = 'BillBuild'
   wb.created = new Date()
   const ws = wb.addWorksheet('LV', { views: [{ state: 'frozen', ySplit: 5 }] })
 
@@ -242,7 +242,7 @@ export async function toDocx(o: TableOpts): Promise<Uint8Array> {
     'word/document.xml': strToU8(document),
     'word/styles.xml': strToU8(styles),
     'docProps/core.xml': strToU8(
-      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><dc:title>${esc(o.doc.title)}</dc:title><dc:creator>VaultBudget</dc:creator><dcterms:created xsi:type="dcterms:W3CDTF">${new Date().toISOString()}</dcterms:created></cp:coreProperties>`,
+      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><dc:title>${esc(o.doc.title)}</dc:title><dc:creator>BillBuild</dc:creator><dcterms:created xsi:type="dcterms:W3CDTF">${new Date().toISOString()}</dcterms:created></cp:coreProperties>`,
     ),
   }
   return zipSync(files, { level: 6 })

@@ -44,7 +44,7 @@ export function Sidebar() {
             <div className="flex size-7 items-center justify-center rounded-lg bg-brand-600 text-white shadow-sm shadow-brand-500/20">
               <Icon name="folder_supervised" size={17} />
             </div>
-            {!rail && <span className="font-heading text-base font-bold tracking-tight text-slate-900">VaultBudget</span>}
+            {!rail && <span className="font-heading text-base font-bold tracking-tight text-slate-900">BillBuild</span>}
           </div>
           {!rail && (
             <button

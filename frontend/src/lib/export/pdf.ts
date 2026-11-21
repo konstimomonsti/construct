@@ -697,8 +697,8 @@ export async function generatePdf(opts: PdfOpts): Promise<Uint8Array> {
   const { PDFDocument, StandardFonts, rgb } = await import('pdf-lib')
   const pdf = await PDFDocument.create()
   pdf.setTitle(clean(o.doc.title || 'Leistungsverzeichnis'))
-  pdf.setCreator('VaultBudget')
-  pdf.setProducer('VaultBudget / pdf-lib')
+  pdf.setCreator('BillBuild')
+  pdf.setProducer('BillBuild / pdf-lib')
   const fonts: Record<FontKey, PDFFont> = {
     r: await pdf.embedFont(StandardFonts.Helvetica),
     b: await pdf.embedFont(StandardFonts.HelveticaBold),

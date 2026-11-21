@@ -1,10 +1,10 @@
 # Tender Desk frontend
 
-The database-backed editor lives at `frontend/public/tender-desk/` and ships with VaultBudget.
+The database-backed editor lives at `frontend/public/tender-desk/` and ships with BillBuild.
 It uses the [same-origin HTTP API](API.md) for file import, draft editing, export, catalogue
 analytics and risk review. It is built into the Caddy image alongside the React app.
 
-1. Create or pick a project. Upload a tender or use **Review original** on a bundled VaultBudget
+1. Create or pick a project. Upload a tender or use **Review original** on a bundled BillBuild
    list to import its source into the selected project.
 2. Open a bill and edit its positions. The editor displays source quantities, rates and linked
    catalogue products.

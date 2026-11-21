@@ -225,7 +225,7 @@ function setDraft(data) {
   $("review").hidden = false;
   $("review-step").setAttribute("aria-current", "step");
   $("export-step").removeAttribute("aria-current");
-  document.title = `${v.title} · Tender desk`;
+  document.title = `${v.title} · BillBuild`;
   drawLines();
   window.scrollTo({ top: 0 });
 }
@@ -245,7 +245,7 @@ function closeDraft() {
   updateActions();
   $("welcome").hidden = false;
   $("review").hidden = true;
-  document.title = "Tender desk";
+  document.title = "Tender Desk · BillBuild";
   if (location.search) history.pushState(null, "", "/tender-desk/");
   drawHome();
 }
@@ -276,7 +276,7 @@ function setUploadNote(text, working = false) {
 
 async function showLibrarySource(id) {
   const response = await fetch("/data/index.json");
-  if (!response.ok) throw new Error("Could not load the VaultBudget library.");
+  if (!response.ok) throw new Error("Could not load the BillBuild library.");
   const source = (await response.json()).lists.find(list => list.id === id);
   if (!source?.file?.startsWith("files/")) throw new Error("The original file is unavailable.");
   $("library-source-name").textContent = source.fileName;

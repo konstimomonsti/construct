@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Upload a tender, review and price its bill of quantities, and export it.">
-  <title>Tender desk</title>
+  <title>Tender Desk · BillBuild</title>
   <link rel="stylesheet" href="/tender-desk/mvp.css">
   <script src="/tender-desk/mvp.js" defer></script>
 </head>
@@ -13,7 +13,7 @@
   <header class="bar">
     <a class="brand" href="/tender-desk/" id="home-link">
       <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V9l8-5 8 5v11" /><path d="M9 20v-6h6v6" /></svg>
-      Tender desk
+      BillBuild
     </a>
     <div class="project-picker">
       <label for="project">Project</label>
@@ -21,7 +21,7 @@
       <button id="create-project" type="button" class="ghost small-btn">New project</button>
     </div>
     <nav class="bar-nav" aria-label="Other tools">
-      <a href="/">VaultBudget</a>
+      <a href="/">Budget workspace</a>
       <a href="/admin/tables">Data tables</a>
       <a href="/admin/schema#schema">Schema</a>
       <span class="connection"><span class="dot" id="db-dot" aria-hidden="true"></span><span id="db-label">Connecting…</span></span>
@@ -51,7 +51,7 @@
       </div>
 
       <section id="library-source" class="list-block" aria-labelledby="library-source-title" hidden>
-        <h2 id="library-source-title">Review a VaultBudget original</h2>
+        <h2 id="library-source-title">Review a BillBuild original</h2>
         <p id="library-source-name" class="muted"></p>
         <button id="import-library-source" type="button" class="primary">Import into selected project</button>
       </section>

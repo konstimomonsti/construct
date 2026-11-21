@@ -1,6 +1,6 @@
 <img src="assets/icon.svg" width="64" height="64" alt="">
 
-# ConstructionHackathon
+# BillBuild
 
 Feature List: 
 - Dashboard with general overview
@@ -14,10 +14,9 @@ The database uses PostgreSQL 18 and Docker Compose locally and on a VPS. The [sc
 
 ## Web app
 
-VaultBudget at `/` provides the project and budget library. Open **Tender Desk** from its sidebar to
-upload files and work on shared PostgreSQL drafts. **Review original** on a bundled VaultBudget list
-lets you import its source document into the selected Tender Desk project. VaultBudget's browser-local
-edits stay in VaultBudget. Tender Desk saves its own edits and review decisions to PostgreSQL.
+BillBuild at `/` provides the project and budget library. Open **Tender Desk** from its sidebar to
+upload files and work on shared PostgreSQL drafts. **Review original** on a bundled BillBuild list
+lets you import its source document into the selected Tender Desk project. Edits in the budget workspace are stored in the browser. Tender Desk saves its own edits and review decisions to PostgreSQL.
 
 On a saved draft, **Catalogue analytics** groups existing catalogue links by product, unit and
 supply or installed scope, with source positions and included quantities. Seed the Challenge A
@@ -68,7 +67,7 @@ docker compose exec db sh -c 'psql -X -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
 
 ## Try the BOM MVP
 
-Start the database and backend, build VaultBudget, then open [Tender Desk](http://127.0.0.1:8080/tender-desk/) or [VaultBudget](http://127.0.0.1:8080/).
+Start the database and backend, build BillBuild, then open [Tender Desk](http://127.0.0.1:8080/tender-desk/) or [BillBuild](http://127.0.0.1:8080/).
 
 ```sh
 ./db/ops.sh up

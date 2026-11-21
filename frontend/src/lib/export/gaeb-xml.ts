@@ -148,7 +148,7 @@ export function generateGaebXml(o: GenOpts): string {
     (mask.index ? '<BoQBkdn><Type>Index</Type><Length>1</Length><Num>No</Num></BoQBkdn>' : '')
   let xml =
     `<GAEB xmlns="${ns}"><GAEBInfo><Version>${o.variant === '3.2' ? '3.2' : '3.1'}</Version><VersDate>${o.variant === '3.2' ? '2013-10' : '2009-12'}</VersDate>` +
-    `<Date>${date}</Date><Time>${time}</Time><ProgSystem>VaultBudget</ProgSystem><ProgName>VaultBudget</ProgName></GAEBInfo>` +
+    `<Date>${date}</Date><Time>${time}</Time><ProgSystem>BillBuild</ProgSystem><ProgName>BillBuild</ProgName></GAEBInfo>` +
     `<PrjInfo><NamePrj>${prj}</NamePrj><LblPrj>${lblPrj}</LblPrj><Cur>${xmlEsc(cur)}</Cur><CurLbl>Euro</CurLbl></PrjInfo>` +
     `<Award><DP>${phase}</DP><AwardInfo><Cur>${xmlEsc(cur)}</Cur><CurLbl>Euro</CurLbl></AwardInfo>` +
     `<BoQ ID="${nid()}"><BoQInfo><Name>${xmlEsc(String(o.doc.project ?? '01').slice(0, 20) || '01')}</Name><LblBoQ>${lblBoq}</LblBoQ>` +

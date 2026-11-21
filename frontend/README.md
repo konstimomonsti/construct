@@ -1,6 +1,6 @@
-# VaultBudget frontend
+# BillBuild frontend
 
-VaultBudget is the React/Vite budget workspace at `/`. The database-backed Tender Desk at
+BillBuild is the React/Vite budget workspace at `/`. The database-backed Tender Desk at
 `/tender-desk/` ships from `public/tender-desk/` in the same build. Both use the same origin in
 production. Tender Desk calls the [HTTP API](../docs/API.md).
 
