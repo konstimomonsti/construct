@@ -30,6 +30,15 @@ function PriceCell({ value, onSave, oz, edited, muted, className }: { value: num
   const [edit, setEdit] = useState(false)
   const [text, setText] = useState('')
   const done = useRef(false)
+  // Enter or Escape closes the editor: put focus back on the price it came from
+  const refocus = useRef(false)
+  const btn = useRef<HTMLButtonElement>(null)
+  useEffect(() => {
+    if (!edit && refocus.current) {
+      refocus.current = false
+      btn.current?.focus()
+    }
+  }, [edit])
 
   const commit = () => {
     if (done.current) return
@@ -54,8 +63,12 @@ function PriceCell({ value, onSave, oz, edited, muted, className }: { value: num
         onBlur={commit}
         onFocus={(e) => e.currentTarget.select()}
         onKeyDown={(e) => {
-          if (e.key === 'Enter') commit()
+          if (e.key === 'Enter') {
+            refocus.current = true
+            commit()
+          }
           if (e.key === 'Escape') {
+            refocus.current = true
             done.current = true
             setEdit(false)
           }
@@ -66,6 +79,7 @@ function PriceCell({ value, onSave, oz, edited, muted, className }: { value: num
   }
   return (
     <button
+      ref={btn}
       type="button"
       aria-label={value == null ? `Set price for ${oz}` : `${amount(value)} €, edit unit price of ${oz}${edited ? ' (edited)' : ''}`}
       onClick={() => {
@@ -74,7 +88,7 @@ function PriceCell({ value, onSave, oz, edited, muted, className }: { value: num
         setEdit(true)
       }}
       className={clsx(
-        value != null ? clsx(editableCls, edited ? 'font-semibold text-brand-700' : muted ? 'text-slate-500' : 'text-slate-900') : 'h-9 rounded-lg px-2 text-right text-sm font-semibold text-brand-700 hover:bg-brand-50',
+        value != null ? clsx(editableCls, edited ? 'font-semibold text-brand-700' : muted ? 'text-slate-600' : 'text-slate-900') : 'h-9 rounded-lg px-2 text-right text-sm font-semibold text-brand-700 hover:bg-brand-50',
         className ?? 'w-full',
       )}
     >
@@ -86,22 +100,27 @@ function PriceCell({ value, onSave, oz, edited, muted, className }: { value: num
 /** a price the catalogue proposes: shown, but not counted, until the user confirms it */
 function PendingPrice({ s, oz, onConfirm, onReview, className }: { s: PriceSuggestion; oz: string; onConfirm: () => void; onReview: () => void; className?: string }) {
   return (
-    <span className={clsx('flex h-9 items-center justify-end gap-0.5', className ?? 'w-full')}>
-      <button
-        type="button"
-        onClick={onConfirm}
-        title={s.unitKnown ? 'Confirm price' : 'Check the unit, then confirm'}
-        aria-label={s.unitKnown ? `Confirm ${amount(s.price)} € for ${oz}` : `Check the unit of the suggested ${amount(s.price)} € for ${oz}`}
-        className="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-brand-700 hover:bg-brand-50"
-      >
-        <Icon name="check" size={18} />
-      </button>
+    // the box ends where saved prices end, and the confirm slot is reserved so every pending amount lines up
+    <span className={clsx('flex h-9 items-center justify-end gap-0.5 pr-2', className ?? 'w-full')}>
+      {s.unitKnown ? (
+        <button
+          type="button"
+          onClick={onConfirm}
+          title="Confirm price"
+          aria-label={`Confirm ${amount(s.price)} € for ${oz}`}
+          className="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-brand-700 hover:bg-brand-50"
+        >
+          <Icon name="check" size={18} />
+        </button>
+      ) : (
+        <span aria-hidden className="size-8 shrink-0" />
+      )}
       <button
         type="button"
         onClick={onReview}
-        title={`Suggested from the catalogue: ${s.product.name}`}
-        aria-label={`Suggested unit price ${amount(s.price)} € for ${oz}, pending confirmation. Review`}
-        className="num h-8 rounded-md border border-dashed border-slate-500 px-2 text-right text-sm text-slate-700 hover:bg-slate-100 hover:text-slate-900"
+        title={s.unitKnown ? `Suggested from the catalogue: ${s.product.name}` : 'The units differ: review before confirming'}
+        aria-label={`Suggested unit price ${amount(s.price)} € for ${oz}, pending confirmation${s.unitKnown ? '' : ', unit needs checking'}. Review price`}
+        className="num h-8 rounded-md border border-dashed border-slate-500 pr-1 pl-2 text-right text-sm text-slate-700 hover:bg-slate-100 hover:text-slate-900"
       >
         {amount(s.price)}
       </button>
@@ -139,11 +158,19 @@ const Row = memo(function Row({ listId, p, showCategory, selected, flash, edited
   const suggested = p.up == null ? pending : undefined
   const price = (className?: string) => suggested
     ? <PendingPrice s={suggested} oz={p.oz} onConfirm={() => {
-        // a price without a unit on one side is checked in the drawer first
-        if (!suggested.unitKnown) return onOpen(p)
+        // remember the neighbours: under the pending filter this row leaves the table
+        const all = [...document.querySelectorAll<HTMLElement>('tr[data-row=position]')]
+        const at = all.findIndex((tr) => tr.dataset.pid === p.id)
+        const near = [all[at + 1], all[at - 1]].map((tr) => tr?.dataset.pid).filter(Boolean) as string[]
         onConfirmPrice?.(p.id)
-        // the confirm button is gone now; keep focus on the same row's price
-        requestAnimationFrame(() => document.querySelector<HTMLElement>(`tr[data-pid="${CSS.escape(p.id)}"] td[data-a=hide] button`)?.focus())
+        // the confirm button is gone now; keep focus on the same row's price, else the next row's
+        requestAnimationFrame(() => {
+          for (const id of [p.id, ...near]) {
+            const el = document.querySelector<HTMLElement>(`tr[data-pid="${CSS.escape(id)}"] td[data-a=hide] button`)
+            if (el) return el.focus()
+          }
+          document.querySelector<HTMLElement>('[data-results-heading]')?.focus()
+        })
       }} onReview={() => onOpen(p)} className={className} />
     : <PriceCell value={p.up} oz={p.oz} edited={upEdited} muted={zero} onSave={setUp} className={className} />
   return (
@@ -164,19 +191,20 @@ const Row = memo(function Row({ listId, p, showCategory, selected, flash, edited
         </label>
       </td>
       <td data-a="hide" className="w-[88px] px-2 py-1 font-mono text-[13px] leading-9 whitespace-nowrap text-slate-600 tabular-nums">{p.oz}</td>
-      <td data-a="title" className="min-w-0 px-2 py-1">
+      <td data-a="title" className="min-w-0 px-2 py-1 lg:pl-[calc(0.5rem+var(--ind,0)*28px)]">
         <button
           type="button"
           data-open-detail
           onClick={() => onOpen(p)}
           aria-haspopup="dialog"
           title="Show full description"
-          className={clsx('block max-w-full text-left text-[15px] underline-offset-4 hover:underline max-lg:line-clamp-2 max-lg:font-medium lg:truncate lg:leading-9', zero ? 'text-slate-500' : 'text-slate-900')}
+          lang="de"
+          className={clsx('block max-w-full text-left text-[15px] underline-offset-4 hover:underline max-lg:line-clamp-2 max-lg:font-medium lg:truncate lg:leading-9', zero ? 'text-slate-600' : 'text-slate-900')}
         >
           {/* cards lead with the OZ, the way the group headers do */}
-          <span className="mr-1.5 font-mono text-[13px] font-normal text-slate-600 lg:hidden">{p.oz}</span>
+          <span lang="" className="mr-1.5 font-mono text-[13px] font-normal text-slate-600 lg:hidden">{p.oz}</span>
           {hasShort ? nbHyphen(p.short) : <span className="text-slate-600 italic">(ohne Kurztext)</span>}
-          <span className="sr-only">, open details</span>
+          <span lang="en" className="sr-only">, open details</span>
         </button>
         {showCategory && <div className="mt-0.5 truncate text-[13px] text-slate-600">{p.category}</div>}
         {risk && (
@@ -206,13 +234,13 @@ const Row = memo(function Row({ listId, p, showCategory, selected, flash, edited
           {edited && <span className="size-1.5 shrink-0 rounded-md bg-brand-600 lg:hidden" aria-hidden title="Edited" />}
         </div>
       </td>
-      <td data-a="hide" className={clsx('w-16 py-1 pr-2 pl-1 text-sm leading-9 whitespace-nowrap', zero ? 'text-slate-500' : 'text-slate-600')}>{p.unit || <span aria-label="no unit">—</span>}</td>
+      <td data-a="hide" className={clsx('w-16 py-1 pr-2 pl-1 text-sm leading-9 whitespace-nowrap text-slate-600')}>{p.unit || <span aria-label="no unit">—</span>}</td>
       <td data-a="hide" className="relative w-[120px] py-1 pr-1 pl-2 text-right">
         <EditDot on={upEdited} />
         {price()}
       </td>
       {/* desktop GP sits under the "GP (€)" header; cards have no header, so they carry the € */}
-      <td data-a="total" className={clsx('num w-32 py-1 pr-2 pl-2 text-right lg:pr-0 text-sm whitespace-nowrap lg:[@media(hover:hover)]:transition-[padding] lg:[@media(hover:hover)]:group-focus-within:pr-12 lg:[@media(hover:hover)]:group-hover:pr-12 lg:[@media(hover:hover)]:group-has-[[aria-expanded=true]]:pr-12', suggested ? 'text-slate-600' : p.up == null || zero ? 'text-slate-500' : 'font-medium text-slate-900')}>
+      <td data-a="total" className={clsx('num w-32 py-1 pr-2 pl-2 text-right lg:pr-0 text-sm whitespace-nowrap lg:[@media(hover:hover)]:transition-[padding] lg:[@media(hover:hover)]:group-focus-within:pr-12 lg:[@media(hover:hover)]:group-hover:pr-12 lg:[@media(hover:hover)]:group-has-[[aria-expanded=true]]:pr-12', suggested || p.up == null || zero ? 'text-slate-600' : 'font-medium text-slate-900')}>
         <span className="inline-flex h-9 items-center justify-end">
           {suggested ? <><Icon name="schedule" size={16} className="mr-1 text-slate-500" />Pending</> : p.up == null ? 'Not priced' : zero ? <>{amount(0)}<span className="lg:hidden">&nbsp;€</span></> : <>{amount(total)}<span className="lg:hidden">&nbsp;€</span></>}
         </span>
@@ -409,7 +437,8 @@ EP (€)
           const flagged = cat && !open ? sectionRisk(cat.oz) : null
           const top = b.depth === 0
           return (
-            <tbody key={cat ? `c-${cat.oz}` : 'loose'}>
+            // a sub-section and its positions step in one level per depth (capped at three), so the tree reads at a glance
+            <tbody key={cat ? `c-${cat.oz}` : 'loose'} style={{ '--ind': Math.min(b.depth, 3) } as React.CSSProperties}>
               {cat && (() => {
                 const st = stats.get(cat.oz)
                 const waiting = st && pending?.size ? st.pids.reduce((n, pid) => n + (pending.has(pid) ? 1 : 0), 0) : 0
@@ -425,14 +454,14 @@ EP (€)
                         type="button"
                         aria-expanded={open}
                         onClick={() => toggleCat(cat.oz)}
-                        className="flex min-h-11 w-full items-center text-left outline-none focus-visible:ring-2 focus-visible:ring-brand-700 focus-visible:ring-inset max-lg:min-h-10"
+                        className="flex min-h-11 w-full items-center pl-[calc(var(--ind,0)*16px)] text-left outline-none focus-visible:ring-2 focus-visible:ring-brand-700 focus-visible:ring-inset max-lg:min-h-10 lg:pl-[calc(var(--ind,0)*28px)]"
                       >
                         <span className="flex w-10 shrink-0 justify-center pl-2 max-lg:w-7 max-lg:justify-start max-lg:pl-0">
                           <Icon name="chevron_right" size={18} className={clsx('text-slate-600 transition-transform', open && 'rotate-90')} />
                         </span>
                         <span className="w-[88px] shrink-0 px-2 font-mono text-[13px] text-slate-600 tabular-nums max-lg:w-auto max-lg:pr-2 max-lg:pl-0">{cat.oz}</span>
                         <span className="flex min-w-0 flex-1 items-baseline gap-2.5 px-2 max-lg:flex-col max-lg:items-start max-lg:gap-0 max-lg:pl-0">
-                          <span lang="de" className={clsx('min-w-0 hyphens-auto max-lg:line-clamp-2 max-lg:break-words lg:truncate', top ? 'text-[15px] font-semibold text-slate-900' : 'text-sm font-medium text-slate-800')}>{cat.label || cat.oz}</span>
+                          <span lang="de" className={clsx('min-w-0 hyphens-auto max-lg:line-clamp-2 max-lg:break-words lg:line-clamp-2 2xl:truncate', top ? 'text-[15px] font-semibold text-slate-900' : 'text-sm font-semibold text-slate-800')}>{cat.label || cat.oz}</span>
                           {!open && st && (
                             <span className="num shrink-0 text-[13px] text-slate-500">
                               {plural(st.count, 'position', 'positions')}
@@ -444,7 +473,7 @@ EP (€)
                         </span>
                       </button>
                       {flagged && (
-                        <span className="-mt-1 mb-2 block pl-[136px] text-sm max-lg:pl-7">
+                        <span className="-mt-1 mb-2 block pl-[calc(136px+var(--ind,0)*28px)] text-sm max-lg:pl-[calc(1.75rem+var(--ind,0)*16px)]">
                           <FindingBadge severity={flagged.severity}>{flagged.count === 1 ? '1 flagged position' : `${flagged.count} flagged positions`}</FindingBadge>
                         </span>
                       )}

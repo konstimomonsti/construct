@@ -3,8 +3,8 @@ import { clsx } from 'clsx'
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { CatalogueEditor, type EditorFocus } from '../components/CatalogueEditor'
 import { Skeleton } from '../components/Page'
-import { Chips, EmptyState, PageFrame, PageHeader, RowList, RowMenu } from '../components/Kit'
-import { Button, Dialog, Icon, kbdCls, toast } from '../components/ui'
+import { Chips, EmptyState, Kbd, PageFrame, PageHeader, RowList, RowMenu, ToolButton } from '../components/Kit'
+import { Button, Dialog, Icon, inputCls, kbdCls, Menu, toast } from '../components/ui'
 import { int, plural } from '../lib/format'
 import {
   CATALOGUES, CATALOGUE_PAGE_SIZE, CATALOGUE_SCAN_PAGES, catalogueDate, cataloguePriceSource, formatCataloguePrice, isPriced, scanCatalogue, writeCatalogue,
@@ -30,213 +30,316 @@ type Scan = { key: string; filters: CatalogueFilters; rows: CatalogueEntry[]; do
 /** price coverage is only worked out for suppliers with up to this many products (it reads all of their pages) */
 const COVERAGE_LIMIT = 500
 
-/** what a supplier's products say about its prices: how many are priced, and the newest price date (ISO) */
-type Coverage = { priced: number; latest?: string }
+/** what a supplier's products say about it: how many are priced, the newest price date (ISO) and what it sells most */
+type Coverage = { priced: number; latest?: string; categories: string[] }
 
 /** products get a package, so the catalogue never borrows the archive box that means "Archived" */
 const catalogueIcon = (kind: CatalogueKind) => (kind === 'products' ? 'package_2' : CATALOGUES[kind].icon)
 
 const squash = (text: string) => text.replace(/\s+/g, ' ').trim()
+const familyKey = (entry: CatalogueEntry) => `${squash(entry.name).toLowerCase()}|${squash(entry.category ?? '').toLowerCase()}`
 
-/** what tells a same-named product apart: a detail for line two, or (when none differs) a plain Duplicate tag */
+/**
+ * what tells a same-named product apart: a detail for line two (none for the price, which the row already shows), or,
+ * when nothing differs, its place among the duplicates
+ */
 type Tag = { text?: string; label: string; duplicate?: boolean }
 
 /**
- * products that share a name and category get one more detail on line two that tells them apart: the first of
- * item code, supplier, unit or price source that differs between all of them. When nothing does, they really are
- * duplicates, and the row says so with a muted tag instead of a made-up difference.
+ * products that share a name and category get the first detail that differs between all of them: item code,
+ * supplier, unit, price or price source. When nothing does, they really are duplicates, and they collapse into one
+ * row that says how many there are.
  */
 function discriminators(entries: CatalogueEntry[]) {
   const groups = new Map<string, CatalogueEntry[]>()
-  for (const entry of entries) {
-    const key = `${squash(entry.name).toLowerCase()}|${squash(entry.category ?? '').toLowerCase()}`
-    groups.set(key, [...(groups.get(key) ?? []), entry])
-  }
-  const candidates: ((entry: CatalogueEntry) => Tag | null)[] = [
-    (e) => (e.sku ? { text: `Item code ${e.sku}`, label: `item code ${e.sku}` } : null),
-    (e) => (e.supplier ? { text: e.supplier, label: `from ${e.supplier}` } : null),
-    (e) => (e.unit ? { text: e.unit, label: `per ${e.unit}` } : null),
-    (e) => (e.valid_from ? { text: cataloguePriceSource(e), label: `price from ${cataloguePriceSource(e)}` } : null),
+  for (const entry of entries) groups.set(familyKey(entry), [...(groups.get(familyKey(entry)) ?? []), entry])
+  const candidates: ((entry: CatalogueEntry) => (Tag & { value: string }) | null)[] = [
+    (e) => (e.sku ? { value: e.sku, text: `Item code ${e.sku}`, label: `item code ${e.sku}` } : null),
+    (e) => (e.supplier ? { value: e.supplier, text: e.supplier, label: `from ${e.supplier}` } : null),
+    (e) => (e.unit ? { value: e.unit, text: e.unit, label: `per ${e.unit}` } : null),
+    (e) => {
+      const price = isPriced(e) ? formatCataloguePrice(e) : 'not priced'
+      return { value: price, label: isPriced(e) ? `at ${price}` : price }
+    },
+    (e) => (e.valid_from ? { value: cataloguePriceSource(e), text: cataloguePriceSource(e), label: `price from ${cataloguePriceSource(e)}` } : null),
   ]
   const tags = new Map<string, Tag>()
   for (const group of groups.values()) {
     if (group.length < 2) continue
     const pick = candidates.find((candidate) => {
-      const values = group.map((entry) => candidate(entry)?.text)
+      const values = group.map((entry) => candidate(entry)?.value)
       return values.every(Boolean) && new Set(values).size === group.length
     })
     group.forEach((entry, i) => {
-      tags.set(entry.id, pick?.(entry) ?? { label: `duplicate ${int(i + 1)} of ${int(group.length)}`, duplicate: true })
+      const found = pick?.(entry)
+      tags.set(entry.id, found ? { text: found.text, label: found.label } : { label: `duplicate ${int(i + 1)} of ${int(group.length)}`, duplicate: true })
     })
   }
   return tags
 }
 
+/** one row of the list: a product or company, or a family of identical products that opens to show each of them */
+type Item = { key: string; entries: CatalogueEntry[] }
+
+/** identical products (same name and category, nothing else to tell them apart) take one row until it is opened */
+function collapse(rows: CatalogueEntry[], tags: Map<string, Tag>) {
+  const items: Item[] = []
+  const families = new Map<string, Item>()
+  for (const entry of rows) {
+    if (!tags.get(entry.id)?.duplicate) { items.push({ key: entry.id, entries: [entry] }); continue }
+    const family = families.get(familyKey(entry))
+    if (family) family.entries.push(entry)
+    else {
+      const fresh = { key: `family-${entry.id}`, entries: [entry] }
+      families.set(familyKey(entry), fresh)
+      items.push(fresh)
+    }
+  }
+  return items
+}
+
+/**
+ * pages of up to CATALOGUE_PAGE_SIZE entries that never split a family, with the entry numbers each page covers, so
+ * "1–48 of 1.311" still counts products
+ */
+function paginate(items: Item[]) {
+  const pages: { from: number; to: number; first: number; last: number }[] = []
+  let from = 0
+  let count = 0
+  let seen = 0
+  items.forEach((item, i) => {
+    if (count > 0 && count + item.entries.length > CATALOGUE_PAGE_SIZE) {
+      pages.push({ from, to: i, first: seen - count + 1, last: seen })
+      from = i
+      count = 0
+    }
+    count += item.entries.length
+    seen += item.entries.length
+  })
+  if (count) pages.push({ from, to: items.length, first: seen - count + 1, last: seen })
+  return pages
+}
+
 /** the second line of a product row: only the details that exist, so empty columns never become a wall of dashes */
 function productDetails(entry: CatalogueEntry) {
-  const parts = [entry.category, entry.unit, entry.sku && `Item code ${entry.sku}`, entry.supplier].filter(Boolean)
+  // a priced row says its unit beside the price ("per m²"), so line two leaves it out
+  const parts = [entry.category, !isPriced(entry) && entry.unit, entry.sku && `Item code ${entry.sku}`, entry.supplier].filter(Boolean)
   return parts.length ? parts.join(' · ') : 'No supplier or item code yet'
 }
 
-/** the ⋯ overlays the row's right end on hover devices (as on Kit's Row), so figures end on the content edge at rest */
-const MENU_OVERLAY = 'relative z-10 -my-1.5 -mr-1 transition-opacity sm:my-0 [@media(hover:hover)]:absolute [@media(hover:hover)]:top-1/2 [@media(hover:hover)]:right-1 [@media(hover:hover)]:my-0 [@media(hover:hover)]:mr-0 [@media(hover:hover)]:-translate-y-1/2 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-focus-within:opacity-100 [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:has-[[aria-expanded=true]]:opacity-100 sm:[@media(hover:hover)]:right-2'
-/** and the figures slide over to make room for it while it shows */
-const MAKE_ROOM = '[@media(hover:hover)]:transition-[padding] [@media(hover:hover)]:group-focus-within:pr-12 [@media(hover:hover)]:group-hover:pr-12 [@media(hover:hover)]:group-has-[[aria-expanded=true]]:pr-12'
+/**
+ * a fixed actions gutter, as on the project rows (Kit's Row): the ⋯ shows in it on hover or focus and nothing moves.
+ * Where the page has a wide margin (≥1400px) the gutter sits outside the content edge, so figures end on that edge.
+ */
+const GUTTER = 'sm:max-[1399px]:[@media(hover:hover)]:pr-[60px] min-[1400px]:[@media(hover:hover)]:-mr-10 min-[1400px]:[@media(hover:hover)]:pr-[52px]'
+const MENU_OVERLAY = 'relative z-10 -my-1.5 -mr-1 transition-opacity sm:my-0 [@media(hover:hover)]:absolute [@media(hover:hover)]:top-1/2 [@media(hover:hover)]:right-1 [@media(hover:hover)]:my-0 [@media(hover:hover)]:mr-0 [@media(hover:hover)]:-translate-y-1/2 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-focus-within:opacity-100 [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:has-[[aria-expanded=true]]:opacity-100 sm:[@media(hover:hover)]:right-2 min-[1400px]:[@media(hover:hover)]:right-1.5'
+const ROW = clsx('group relative flex items-start gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-slate-100 sm:items-center sm:gap-4 sm:px-3', GUTTER)
+const GRID = 'pointer-events-none relative grid min-w-0 flex-1 grid-cols-[auto_minmax(0,1fr)] items-baseline gap-x-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:gap-x-6'
+const NAME = 'line-clamp-2 min-w-0 text-[15px] leading-snug font-semibold break-normal hyphens-auto text-slate-900'
+/** line two wraps (to two lines) instead of cutting off a supplier or item code; the figures beside it never squeeze */
+const DETAILS = 'col-span-2 row-start-2 line-clamp-2 min-w-0 text-sm break-words text-slate-600 sm:col-span-1 sm:col-start-1'
+const AMOUNT = 'num col-start-1 row-start-3 text-[15px] leading-snug font-semibold whitespace-nowrap text-slate-900 sm:col-start-2 sm:row-start-1 sm:text-right'
+const META = 'col-start-2 row-start-3 flex min-w-0 justify-end whitespace-nowrap sm:row-start-2'
 
-function CatalogueRows({ kind, entries, all, coverage, onEdit, onArchive, onRestore }: {
-  kind: CatalogueKind
-  /** the rows on this page */
-  entries: CatalogueEntry[]
-  /** every row of the result, so same-named products are told apart across pages */
-  all: CatalogueEntry[]
-  /** price coverage per supplier id, once known */
-  coverage: Record<string, Coverage>
+type RowActions = {
   onEdit: (entry: CatalogueEntry, focus?: EditorFocus) => void
   onArchive: (entry: CatalogueEntry) => void
   onRestore: (entry: CatalogueEntry) => void
+}
+
+function EntryRow({ kind, entry, tag, known, ordinal, onEdit, onArchive, onRestore }: RowActions & {
+  kind: CatalogueKind
+  entry: CatalogueEntry
+  tag?: Tag
+  /** a supplier's price coverage, once known */
+  known?: Coverage
+  /** its place in an opened family of identical products */
+  ordinal?: { n: number; of: number }
 }) {
   const navigate = useNavigate()
   const ids = useId()
   const { item } = CATALOGUES[kind]
+  const archived = !!entry.archived_at
+  // a detail that tells same-named rows apart joins the name; a duplicate says which one it is
+  const name = ordinal ? `${entry.name}, entry ${ordinal.n} of ${ordinal.of}` : tag && !tag.duplicate ? `${entry.name} (${tag.label})` : entry.name
+  const products = kind === 'suppliers' ? entry.product_count ?? 0 : 0
   // the name travels along so the Products filter chip can say whose products these are (a new tab finds it in the rows)
-  const productsLink = (entry: CatalogueEntry) => `/catalogues/products?supplier=${encodeURIComponent(entry.id)}`
-  const showProducts = (entry: CatalogueEntry) => navigate(productsLink(entry), { state: { supplierName: entry.name } })
-  const tags = kind === 'products' ? discriminators(all) : new Map<string, Tag>()
+  const productsLink = `/catalogues/products?supplier=${encodeURIComponent(entry.id)}`
+  const descriptionId = `${ids}-description`
+  const metaId = `${ids}-meta`
+
+  // what the row shows besides the name, for the row's own button
+  let description = ''
+  let subtitle: ReactNode = null
+  let amount: ReactNode = null
+  let meta: ReactNode = null
+
+  if (kind === 'products') {
+    if (!ordinal) {
+      const line = productDetails(entry)
+      const extra = tag?.duplicate ? tag.label.replace(/^d/, 'D') : tag?.text
+      subtitle = extra && !line.split(' · ').includes(extra) ? `${line} · ${extra}` : line
+    }
+    const priceText = isPriced(entry) ? [formatCataloguePrice(entry), entry.unit && `per ${entry.unit}`].filter(Boolean).join(' ') : 'Not priced'
+    description = [priceText, !ordinal && tag?.duplicate && tag.label.replace(/^d/, 'D')].filter(Boolean).join('. ')
+    if (isPriced(entry)) {
+      amount = formatCataloguePrice(entry)
+      const source = [entry.unit && `per ${entry.unit}`, cataloguePriceSource(entry)].filter(Boolean).join(' · ')
+      if (source) meta = <span className="text-sm text-slate-600">{source}</span>
+    } else if (!archived) {
+      // only real prices are printed: an unpriced row leaves the cell empty, and Set price shows there under the
+      // pointer or on keyboard focus (touch opens the row itself). Its own name says which product it prices
+      amount = (
+        <button type="button" onClick={() => onEdit(entry, 'price')} aria-label={`Set price for ${name}`}
+          className="pointer-events-auto relative z-10 rounded-sm text-sm font-medium text-brand-700 underline-offset-4 transition-opacity after:absolute after:-inset-x-2 after:-inset-y-2 after:content-[''] hover:underline focus-visible:opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-focus-within:opacity-100 [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:none)]:hidden">
+          Set price
+        </button>
+      )
+    }
+  } else {
+    const shown = [kind === 'subcontractors' ? entry.trade : null, entry.contact_name, entry.email, entry.phone].filter(Boolean)
+    const contact = entry.contact_name || entry.email || entry.phone
+    const contactLine = contact || archived ? (shown.join(' · ') || 'No contact details') : (
+      <>
+        {shown.length > 0 && `${shown.join(' · ')} · `}
+        {/* above the row's own button, so it opens the editor at the contact fields */}
+        <button
+          type="button"
+          onClick={() => onEdit(entry, 'contact')}
+          className="pointer-events-auto relative z-10 font-medium text-brand-700 underline-offset-2 after:absolute after:-inset-x-1 after:-inset-y-2 after:content-[''] hover:underline"
+        >
+          Add contact details<span className="sr-only"> for {entry.name}</span>
+        </button>
+      </>
+    )
+    // what a supplier sells, from its products, above who to call
+    const sells = known?.categories.length ? known.categories.join(' · ') : ''
+    subtitle = sells ? <><span className="block truncate">{sells}</span><span className="block">{contactLine}</span></> : contactLine
+
+    let coverage = ''
+    if (kind === 'suppliers' && products && !archived) {
+      if (known) coverage = `${int(known.priced)} of ${int(products)} priced${known.latest ? ` · Latest price ${catalogueDate(known.latest)}` : ''}`
+      else if (products > COVERAGE_LIMIT) coverage = 'Price coverage unavailable'
+    }
+    description = [sells && `Sells ${sells.replaceAll(' · ', ', ')}`, shown.join(', '), !contact && 'No contact details', products && plural(products, 'product', 'products'), coverage].filter(Boolean).join('. ')
+
+    if (kind === 'suppliers') {
+      const figure = plural(products, 'product', 'products')
+      amount = products && !archived ? (
+        // a real link to the supplier's products (so it opens in a new tab and can be shared), with a chevron that
+        // says so at rest; its description carries the price coverage
+        <Link to={productsLink} state={{ supplierName: entry.name }} aria-describedby={coverage ? metaId : undefined}
+          className="pointer-events-auto relative z-10 inline-flex items-center gap-0.5 rounded-sm text-slate-900 decoration-slate-500 underline-offset-4 after:absolute after:-inset-x-1 after:-inset-y-2 after:content-[''] hover:underline focus-visible:underline">
+          <span className="sr-only">View </span>{figure}<span className="sr-only"> from {entry.name}</span>
+          <Icon name="chevron_right" size={18} className="-mr-1 text-slate-600" />
+        </Link>
+      ) : <span className="text-sm font-normal text-slate-600">{figure}</span>
+      if (coverage) meta = <span id={metaId} className="num text-sm text-slate-600">{coverage}</span>
+    }
+  }
+
+  const menu = (
+    <RowMenu
+      label={`More actions for ${name}`}
+      items={archived ? [
+        { label: 'Restore', icon: 'restore', onSelect: () => onRestore(entry) },
+      ] : [
+        { label: `Edit ${item}`, icon: 'edit', onSelect: () => onEdit(entry) },
+        ...(products ? [{ label: `View ${plural(products, 'product', 'products')}`, icon: 'package_2', onSelect: () => navigate(productsLink, { state: { supplierName: entry.name } }) }] : []),
+        'sep' as const,
+        { label: 'Archive', icon: 'archive', danger: true, onSelect: () => onArchive(entry) },
+      ]}
+    />
+  )
+  return (
+    <div data-row="catalogue" className={ROW}>
+      <button
+        type="button"
+        data-nav
+        aria-label={archived ? `Restore ${item} ${name}` : `Edit ${item} ${name}`}
+        aria-describedby={descriptionId}
+        onClick={() => (archived ? onRestore(entry) : onEdit(entry))}
+        className="absolute inset-0 z-0 rounded-lg"
+      />
+      {/* names lead: no icon tile, since it would be the same on every row */}
+      <div className={GRID}>
+        <span lang={ordinal ? undefined : 'de'} className={clsx('col-span-2 row-start-1 sm:col-span-1', ordinal ? 'text-sm font-medium text-slate-800' : NAME)}>
+          {ordinal ? `Entry ${ordinal.n} of ${ordinal.of}` : entry.name}
+        </span>
+        {subtitle != null && <span className={DETAILS}>{subtitle}</span>}
+        {amount != null && <div className={AMOUNT}>{amount}</div>}
+        {meta != null && <div className={META}>{meta}</div>}
+      </div>
+      <span id={descriptionId} hidden>{description}</span>
+      <div className={MENU_OVERLAY}>{menu}</div>
+    </div>
+  )
+}
+
+/** identical products as one row ("3 duplicate entries"); opening it lists each one, to price, edit or archive */
+function FamilyRow({ entries, actions }: { entries: CatalogueEntry[]; actions: RowActions }) {
+  const [open, setOpen] = useState(false)
+  const listId = useId()
+  const [first] = entries
+  const count = entries.length
+  const priced = entries.filter(isPriced)
+  const prices = [...new Set(priced.map(formatCataloguePrice))]
+  const lowest = priced.length ? priced.reduce((a, b) => (Number(b.unit_price) < Number(a.unit_price) ? b : a)) : null
+  return (
+    <div>
+      <div data-row="catalogue" className={ROW}>
+        <button type="button" data-nav aria-expanded={open} aria-controls={listId} onClick={() => setOpen((v) => !v)}
+          aria-label={`${first.name}, ${count} duplicate entries${priced.length ? `, ${int(priced.length)} priced` : ', not priced'}`}
+          className="absolute inset-0 z-0 rounded-lg" />
+        <div className={GRID}>
+          <span lang="de" className={clsx('col-span-2 row-start-1 sm:col-span-1', NAME)}>{first.name}</span>
+          <span className={DETAILS}>
+            {productDetails(first)} · <span className="font-medium text-slate-700">{count} duplicate entries</span>
+            <Icon name="expand_more" size={18} className={clsx('ml-0.5 align-[-4px] text-slate-600 transition-transform', open && 'rotate-180')} />
+          </span>
+          {lowest && <div className={AMOUNT}>{prices.length > 1 && <span className="text-sm font-normal text-slate-600">from </span>}{formatCataloguePrice(lowest)}</div>}
+          {lowest && priced.length < count && <div className={META}><span className="num text-sm text-slate-600">{int(priced.length)} of {int(count)} priced</span></div>}
+        </div>
+      </div>
+      {open && (
+        <div id={listId} role="group" aria-label={`${first.name}, duplicate entries`} className="mb-1 ml-3 border-l-2 border-slate-200 pl-1 sm:ml-4">
+          {entries.map((entry, i) => <EntryRow key={entry.id} kind="products" entry={entry} ordinal={{ n: i + 1, of: count }} {...actions} />)}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function CatalogueRows({ kind, items, tags, coverage, ...actions }: RowActions & {
+  kind: CatalogueKind
+  /** the rows on this page */
+  items: Item[]
+  /** what tells same-named products apart, worked out over the whole result */
+  tags: Map<string, Tag>
+  /** price coverage per supplier id, once known */
+  coverage: Record<string, Coverage>
+}) {
   return (
     <RowList>
-      {entries.map((entry) => {
-        const archived = !!entry.archived_at
-        const tag = tags.get(entry.id)
-        // a detail that tells same-named rows apart joins the name; a plain duplicate is said in the description
-        const name = tag && !tag.duplicate ? `${entry.name} (${tag.label})` : entry.name
-        const products = kind === 'suppliers' ? entry.product_count ?? 0 : 0
-        const descriptionId = `${ids}-${entry.id}`
-        // what the row shows beside the name, for the row's own button: the price (or Not priced) and a duplicate
-        // tag for products, the contact details (or their absence) and products for companies
-        let description = ''
-
-        let subtitle: ReactNode
-        if (kind === 'products') {
-          const line = productDetails(entry)
-          subtitle = tag?.text && !line.split(' · ').includes(tag.text) ? `${line} · ${tag.text}` : line
-        } else {
-          const shown = [kind === 'subcontractors' ? entry.trade : null, entry.contact_name, entry.email, entry.phone].filter(Boolean)
-          const contact = entry.contact_name || entry.email || entry.phone
-          description = [shown.join(', '), !contact && 'No contact details', products && plural(products, 'product', 'products')].filter(Boolean).join('. ')
-          subtitle = contact || archived ? (shown.join(' · ') || 'No contact details') : (
-            <>
-              {shown.length > 0 && `${shown.join(' · ')} · `}
-              {/* above the row's own button, so it opens the editor at the contact fields */}
-              <button
-                type="button"
-                onClick={() => onEdit(entry, 'contact')}
-                className="pointer-events-auto relative z-10 font-medium text-brand-700 underline-offset-2 after:absolute after:-inset-x-1 after:-inset-y-2 after:content-[''] hover:underline"
-              >
-                Add contact details<span className="sr-only"> for {entry.name}</span>
-              </button>
-            </>
-          )
-        }
-
-        let amount: ReactNode = null
-        let meta: ReactNode = null
-        if (kind === 'products') {
-          const priceText = isPriced(entry) ? [formatCataloguePrice(entry), entry.unit && `per ${entry.unit}`].filter(Boolean).join(' ') : 'Not priced'
-          description = [priceText, tag?.duplicate && `Duplicate, ${tag.label.replace(/^duplicate /, '')}`].filter(Boolean).join('. ')
-          if (isPriced(entry)) {
-            amount = formatCataloguePrice(entry)
-            const source = [entry.unit && `per ${entry.unit}`, cataloguePriceSource(entry)].filter(Boolean).join(' · ')
-            if (source) meta = <span className="text-sm text-slate-600">{source}</span>
-          } else if (archived) {
-            amount = <span className="text-sm font-normal text-slate-600">Not priced</span>
-          } else {
-            // the state at rest, the action under the pointer: opens the editor at the unit price. The row's own
-            // button already opens the editor from the keyboard, so this stays out of the tab order
-            amount = (
-              <button type="button" tabIndex={-1} onClick={() => onEdit(entry, 'price')}
-                className="pointer-events-auto relative z-10 text-sm font-normal text-slate-600 underline-offset-4 after:absolute after:-inset-x-2 after:-inset-y-2 after:content-[''] [@media(hover:hover)]:group-hover:font-medium [@media(hover:hover)]:group-hover:text-brand-700 [@media(hover:hover)]:hover:underline">
-                <span className="[@media(hover:hover)]:group-hover:hidden">Not priced</span>
-                <span className="hidden [@media(hover:hover)]:group-hover:inline">Set price</span>
-              </button>
-            )
-          }
-        } else if (kind === 'suppliers') {
-          const known = coverage[entry.id]
-          const figure = plural(products, 'product', 'products')
-          amount = products && !archived ? (
-            // plain ink, and a real link to the supplier's products (so it opens in a new tab and can be shared);
-            // above the row's own button
-            <Link to={productsLink(entry)} state={{ supplierName: entry.name }}
-              className="pointer-events-auto relative z-10 rounded-sm text-slate-900 decoration-slate-500 underline-offset-4 after:absolute after:-inset-x-1 after:-inset-y-2 after:content-[''] hover:underline focus-visible:underline">
-              <span className="sr-only">View </span>{figure}<span className="sr-only"> from {entry.name}</span>
-            </Link>
-          ) : <span className="text-sm font-normal text-slate-600">{figure}</span>
-          if (known && products && !archived) {
-            const priced = known.priced === products ? 'All priced' : known.priced ? `${int(known.priced)} priced` : 'None priced yet'
-            meta = <span className="num text-sm text-slate-600">{priced}{known.latest && ` · Latest price ${catalogueDate(known.latest)}`}</span>
-          }
-        }
-
-        const menu = (
-          <RowMenu
-            label={`More actions for ${name}`}
-            items={archived ? [
-              { label: 'Restore', icon: 'restore', onSelect: () => onRestore(entry) },
-            ] : [
-              { label: `Edit ${item}`, icon: 'edit', onSelect: () => onEdit(entry) },
-              ...(products ? [{ label: `View ${plural(products, 'product', 'products')}`, icon: 'package_2', onSelect: () => showProducts(entry) }] : []),
-              'sep' as const,
-              { label: 'Archive', icon: 'archive', danger: true, onSelect: () => onArchive(entry) },
-            ]}
-          />
-        )
-        return (
-          <div key={entry.id} data-row="catalogue" className="group relative flex items-start gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-slate-100 sm:items-center sm:gap-4 sm:px-3">
-            <button
-              type="button"
-              data-nav
-              aria-label={archived ? `Restore ${item} ${name}` : `Edit ${item} ${name}`}
-              aria-describedby={descriptionId}
-              onClick={() => (archived ? onRestore(entry) : onEdit(entry))}
-              className="absolute inset-0 z-0 rounded-lg"
-            />
-            {/* names lead: no icon tile, since it would be the same on every row */}
-            <div className={clsx('pointer-events-none relative grid min-w-0 flex-1 grid-cols-[auto_minmax(0,1fr)] items-baseline gap-x-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:gap-x-6', MAKE_ROOM)}>
-              <div className="col-span-2 row-start-1 flex min-w-0 items-baseline gap-2 sm:col-span-1">
-                <span lang="de" className="line-clamp-2 min-w-0 text-[15px] leading-snug font-semibold break-normal hyphens-auto text-slate-900 sm:line-clamp-1">{entry.name}</span>
-                {tag?.duplicate && (
-                  // same name and category, and nothing else to tell them apart
-                  <span className="inline-flex h-5 shrink-0 items-center gap-1 self-center rounded bg-slate-200/80 px-1.5 text-xs leading-none font-medium text-slate-700">
-                    <Icon name="content_copy" size={13} />Duplicate
-                  </span>
-                )}
-              </div>
-              <span className="col-span-2 row-start-2 min-w-0 truncate text-sm text-slate-600 sm:col-span-1 sm:col-start-1">{subtitle}</span>
-              {amount != null && <div className="num col-start-1 row-start-3 text-[15px] leading-snug font-semibold whitespace-nowrap text-slate-900 sm:col-start-2 sm:row-start-1 sm:text-right">{amount}</div>}
-              {meta != null && <div className="col-start-2 row-start-3 flex min-w-0 justify-end sm:row-start-2">{meta}</div>}
-            </div>
-            <span id={descriptionId} hidden>{description}</span>
-            <div className={MENU_OVERLAY}>{menu}</div>
-          </div>
-        )
-      })}
+      {items.map((it) => (it.entries.length > 1
+        ? <FamilyRow key={it.key} entries={it.entries} actions={actions} />
+        : <EntryRow key={it.key} kind={kind} entry={it.entries[0]} tag={tags.get(it.entries[0].id)} known={coverage[it.entries[0].id]} {...actions} />))}
     </RowList>
   )
 }
 
 /**
- * "1–50 of 1.311" with Previous and Next: compact beside the results heading, and again under the rows. The total is
- * left out until every page is read; past the scan limit it reads "5.000+".
+ * the range with Previous and Next ("1–50 ‹ ›"). Beside the result count it leaves the total to the count; under the
+ * rows it says "1–50 of 1.311". The total is left out until every page is read; past the scan limit it reads "5.000+".
  */
-function Pager({ page, size, total, done, capped, onPage }: { page: number; size: number; total: number; done: boolean; capped: boolean; onPage: (page: number) => void }) {
-  const first = (page - 1) * size + 1
-  const last = Math.min(page * size, total)
-  const lastPage = Math.max(1, Math.ceil(total / size))
+function Pager({ page, first, last, total, done, capped, lastPage, withTotal, onPage }: {
+  page: number; first: number; last: number; total: number; done: boolean; capped: boolean; lastPage: number; withTotal?: boolean; onPage: (page: number) => void
+}) {
   const arrow = 'flex size-10 items-center justify-center rounded-md text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900 disabled:pointer-events-none disabled:text-slate-400'
   return (
     <div className="flex items-center gap-1 text-sm text-slate-600">
       <span className="num mr-1 whitespace-nowrap">
-        {int(first)}–{int(last)}{done && <> of {int(total)}{capped && '+'}</>}
+        {int(first)}–{int(last)}{withTotal && done && <> of {int(total)}{capped && '+'}</>}
       </span>
       <button type="button" aria-label="Previous page" title="Previous page" disabled={page === 1} onClick={() => onPage(page - 1)} className={arrow}>
         <Icon name="chevron_left" size={22} />
@@ -270,6 +373,46 @@ function PriceFilters({ value, options, onChange }: { value: PriceFilter; option
   )
 }
 
+/** a filter of the priced view ("All categories ▾"), to compare unit prices of like products */
+function FacetMenu({ noun, all, value, options, onChange }: {
+  /** what it filters by, for its label ("category") */
+  noun: string
+  all: string
+  value: string | null
+  options: { value: string; label: string }[]
+  onChange: (value?: string) => void
+}) {
+  const chosen = options.find((o) => o.value === value)?.label ?? value
+  return (
+    <Menu
+      label={`Filter by ${noun}`}
+      align="end"
+      width="w-64"
+      items={[
+        { label: all, checked: !value, onSelect: () => onChange() },
+        'sep' as const,
+        ...options.map((o) => ({ label: o.label, checked: value === o.value, onSelect: () => onChange(o.value) })),
+      ]}
+      trigger={(t) => (
+        <ToolButton {...t} active={!!value} aria-label={`Filter by ${noun}: ${chosen ?? all}`} className="max-w-56 pr-2.5">
+          <span className="truncate">{chosen ?? all}</span>
+          <Icon name="expand_more" size={18} className={value ? 'text-white' : 'text-slate-600'} />
+        </ToolButton>
+      )}
+    />
+  )
+}
+
+/** the distinct values of a field among some rows, A–Z, as facet options */
+function facetOptions(rows: CatalogueEntry[], value: (e: CatalogueEntry) => string | null | undefined, label: (e: CatalogueEntry) => string | null | undefined = value) {
+  const seen = new Map<string, string>()
+  for (const entry of rows) {
+    const v = value(entry)
+    if (v && !seen.has(v)) seen.set(v, label(entry) ?? v)
+  }
+  return [...seen].map(([v, l]) => ({ value: v, label: l })).sort((a, b) => a.label.localeCompare(b.label, 'de'))
+}
+
 function Catalogue({ kind }: { kind: CatalogueKind }) {
   const { title, item } = CATALOGUES[kind]
   const icon = catalogueIcon(kind)
@@ -279,6 +422,9 @@ function Catalogue({ kind }: { kind: CatalogueKind }) {
   const archived = filters.get('view') === 'archived'
   const priceParam = filters.get('price')
   const price: PriceFilter = kind === 'products' && (priceParam === 'priced' || priceParam === 'unpriced') ? priceParam : 'all'
+  // the priced view narrows to like products, so unit prices can be compared
+  const category = price === 'priced' ? filters.get('category') : null
+  const unit = price === 'priced' ? filters.get('unit') : null
   const [query, setQuery] = useState('')
   const [page, setPage] = useState(1)
   const [reload, setReload] = useState(0)
@@ -290,6 +436,7 @@ function Catalogue({ kind }: { kind: CatalogueKind }) {
   const [busy, setBusy] = useState(false)
   const searchRef = useRef<HTMLInputElement>(null)
   const headingRef = useRef<HTMLHeadingElement>(null)
+  const sectionRef = useRef<HTMLElement>(null)
   // paging moves focus to the results heading, so the next Tab lands on the new page's first row
   const paged = useRef(false)
   function goToPage(next: number) {
@@ -300,18 +447,25 @@ function Catalogue({ kind }: { kind: CatalogueKind }) {
     if (!paged.current) return
     paged.current = false
     headingRef.current?.focus({ preventScroll: true })
-    headingRef.current?.scrollIntoView({ block: 'nearest' })
+    // the results bar stays under the app header, so only a page scrolled past the list's start goes back to it
+    const section = sectionRef.current
+    if (section && section.getBoundingClientRect().top < 64) section.scrollIntoView({ block: 'start' })
   }, [page])
 
-  // "/" jumps to the search from anywhere on the page, as in the ledger (not while typing, or in a dialog or menu)
+  // "/" jumps to the search and N adds an entry, from anywhere on the page (not while typing, or in a dialog or menu)
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if (event.key !== '/' || event.metaKey || event.ctrlKey || event.altKey || event.defaultPrevented) return
+      if (event.metaKey || event.ctrlKey || event.altKey || event.defaultPrevented || event.repeat) return
       const target = event.target as HTMLElement
       if (target.closest('input,textarea,select,[contenteditable=true],[role=dialog],[role=menu]')) return
-      if (!searchRef.current) return
-      event.preventDefault()
-      searchRef.current.focus()
+      if (document.querySelector('[role=dialog],[role=alertdialog],[role=menu]')) return
+      if (event.key === '/' && searchRef.current) {
+        event.preventDefault()
+        searchRef.current.focus()
+      } else if (event.key === 'n' || event.key === 'N') {
+        event.preventDefault()
+        setEditing({ entry: null })
+      }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -342,10 +496,13 @@ function Catalogue({ kind }: { kind: CatalogueKind }) {
     }
   }, [kind, key, trimmed, supplier, archived])
 
-  function setFilter(name: string, value?: string) {
+  /** changes some URL filters at once (an empty value clears one) and goes back to page one */
+  function setFilter(changes: Record<string, string | undefined>) {
     const next = new URLSearchParams(filters)
-    if (value) next.set(name, value)
-    else next.delete(name)
+    for (const [name, value] of Object.entries(changes)) {
+      if (value) next.set(name, value)
+      else next.delete(name)
+    }
     setFilters(next)
     setPage(1)
   }
@@ -353,15 +510,25 @@ function Catalogue({ kind }: { kind: CatalogueKind }) {
   // while the next search or page loads, the last complete result stays on screen (only the first load shows a
   // skeleton); everything below describes what is shown, so a stale result never borrows the new query's wording
   const current = scan?.key === key ? scan : null
-  const covered = !!current && (current.done || (price === 'all' && current.rows.length >= page * CATALOGUE_PAGE_SIZE))
+  const covered = !!current && (current.done || (price === 'all' && current.rows.length >= (page + 1) * CATALOGUE_PAGE_SIZE))
   const view = covered ? current : settled ?? (current?.rows.length ? current : null)
   const refreshing = !!view && (view !== current || !view.done)
   const all = view?.rows ?? []
-  const pricedCount = kind === 'products' ? all.filter(isPriced).length : 0
-  const rows = price === 'priced' ? all.filter(isPriced) : price === 'unpriced' ? all.filter((entry) => !isPriced(entry)) : all
-  const lastPage = Math.max(1, Math.ceil(rows.length / CATALOGUE_PAGE_SIZE))
+  const pricedRows = kind === 'products' ? all.filter(isPriced) : []
+  const pricedCount = pricedRows.length
+  const faceted = !!(category || unit)
+  const rows = price === 'priced'
+    ? pricedRows.filter((entry) => (!category || entry.category === category) && (!unit || entry.unit === unit))
+    : price === 'unpriced' ? all.filter((entry) => !isPriced(entry)) : all
+  // what tells same-named products apart is worked out over the whole result, so a tag never changes between pages
+  const tags = kind === 'products' ? discriminators(rows) : new Map<string, Tag>()
+  const items = kind === 'products' ? collapse(rows, tags) : rows.map((entry) => ({ key: entry.id, entries: [entry] }))
+  const pages = paginate(items)
+  const lastPage = Math.max(1, pages.length)
   const shownPage = view?.done ? Math.min(page, lastPage) : page
-  const pageRows = rows.slice((shownPage - 1) * CATALOGUE_PAGE_SIZE, shownPage * CATALOGUE_PAGE_SIZE)
+  const span = pages[shownPage - 1]
+  const pageItems = span ? items.slice(span.from, span.to) : []
+  const pageRows = pageItems.flatMap((it) => it.entries)
   // a brand-new catalogue: the empty state explains it, and the search has nothing to search yet
   const blank = !!view?.done && !all.length && !view.filters.q && !view.filters.supplier && !view.filters.archived
   // nothing to search in (an empty catalogue or an empty Archived view)
@@ -369,7 +536,7 @@ function Catalogue({ kind }: { kind: CatalogueKind }) {
   const supplierName = (location.state as { supplierName?: string } | null)?.supplierName
     ?? all.find((entry) => entry.supplier_id === supplier)?.supplier ?? undefined
 
-  // price coverage for the suppliers on this page, one supplier at a time so a long list never floods the API
+  // price coverage and what each supplier on this page sells, one supplier at a time so a long list never floods the API
   const coverageKey = kind === 'suppliers'
     ? pageRows.filter((e) => !e.archived_at && (e.product_count ?? 0) > 0 && (e.product_count ?? 0) <= COVERAGE_LIMIT).map((e) => e.id).join(',')
     : ''
@@ -383,7 +550,10 @@ function Catalogue({ kind }: { kind: CatalogueKind }) {
           if (controller.signal.aborted) return
           const priced = rows.filter(isPriced)
           const latest = priced.reduce<string | undefined>((newest, entry) => (entry.valid_from && (!newest || entry.valid_from > newest) ? entry.valid_from : newest), undefined)
-          setCoverage((known) => ({ ...known, [id]: { priced: priced.length, latest } }))
+          const counts = new Map<string, number>()
+          for (const entry of rows) if (entry.category) counts.set(entry.category, (counts.get(entry.category) ?? 0) + 1)
+          const categories = [...counts].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'de')).slice(0, 3).map(([name]) => name)
+          setCoverage((known) => ({ ...known, [id]: { priced: priced.length, latest, categories } }))
         } catch {
           if (controller.signal.aborted) return
         }
@@ -407,13 +577,19 @@ function Catalogue({ kind }: { kind: CatalogueKind }) {
     }
   }
 
-  // the section heading with a muted count beside it, like "Projects 14" elsewhere: exact once every page is read
+  // the results heading is the count ("1.311 products", "17 priced products"), exact once every page is read; until
+  // then it names what is listed
   const noun = title.toLowerCase()
   const q = view?.filters.q
-  const heading = q
-    ? `${view?.filters.archived ? 'Archived matches' : 'Matches'} for “${q}”`
-    : view?.filters.archived ? `Archived ${noun}` : title
-  const countText = view?.done ? `${int(rows.length)}${view.capped ? '+' : ''}` : ''
+  const n = rows.length
+  const counted = (word: string) => `${word} ${n === 1 && !view?.capped ? item : noun}`
+  const countWords = q ? `${n === 1 && !view?.capped ? 'match' : 'matches'} for “${q}”`
+    : view?.filters.archived ? counted('archived')
+    : price === 'priced' ? counted('priced')
+    : price === 'unpriced' ? `${n === 1 ? item : noun} not priced`
+    : n === 1 ? item : noun
+  const loadingHeading = q ? `${view?.filters.archived ? 'Archived matches' : 'Matches'} for “${q}”` : view?.filters.archived ? `Archived ${noun}` : title
+  const countText = view?.done ? `${int(n)}${view.capped ? '+' : ''}` : ''
   const paginated = !!view && (view.done ? lastPage > 1 : rows.length >= CATALOGUE_PAGE_SIZE)
   const nonePriced = kind === 'products' && !!view?.done && all.length > 0 && pricedCount === 0
   // the price filter only when it can tell something apart (or is already set, so it can be cleared)
@@ -423,6 +599,21 @@ function Catalogue({ kind }: { kind: CatalogueKind }) {
     { key: 'priced' as const, label: 'Priced', count: withCounts ? pricedCount : undefined },
     { key: 'unpriced' as const, label: 'Not priced', count: withCounts ? all.length - pricedCount : undefined },
   ]
+  // how much of the page in view can be quoted from, beside its range
+  const pagePriced = pageRows.filter(isPriced).length
+  const pageCoverage = kind === 'products' && price === 'all' && paginated && pageRows.length > 0
+    ? (pagePriced ? `${int(pagePriced)} priced on this page` : 'None priced on this page') : ''
+  // the priced view's filters, each only once there is something to choose between (or it is set, to clear it)
+  const facets = price === 'priced' && view?.done ? [
+    { noun: 'category', all: 'All categories', value: category, options: facetOptions(pricedRows, (e) => e.category), onChange: (v?: string) => setFilter({ category: v }) },
+    { noun: 'unit', all: 'All units', value: unit, options: facetOptions(pricedRows, (e) => e.unit), onChange: (v?: string) => setFilter({ unit: v }) },
+    { noun: 'supplier', all: 'All suppliers', value: supplier, options: facetOptions(pricedRows, (e) => e.supplier_id, (e) => e.supplier), onChange: (v?: string) => setFilter({ supplier: v }) },
+  ].filter((f) => f.value || f.options.length > 1) : []
+  const supplierFacet = facets.some((f) => f.noun === 'supplier')
+  const pager = (withTotal?: boolean) => span && (
+    <Pager page={shownPage} first={span.first} last={span.last} total={n} done={!!view?.done} capped={!!view?.capped} lastPage={lastPage} withTotal={withTotal} onPage={goToPage} />
+  )
+  const addLabel = `Add ${item}`
 
   return (
     <PageFrame>
@@ -430,7 +621,7 @@ function Catalogue({ kind }: { kind: CatalogueKind }) {
         title={title}
         subtitle={SUBTITLE[kind]}
         // an empty catalogue keeps its one Add button in the empty state; it moves up here once there are entries
-        aside={!blank && <Button variant="primary" size="lg" icon="add" onClick={() => setEditing({ entry: null })} aria-label={`Add ${item}`} className="max-sm:px-4"><span>Add<span className="max-sm:hidden"> {item}</span></span></Button>}
+        aside={!blank && <Button variant="primary" size="lg" icon="add" onClick={() => setEditing({ entry: null })} aria-label={addLabel} aria-keyshortcuts="n" title={`${addLabel} (N)`} className="max-sm:px-4"><span>Add<span className="max-sm:hidden"> {item}</span></span></Button>}
       />
 
       {/* one toolbar: search and Active / Archived on the left, the price filter on the right */}
@@ -448,7 +639,7 @@ function Catalogue({ kind }: { kind: CatalogueKind }) {
               value={query}
               maxLength={200}
               onChange={(event) => { setQuery(event.target.value); setPage(1) }}
-              className="peer h-10 w-full rounded-md bg-slate-100 pr-10 pl-11 text-sm text-slate-900 ring-1 ring-slate-400 transition-[background-color,box-shadow] outline-none ring-inset placeholder:text-slate-600 hover:bg-slate-200/70 focus:bg-white focus:ring-2 focus:ring-brand-700"
+              className={clsx(inputCls, 'peer pr-10 pl-11')}
             />
             {!query && <kbd aria-hidden className={clsx(kbdCls, 'pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 peer-focus:hidden [@media(hover:none)]:hidden')}>/</kbd>}
           </div>
@@ -456,19 +647,20 @@ function Catalogue({ kind }: { kind: CatalogueKind }) {
         <Chips
           label="Catalogue status"
           value={archived ? 'archived' : 'active'}
-          onChange={(k) => setFilter('view', k === 'archived' ? 'archived' : undefined)}
+          onChange={(k) => setFilter({ view: k === 'archived' ? 'archived' : undefined })}
           options={[{ key: 'active', label: 'Active' }, { key: 'archived', label: 'Archived' }]}
         />
-        {supplier && (
-          <button type="button" onClick={() => setFilter('supplier')} aria-label={`Clear supplier filter: ${supplierName ?? 'one supplier'}`} className="inline-flex h-10 max-w-full min-w-0 items-center gap-1.5 rounded-md bg-slate-900 px-3.5 text-sm font-semibold text-white hover:bg-slate-800">
+        {/* in the priced view the supplier filter is one of the menus above the rows */}
+        {supplier && !supplierFacet && (
+          <button type="button" onClick={() => setFilter({ supplier: undefined })} aria-label={`Clear supplier filter: ${supplierName ?? 'one supplier'}`} className="inline-flex h-10 max-w-full min-w-0 items-center gap-1.5 rounded-md bg-slate-900 px-3.5 text-sm font-semibold text-white hover:bg-slate-800">
             <span className="truncate">{supplierName ?? 'One supplier'}</span><Icon name="close" size={18} className="shrink-0" />
           </button>
         )}
-        {showPriceFilter && <PriceFilters value={price} onChange={(k) => setFilter('price', k === 'all' ? undefined : k)} options={priceOptions} />}
+        {showPriceFilter && <PriceFilters value={price} onChange={(k) => setFilter({ price: k === 'all' ? undefined : k, category: undefined, unit: undefined })} options={priceOptions} />}
       </div>
 
       <p className="sr-only" aria-live="polite" aria-atomic="true">
-        {view?.done && !current?.error ? `${countText} ${rows.length === 1 && !view.capped ? item : noun}${nonePriced ? ', none priced yet' : ''}` : ''}
+        {view?.done && !current?.error ? `${countText} ${countWords}${nonePriced ? ', none priced yet' : ''}` : ''}
       </p>
 
       {!view && !current?.error && <div role="status" aria-label="Loading catalogue"><Skeleton className="h-40 rounded-lg" /></div>}
@@ -479,35 +671,43 @@ function Catalogue({ kind }: { kind: CatalogueKind }) {
         </div>
       )}
       {view && !current?.error && (all.length ? (
-        <section aria-labelledby="catalogue-rows" aria-busy={refreshing} className="mb-8">
-          <div className="mb-2 flex min-h-10 flex-wrap items-center justify-between gap-x-3 gap-y-2">
-            <h2 id="catalogue-rows" ref={headingRef} tabIndex={-1} className="min-w-0 scroll-mt-20 rounded-sm font-heading text-base font-bold break-words text-slate-900">
-              {heading}
-              {/* with more than one page, the pager beside it carries the total */}
-              {countText && !paginated && <span className="num ml-2 font-sans text-sm font-medium text-slate-600">{countText}</span>}
+        <section ref={sectionRef} aria-labelledby="catalogue-rows" aria-busy={refreshing} className="mb-8 scroll-mt-16">
+          {/* the count, the range with its arrows and the page's price coverage stay under the app header while the
+              rows scroll; the priced view's filters sit at its end */}
+          <div className="sticky top-16 z-20 -mx-2 mb-1 flex min-h-12 flex-wrap items-center gap-x-4 gap-y-1 bg-white px-2 py-1 sm:-mx-3 sm:px-3">
+            <h2 id="catalogue-rows" ref={headingRef} tabIndex={-1} className="min-w-0 rounded-sm font-heading text-base font-bold break-words text-slate-900">
+              {countText ? <><span className="num">{countText}</span> {countWords}</> : loadingHeading}
             </h2>
-            {paginated && (
-              <nav aria-label="Catalogue pages, top" className="-mr-2">
-                <Pager page={shownPage} size={CATALOGUE_PAGE_SIZE} total={rows.length} done={view.done} capped={view.capped} onPage={goToPage} />
-              </nav>
+            {paginated && <nav aria-label="Catalogue pages, top" className="-ml-1">{pager()}</nav>}
+            {pageCoverage && <span className="text-sm text-slate-600">{pageCoverage}</span>}
+            {facets.length > 0 && (
+              <div role="group" aria-label="Filter priced products" className="ml-auto flex flex-wrap gap-2">
+                {facets.map((f) => <FacetMenu key={f.noun} {...f} />)}
+              </div>
             )}
           </div>
-          {pageRows.length ? (
-            <CatalogueRows kind={kind} entries={pageRows} all={all} coverage={coverage}
+          {pageItems.length ? (
+            <CatalogueRows kind={kind} items={pageItems} tags={tags} coverage={coverage}
               onEdit={(entry, focus) => setEditing({ entry, focus })}
               onArchive={(entry) => setConfirm({ entry, action: 'archive' })}
               onRestore={(entry) => setConfirm({ entry, action: 'restore' })} />
           ) : view.done ? (
-            <EmptyState compact icon="search_off"
-              title={price === 'priced' ? `No priced ${noun} here` : `Every ${item} here is priced`}
-              text={price === 'priced' ? 'Add a unit price to a product and it shows up here.' : undefined}>
-              <Button onClick={() => setFilter('price')}>Show all {noun}</Button>
-            </EmptyState>
+            faceted ? (
+              <EmptyState compact icon="search_off" title="No priced products match" text="Choose another category or unit.">
+                <Button onClick={() => setFilter({ category: undefined, unit: undefined })}>Clear filters</Button>
+              </EmptyState>
+            ) : (
+              <EmptyState compact icon="search_off"
+                title={price === 'priced' ? `No priced ${noun} here` : `Every ${item} here is priced`}
+                text={price === 'priced' ? 'Add a unit price to a product and it shows up here.' : undefined}>
+                <Button onClick={() => setFilter({ price: undefined })}>Show all {noun}</Button>
+              </EmptyState>
+            )
           ) : <div role="status" aria-label="Loading catalogue"><Skeleton className="h-40 rounded-lg" /></div>}
           {paginated && (
             <nav aria-label="Catalogue pages, bottom" className="mt-3 -mr-2 flex flex-wrap items-center justify-end gap-3 text-sm text-slate-600">
               {view.capped && shownPage === lastPage && <span className="mr-auto">Only the first {int(CATALOGUE_SCAN_PAGES * CATALOGUE_PAGE_SIZE)} are listed. Search to narrow the list.</span>}
-              <Pager page={shownPage} size={CATALOGUE_PAGE_SIZE} total={rows.length} done={view.done} capped={view.capped} onPage={goToPage} />
+              {pager(true)}
             </nav>
           )}
         </section>
@@ -519,10 +719,12 @@ function Catalogue({ kind }: { kind: CatalogueKind }) {
             : view.filters.supplier ? `This supplier has no ${view.filters.archived ? 'archived ' : ''}${noun} yet.`
             : view.filters.archived ? `Archived ${noun} land here, and you can restore them any time.`
             : EMPTY_TEXT[kind]}
+          // the keyboard path to the one Add button, as the other empty states give theirs
+          hint={blank ? <span className="inline-flex items-center gap-1.5 [@media(pointer:coarse)]:hidden">or press <Kbd>N</Kbd></span> : undefined}
         >
           {view.filters.q ? <Button size="lg" onClick={() => { setQuery(''); setPage(1) }}>Clear search</Button>
             // the page's one Add button while the catalogue is empty (the header leaves it out)
-            : blank && <Button variant="primary" size="lg" icon="add" onClick={() => setEditing({ entry: null })}>Add {item}</Button>}
+            : blank && <Button variant="primary" size="lg" icon="add" onClick={() => setEditing({ entry: null })} aria-keyshortcuts="n">{addLabel}</Button>}
         </EmptyState>
       ) : <div role="status" aria-label="Loading catalogue"><Skeleton className="h-40 rounded-lg" /></div>)}
 
@@ -530,7 +732,7 @@ function Catalogue({ kind }: { kind: CatalogueKind }) {
         <CatalogueEditor kind={kind} entry={editing.entry} focus={editing.focus}
           onClose={() => setEditing(undefined)}
           onSaved={() => {
-            if (editing.entry === null) { setFilter('view'); setQuery('') }
+            if (editing.entry === null) { setFilter({ view: undefined }); setQuery('') }
             setEditing(undefined)
             setReload((n) => n + 1)
           }} />

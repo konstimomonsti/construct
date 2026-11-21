@@ -20,7 +20,9 @@ export type ResearchView = 'suggested' | 'matched' | 'unresolved' | null
  * catalogue research for a list in two parts that share one `show` state: `line` is a single status line that sits in the
  * list hero (no band of its own), `list` is the positions behind the pressed count, shown under the hero.
  */
-export function CatalogueOverview({ report, error, retryFailed, positions, onOpen, part, show, setShow }: {
+export function CatalogueOverview({ report, error, retryFailed, positions, onOpen, part, show, setShow, hideMatched }: {
+  /** matches that already became pending prices: the pricing status says it, so the research line doesn't repeat it */
+  hideMatched?: { has: (id: string) => boolean }
   report: CatalogueReport | null
   error: string
   retryFailed: () => Promise<void>
@@ -34,7 +36,7 @@ export function CatalogueOverview({ report, error, retryFailed, positions, onOpe
     const result = report?.positions[item.id]
     return result ? [{ item, result }] : []
   })
-  const count = (state: CataloguePosition['state']) => rows.filter(({ result }) => result.state === state).length
+  const count = (state: CataloguePosition['state']) => rows.filter(({ item, result }) => result.state === state && !(state === 'matched' && hideMatched?.has(item.id))).length
   const pending = count('queued') + count('researching')
   const unresolved = count('failed') + count('no_evidence') + count('needs_description')
   const visible = rows.filter(({ result }) =>
@@ -56,8 +58,8 @@ export function CatalogueOverview({ report, error, retryFailed, positions, onOpe
           <>
             {count('matched') > 0 && <><span aria-hidden>·</span><MetaLink pressed={show === 'matched'} onClick={() => toggle('matched')}><span className="num">{count('matched')}</span> {count('matched') === 1 ? 'match' : 'matches'}</MetaLink></>}
             {count('suggested') > 0 && <><span aria-hidden>·</span><MetaLink pressed={show === 'suggested'} onClick={() => toggle('suggested')}><span className="num">{count('suggested')}</span> web {count('suggested') === 1 ? 'suggestion' : 'suggestions'}</MetaLink></>}
-            {unresolved > 0 && <><span aria-hidden>·</span><MetaLink pressed={show === 'unresolved'} onClick={() => toggle('unresolved')}><span className="num">{unresolved}</span> open</MetaLink></>}
-            {ready && !count('matched') && !count('suggested') && !unresolved && <span>· nothing found</span>}
+            {unresolved > 0 && <><span aria-hidden>·</span><MetaLink pressed={show === 'unresolved'} onClick={() => toggle('unresolved')}><span className="num">{unresolved}</span> without a match</MetaLink></>}
+            {ready && !count('matched') && !count('suggested') && !unresolved && !rows.some(({ item }) => hideMatched?.has(item.id)) && <span>· nothing found</span>}
           </>
         )}
         {(error || report?.state === 'failed' || count('failed') > 0) &&
@@ -97,9 +99,10 @@ export function CatalogueDetails({ result, position, onApply }: {
     <section aria-labelledby="drawer-catalogue-h" className="space-y-1.5 text-sm leading-relaxed text-slate-700">
       <h3 id="drawer-catalogue-h" className="text-[15px] font-semibold text-slate-900">Catalogue research</h3>
       <p>
-        <span className="font-medium text-slate-800">{labels[result.state]}.</span>
-        {result.state === 'needs_description' && ' The imported row has no description to search for.'}
-        {result.state === 'no_evidence' && ' No matching product found online.'}
+        {result.state === 'no_evidence' ? 'No matching product found online.' : <>
+          <span className="font-medium text-slate-800">{labels[result.state]}.</span>
+          {result.state === 'needs_description' && ' The imported row has no description to search for.'}
+        </>}
       </p>
       {result.recovered?.source && <p>Missing description recovered from the companion offer PDF.</p>}
       {result.product && <p><strong>{result.product.name}</strong> · {result.product.category}</p>}

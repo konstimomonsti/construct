@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { BudgetBadge, BudgetMini, Chips, EmptyState, PageFrame, PageHeader, Row, RowList, RowMenu, Section, SortMenu, Summary, ToolButton, budgetPhrase, heroStatus } from '../components/Kit'
 import { Dock } from '../components/Dock'
 import { counts, useModel, type ListView } from '../lib/store'
-import { budgetStatus, money, moneyWhole, needsAttention, plural } from '../lib/format'
+import { budgetStatus, int, money, moneyWhole, needsAttention, plural } from '../lib/format'
 import { useActions } from '../lib/actions'
 import { completeness, displayTitle, listLabel, phaseLabel } from '../components/ListCard'
 
@@ -20,7 +20,8 @@ export function ActiveBudgets() {
 
   const folderById = useMemo(() => new Map(folders.map((f) => [f.id, f])), [folders])
   const live = useMemo(
-    () => lists.filter((l) => counts(l) && l.total > 0 && !folderById.get(l.folderId)?.trashedAt && !folderById.get(l.folderId)?.archived),
+    // a list whose prices were all saved as zero is still priced
+    () => lists.filter((l) => counts(l) && (l.total > 0 || l.pricedCount > 0) && !folderById.get(l.folderId)?.trashedAt && !folderById.get(l.folderId)?.archived),
     [lists, folderById],
   )
   const flagged = live.filter((l) => needsAttention(l.total, l.cap)).length
@@ -37,8 +38,11 @@ export function ActiveBudgets() {
     }
   }, [live, key, view, folderById])
 
-  const budget = live.reduce((b, l) => (l.cap ? { total: b.total + l.total, cap: b.cap + l.cap, lists: b.lists + 1 } : b), { total: 0, cap: 0, lists: 0 })
   const total = live.reduce((x, l) => x + l.total, 0)
+  // the hero total and the cap it is measured against come from the same lists; with no caps at all it is the priced total
+  const capped = live.reduce((b, l) => (l.cap ? { total: b.total + l.total, cap: b.cap + l.cap, lists: b.lists + 1 } : b), { total: 0, cap: 0, lists: 0 })
+  const budget = capped.lists ? capped : { total, cap: 0, lists: 0 }
+  const uncapped = capped.lists ? live.length - capped.lists : 0
   const folderCount = new Set(live.map((l) => l.folderId)).size
   const toggle = (id: string) =>
     setSel((s) => {
@@ -63,14 +67,14 @@ export function ActiveBudgets() {
       ) : (
         <>
           <Summary
-            label="Total of lists with a cap"
+            label={uncapped ? 'Total of priced lists with a cap' : 'Total of priced lists'}
             amount={money(budget.total)}
             total={budget.total}
             cap={budget.cap}
             capLabel="in list caps"
-            capNote={<span className="num">sum of {plural(budget.lists, 'list cap', 'list caps')}</span>}
-            status={heroStatus(budget, live.map((l) => ({ tone: budgetStatus(l.total, l.cap).tone })), ['list', 'lists'])}
-            meta={total !== budget.total ? <span className="num">{money(total)} across all {plural(live.length, 'list', 'lists')}, {plural(live.length - budget.lists, 'list', 'lists')} without a cap</span> : undefined}
+            capNote={<span className="num">caps of the same {plural(budget.lists, 'list', 'lists')}</span>}
+            status={heroStatus(budget, live.map((l) => ({ tone: budgetStatus(l.total, l.cap).tone })), ['list', 'lists'], { keepSame: true })}
+            meta={uncapped ? <span className="num">{plural(uncapped, 'priced list', 'priced lists')} without a cap · {money(total)} across all {int(live.length)}</span> : undefined}
           />
           <Section
             title="Budgets"
@@ -110,14 +114,14 @@ export function ActiveBudgets() {
                     <Row
                       key={l.id}
                       to={`/list/${l.id}`}
-                      label={[title, folder, phaseLabel(l), money(l.total), l.cap ? `${budgetPhrase(l.total, l.cap)} of ${moneyWhole(l.cap)}` : budgetPhrase(l.total, l.cap), completeness(l)].filter(Boolean).join(', ')}
+                      label={[title, folder, phaseLabel(l), money(l.total), l.cap ? `${budgetPhrase(l.total, l.cap, true)} of ${moneyWhole(l.cap)}` : budgetPhrase(l.total, l.cap, true), completeness(l)].filter(Boolean).join(', ')}
                       icon="request_quote"
                       tone={project?.tone ?? 'slate'}
                       title={title}
                       badge={<BudgetBadge total={l.total} cap={l.cap} />}
                       subtitle={[folder, phaseLabel(l), completeness(l)].filter(Boolean).join(' · ')}
                       amount={money(l.total)}
-                      meta={<BudgetMini total={l.total} cap={l.cap} label={`${title}: share of cap used`} />}
+                      meta={<BudgetMini total={l.total} cap={l.cap} priced label={`${title}: share of cap used`} />}
                       menu={<RowMenu items={listMenu(l)} label={`Options for ${title}`} />}
                       selectMode={selectMode}
                       selected={sel.has(l.id)}

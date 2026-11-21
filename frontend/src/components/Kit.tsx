@@ -166,18 +166,18 @@ export function RollupTag({ tone, word, tinted }: { tone: string; word: string; 
   )
 }
 
-/** spoken summary of a budget, used inside row link names */
-export function budgetPhrase(total: number, cap: number) {
-  if (!total) return 'not priced'
+/** spoken summary of a budget, used inside row link names; `priced` keeps a saved zero price from reading as unpriced */
+export function budgetPhrase(total: number, cap: number, priced?: boolean) {
+  if (!total && !priced) return 'not priced'
   if (!cap) return 'no cap set'
   const st = budgetStatus(total, cap)
   return `${st.word.toLowerCase()}, ${Math.round(st.pct)}% of cap`
 }
 
 /** row right-column budget line: "75% of 2.000.000 €" plus a slim meter; the status word sits on the title line (BudgetBadge) */
-export function BudgetMini({ total, cap, label }: { total: number; cap: number; label: string }) {
+export function BudgetMini({ total, cap, label, priced }: { total: number; cap: number; label: string; priced?: boolean }) {
   const st = budgetStatus(total, cap)
-  if (!total) return <span className="text-sm text-slate-600">Not priced</span>
+  if (!total && !priced) return <span className="text-sm text-slate-600">Not priced</span>
   if (!cap) return <span className="text-sm text-slate-600">No cap set</span>
   return (
     <span className="flex items-center justify-end gap-2 text-sm whitespace-nowrap text-slate-600">
@@ -246,10 +246,12 @@ export function InfoTip({ text }: { text: string }) {
  * The pill always shows the worst state (a project near its cap makes the whole page "1 near cap").
  */
 export function Summary({
-  label, amount, total, cap, actions, meta, capLabel = 'cap', compact, status, bar, extra, hideLeft, note, hint, onEditCap, onStatus, sub, capNote, unpriced,
+  label, amount, total, cap, actions, meta, capLabel = 'cap', compact, status, bar, extra, hideLeft, note, hint, onEditCap, onStatus, sub, capNote, unpriced, pending,
 }: {
   /** nothing counted yet: "On track" at 0 € would be a false all-clear, so the status says so instead */
   unpriced?: boolean
+  /** money suggested but not yet confirmed: drawn as an unlit stretch on the jib */
+  pending?: number
   /** one muted line under the cap figure saying what the cap is made of ("sum of 6 list caps") */
   capNote?: ReactNode
   /** one quiet line under the hero figure, e.g. money that is proposed but not counted yet */
@@ -318,16 +320,17 @@ export function Summary({
       </div>
       {cap ? (
         <>
-          <div className={compact ? 'mt-3 sm:mt-4' : 'mt-5'}>{bar ?? <TrussMeter total={total} cap={cap} tone={st.tone} label={`${label}: share of ${capLabel} used`} />}</div>
+          <div className={compact ? 'mt-3 sm:mt-4' : 'mt-5'}>{bar ?? <TrussMeter total={total} cap={cap} tone={st.tone} pending={pending} label={`${label}: share of ${capLabel} used`} />}</div>
           <div className="mt-2 flex flex-wrap items-center justify-between gap-x-6 gap-y-2 text-sm text-slate-600">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-              {unpriced && total === 0 ? <StatusTag tone="none" word="Nothing priced yet" /> : <StatusTag tone={st.tone} word={st.word} hint />}
+              {/* flagged children lead, so the first words read are the worst state; the total's chip then says it is about the total */}
               {status && (onStatus ? (
                 <button type="button" onClick={onStatus} className="relative -ml-1 inline-flex h-7 items-center gap-0.5 rounded-md pr-1 pl-1.5 after:absolute after:inset-x-0 after:-inset-y-2 after:content-[''] hover:bg-slate-100">
                   <RollupTag tone={status.tone} word={status.word} tinted />
                   <Icon name="chevron_right" size={18} className="text-slate-500" />
                 </button>
               ) : <RollupTag tone={status.tone} word={status.word} tinted />)}
+              {unpriced && total === 0 ? <StatusTag tone="none" word="Nothing priced yet" /> : <StatusTag tone={st.tone} word={status ? `Total ${st.word.toLowerCase()}` : st.word} hint />}
               {hint && <InfoTip text={hint} />}
               {note && <span>{note}</span>}
             </div>
@@ -364,13 +367,15 @@ const trussInk: Record<string, string> = {
  * lit part is what is spent; a hook hangs where spending stands. Past the cap the jib extends and
  * a mast marks where the cap was.
  */
-export function TrussMeter({ total, cap, tone, label }: { total: number; cap: number; tone: string; label: string }) {
+export function TrussMeter({ total, cap, tone, label, pending = 0 }: { total: number; cap: number; tone: string; label: string; pending?: number }) {
   const id = useId().replace(/:/g, '')
   const pct = cap > 0 ? (total / cap) * 100 : 0
   const scale = Math.max(total, cap) || 1
   const fill = Math.max(0, Math.min(100, (total / scale) * 100))
   const capAt = (cap / scale) * 100
   const hookAt = Math.max(1.5, Math.min(98.5, fill))
+  // money waiting for confirmation: an unlit stretch after the lit part, so "what if I confirm" reads at a glance; the hook stays put
+  const ghost = pending > 0 ? Math.max(0.5, Math.min(100 - fill, (pending / scale) * 100)) : 0
   /* a pattern takes its colour from where it is defined, so each jib carries its own web */
   const jib = (key: string) => (
     <>
@@ -388,7 +393,7 @@ export function TrussMeter({ total, cap, tone, label }: { total: number; cap: nu
       aria-valuemin={0}
       aria-valuemax={100}
       aria-valuenow={Math.round(Math.min(pct, 100))}
-      aria-valuetext={`${Math.round(pct)}%`}
+      aria-valuetext={`${Math.round(pct)}%${ghost ? `, ${Math.round(cap > 0 ? ((total + pending) / cap) * 100 : 0)}% after confirming pending prices` : ''}`}
       aria-label={label}
       className="relative pb-4"
     >
@@ -397,8 +402,14 @@ export function TrussMeter({ total, cap, tone, label }: { total: number; cap: nu
           <clipPath id={`${id}-clip`}>
             <rect x="0" y="-2" height="22" className="transition-[width] duration-700 ease-out-expo motion-reduce:transition-none" style={{ width: `${fill}%` }} />
           </clipPath>
+          {ghost > 0 && (
+            <clipPath id={`${id}-ghost`}>
+              <rect x={`${fill}%`} y="-2" width={`${ghost}%`} height="22" />
+            </clipPath>
+          )}
         </defs>
         <g className="text-slate-400" stroke="currentColor" strokeDasharray="4 3">{jib('rest')}</g>
+        {ghost > 0 && <g className="text-slate-500" stroke="currentColor" clipPath={`url(#${id}-ghost)`}><rect x="0" y="1" width="100%" height="16" className="fill-slate-200/70" stroke="none" />{jib('ghost')}</g>}
         <g className={trussInk[tone] ?? trussInk.none} stroke="currentColor" clipPath={`url(#${id}-clip)`}>{jib('lit')}</g>
         <rect x={`${capAt}%`} y="-5" width="3" height="28" className="fill-slate-700" transform="translate(-1.5 0)" />
       </svg>
@@ -416,13 +427,14 @@ const PHRASE: Record<string, string> = { over: 'over cap', warn: 'almost at cap'
 /**
  * Aggregate pill: the worst state wins. When the total itself is fine but children are flagged,
  * the pill counts them per level, worst first ("1 list almost at cap · 1 near cap").
+ * `keepSame` (heroes) keeps the count when the total is already at the same level, so the exceptions stay visible.
  */
-export function heroStatus(own: { total: number; cap: number }, children: { tone: string }[], noun: [string, string]): HeroStatus | undefined {
+export function heroStatus(own: { total: number; cap: number }, children: { tone: string }[], noun: [string, string], opts?: { keepSame?: boolean }): HeroStatus | undefined {
   const mine = budgetStatus(own.total, own.cap)
   const flagged = children.filter((c) => RANK[c.tone] > 0)
   if (!flagged.length) return undefined
   const worst = flagged.reduce((w, c) => (RANK[c.tone] > RANK[w] ? c.tone : w), 'caution')
-  if (RANK[mine.tone] >= RANK[worst]) return undefined
+  if (opts?.keepSame ? RANK[mine.tone] > RANK[worst] : RANK[mine.tone] >= RANK[worst]) return undefined
   const parts = (['over', 'warn', 'caution'] as const)
     .map((t) => [t, flagged.filter((c) => c.tone === t).length] as const)
     .filter(([, n]) => n > 0)

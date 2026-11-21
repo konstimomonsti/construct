@@ -33,6 +33,10 @@ interface Result {
   icon: string
   title: string
   sub: string
+  /** the project the result lives in; when a whole group shares it, the group header names it once */
+  projectId?: string
+  /** `sub` without the project, used when the group header names it */
+  subLocal?: string
   /** a position's OZ, set in the code face ahead of `sub` */
   oz?: string
   /** right column; empty for unpriced items */
@@ -46,14 +50,18 @@ interface Result {
 }
 type Option =
   | { kind: 'result'; key: string; r: Result }
-  /** `next` more rows to show; `total` is set when rows still remain after this page */
-  | { kind: 'more'; key: string; group: Group; next: number; total?: number }
+  /** shows rows `from`–`to` (1-based) of `total` */
+  | { kind: 'more'; key: string; group: Group; from: number; to: number; total: number }
 interface GroupView {
   group: Group
   count: number
   options: { o: Option; i: number }[]
   /** how many results have a price, said once in the header instead of "Not priced" on every row; null = not a priced group */
   priced: number | null
+  /** every result in the group sits in this project, so the header names it and the rows leave it out */
+  project?: string
+  /** only priced positions are shown */
+  pricedOnly?: boolean
 }
 
 /** rows per group before the "Show N more" row */
@@ -92,12 +100,15 @@ export function CommandPalette() {
   // rows shown per group once the user asked for more; absent = the first CAP
   const [limits, setLimits] = useState<Map<Group, number>>(() => new Map())
   const [index, setIndex] = useState<PosIndexEntry[] | null>(null)
+  // narrows a large Positions group to the priced rows while keeping the query
+  const [pricedOnly, setPricedOnly] = useState(false)
   // the position index is built once, on first open
   const loading = open && index === null
   // the results overflow below the visible area: show the bottom fade
   const [fade, setFade] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const closeRef = useRef<HTMLButtonElement>(null)
+  const pricedRef = useRef<HTMLButtonElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
 
   // global shortcut
@@ -138,6 +149,7 @@ export function CommandPalette() {
       setQ('')
       setActiveKey(null)
       setLimits(new Map())
+      setPricedOnly(false)
       // rebuild the position index so prices and new imports are current
       setIndex(null)
     }
@@ -195,6 +207,7 @@ export function CommandPalette() {
       .map(({ x: l, s }) => ({
         key: `l-${l.id}`, group: 'Lists', icon: 'request_quote', title: displayName(l),
         sub: [folderName.get(l.folderId), phaseLabel(l) ?? plural(l.positionsCount, 'position', 'positions')].filter(Boolean).join(' · '),
+        projectId: l.folderId, subLocal: phaseLabel(l) ?? plural(l.positionsCount, 'position', 'positions'),
         right: l.total ? money(l.total) : undefined, priced: !!l.total, score: s, go: go(`/list/${l.id}`, l.id),
       }))
     // commands: all of them on an empty query, otherwise the ones whose name matches
@@ -223,12 +236,10 @@ export function CommandPalette() {
         else if (e.short.toLowerCase().includes(t)) hit.push({ e, s: score(e.short) })
       }
       hit.sort((a, b) => a.s - b.s)
-      // when every hit sits in one project, naming it on each row only repeats it
-      const oneProject = new Set(hit.map(({ e }) => listById.get(e.listId)?.folderId)).size <= 1
       pRes = hit.map(({ e, s }) => {
         const l = listById.get(e.listId)
-        const project = l && !oneProject ? folderName.get(l.folderId) : undefined
-        const where = l ? `in ${displayName(l)}${project ? ` (${project})` : ''}` : null
+        const project = l ? folderName.get(l.folderId) : undefined
+        const where = l ? `in ${displayName(l)}` : null
         // labelled like the ledger's EP and GP columns, with or without a unit
         const ep = e.up != null ? `EP ${money(e.up)}${e.unit ? ` / ${e.unit}` : ''}` : undefined
         return {
@@ -238,7 +249,9 @@ export function CommandPalette() {
           title: e.short,
           // category first, then the list it lives in, so the two don't read alike
           oz: e.oz,
-          sub: [e.category, where].filter(Boolean).join(' · '),
+          sub: [e.category, where && project ? `${where} (${project})` : where].filter(Boolean).join(' · '),
+          subLocal: [e.category, where].filter(Boolean).join(' · '),
+          projectId: l?.folderId,
           right: !e.priced ? undefined : ep ?? `GP ${money(e.total)}`,
           rightSub: e.priced && ep ? `GP ${money(e.total)}` : undefined,
           priced: e.priced,
@@ -252,27 +265,36 @@ export function CommandPalette() {
 
   // groups ordered by their best match, so a query that names a position term shows Positions first;
   // each group shows CAP rows plus a "Show N more" option; positions then page in place
-  const { groups, options, defaultIdx } = useMemo(() => {
+  const folderById = useMemo(() => new Map(folders.map((f) => [f.id, f])), [folders])
+  const { groups, options, shown, defaultIdx } = useMemo(() => {
     const byGroup = new Map<Group, Result[]>()
     for (const r of results) byGroup.set(r.group, [...(byGroup.get(r.group) ?? []), r])
     const best = (g: Group) => Math.min(...(byGroup.get(g) ?? []).map((r) => r.score))
     const order = GROUP_ORDER.filter((g) => byGroup.has(g)).sort((a, b) => best(a) - best(b))
     const options: Option[] = []
+    const shown = new Map<Group, Result[]>()
     const groups: GroupView[] = order.map((g) => {
-      const rs = byGroup.get(g)!
+      const all = byGroup.get(g)!
+      const narrowed = g === 'Positions' && pricedOnly
+      const rs = narrowed ? all.filter((r) => r.priced) : all
+      shown.set(g, rs)
       const limit = g === 'Actions' ? rs.length : limits.get(g) ?? CAP
-      const view: GroupView = { group: g, count: rs.length, options: [], priced: g === 'Actions' ? null : rs.filter((r) => r.priced).length }
+      const pids = new Set(all.map((r) => r.projectId))
+      const pid = pids.size === 1 ? [...pids][0] : undefined
+      const view: GroupView = {
+        group: g, count: all.length, options: [], priced: g === 'Actions' ? null : all.filter((r) => r.priced).length,
+        project: pid ? folderById.get(pid)?.name : undefined, pricedOnly: narrowed,
+      }
       const push = (o: Option) => { view.options.push({ o, i: options.length }); options.push(o) }
       rs.slice(0, limit).forEach((r) => push({ kind: 'result', key: r.key, r }))
       if (rs.length > limit) {
-        const upTo = Math.min(rs.length, nextLimit(g, limit, rs.length))
-        push({ kind: 'more', key: `more-${g}`, group: g, next: upTo - limit, total: rs.length > upTo ? rs.length : undefined })
+        push({ kind: 'more', key: `more-${g}`, group: g, from: limit + 1, to: Math.min(rs.length, nextLimit(g, limit, rs.length)), total: rs.length })
       }
       return view
     })
     const firstTitle = options.findIndex((o) => o.kind === 'result' && o.r.score < 2)
-    return { groups, options, defaultIdx: Math.max(firstTitle, 0) }
-  }, [results, limits])
+    return { groups, options, shown, defaultIdx: Math.max(firstTitle, 0) }
+  }, [results, limits, pricedOnly, folderById])
 
   const found = options.findIndex((o) => o.key === activeKey)
   const active = found >= 0 ? found : defaultIdx
@@ -300,7 +322,7 @@ export function CommandPalette() {
     if (o.kind === 'result') { o.r.go(); return }
     // page in place; the active row moves to the first newly shown result, and the field keeps focus for the arrow keys
     inputRef.current?.focus()
-    const rs = results.filter((r) => r.group === o.group)
+    const rs = shown.get(o.group) ?? []
     const from = limits.get(o.group) ?? CAP
     setLimits((m) => new Map(m).set(o.group, nextLimit(o.group, from, rs.length)))
     setActiveKey(rs[from]?.key ?? null)
@@ -314,13 +336,23 @@ export function CommandPalette() {
   }
 
   const onKey = (e: React.KeyboardEvent) => {
-    // Tab / Shift+Tab cycle between the search field and the close button; results use the arrow keys
+    // Tab / Shift+Tab cycle through the search field, the priced-only toggle (when shown) and the close button; results use the arrow keys
     if (e.key === 'Tab') {
       e.preventDefault()
-      if (document.activeElement === inputRef.current) closeRef.current?.focus()
-      else inputRef.current?.focus()
+      const stops = [inputRef.current, pricedRef.current, closeRef.current].filter((x): x is HTMLInputElement | HTMLButtonElement => !!x)
+      const at = stops.indexOf(document.activeElement as HTMLInputElement | HTMLButtonElement)
+      stops[(at + (e.shiftKey ? -1 : 1) + stops.length) % stops.length]?.focus()
     } else if (e.key === 'Escape') { e.preventDefault(); close() }
     else if (e.target !== inputRef.current) return
+    // on a list, "/" with an empty field hands over to the list's own position search ("/" inside a query, as in C30/37, still types)
+    else if (e.key === '/' && onList && !q.trim()) {
+      e.preventDefault()
+      close()
+      // after the focus restore (two frames), the list page's "/" shortcut moves focus to its search field
+      requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(() => {
+        document.body.dispatchEvent(new KeyboardEvent('keydown', { key: '/', bubbles: true, cancelable: true }))
+      })))
+    }
     else if (e.altKey && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) { e.preventDefault(); jumpGroup(e.key === 'ArrowDown' ? 1 : -1) }
     else if (e.key === 'ArrowDown') { e.preventDefault(); const o = options[Math.min(active + 1, options.length - 1)]; if (o) setActiveKey(o.key) }
     else if (e.key === 'ArrowUp') { e.preventDefault(); const o = options[Math.max(active - 1, 0)]; if (o) setActiveKey(o.key) }
@@ -328,6 +360,7 @@ export function CommandPalette() {
   }
 
   const needle = q.trim().toLowerCase()
+  const posGroup = groups.find((g) => g.group === 'Positions')
   const status = !needle ? '' : !results.length ? 'No matches' : plural(results.length, 'result', 'results')
   return createPortal(
     <AnimatePresence>
@@ -364,17 +397,35 @@ export function CommandPalette() {
                 aria-expanded="true"
                 aria-controls="palette-list"
                 aria-activedescendant={options[active] ? `pal-${active}` : undefined}
+                aria-describedby="palette-keys"
                 aria-label="Search projects, lists and positions, or run a command"
                 placeholder="Search, or type a command"
                 className="h-16 min-w-0 flex-1 bg-transparent text-base text-slate-900 outline-none placeholder:text-slate-500"
               />
               {loading && <Icon name="progress_activity" size={18} className="animate-spin text-slate-500" />}
+              {/* narrows a long Positions group to priced rows, keeping the query; only offered when it would change something */}
+              {posGroup && (pricedOnly || ((posGroup.priced ?? 0) > 0 && (posGroup.priced ?? 0) < posGroup.count && posGroup.count > CAP)) && (
+                <button
+                  ref={pricedRef}
+                  type="button"
+                  aria-pressed={pricedOnly}
+                  onClick={() => { setPricedOnly((v) => !v); setActiveKey(null); inputRef.current?.focus() }}
+                  className="inline-flex h-8 shrink-0 items-center gap-1 rounded-md bg-slate-100 px-2.5 text-[13px] font-medium whitespace-nowrap text-slate-800 transition-colors hover:bg-slate-200 aria-pressed:bg-slate-900 aria-pressed:text-white"
+                >
+                  <Icon name={pricedOnly ? 'check' : 'filter_list'} size={16} />
+                  Priced only
+                </button>
+              )}
               {/* the same chip as the footer's key hints; an invisible pad keeps the 44px hit area */}
               <button ref={closeRef} type="button" onClick={close} aria-label="Close search (Esc)" className={clsx(kbdCls, "relative shrink-0 transition-colors after:absolute after:-inset-x-2.5 after:-inset-y-2.5 after:content-[''] hover:bg-slate-300 max-sm:h-7 max-sm:px-2.5")}>
                 <span className="max-sm:hidden">Esc</span><span className="sm:hidden">Cancel</span>
               </button>
             </div>
             <div role="status" aria-live="polite" className="sr-only">{status}</div>
+            <p id="palette-keys" className="sr-only">
+              Up and down arrows move through results, Enter opens one, {ALT_KEY === '⌥' ? 'Option' : 'Alt'} with the arrows jumps between groups, Tab moves to the other controls, Escape closes.
+              {onList ? ' With an empty field, slash searches positions in this list.' : ''}
+            </p>
             <div className="relative flex min-h-0 flex-1 flex-col sm:flex-none">
             <div ref={listRef} onScroll={measureFade} id="palette-list" role="listbox" aria-label="Results" className="min-h-0 flex-1 overflow-y-auto px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:max-h-[56vh] sm:flex-none">
               {results.length === 0 && (
@@ -385,13 +436,15 @@ export function CommandPalette() {
                 return (
                   <div key={g.group} role="presentation">
                     {/* labels the group below; hidden from browse mode so it isn't read twice */}
-                    <div id={headingId} aria-hidden="true" className="flex items-baseline gap-2 px-3 pt-5 pb-2 text-xs text-slate-600">
+                    <div id={headingId} aria-hidden="true" className="flex min-w-0 items-baseline gap-2 px-3 pt-3 pb-1 text-xs text-slate-600">
                       <span className="font-semibold text-slate-800">{g.group}</span>
                       {g.priced != null && (
-                        <span className="num font-medium">
-                          {int(g.count)}{g.priced === 0 ? ' · none priced' : g.priced < g.count ? ` · ${int(g.priced)} priced` : ''}
+                        <span className="num shrink-0 font-medium">
+                          {g.pricedOnly ? `${int(g.priced)} of ${int(g.count)} · priced only` : <>{int(g.count)}{g.priced === 0 ? ' · none priced' : g.priced < g.count ? ` · ${int(g.priced)} priced` : ''}</>}
                         </span>
                       )}
+                      {/* one project for the whole group: said here once, not on every row */}
+                      {g.project && g.group !== 'Projects' && <span lang="de" className="-ml-1 min-w-0 truncate font-medium">· all in {g.project}</span>}
                     </div>
                     <div role="group" aria-labelledby={headingId}>
                       {g.options.map(({ o, i }) => {
@@ -413,13 +466,13 @@ export function CommandPalette() {
                               aria-selected={on}
                               onMouseMove={() => setActiveKey(o.key)}
                               onClick={() => choose(o)}
-                              className={clsx(rowCls, 'min-h-11 py-1.5 text-sm font-medium text-brand-700')}
+                              className={clsx(rowCls, 'min-h-10 py-1 text-sm font-medium text-brand-700')}
                             >
                               <span className="flex w-9 shrink-0 justify-center"><Icon name="expand_more" size={20} /></span>
-                              <span className="min-w-0">
-                                <span className="block">{`Show ${int(o.next)} more ${NOUN[o.group][o.next === 1 ? 0 : 1]}`}</span>
-                                {/* rows remain after this page: say how many match and how to reach them faster */}
-                                {o.total && <span className="num block text-[13px] font-normal text-slate-600">{int(o.total)} in total · type more to narrow the search</span>}
+                              {/* names the rows it adds, out of how many match */}
+                              <span className="num min-w-0 truncate">
+                                {o.from === o.to ? `Show ${NOUN[o.group][0]} ${int(o.from)} of ${int(o.total)}` : `Show ${NOUN[o.group][1]} ${int(o.from)}–${int(o.to)} of ${int(o.total)}`}
+                                {o.to < o.total && <span className="font-normal text-slate-600"> · or type more to narrow</span>}
                               </span>
                             </button>
                           )
@@ -436,17 +489,17 @@ export function CommandPalette() {
                             aria-selected={on}
                             onMouseMove={() => setActiveKey(o.key)}
                             onClick={r.go}
-                            className={clsx(rowCls, 'py-1.5')}
+                            className={clsx(rowCls, 'min-h-11 py-0.5')}
                           >
                             <span className={clsx('flex size-9 shrink-0 items-center justify-center rounded-md', on ? TILE_ON : TILE)}>
                               <Icon name={r.icon} size={20} />
                             </span>
                             <span className="min-w-0 flex-1">
-                              <span className="block truncate text-[15px] leading-5 font-medium text-slate-900"><Hl text={r.title} q={needle} /></span>
+                              <span lang={r.group === 'Actions' ? undefined : 'de'} className="block truncate text-[15px] leading-5 font-medium text-slate-900"><Hl text={r.title} q={needle} /></span>
                               <span className="block truncate text-sm leading-5 text-slate-600 max-sm:line-clamp-2 max-sm:whitespace-normal">
                                 {r.oz && <span className="font-mono text-[13px] text-slate-700">{r.oz}</span>}
                                 {r.oz && r.sub && <span aria-hidden> · </span>}
-                                {r.sub}
+                                {g.project ? r.subLocal ?? r.sub : r.sub}
                               </span>
                               {/* phones: the figures go under the title instead of squeezing it */}
                               {r.right && (
@@ -478,7 +531,7 @@ export function CommandPalette() {
               <span className="flex items-center gap-1.5"><Kbd label="Enter">↵</Kbd> to open</span>
               {groups.length > 1 && <span className="flex items-center gap-1.5"><Kbd label={`${ALT_KEY === '⌥' ? 'Option' : 'Alt'} and arrow keys`}>{ALT_KEY} ↑↓</Kbd> to jump between groups</span>}
               {/* the list page's own position search; elsewhere there is nothing for the slash to open */}
-              {onList && <span className="ml-auto flex items-center gap-1.5"><Kbd label="Slash">/</Kbd> search positions in this list</span>}
+              {onList && !needle && <span className="ml-auto flex items-center gap-1.5"><Kbd label="Slash">/</Kbd> search positions in this list</span>}
             </div>
           </motion.div>
         </div>

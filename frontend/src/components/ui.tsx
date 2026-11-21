@@ -147,19 +147,23 @@ export function Menu({
   const btn = useRef<HTMLButtonElement>(null)
   const menu = useRef<HTMLDivElement>(null)
   const id = useId()
-  const [pos, setPos] = useState<{ top: number; left: number; up: boolean }>({ top: 0, left: 0, up: false })
+  const [pos, setPos] = useState<{ top: number; left: number; up: boolean; room: number }>({ top: 0, left: 0, up: false, room: 0 })
 
   useLayoutEffect(() => {
     if (!open || !btn.current) return
     const r = btn.current.getBoundingClientRect()
     const up = r.bottom + 260 > window.innerHeight && r.top > 260
-    setPos({ top: up ? r.top - 6 : r.bottom + 6, left: align === 'end' ? r.right : r.left, up })
+    // a long list (28 categories) scrolls inside the space left on its side of the trigger, never past the window
+    setPos({ top: up ? r.top - 6 : r.bottom + 6, left: align === 'end' ? r.right : r.left, up, room: Math.max(160, (up ? r.top : window.innerHeight - r.bottom) - 18) })
   }, [open, align])
 
   useEffect(() => {
     if (!open) return
-    const first = menu.current?.querySelector<HTMLButtonElement>('[role=menuitem]:not([disabled]),[role=menuitemcheckbox]')
-    first?.focus()
+    // like a native select, a list with a chosen item opens on that item
+    const first = menu.current?.querySelector<HTMLButtonElement>('[aria-checked=true]:not([disabled])')
+      ?? menu.current?.querySelector<HTMLButtonElement>('[role=menuitem]:not([disabled]),[role=menuitemcheckbox]')
+    first?.focus({ preventScroll: true })
+    first?.scrollIntoView({ block: 'nearest' })
     const onDown = (e: PointerEvent) => {
       if (!menu.current?.contains(e.target as Node) && !btn.current?.contains(e.target as Node)) setOpen(false)
     }
@@ -206,8 +210,9 @@ export function Menu({
                 left: pos.left,
                 translate: `${align === 'end' ? '-100%' : '0'} ${pos.up ? '-100%' : '0'}`,
                 transformOrigin: `${align === 'end' ? 'right' : 'left'} ${pos.up ? 'bottom' : 'top'}`,
+                maxHeight: pos.room || undefined,
               }}
-              className={clsx('z-[85] rounded-lg border border-slate-300 bg-white p-1.5 shadow-[0_8px_20px_-8px_var(--pop-shadow)]', width)}
+              className={clsx('z-[85] overflow-y-auto overscroll-contain rounded-lg border border-slate-300 bg-white p-1.5 shadow-[0_8px_20px_-8px_var(--pop-shadow)]', width)}
             >
               {items.map((it, i) =>
                 it === 'sep' ? (
@@ -246,7 +251,7 @@ export function Menu({
 /* ------------------------------------------------------------------ */
 
 export function Dialog({
-  open, onClose, title, description, children, width = 'max-w-md', footer,
+  open, onClose, title, description, children, width = 'max-w-md', footer, footerOnly,
 }: {
   open: boolean
   onClose: () => void
@@ -255,6 +260,8 @@ export function Dialog({
   children?: ReactNode
   width?: string
   footer?: ReactNode
+  /** while a question sits in the footer ("Discard your changes?"), the header and body step out of reach, so focus stays on its answers */
+  footerOnly?: boolean
 }) {
   const panel = useRef<HTMLDivElement>(null)
   const titleId = useId()
@@ -274,7 +281,7 @@ export function Dialog({
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') close.current()
       if (e.key === 'Tab' && panel.current) {
-        const f = [...panel.current.querySelectorAll<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')].filter((x) => !x.hasAttribute('disabled'))
+        const f = [...panel.current.querySelectorAll<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')].filter((x) => !x.hasAttribute('disabled') && !x.closest('[inert]') && x.getAttribute('type') !== 'hidden')
         if (!f.length) return
         if (e.shiftKey && document.activeElement === f[0]) { e.preventDefault(); f[f.length - 1].focus() }
         else if (!e.shiftKey && document.activeElement === f[f.length - 1]) { e.preventDefault(); f[0].focus() }
@@ -314,14 +321,14 @@ export function Dialog({
               width,
             )}
           >
-            <div className={clsx('flex justify-between gap-3 px-6 pt-6 pb-2', description ? 'items-start' : 'items-center')}>
+            <div inert={footerOnly || undefined} className={clsx('flex justify-between gap-3 px-6 pt-6 pb-2', description ? 'items-start' : 'items-center')}>
               <div className="min-w-0">
                 <h2 id={titleId} className="display text-[22px] leading-tight text-slate-900">{title}</h2>
                 {description && <div className="mt-1 text-sm text-slate-600">{description}</div>}
               </div>
               <IconButton icon="close" label="Close dialog" onClick={onClose} className="-mr-1.5" />
             </div>
-            <div className="max-h-[70vh] overflow-y-auto px-6 py-4">{children}</div>
+            <div inert={footerOnly || undefined} className="max-h-[70vh] overflow-y-auto px-6 py-4">{children}</div>
             {footer && <div className="flex items-center justify-end gap-2 px-6 pt-2 pb-6">{footer}</div>}
           </motion.div>
         </div>
@@ -341,8 +348,12 @@ export function Field({ label, hint, children }: { label: string; hint?: string;
   )
 }
 
+/**
+ * the one text field: a filled slate well with no outline at rest, a slate-400 ring on hover and the brand ring on
+ * focus (as the ledger search and the drawer fields); a field the last save rejected (aria-invalid) is ringed red
+ */
 export const inputCls =
-  'w-full h-10 px-3.5 rounded-md bg-slate-100 ring-1 ring-inset ring-slate-400 hover:bg-slate-200/70 text-slate-900 placeholder:text-slate-500 text-sm outline-none focus:bg-white focus:ring-2 focus:ring-brand-700 transition-[background-color,box-shadow]'
+  'w-full h-10 px-3.5 rounded-md bg-slate-100 ring-1 ring-inset ring-transparent hover:bg-slate-200/70 hover:ring-slate-400 text-slate-900 placeholder:text-slate-600 text-sm outline-none focus:bg-white focus:ring-2 focus:ring-brand-700 aria-invalid:ring-2 aria-invalid:ring-rose-600 transition-[background-color,box-shadow]'
 
 /* ------------------------------------------------------------------ */
 /* Toasts                                                              */
@@ -351,16 +362,21 @@ export const inputCls =
 interface Toast { id: number; text: string; tone: 'ok' | 'info' | 'error'; action?: { label: string; run: () => void } }
 const useToasts = create<{ toasts: Toast[]; push: (t: Omit<Toast, 'id'>) => void; drop: (id: number) => void }>((set) => ({
   toasts: [],
-  push: (t) => set((s) => ({ toasts: [...s.toasts.slice(-3), { ...t, id: Date.now() + Math.random() }] })),
+  // a newer toast with an action replaces an older one, so only the latest Undo is ever on offer
+  push: (t) => set((s) => ({ toasts: [...(t.action ? s.toasts.filter((x) => !x.action) : s.toasts).slice(-3), { ...t, id: Date.now() + Math.random() }] })),
   drop: (id) => set((s) => ({ toasts: s.toasts.filter((x) => x.id !== id) })),
 }))
 
-/** one toast — always the dark ink surface, in both themes; its timer pauses while hovered or focused, and runs longer when it offers an action */
+/**
+ * one toast — always the dark ink surface, in both themes. A plain message leaves after 5 s (paused while hovered or
+ * focused); one with an action (Undo) stays until it is dismissed or a newer action replaces it, so it can't vanish
+ * before the user reaches it
+ */
 function ToastItem({ t, drop }: { t: Toast; drop: (id: number) => void }) {
   const [paused, setPaused] = useState(false)
   useEffect(() => {
-    if (paused) return
-    const h = setTimeout(() => drop(t.id), t.action ? 10000 : 5000)
+    if (paused || t.action) return
+    const h = setTimeout(() => drop(t.id), 5000)
     return () => clearTimeout(h)
   }, [paused, t.id, t.action, drop])
   return (
@@ -387,7 +403,7 @@ function ToastItem({ t, drop }: { t: Toast; drop: (id: number) => void }) {
           {t.action.label}
         </button>
       )}
-      <button type="button" aria-label="Dismiss" onClick={() => drop(t.id)} className="flex size-9 items-center justify-center rounded-md text-[#d2c6b1] hover:bg-white/10 hover:text-white">
+      <button type="button" aria-label="Dismiss notification" title="Dismiss notification" onClick={() => drop(t.id)} className="flex size-9 items-center justify-center rounded-md text-[#d2c6b1] hover:bg-white/10 hover:text-white">
         <Icon name="close" size={18} />
       </button>
     </motion.div>

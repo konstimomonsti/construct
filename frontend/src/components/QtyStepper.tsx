@@ -42,7 +42,7 @@ export function QtyInput({ value, onChange, label, edited, muted }: { value: num
         }
       }}
       onFocus={(e) => e.currentTarget.select()}
-      className={`${editableCls}${edited ? ' font-semibold text-brand-700' : muted ? ' text-slate-500' : ' text-slate-900'} w-16 outline-none focus:border-transparent focus:bg-white focus:ring-2 focus:ring-brand-700 lg:w-full`}
+      className={`${editableCls}${edited ? ' font-semibold text-brand-700' : muted ? ' text-slate-600' : ' text-slate-900'} w-16 pb-px outline-none focus:border-transparent focus:bg-white focus:ring-2 focus:ring-brand-700 lg:w-full`}
     />
   )
 }

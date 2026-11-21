@@ -96,13 +96,11 @@ export function FindingFilter({ rows, reviewed, value, onChange }: {
       width="w-72"
       items={items}
       trigger={(p) => (
-        <ToolButton {...p} icon="flag" active={!!current}>
+        <ToolButton {...p} icon="flag" active={!!current}
+          aria-label={`Upload check filter: ${current ?? 'all positions'}${flagged ? `, ${flagged} flagged ${flagged === 1 ? 'position' : 'positions'}` : ''}`}>
           <span className="max-w-[16ch] truncate">{current ?? 'Upload check'}</span>
-          {!current && flagged > 0 && (
-            <span className="num rounded bg-amber-50 px-1.5 text-[13px] font-semibold text-amber-900 ring-1 ring-amber-500/50 ring-inset">
-              {flagged}<span className="sr-only"> flagged {flagged === 1 ? 'position' : 'positions'}</span>
-            </span>
-          )}
+          {/* a plain count like every other filter; the flag and the row rules carry the colour */}
+          {!current && flagged > 0 && <span className="num text-slate-600">{flagged}</span>}
         </ToolButton>
       )}
     />
