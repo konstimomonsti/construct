@@ -4,6 +4,7 @@
  * otherwise → regenerate in the notation of the target format.
  */
 import { loadDocument } from '../documents'
+import { treeFromPaths } from '../cat'
 import type { DocMeta, ListDoc, Position } from '../types'
 import type { ExportMode, ExportRequest, ExportResult, FormatId, FormatInfo, LayoutFile } from './types'
 import { baseName, buildCats, diffList, extOf } from './util'
@@ -95,14 +96,15 @@ export async function exportList(req: ExportRequest): Promise<ExportResult> {
   const diff = diffList(doc, req.resolved.positions)
   const edited = req.edited ?? diff.any
   let positions = req.resolved.positions
-  if (scope === 'selection' && req.selectedIds) {
+  if (scope === 'selection') {
     const s = new Set(req.selectedIds)
     positions = positions.filter((p) => s.has(p.id))
-  } else if (scope === 'categories' && req.categoryOzs?.length) {
-    const roots = new Set(req.categoryOzs)
-    positions = positions.filter((p) => roots.has((p.path?.[0]?.oz ?? p.oz.split('.')[0]) as string))
+  } else if (scope === 'categories') {
+    const categories = new Set(req.categoryOzs)
+    positions = positions.filter((p) => p.path?.some((part) => categories.has(part.oz)))
   }
-  const subset = positions.length !== req.resolved.positions.length || scope !== 'all'
+  if (scope !== 'all' && !positions.length) throw new Error('The selected scope has no positions.')
+  const subset = scope !== 'all'
   const tender = !!info.tender
   const prices = info.priced ? true : tender ? false : (req.prices ?? true)
   const mime = info.mime
@@ -141,7 +143,7 @@ export async function exportList(req: ExportRequest): Promise<ExportResult> {
     }
     case 'json': {
       const { toJson } = await import('./table')
-      return text(toJson(base, subset ? tree.roots : req.resolved.tree))
+      return text(toJson(base, subset ? treeFromPaths(positions) : req.resolved.tree))
     }
     case 'xlsx': {
       const { toXlsx } = await import('./table')

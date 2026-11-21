@@ -101,11 +101,8 @@ export async function importFiles(files: File[], folderId: string, activeListId?
     const name = f.name
     const ext = name.split('.').pop()?.toLowerCase() ?? ''
     try {
-      if (ext === 'pdf' && offerFiles.has(fileStem(name).toLowerCase())) {
-        documents.push(f)
-        continue
-      }
-      const parsed = await parseListFile(f) ?? await readSampleDocument(f)
+      const supportingPdf = ext === 'pdf' && offerFiles.has(fileStem(name).toLowerCase())
+      const parsed = await parseListFile(f, { supportingPdf }) ?? (supportingPdf ? undefined : await readSampleDocument(f))
       if (!parsed) {
         documents.push(f)
         continue

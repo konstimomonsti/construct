@@ -413,6 +413,10 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   const [categoryFilter, setCategoryFilter] = useState<Set<string> | null>(null)
   const [ozFilter, setOzFilter] = useState<Set<string> | null>(null)
   const cats = grouped ? ozFilter : categoryFilter
+  const filteredExportIds = useMemo(
+    () => cats ? ledgerPositions.filter((position) => cats.has(leafOz(position))).map((position) => position.id) : undefined,
+    [cats, ledgerPositions],
+  )
   const setCats = grouped ? setOzFilter : setCategoryFilter
   const [sort, setSort] = useState<'oz' | 'amount' | 'risk'>('oz')
   const [onlyUnpriced, setOnlyUnpriced] = useState(false)
@@ -701,7 +705,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
             {original && imported.phase === 'X83' && imported.source?.kind === 'gaeb-xml' && (
               <BidSimulator listId={doc.id} title={heading} standardRates={bidStandardRates} />
             )}
-            <ExportMenu listId={doc.id} doc={doc} original={original} selectedIds={[...selected]} />
+            <ExportMenu listId={doc.id} doc={doc} original={original} selectedIds={[...selected]} filteredIds={filteredExportIds} />
             <RowMenu items={more} label={`More actions for ${title}`} />
           </div>
         }

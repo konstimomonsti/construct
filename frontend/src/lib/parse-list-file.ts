@@ -62,7 +62,7 @@ async function parseTenderDocument(file: File, kind: 'pdf' | 'xlsx'): Promise<Pa
 }
 
 /** Parse the same supported list files for the picker and drag-and-drop. Plain documents can be attached. */
-export async function parseListFile(file: File): Promise<ParsedList | undefined> {
+export async function parseListFile(file: File, { supportingPdf = false } = {}): Promise<ParsedList | undefined> {
   const ext = file.name.split('.').pop()?.toLowerCase() ?? ''
   if (/^[xd]8\d$/.test(ext)) {
     const parsed = ext.startsWith('x')
@@ -77,9 +77,10 @@ export async function parseListFile(file: File): Promise<ParsedList | undefined>
   if (ext === 'xlsx') return (await import('./import-documents')).readExcel(file)
   if (ext === 'pdf' || ext === 'docx') {
     const { readPdfPayload, readWordPayload } = await import('./import-documents')
-    const payload = ext === 'pdf' ? await readPdfPayload(file) : await readWordPayload(file)
+    const payload = supportingPdf ? await readPdfPayload(file).catch(() => undefined)
+      : ext === 'pdf' ? await readPdfPayload(file) : await readWordPayload(file)
     return payload ? parseListJson(payload, ext, ext === 'pdf' ? 'PDF' : 'Word')
-      : ext === 'pdf' ? parseTenderDocument(file, 'pdf') : undefined
+      : ext === 'pdf' && !supportingPdf ? parseTenderDocument(file, 'pdf') : undefined
   }
   throw new Error('Unsupported file type.')
 }
