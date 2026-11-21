@@ -10,7 +10,7 @@ import type { CategoryNode, Position } from '../lib/types'
 
 function EditDot({ on }: { on: boolean }) {
   if (!on) return null
-  return <span aria-hidden title="Edited" className="absolute top-1/2 left-0 size-1.5 -translate-y-1/2 rounded-full bg-brand-600" />
+  return <span aria-hidden title="Edited" className="absolute top-1/2 left-0 size-1.5 -translate-y-1/2 rounded-md bg-brand-600" />
 }
 
 function PriceCell({ value, onSave, oz, edited, muted, className }: { value: number | null; onSave: (v: number | null) => void; oz: string; edited?: boolean; muted?: boolean; className?: string }) {
@@ -104,7 +104,7 @@ const Row = memo(function Row({ listId, p, showCategory, selected, flash, edited
       )}
     >
       <td data-a="cb" className="w-10 py-1 pl-2 align-middle">
-        <label className="cb-reveal flex size-9 cursor-pointer items-center justify-center rounded-full hover:bg-slate-100">
+        <label className="cb-reveal flex size-9 cursor-pointer items-center justify-center rounded-md hover:bg-slate-100">
           <input type="checkbox" className="checkbox" checked={selected} onChange={() => onToggle(p.id)} aria-label={`Select ${p.oz} ${p.short}`} />
         </label>
       </td>
@@ -133,7 +133,7 @@ const Row = memo(function Row({ listId, p, showCategory, selected, flash, edited
           <span className="relative lg:hidden">
             <PriceCell value={p.up} oz={p.oz} edited={upEdited} muted={zero} onSave={setUp} className="w-auto min-w-20" />
           </span>
-          {edited && <span className="size-1.5 shrink-0 rounded-full bg-brand-600 lg:hidden" aria-hidden title="Edited" />}
+          {edited && <span className="size-1.5 shrink-0 rounded-md bg-brand-600 lg:hidden" aria-hidden title="Edited" />}
         </div>
       </td>
       <td data-a="hide" className={clsx('w-16 py-1 pr-2 pl-1 text-sm whitespace-nowrap', zero ? 'text-slate-500' : 'text-slate-600')}>{p.unit || <span aria-label="no unit">—</span>}</td>
@@ -159,7 +159,7 @@ const Row = memo(function Row({ listId, p, showCategory, selected, flash, edited
             { label: 'Remove', icon: 'delete', danger: true, onSelect: remove },
           ]}
           trigger={(t) => (
-            <button {...t} type="button" aria-label={`Actions for ${p.oz}`} className="inline-flex size-10 items-center justify-center rounded-full text-slate-600 transition-colors hover:bg-slate-200/70 hover:text-slate-900">
+            <button {...t} type="button" aria-label={`Actions for ${p.oz}`} className="inline-flex size-10 items-center justify-center rounded-md text-slate-600 transition-colors hover:bg-slate-200/70 hover:text-slate-900">
               <Icon name="more_horiz" size={20} />
             </button>
           )}
@@ -264,7 +264,7 @@ export function LedgerTable({
         <thead className="[&_th]:sticky [&_th]:top-16 [&_th]:z-10 [&_th]:bg-white">
           <tr className="text-[13px] font-medium text-slate-600 [&_th]:border-b [&_th]:border-slate-200">
             <th scope="col" className="w-10 py-2 pl-2">
-              <label className="cb-reveal flex size-9 cursor-pointer items-center justify-center rounded-full hover:bg-slate-100">
+              <label className="cb-reveal flex size-9 cursor-pointer items-center justify-center rounded-md hover:bg-slate-100">
                 <input
                   ref={headCb}
                   type="checkbox"
@@ -349,7 +349,7 @@ EP (€)
       </table>
       {rows.length === 0 && (
         <div className="px-6 py-14 text-center">
-          <span className="mx-auto mb-3 flex size-14 items-center justify-center rounded-full bg-slate-100 text-slate-600">
+          <span className="mx-auto mb-3 flex size-14 items-center justify-center rounded-md bg-slate-100 text-slate-600">
             <Icon name="search_off" size={28} />
           </span>
           <p className="text-base font-semibold text-slate-900">No positions match</p>

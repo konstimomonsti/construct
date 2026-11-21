@@ -329,7 +329,7 @@ export function CategoryTree(props: CategoryTreeProps) {
                 <Icon name="edit" size={13} />
               </button>
             )}
-            {isCat && st && <span className="shrink-0 rounded-full bg-slate-100 px-1.5 py-px font-mono text-[10px] text-slate-500">{st.count}</span>}
+            {isCat && st && <span className="shrink-0 rounded-md bg-slate-100 px-1.5 py-px font-mono text-[10px] text-slate-500">{st.count}</span>}
             {!hideTotals && (isCat ? (st && st.total > 0 ? <span className="w-16 shrink-0 text-right font-mono text-[11px] text-slate-600">{moneyCompact(st.total)}</span> : <span className="w-16 shrink-0" />) : <span className="w-16 shrink-0 text-right font-mono text-[11px] text-slate-500">{positionTotal(r.pos!) > 0 ? moneyCompact(positionTotal(r.pos!)) : '—'}</span>)}
           </div>
         )

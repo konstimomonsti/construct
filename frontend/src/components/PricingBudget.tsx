@@ -7,7 +7,7 @@ import { Button, Dialog, Field, inputCls } from './ui'
 export interface PricingSection { id: string; name: string; cost: number; color: string }
 
 /** brand and slate tones only: section colours must never read as a budget status (green/amber/red) */
-const RAMP = ['hsl(217 72% 34%)', 'hsl(217 62% 58%)', 'hsl(215 22% 38%)', 'hsl(217 70% 76%)', 'hsl(215 16% 62%)', 'hsl(220 80% 22%)', 'hsl(215 14% 80%)']
+const RAMP = ['#edb03e', '#9b7428', '#f6d28f', '#6b4c16', '#c9a46a', '#d98a1c', '#e8dcc4']
 
 /** top-level categories with their cost and a stable colour from the ramp */
 export function pricingSections(tree: CategoryNode[], stats: Map<string, CatStat>): PricingSection[] {
@@ -32,7 +32,7 @@ export function PricingMeter({ sections, total, cap, className }: { sections: Pr
       aria-valuemax={cap}
       aria-valuenow={Math.min(cap, Math.max(0, total))}
       aria-valuetext={`${money(total)} of ${money(cap)}`}
-      className={`relative flex h-2 gap-px overflow-hidden rounded-full bg-slate-300 ${className ?? ''}`}
+      className={`relative flex h-2 gap-px overflow-hidden rounded-[2px] bg-slate-300 ${className ?? ''}`}
     >
       {sections.filter((s) => s.cost > 0).map((s) => (
         <span key={s.id} title={`${s.name} · ${money(s.cost)}`} className="h-full first:rounded-l-full" style={{ width: `${(s.cost / scale) * 100}%`, backgroundColor: s.color }} />
@@ -47,7 +47,7 @@ export function PricingLegend({ sections, id }: { sections: PricingSection[]; id
     <ul id={id} aria-label="Costs by section" className="mt-3 grid max-w-xl gap-x-6 gap-y-1.5 text-sm sm:grid-cols-2">
       {sections.map((s) => (
         <li key={s.id} className="flex min-w-0 items-center gap-2">
-          <span aria-hidden className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: s.color }} />
+          <span aria-hidden className="size-2.5 shrink-0 rounded-md" style={{ backgroundColor: s.color }} />
           <span title={s.name} className="min-w-0 flex-1 truncate text-slate-700">{s.name}</span>
           <span className="num shrink-0 text-slate-900">{money(s.cost)}</span>
         </li>

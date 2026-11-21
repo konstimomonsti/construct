@@ -77,13 +77,13 @@ function TabsBar({ activeId, folderId }: { activeId: string; folderId: string })
           const active = id === activeId
           return (
             <div key={id} className="group relative flex shrink-0 items-center">
-              {active && <motion.span layoutId="tab-pill" className="absolute inset-0 rounded-full bg-brand-50 ring-1 ring-brand-200" transition={{ type: 'spring', stiffness: 500, damping: 40 }} />}
+              {active && <motion.span layoutId="tab-pill" className="absolute inset-0 rounded-md bg-brand-50 ring-1 ring-brand-200" transition={{ type: 'spring', stiffness: 500, damping: 40 }} />}
               <Link
                 to={`/list/${id}`}
                 aria-current={active ? 'page' : undefined}
                 title={l.title}
                 className={clsx(
-                  'relative flex h-10 max-w-[16rem] items-center gap-2 rounded-full pr-10 pl-4 text-sm transition-colors',
+                  'relative flex h-10 max-w-[16rem] items-center gap-2 rounded-md pr-10 pl-4 text-sm transition-colors',
                   active ? 'font-semibold text-brand-700' : 'bg-slate-100 font-medium text-slate-800 hover:bg-slate-200 hover:text-slate-900',
                 )}
               >
@@ -93,7 +93,7 @@ function TabsBar({ activeId, folderId }: { activeId: string; folderId: string })
                 type="button"
                 aria-label={`Close ${l.fileName}`}
                 onClick={() => close(id)}
-                className={clsx('absolute right-1 flex size-8 items-center justify-center rounded-full transition-colors', active ? 'text-brand-700 hover:bg-brand-100' : 'text-slate-600 hover:bg-slate-300/60 hover:text-slate-900')}
+                className={clsx('absolute right-1 flex size-8 items-center justify-center rounded-md transition-colors', active ? 'text-brand-700 hover:bg-brand-100' : 'text-slate-600 hover:bg-slate-300/60 hover:text-slate-900')}
               >
                 <Icon name="close" size={16} />
               </button>
@@ -101,7 +101,7 @@ function TabsBar({ activeId, folderId }: { activeId: string; folderId: string })
           )
         })}
       </nav>
-      <button type="button" title="Open another list" aria-label="Open another list" onClick={() => setPalette(true)} className="flex size-10 shrink-0 items-center justify-center rounded-full text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900">
+      <button type="button" title="Open another list" aria-label="Open another list" onClick={() => setPalette(true)} className="flex size-10 shrink-0 items-center justify-center rounded-md text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900">
         <Icon name="add" size={20} />
       </button>
     </div>
@@ -114,7 +114,7 @@ function TabsBar({ activeId, folderId }: { activeId: string; folderId: string })
 
 const pillCls = (on: boolean) =>
   clsx(
-    'inline-flex h-10 shrink-0 items-center gap-2 rounded-full px-3.5 text-sm whitespace-nowrap transition-colors',
+    'inline-flex h-10 shrink-0 items-center gap-2 rounded-md px-3.5 text-sm whitespace-nowrap transition-colors',
     on ? 'bg-slate-900 font-semibold text-white hover:bg-slate-800' : 'bg-slate-100 font-medium text-slate-800 hover:bg-slate-200',
   )
 
@@ -209,10 +209,10 @@ function CategoryFilter({ tree, stats, value, onChange }: { tree: CategoryNode[]
             className="absolute left-0 z-40 mt-2 w-[26rem] max-w-[calc(100vw-2rem)] rounded-2xl bg-white p-2 shadow-[0_8px_30px_-4px_rgba(15,23,42,0.18)] ring-1 ring-slate-200"
           >
             <div className="flex items-center gap-2 px-1.5 py-1.5">
-              <input ref={search} aria-label="Search categories" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search categories…" className="h-10 min-w-0 flex-1 rounded-full bg-white px-4 text-sm ring-1 ring-slate-500 outline-none ring-inset placeholder:text-slate-500 hover:ring-slate-600 focus:ring-2 focus:ring-brand-600" />
+              <input ref={search} aria-label="Search categories" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search categories…" className="h-10 min-w-0 flex-1 rounded-md bg-white px-4 text-sm ring-1 ring-slate-500 outline-none ring-inset placeholder:text-slate-500 hover:ring-slate-600 focus:ring-2 focus:ring-brand-600" />
               <span className="flex gap-1 text-sm font-semibold text-slate-800">
-                <button type="button" className="h-10 rounded-full px-3 hover:bg-slate-100" onClick={() => onChange(null)}>All</button>
-                <button type="button" className="h-10 rounded-full px-3 hover:bg-slate-100" onClick={() => onChange(new Set())}>None</button>
+                <button type="button" className="h-10 rounded-md px-3 hover:bg-slate-100" onClick={() => onChange(null)}>All</button>
+                <button type="button" className="h-10 rounded-md px-3 hover:bg-slate-100" onClick={() => onChange(new Set())}>None</button>
               </span>
             </div>
             <div className="max-h-80 overflow-y-auto">
@@ -577,7 +577,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Search positions"
-              className="h-10 w-full rounded-full bg-white pr-4 pl-11 text-sm text-slate-900 ring-1 ring-slate-500 transition-shadow outline-none ring-inset placeholder:text-slate-500 hover:ring-slate-600 focus:ring-2 focus:ring-brand-600"
+              className="h-10 w-full rounded-md bg-white pr-4 pl-11 text-sm text-slate-900 ring-1 ring-slate-500 transition-shadow outline-none ring-inset placeholder:text-slate-500 hover:ring-slate-600 focus:ring-2 focus:ring-brand-600"
             />
           </div>
           <CategoryFilter tree={tree} stats={catStats} value={cats} onChange={setCats} />
@@ -590,7 +590,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
           {onlyEdited && (
             <>
               <FilterPill on onClick={() => setOnlyEdited(false)}>Edited <span className="num">{int(editedCount)}</span></FilterPill>
-              {editedCount > 0 && <button type="button" onClick={resetAll} className="h-10 rounded-full px-3 text-sm font-semibold text-slate-800 underline decoration-slate-400 underline-offset-4 hover:decoration-slate-900">Reset all</button>}
+              {editedCount > 0 && <button type="button" onClick={resetAll} className="h-10 rounded-md px-3 text-sm font-semibold text-slate-800 underline decoration-slate-400 underline-offset-4 hover:decoration-slate-900">Reset all</button>}
             </>
           )}
           <button
@@ -628,16 +628,16 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
           {selected.size > 0 ? (
             <div role="toolbar" aria-label="Selected positions" className="flex flex-wrap items-center gap-1 text-sm">
               <span className="mr-2 font-semibold text-slate-900" aria-live="polite">{plural(selected.size, 'position', 'positions')} selected</span>
-              <button type="button" onClick={() => setMovePids([...selected])} className="inline-flex h-10 items-center gap-1.5 rounded-full px-3 font-medium text-slate-800 hover:bg-slate-100">
+              <button type="button" onClick={() => setMovePids([...selected])} className="inline-flex h-10 items-center gap-1.5 rounded-md px-3 font-medium text-slate-800 hover:bg-slate-100">
                 <Icon name="drive_file_move" size={18} />Move
               </button>
-              <button type="button" onClick={split} className="inline-flex h-10 items-center gap-1.5 rounded-full px-3 font-medium text-slate-800 hover:bg-slate-100">
+              <button type="button" onClick={split} className="inline-flex h-10 items-center gap-1.5 rounded-md px-3 font-medium text-slate-800 hover:bg-slate-100">
                 <Icon name="call_split" size={18} />Split into new list
               </button>
-              <button type="button" onClick={removeSelected} className="inline-flex h-10 items-center gap-1.5 rounded-full px-3 font-medium text-rose-700 hover:bg-rose-50">
+              <button type="button" onClick={removeSelected} className="inline-flex h-10 items-center gap-1.5 rounded-md px-3 font-medium text-rose-700 hover:bg-rose-50">
                 <Icon name="delete" size={18} />Remove
               </button>
-              <button type="button" onClick={() => { setSelected(new Set()); setSelectMode(false) }} className="ml-auto inline-flex h-10 items-center rounded-full bg-slate-100 px-4 font-semibold text-slate-900 hover:bg-slate-200">Clear</button>
+              <button type="button" onClick={() => { setSelected(new Set()); setSelectMode(false) }} className="ml-auto inline-flex h-10 items-center rounded-md bg-slate-100 px-4 font-semibold text-slate-900 hover:bg-slate-200">Clear</button>
             </div>
           ) : (
             <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-sm text-slate-600">

@@ -242,7 +242,7 @@ function Panel({ onClose, doc, title, positions, tree, folders, folderId, presel
               <div className="flex items-center gap-2 border-b border-slate-100 bg-slate-50/80 px-3 py-1.5 text-xs">
                 <span className="font-mono text-xs text-slate-600">{oz}</span>
                 <span className="min-w-0 flex-1 truncate font-semibold text-slate-700">{g?.label ?? list[0].category}</span>
-                <span className="rounded-full bg-white px-1.5 font-mono text-[10px] text-slate-500 ring-1 ring-slate-200">{list.length}</span>
+                <span className="rounded-md bg-white px-1.5 font-mono text-[10px] text-slate-500 ring-1 ring-slate-200">{list.length}</span>
                 <span className="font-mono text-[11px] text-slate-600">{moneyCompact(list.reduce((s, p) => s + positionTotal(p), 0))}</span>
               </div>
               <ul>
@@ -273,10 +273,10 @@ function Panel({ onClose, doc, title, positions, tree, folders, folderId, presel
                       </span>
                       <span className="min-w-0 flex-1 truncate text-slate-700" title={p.short}>{p.short}</span>
                       <span className="shrink-0 font-mono text-[11px] text-slate-500">{positionTotal(p) > 0 ? moneyCompact(positionTotal(p)) : '—'}</span>
-                      <button type="button" title="Move to another category" aria-label={`Move ${p.oz} to another category`} onClick={() => setPickFor([p.id])} className="flex size-9 items-center justify-center rounded-full text-slate-600 hover:bg-slate-100 hover:text-slate-900">
+                      <button type="button" title="Move to another category" aria-label={`Move ${p.oz} to another category`} onClick={() => setPickFor([p.id])} className="flex size-9 items-center justify-center rounded-md text-slate-600 hover:bg-slate-100 hover:text-slate-900">
                         <Icon name="drive_file_move" size={16} />
                       </button>
-                      <button type="button" title="Remove from selection" aria-label={`Remove ${p.oz} from selection`} onClick={() => toggle('pos', p.id)} className="flex size-9 items-center justify-center rounded-full text-slate-600 hover:bg-rose-50 hover:text-rose-700">
+                      <button type="button" title="Remove from selection" aria-label={`Remove ${p.oz} from selection`} onClick={() => toggle('pos', p.id)} className="flex size-9 items-center justify-center rounded-md text-slate-600 hover:bg-rose-50 hover:text-rose-700">
                         <Icon name="close" size={16} />
                       </button>
                     </li>
@@ -292,7 +292,7 @@ function Panel({ onClose, doc, title, positions, tree, folders, folderId, presel
 
   return (
     <div className="fixed inset-0 z-[78]">
-      <motion.div className="absolute inset-0 bg-slate-900/30 backdrop-blur-[3px]" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} onClick={onClose} />
+      <motion.div className="absolute inset-0 bg-black/60 backdrop-blur-[3px]" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} onClick={onClose} />
       <motion.div
         ref={panel}
         role="dialog"
@@ -310,7 +310,7 @@ function Panel({ onClose, doc, title, positions, tree, folders, folderId, presel
             <h2 id="split-title" className="font-heading text-base font-bold tracking-tight text-slate-900">Split list</h2>
             <p className="truncate font-mono text-xs text-slate-600">{doc.fileName}</p>
           </div>
-          <button type="button" aria-label="Close split panel" onClick={onClose} className="flex size-10 items-center justify-center rounded-full text-slate-600 hover:bg-slate-100 hover:text-slate-900">
+          <button type="button" aria-label="Close split panel" onClick={onClose} className="flex size-10 items-center justify-center rounded-md text-slate-600 hover:bg-slate-100 hover:text-slate-900">
             <Icon name="close" size={20} />
           </button>
         </header>

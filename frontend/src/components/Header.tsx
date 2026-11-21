@@ -19,7 +19,7 @@ export function Header() {
           type="button"
           aria-label="Open navigation"
           onClick={() => setMobile(true)}
-          className="-ml-1 flex size-10 items-center justify-center rounded-full text-slate-700 hover:bg-slate-100 lg:hidden"
+          className="-ml-1 flex size-10 items-center justify-center rounded-md text-slate-700 hover:bg-slate-100 lg:hidden"
         >
           <Icon name="menu" size={22} />
         </button>
@@ -28,7 +28,7 @@ export function Header() {
           aria-label="Search projects, lists, positions"
           aria-haspopup="dialog"
           onClick={() => setPalette(true)}
-          className="group flex h-11 w-full max-w-[440px] min-w-0 items-center gap-2.5 rounded-full bg-slate-100 px-4 text-left text-[15px] text-slate-600 transition-colors hover:bg-slate-200/70"
+          className="group flex h-11 w-full max-w-[440px] min-w-0 items-center gap-2.5 rounded-md bg-slate-100 px-4 text-left text-[15px] text-slate-600 transition-colors hover:bg-slate-200/70"
         >
           <Icon name="search" size={20} className="text-slate-600" />
           <span className="flex-1 truncate"><span className="sm:hidden">Search</span><span className="max-sm:hidden">Search projects, lists, positions</span></span>

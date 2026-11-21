@@ -20,7 +20,7 @@ const fieldCls =
   'w-full rounded-xl border border-slate-500 bg-white text-sm text-slate-900 outline-none transition-[border-color,box-shadow] placeholder:text-slate-500 hover:border-slate-600 focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20'
 /* header icon buttons: 44px hit area on the phone sheet, 40px on desktop */
 const headBtn =
-  'inline-flex size-11 shrink-0 items-center justify-center rounded-full text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 active:scale-[0.94] disabled:pointer-events-none disabled:opacity-30 sm:size-10'
+  'inline-flex size-11 shrink-0 items-center justify-center rounded-md text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 active:scale-[0.94] disabled:pointer-events-none disabled:opacity-30 sm:size-10'
 /* hover pencil cue shared by Kurztext and Langtext (always visible on touch) */
 const pencilCls = 'opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 [@media(pointer:coarse)]:opacity-100'
 
@@ -132,7 +132,7 @@ export function DetailDrawer({
     <AnimatePresence>
       {p && (
         <div className="fixed inset-0 z-[75]">
-          <motion.div className="absolute inset-0 bg-slate-900/30" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} onClick={onClose} />
+          <motion.div className="absolute inset-0 bg-black/60" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} onClick={onClose} />
           <motion.aside
             ref={asideRef}
             onKeyDown={trap}
@@ -143,7 +143,7 @@ export function DetailDrawer({
             animate={isDesktop ? { x: 0 } : { y: 0 }}
             exit={{ ...(isDesktop ? { x: '100%' } : { y: '100%' }), transition: { duration: 0.16 } }}
             transition={{ duration: 0.26, ease: [0.16, 1, 0.3, 1] }}
-            className="absolute inset-x-0 bottom-0 flex max-h-[90dvh] w-full flex-col rounded-t-3xl bg-white shadow-2xl sm:top-0 sm:left-auto sm:h-full sm:max-h-none sm:max-w-lg sm:rounded-tr-none sm:rounded-bl-3xl"
+            className="absolute inset-x-0 bottom-0 flex max-h-[90dvh] w-full flex-col rounded-t-3xl bg-white shadow-2xl ring-1 ring-slate-200 sm:top-0 sm:left-auto sm:h-full sm:max-h-none sm:max-w-lg sm:rounded-tr-none sm:rounded-bl-3xl"
           >
             <div aria-hidden className="mx-auto mt-2 h-1 w-9 shrink-0 rounded-full bg-slate-300 sm:hidden" />
             <div className="flex shrink-0 items-center gap-1 px-4 pt-2 sm:px-6 sm:pt-4">
@@ -205,8 +205,8 @@ export function DetailDrawer({
                   </div>
                   {(edited || added) && (
                     <div className="flex shrink-0 flex-col items-end gap-1 pt-2">
-                      {edited && <span className="rounded-full bg-brand-50 px-2 py-0.5 text-xs font-semibold text-brand-700" data-testid="edited-badge">Edited</span>}
-                      {added && <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-800">Added by you</span>}
+                      {edited && <span className="rounded-md bg-brand-50 px-2 py-0.5 text-xs font-semibold text-brand-700" data-testid="edited-badge">Edited</span>}
+                      {added && <span className="rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-800">Added by you</span>}
                     </div>
                   )}
                 </div>

@@ -60,7 +60,7 @@ export function EmptyNote({ icon, title, text, children }: { icon?: string; titl
   return (
     <div className="flex flex-col items-center px-6 py-14 text-center sm:py-20">
       {icon && (
-        <span className="mb-4 flex size-14 items-center justify-center rounded-full bg-slate-100 text-slate-600">
+        <span className="mb-4 flex size-14 items-center justify-center rounded-md bg-slate-100 text-slate-600">
           <Icon name={icon} size={28} />
         </span>
       )}

@@ -1,5 +1,5 @@
 import { clsx } from 'clsx'
-import { Fragment, type ReactNode } from 'react'
+import { Fragment, useId, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { Icon, Menu, Meter, type MenuItem } from './ui'
 import { Page } from './Page'
@@ -51,7 +51,7 @@ export function PageHeader({
         <div className="flex min-w-0 items-center gap-3.5">
           {icon && <Avatar icon={icon} tone={tone} size="lg" />}
           <div className="min-w-0">
-            <h1 className="line-clamp-2 font-heading text-2xl font-bold tracking-tight text-balance break-words text-slate-900 sm:line-clamp-1 sm:text-[28px] sm:leading-9">{title}</h1>
+            <h1 className="line-clamp-2 font-heading text-2xl font-extrabold tracking-tight text-balance break-words text-slate-900 sm:line-clamp-1 sm:text-[28px] sm:leading-9">{title}</h1>
             {subtitle && <p className="mt-0.5 text-sm text-slate-600 sm:truncate">{subtitle}</p>}
           </div>
         </div>
@@ -67,12 +67,12 @@ export function PageHeader({
 
 /** folder tones deliberately avoid the status hues (green/amber/orange/red) */
 export const toneTile: Record<string, string> = {
-  indigo: 'bg-brand-50 text-brand-700',
-  emerald: 'bg-cyan-50 text-cyan-800',
-  amber: 'bg-fuchsia-50 text-fuchsia-700',
-  blue: 'bg-blue-50 text-blue-700',
-  sky: 'bg-sky-50 text-sky-800',
-  violet: 'bg-violet-50 text-violet-700',
+  indigo: 'bg-[#2a1d07] text-[#edb03e]',
+  emerald: 'bg-[#0d0e17] text-[#9fb3d9] ring-1 ring-[#1d2033]',
+  amber: 'bg-[#523a0f] text-[#f6d28f]',
+  blue: 'bg-[#141726] text-[#c4cde0] ring-1 ring-[#23283d]',
+  sky: 'bg-[#1a0c01] text-[#d9a75a] ring-1 ring-[#3d2a10]',
+  violet: 'bg-[#2b1b0b] text-[#e6ddcd]',
   slate: 'bg-slate-100 text-slate-600',
 }
 
@@ -81,7 +81,7 @@ export function Avatar({ icon, tone = 'slate', size = 'md' }: { icon: string; to
     <span
       aria-hidden
       className={clsx(
-        'flex shrink-0 items-center justify-center rounded-full',
+        'flex shrink-0 items-center justify-center rounded-lg',
         toneTile[tone] ?? toneTile.slate,
         size === 'lg' ? 'size-10 sm:size-12' : size === 'sm' ? 'size-9' : 'size-11',
       )}
@@ -130,7 +130,7 @@ export function StatusTag({ tone, word, small, hint }: { tone: string; word: str
   return (
     <span
       className={clsx(
-        'inline-flex items-center gap-1 rounded-full font-semibold whitespace-nowrap',
+        'inline-flex items-center gap-1 rounded-md font-semibold whitespace-nowrap',
         small ? 'py-px pr-2 pl-1 text-xs' : 'py-0.5 pr-2.5 pl-1.5 text-[13px]',
         statusCls[tone] ?? statusCls.none,
       )}
@@ -224,12 +224,12 @@ export function Summary({
   return (
     <section aria-label={label} className={actions ? 'mb-10' : 'mb-8'}>
       <div className="text-sm font-medium text-slate-600">{label}</div>
-      <BigMoney value={amount} className={clsx('num mt-1 block leading-tight font-semibold tracking-tight text-slate-900', compact ? 'text-[32px] sm:text-[40px]' : 'text-[34px] sm:text-[44px]')} />
+      <BigMoney value={amount} className={clsx('num display mt-1 block leading-[1.05] text-slate-900', compact ? 'text-[30px] sm:text-[44px]' : 'text-[34px] sm:text-[54px]')} />
       <div className="mt-3 max-w-xl">
         {cap ? (
           <>
-            {bar ?? <Meter value={st.pct} tone={st.tone} height="h-2" className="max-w-md" label={`${label}: share of ${capLabel} used`} />}
-            <div className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1.5 text-sm text-slate-700">
+            {bar ?? <TrussMeter total={total} cap={cap} tone={st.tone} label={`${label}: share of ${capLabel} used`} />}
+            <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1.5 text-sm text-slate-700">
               <StatusTag tone={pill.tone} word={pill.word} hint />
               <span className="num">
                 <strong className="font-semibold text-slate-900">{Math.round(st.pct)}%</strong>
@@ -257,7 +257,7 @@ export function Summary({
           <div className="flex flex-wrap items-center gap-3 text-sm text-slate-700">
             <StatusTag tone="none" word="No cap set" />
             {onEditCap && (
-              <button type="button" onClick={onEditCap} className="h-9 rounded-full bg-slate-100 px-3 font-medium text-slate-900 hover:bg-slate-200">Set a cap</button>
+              <button type="button" onClick={onEditCap} className="h-9 rounded-md bg-slate-100 px-3 font-medium text-slate-900 hover:bg-slate-200">Set a cap</button>
             )}
           </div>
         )}
@@ -266,6 +266,64 @@ export function Summary({
       {extra}
       {actions && <div className={clsx('flex flex-wrap items-center gap-2', compact ? 'mt-4' : 'mt-6')}>{actions}</div>}
     </section>
+  )
+}
+
+const trussInk: Record<string, string> = {
+  ok: 'text-brand-600',
+  caution: 'text-amber-500',
+  warn: 'text-orange-500',
+  over: 'text-rose-600',
+  none: 'text-slate-400',
+}
+
+/**
+ * The hero meter, drawn as a crane jib: two chords and a zigzag web. The jib is the cap; the
+ * lit part is what is spent; a hook hangs where spending stands. Past the cap the jib extends and
+ * a mast marks where the cap was.
+ */
+export function TrussMeter({ total, cap, tone, label }: { total: number; cap: number; tone: string; label: string }) {
+  const id = useId().replace(/:/g, '')
+  const pct = cap > 0 ? (total / cap) * 100 : 0
+  const scale = Math.max(total, cap) || 1
+  const fill = Math.max(0, Math.min(100, (total / scale) * 100))
+  const capAt = (cap / scale) * 100
+  const hookAt = Math.max(1.5, Math.min(98.5, fill))
+  /* a pattern takes its colour from where it is defined, so each jib carries its own web */
+  const jib = (key: string) => (
+    <>
+      <pattern id={`${id}-${key}`} width="16" height="18" patternUnits="userSpaceOnUse">
+        <path d="M0 17 L8 1 L16 17" fill="none" stroke="currentColor" strokeWidth="1.25" />
+      </pattern>
+      <line x1="0" y1="1" x2="100%" y2="1" strokeWidth="2" />
+      <line x1="0" y1="17" x2="100%" y2="17" strokeWidth="2" />
+      <rect x="0" y="0" width="100%" height="18" fill={`url(#${id}-${key})`} stroke="none" />
+    </>
+  )
+  return (
+    <div
+      role="progressbar"
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-valuenow={Math.round(Math.min(pct, 100))}
+      aria-valuetext={`${Math.round(pct)}%`}
+      aria-label={label}
+      className="relative max-w-xl pb-4"
+    >
+      <svg width="100%" height="18" className="block overflow-visible" aria-hidden>
+        <defs>
+          <clipPath id={`${id}-clip`}>
+            <rect x="0" y="-2" height="22" className="transition-[width] duration-700 ease-out-expo motion-reduce:transition-none" style={{ width: `${fill}%` }} />
+          </clipPath>
+        </defs>
+        <g className="text-slate-300" stroke="currentColor">{jib('rest')}</g>
+        <g className={trussInk[tone] ?? trussInk.none} stroke="currentColor" clipPath={`url(#${id}-clip)`}>{jib('lit')}</g>
+        <rect x={`${capAt}%`} y="-5" width="3" height="28" className="fill-slate-700" transform="translate(-1.5 0)" />
+      </svg>
+      <svg width="12" height="16" viewBox="0 0 12 16" aria-hidden className={clsx('absolute top-[17px] -translate-x-1/2 transition-[left] duration-700 ease-out-expo motion-reduce:transition-none', trussInk[tone] ?? trussInk.none)} style={{ left: `${hookAt}%` }}>
+        <path d="M6 0 V8 M6 8 C6 8 2.5 8 2.5 11.5 C2.5 15 9.5 15 9.5 11.5" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
+      </svg>
+    </div>
   )
 }
 
@@ -338,7 +396,7 @@ export function RowMenu({ items, label }: { items: (MenuItem | 'sep')[]; label: 
           type="button"
           aria-label={label}
           title="More options"
-          className="relative z-10 flex size-10 shrink-0 items-center justify-center rounded-full text-slate-600 transition-colors hover:bg-slate-200/70 hover:text-slate-900"
+          className="relative z-10 flex size-10 shrink-0 items-center justify-center rounded-md text-slate-600 transition-colors hover:bg-slate-200/70 hover:text-slate-900"
         >
           <Icon name="more_horiz" size={20} />
         </button>
@@ -398,11 +456,11 @@ export function Row({
       <div className="pointer-events-none relative grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-3 gap-y-0.5 sm:gap-x-6">
         <div className="col-span-2 row-start-1 flex min-w-0 items-center gap-2 sm:col-span-1">
           <span lang="de" className="line-clamp-2 text-[15px] leading-snug font-semibold break-normal hyphens-auto text-slate-900 sm:line-clamp-1">{title}</span>
-          {badge && <span className="shrink-0 max-sm:hidden">{badge}</span>}
+          {badge && <span className="shrink-0 empty:hidden max-sm:hidden">{badge}</span>}
         </div>
         {(subtitle || badge) && (
           <div className="col-span-2 row-start-2 flex min-w-0 items-center gap-2 text-sm text-slate-600 sm:col-span-1 sm:col-start-1">
-            {badge && <span className="shrink-0 sm:hidden">{badge}</span>}
+            {badge && <span className="shrink-0 empty:hidden sm:hidden">{badge}</span>}
             {subtitle && <span className="truncate">{subtitle}</span>}
           </div>
         )}
@@ -424,7 +482,7 @@ export function ToolButton({ icon, children, className, active, ...rest }: React
     <button
       type="button"
       className={clsx(
-        'inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-sm font-medium whitespace-nowrap transition-colors',
+        'inline-flex h-10 shrink-0 items-center gap-1.5 rounded-md px-3.5 text-sm font-medium whitespace-nowrap transition-colors',
         active ? 'bg-slate-900 text-white hover:bg-slate-800' : 'bg-slate-100 text-slate-800 hover:bg-slate-200',
         className,
       )}
@@ -465,7 +523,7 @@ export function Chips<K extends string>({ value, options, onChange, label }: { v
             aria-pressed={on}
             onClick={() => onChange(o.key)}
             className={clsx(
-              'inline-flex h-10 items-center gap-2 rounded-full px-4 text-sm font-medium transition-colors',
+              'inline-flex h-10 items-center gap-2 rounded-md px-4 text-sm font-medium transition-colors',
               on ? 'bg-slate-900 font-semibold text-white' : 'bg-slate-100 text-slate-800 hover:bg-slate-200',
             )}
           >
@@ -483,7 +541,7 @@ export function EmptyState({ icon, title, text, children, hint, className }: { i
   return (
     <div className={clsx('max-w-xl pt-6 pb-12 sm:pt-8', className)}>
       {icon && (
-        <span className="mb-5 flex size-20 items-center justify-center rounded-full bg-slate-100 text-slate-600">
+        <span className="mb-5 flex size-20 items-center justify-center rounded-md bg-slate-100 text-slate-600">
           <Icon name={icon} size={36} />
         </span>
       )}
@@ -498,7 +556,7 @@ export function EmptyState({ icon, title, text, children, hint, className }: { i
 /** secondary pill as a link ("Go to All Projects") */
 export function PillLink({ to, icon, children }: { to: string; icon?: string; children: ReactNode }) {
   return (
-    <Link to={to} className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-slate-100 px-5 text-sm font-semibold text-slate-900 hover:bg-slate-200">
+    <Link to={to} className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-slate-100 px-5 text-sm font-semibold text-slate-900 hover:bg-slate-200">
       {icon && <Icon name={icon} size={18} />}
       {children}
     </Link>

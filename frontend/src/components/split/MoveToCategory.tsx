@@ -122,7 +122,7 @@ export function MoveToCategory({
         )}
         {target && (
           <div aria-live="polite" className="rounded-lg border border-slate-200 bg-slate-50/70 p-2.5">
-            <div className="mb-1.5 text-xs font-semibold tracking-wider text-slate-600 uppercase">Renumbering preview</div>
+            <div className="mb-1.5 text-xs font-semibold text-slate-700">Renumbering preview</div>
             {changed === 0 ? (
               <p className="text-xs text-slate-500">Already in this category.</p>
             ) : (

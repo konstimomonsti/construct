@@ -70,7 +70,7 @@ function Hl({ text, q }: { text: string; q: string }) {
 
 /** footer key hint, same chip as the Esc button */
 const Kbd = ({ children, label }: { children: string; label: string }) => (
-  <kbd aria-label={label} className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-slate-100 px-2 font-sans text-xs font-medium text-slate-700">{children}</kbd>
+  <kbd aria-label={label} className="inline-flex h-6 min-w-6 items-center justify-center rounded-md bg-slate-100 px-2 font-sans text-xs font-medium text-slate-700">{children}</kbd>
 )
 
 export function CommandPalette() {
@@ -282,7 +282,7 @@ export function CommandPalette() {
       {open && (
         <div className="fixed inset-0 z-[85] flex items-start justify-center sm:px-4 sm:pt-[12vh]">
           <motion.div
-            className="absolute inset-0 bg-slate-900/20 backdrop-blur-[2px]"
+            className="absolute inset-0 bg-black/60 backdrop-blur-[2px]"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -297,7 +297,7 @@ export function CommandPalette() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -4, transition: { duration: 0.1 } }}
             transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-            className="relative flex h-full w-full flex-col overflow-hidden bg-white sm:h-auto sm:max-w-2xl sm:rounded-3xl sm:shadow-[0_24px_60px_-12px_rgba(15,23,42,0.35)]"
+            className="relative flex h-full w-full flex-col overflow-hidden bg-white sm:h-auto sm:max-w-2xl sm:rounded-3xl sm:shadow-[0_24px_60px_-12px_rgba(0,0,0,0.7)] sm:ring-1 sm:ring-slate-200"
             onKeyDown={onKey}
           >
             <div className="flex shrink-0 items-center gap-3 border-b border-slate-100 px-5 pt-[env(safe-area-inset-top)] sm:pt-0">
@@ -316,7 +316,7 @@ export function CommandPalette() {
                 className="h-16 flex-1 bg-transparent text-base text-slate-900 outline-none placeholder:text-slate-500"
               />
               {loading && <Icon name="progress_activity" size={18} className="animate-spin text-slate-500" />}
-              <button ref={closeRef} type="button" onClick={close} aria-label="Close search (Esc)" className="h-9 rounded-full bg-slate-100 px-3 text-[13px] font-medium text-slate-700 hover:bg-slate-200">
+              <button ref={closeRef} type="button" onClick={close} aria-label="Close search (Esc)" className="h-9 rounded-md bg-slate-100 px-3 text-[13px] font-medium text-slate-700 hover:bg-slate-200">
                 <span className="max-sm:hidden">Esc</span><span className="sm:hidden">Cancel</span>
               </button>
             </div>
@@ -332,7 +332,7 @@ export function CommandPalette() {
                   <div key={g.group} role="presentation">
                     {/* labels the group below; hidden from browse mode so it isn't read twice */}
                     <div id={headingId} aria-hidden="true" className="flex items-baseline gap-2 px-3 pt-5 pb-2 text-xs text-slate-600">
-                      <span className="font-semibold tracking-wide uppercase">{g.group}</span>
+                      <span className="font-semibold text-slate-800">{g.group}</span>
                       <span className="num font-medium">{int(g.count)}{g.nonePriced && <span className="font-sans font-normal"> · none priced</span>}</span>
                     </div>
                     <div role="group" aria-labelledby={headingId}>
@@ -376,7 +376,7 @@ export function CommandPalette() {
                             onClick={r.go}
                             className={clsx(rowCls, 'py-2.5')}
                           >
-                            <span className={clsx('flex size-10 shrink-0 items-center justify-center rounded-full', r.tile ?? 'bg-brand-50 text-brand-700')}>
+                            <span className={clsx('flex size-10 shrink-0 items-center justify-center rounded-md', r.tile ?? 'bg-brand-50 text-brand-700')}>
                               <Icon name={r.icon} size={20} />
                             </span>
                             <span className="min-w-0 flex-1">

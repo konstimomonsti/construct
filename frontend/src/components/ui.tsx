@@ -33,9 +33,9 @@ const variants: Record<Variant, string> = {
   soft: 'bg-brand-50 text-brand-700 hover:bg-brand-100 font-semibold',
 }
 const sizes: Record<Size, string> = {
-  sm: 'h-8 px-3 text-[13px] gap-1.5 rounded-full',
-  md: 'h-9 px-4 text-sm gap-1.5 rounded-full',
-  lg: 'h-10 px-5 text-sm gap-2 rounded-full',
+  sm: 'h-8 px-3 text-[13px] gap-1.5 rounded-md',
+  md: 'h-9 px-4 text-sm gap-1.5 rounded-md',
+  lg: 'h-10 px-5 text-sm gap-2 rounded-md',
 }
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -73,7 +73,7 @@ export function IconButton({
       aria-label={label}
       title={label}
       className={clsx(
-        'inline-flex size-9 items-center justify-center rounded-full text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 active:scale-[0.94]',
+        'inline-flex size-9 items-center justify-center rounded-md text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 active:scale-[0.94]',
         className,
       )}
       {...rest}
@@ -107,10 +107,10 @@ export function Meter({ value, tone, height = 'h-1.5', className, label }: { val
       aria-valuenow={Math.round(w)}
       aria-valuetext={`${Math.round(value)}%`}
       aria-label={label ?? 'Budget used'}
-      className={clsx('relative flex-1 overflow-hidden rounded-full bg-slate-300', height, className)}
+      className={clsx('relative flex-1 overflow-hidden rounded-[2px] bg-slate-300', height, className)}
     >
       <motion.div
-        className={clsx('h-full rounded-full', toneBar[tone] ?? toneBar.brand)}
+        className={clsx('h-full rounded-[2px]', toneBar[tone] ?? toneBar.brand)}
         initial={false}
         animate={{ width: value > 0 ? `${Math.max(w, 1.5)}%` : 0 }}
         transition={{ type: 'spring', stiffness: 260, damping: 32 }}
@@ -285,7 +285,7 @@ export function Dialog({
       {open && (
         <div className="fixed inset-0 z-[80] flex items-end justify-center p-0 sm:items-center sm:p-4">
           <motion.div
-            className="absolute inset-0 bg-slate-900/25 backdrop-blur-[4px]"
+            className="absolute inset-0 bg-black/60 backdrop-blur-[4px]"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -302,7 +302,7 @@ export function Dialog({
             exit={{ opacity: 0, scale: 0.98, y: 4, transition: { duration: 0.12 } }}
             transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
             className={clsx(
-              'relative w-full rounded-t-3xl bg-white shadow-[0_24px_48px_-12px_rgba(15,23,42,0.25)] sm:rounded-3xl',
+              'relative w-full rounded-t-3xl bg-white shadow-[0_24px_48px_-12px_rgba(0,0,0,0.6)] ring-1 ring-slate-200 sm:rounded-3xl',
               width,
             )}
           >
@@ -366,7 +366,7 @@ function ToastItem({ t, drop }: { t: Toast; drop: (id: number) => void }) {
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, x: 24, transition: { duration: 0.15 } }}
       transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-      className="pointer-events-auto flex w-full items-center gap-2.5 rounded-2xl bg-slate-900 py-2 pr-2 pl-4 text-sm text-white shadow-lg shadow-slate-900/20"
+      className="pointer-events-auto flex w-full items-center gap-2.5 rounded-2xl bg-slate-900 py-2 pr-2 pl-4 text-sm text-white shadow-lg shadow-black/40"
     >
       <Icon
         name={t.tone === 'error' ? 'error' : t.tone === 'info' ? 'info' : 'check_circle'}
@@ -375,11 +375,11 @@ function ToastItem({ t, drop }: { t: Toast; drop: (id: number) => void }) {
       />
       <span className="flex-1 py-1.5 font-medium">{t.text}</span>
       {t.action && (
-        <button type="button" className="h-9 rounded-full px-3 font-semibold text-brand-200 hover:bg-white/10" onClick={() => { t.action!.run(); drop(t.id) }}>
+        <button type="button" className="h-9 rounded-md px-3 font-semibold text-brand-200 hover:bg-white/10" onClick={() => { t.action!.run(); drop(t.id) }}>
           {t.action.label}
         </button>
       )}
-      <button type="button" aria-label="Dismiss" onClick={() => drop(t.id)} className="flex size-9 items-center justify-center rounded-full text-slate-300 hover:bg-white/10 hover:text-white">
+      <button type="button" aria-label="Dismiss" onClick={() => drop(t.id)} className="flex size-9 items-center justify-center rounded-md text-slate-300 hover:bg-white/10 hover:text-white">
         <Icon name="close" size={18} />
       </button>
     </motion.div>

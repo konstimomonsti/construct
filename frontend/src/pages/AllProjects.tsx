@@ -140,7 +140,7 @@ export function FolderCollection({
           </p>
           {selectMode && (
             <div className="mb-2 flex justify-end">
-              <button type="button" className="h-10 rounded-full px-3 text-sm font-semibold text-brand-700 hover:bg-brand-50" onClick={() => setSel(sel.size === folders.length ? new Set() : new Set(folders.map((f) => f.id)))}>
+              <button type="button" className="h-10 rounded-md px-3 text-sm font-semibold text-brand-700 hover:bg-brand-50" onClick={() => setSel(sel.size === folders.length ? new Set() : new Set(folders.map((f) => f.id)))}>
                 {sel.size === folders.length ? 'Deselect all' : 'Select all'}
               </button>
             </div>
