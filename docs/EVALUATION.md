@@ -37,6 +37,15 @@ The local browser upload shows the building-hall zero quantity, duplicate and mi
 
 Each generated file has a `construct-eval-labels/1` sidecar with stable position codes, the expected or acceptable rule IDs, and a link to its clean baseline. A run subtracts findings already present in the corresponding baseline. This keeps synthetic measurements tied to the planted faults. The `fp` run checks the controls directly, including their clean baselines. Controls with incomplete layer coverage remain unverified and cause a nonzero exit.
 
+## Local precast replay with Layer 3
+
+A local Qwen 7B run used Layers 1 through 3 on the clean precast seed and the missing-specification and
+ambiguous-rebar mutants in both X83 and JSON. All four planted labels matched the correct position and
+included a bidder question. Both unchanged seeds finished all three layers without a finding. This is a
+targeted development replay. The complete building-hall catalogue and an independent holdout still need
+separate Layer 3 scoring. The representative LV 11 PDF gives the joint-sealing requirement across
+two physical lines. The Layer 2 matcher recognizes the wrapped phrase as included scope.
+
 ## Preliminary review of repository files
 
 The [real-file labels](../backend/analysis/eval/labels/real_findings.csv) cover 18 warning and error groups in the seven repository X83, D83 and D86 files. The preliminary review found one confirmed source error, five false-alarm groups, three importer consequences, and nine groups requiring more evidence. The counts cover existing findings only, and some files are versions of the same tender.

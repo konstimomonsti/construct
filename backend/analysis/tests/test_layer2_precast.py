@@ -37,7 +37,12 @@ def test_screed_measurements_are_not_triggers(text):
     assert not any(f.rule_id.startswith("L2.FLOOR.SCREED") for f in run(input_for(line("1", text)), []))
 
 
-@pytest.mark.parametrize("text", ["Dichtstoff für Plattenfugen", "Plattenfugen mit elastischem Dichtstoff schließen"])
+@pytest.mark.parametrize("text", [
+    "Dichtstoff für Plattenfugen",
+    "Plattenfugen mit elastischem Dichtstoff schließen",
+    "Wind- und dampfdichte Ausführung der\nPlatten-Stoßfugen.",
+])
 def test_joint_sealing_wording_variants(text):
     item = line("1", "FT-Sockel Sandwichelement", unit="ea")
     assert not any(f.rule_id.endswith("JOINT_SEALING") for f in precast(item, line("2", text)))
+    assert not any(f.rule_id.endswith("JOINT_SEALING") for f in precast({**item, "long_text": text}))

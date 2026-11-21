@@ -214,12 +214,17 @@ order in which the call budget is spent (`checks/__init__.py`):
   labelled measurements in the text, normalized to metres or centimetres. Grade, colour, element mark,
   and through-coloured concrete require matching text. A missing or invalid model response for a position
   appears in the run errors as partial coverage. The result is shared with the scope audit.
+  Ollama batches up to four items for classification and reads explicit dimensions, grades and RAL
+  numbers from the position text. Rebar has a separate short request. Its purpose must be supported by
+  a cited clause or an explicit description of the steel this position supplies.
 - **`L3.PRECAST.MISSING_SPEC`** (warning): deterministic on the extracted fields. Spec `DEP_001` (a sandwich
   element needs height, length, concrete grade, total thickness) and `DEP_002` (through-coloured concrete
   needs a RAL colour or pigment). One finding per line, discriminator = the missing fields;
   `evidence.extracted`, `evidence.bieterfrage_de`.
-- **`L3.OPT.BUNDLED_FORMWORK`** (info, section scope): elements with the same thickness, grade and
-  surfaces, with `evidence.total_bundled_precast_length_m` (spec `LLM_OPT_01`, computed in code).
+- **`L3.OPT.BUNDLED_FORMWORK`** (info, section scope): elements with matching stated height, thickness,
+  grade, surfaces, and any specified pigment and sandwich layer thicknesses. The finding includes
+  `evidence.total_bundled_precast_length_m` and asks the reviewer to check the drawings before pricing
+  shared formwork (spec `LLM_OPT_01`).
 - **`L3.SCOPE.REBAR_AMBIGUOUS` / `SHOP_DRAWINGS_OVERLAP` / `EMBEDDED_UNALLOCATED`** (warning,
   `checks/scope.py`, spec `LLM_SCOPE_01..03`). One call per precast section to `ANALYSIS_L3_AUDIT_MODEL`
   with the extracted items as JSON (no raw text). A section is sent only when its item types make a problem

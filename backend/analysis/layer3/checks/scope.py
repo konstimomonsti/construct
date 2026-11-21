@@ -141,11 +141,6 @@ def _unallocated(data: dict[str, Any]) -> bool:
 
 def _payload(line: Line, data: dict[str, Any]) -> dict[str, Any]:
     """Compact item JSON for the audit: the line's own facts plus the non-empty extracted fields."""
-    fields = {key: value for key, value in data.items()
-              if value not in (None, False, [], "") and key not in ("oz", "has_redacted_or_unclear_text",
-                                                                    "unclear_text_evidence")}
-    if fields.get("rebar_purpose") == "not_applicable":
-        fields.pop("rebar_purpose")
-    if isinstance(fields.get("layers"), dict):
-        fields["layers"] = {k: v for k, v in fields["layers"].items() if v is not None} or None
-    return {"code": line.code, "short_text": line.short_text, **fields}
+    fields = ("item_type", "element_code", "rebar_purpose", "includes_anchor_engineering", "assigned_element_codes")
+    return {"code": line.code, "short_text": line.short_text,
+            **{key: data[key] for key in fields if data[key] not in (None, False, [], "", "not_applicable")}}

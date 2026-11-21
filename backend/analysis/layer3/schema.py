@@ -194,6 +194,7 @@ class PrecastItem(_Answer):
     rebar_purpose: Literal["factory_reinforcement", "site_connection", "both", "unspecified",
                            "not_applicable"] = "not_applicable"
     assigned_element_codes: list[str] = Field(default_factory=list)
+    rebar_scope_quote: str | None = None
 
 
 # --------------------------------------------------------------------------- cross-item scope audit (spec Step 4)

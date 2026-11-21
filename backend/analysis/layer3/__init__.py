@@ -21,7 +21,7 @@ from .common import (
     Session, float_env, int_env, reset_session, session_scope,
 )
 from .provider import (
-    LLMProvider, ProviderUnavailable, ResponseCache, audit_provider_from_env, cache_from_env, provider_from_env,
+    LLMProvider, OllamaProvider, ProviderUnavailable, ResponseCache, audit_provider_from_env, cache_from_env, provider_from_env,
 )
 
 LAYER = 3
@@ -56,7 +56,8 @@ def run(analysis_input: AnalysisInput, prior_findings: list[Finding], errors: li
         max_batch_chars=int_env("ANALYSIS_L3_MAX_BATCH_CHARS", DEFAULT_MAX_BATCH_CHARS),
         max_batch_lines=max(1, int_env("ANALYSIS_L3_MAX_BATCH_LINES", DEFAULT_MAX_BATCH_LINES)),
         audit_provider=audit_provider, deadline=float_env("ANALYSIS_L3_DEADLINE", DEFAULT_DEADLINE),
-        concurrency=max(1, int_env("ANALYSIS_L3_CONCURRENCY", DEFAULT_CONCURRENCY)),
+        concurrency=max(1, int_env("ANALYSIS_L3_CONCURRENCY",
+                                   1 if isinstance(provider, OllamaProvider) else DEFAULT_CONCURRENCY)),
     )
     token = session_scope(session)
     try:

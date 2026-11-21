@@ -203,7 +203,7 @@
       },
       {
         "DependencyName": "Joint sealing",
-        "Regex": "(?i)\\b(?:\\w*fugen(?:abdichtung|dichtung|versiegelung|verschluss)\\w*|\\w*fugendicht\\w*|abdichtung\\s+der\\s+(?:\\w*-)?fugen)|\\b(?:dicht\\w*|wind-\\s*und\\s*dampfdicht\\w*)[^\\n.;]{0,60}\\w*fugen\\b|\\b\\w*fugen\\b[^\\n.;]{0,60}\\bdicht\\w*|\\bdampfdicht\\w*[^\\n.;]{0,60}\\w*fugen\\b",
+        "Regex": "(?i)\\bdampfdicht\\w*\\s+Ausführung\\s+der\\s+[\\w-]*fugen\\b|\\b(?:\\w*fugen(?:abdichtung|dichtung|versiegelung|verschluss)\\w*|\\w*fugendicht\\w*|abdichtung\\s+der\\s+(?:\\w*-)?fugen)|\\b(?:dicht\\w*|wind-\\s*und\\s*dampfdicht\\w*)[^\\n.;]{0,60}\\w*fugen\\b|\\b\\w*fugen\\b[^\\n.;]{0,60}\\bdicht\\w*|\\bdampfdicht\\w*[^\\n.;]{0,60}\\w*fugen\\b",
         "CheckType": "Boolean",
         "SuggestedText": "Abdichtung der Fertigteilfugen",
         "SuggestedUnit": "m"

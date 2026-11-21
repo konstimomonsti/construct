@@ -80,6 +80,8 @@ class Session:
     def ask_many(self, rule_id: str, requests: list[LLMRequest], *,
                  audit: bool = False) -> list[dict[str, Any] | None]:
         """Like `ask` for independent batches; answers come back in the order of `requests`."""
+        if self.concurrency <= 1:
+            return [self.ask(rule_id, request, audit=audit) for request in requests]
         provider = self._provider(audit)
         results: list[dict[str, Any] | None] = [None] * len(requests)
         pending: list[tuple[int, LLMRequest, str]] = []
@@ -91,7 +93,7 @@ class Session:
                 results[index] = cached
             elif self._reserve(rule_id):
                 pending.append((index, request, key))
-        if len(pending) <= 1 or self.concurrency <= 1:
+        if len(pending) <= 1:
             for index, request, key in pending:
                 results[index] = self._settle(rule_id, provider, request, key,
                                               lambda request=request: provider.complete_json(request))

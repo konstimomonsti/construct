@@ -7,12 +7,12 @@ import time
 
 import pytest
 
-from analysis import layer3
+from analysis import adapter, layer3
 from analysis.contracts import AnalysisInput, Finding, Target
 from analysis.layer2.adapter import from_data
 from analysis.layer3 import prompts
 from analysis.layer3.common import Session
-from analysis.layer3.provider import FakeProvider, LLMRequest, ProviderError, ResponseCache
+from analysis.layer3.provider import FakeProvider, LLMRequest, OllamaProvider, ProviderError, ResponseCache
 from analysis.layer3.schema import PRECAST_SCHEMA, QUANTITY_SCHEMA, SCOPE_SCHEMA, UNDERSPECIFIED_SCHEMA
 from analysis.registry import rules_for
 from analysis.runner import analyze
@@ -195,12 +195,23 @@ def test_lv11_rebar_scope_ambiguous_on_3_2_70_with_audit_model():
     assert {item["code"]: item["item_type"] for item in sent}["3.2.70"] == "rebar"
 
 
-def test_lv11_other_scope_findings_and_bundled_formwork():
+def test_lv11_other_scope_findings_with_unconfirmed_section_geometry():
     findings, _ = run3(lv11(), FakeProvider(fake_model))
     assert [f.target.line_code for f in by_rule(findings, SHOP)] == ["3.2.10"]
     embedded = by_rule(findings, EMBEDDED)
     assert [f.target.line_code for f in embedded] == ["3.2.90"]
     assert embedded[0].evidence["bieterfrage_de"].startswith("Zu Pos. 3.2.90: ")  # prefixed in code
+    assert by_rule(findings, BUNDLED) == []
+
+
+def test_bundling_requires_matching_height_layers_surfaces_and_colour():
+    bill = lv11()
+    bill.lines = [
+        line.model_copy(update={"long_text": f"{line.long_text}\nHöhe: 0,60 m. Farbton RAL 7032."})
+        if line.code in SANDWICH_CODES else line
+        for line in bill.lines
+    ]
+    findings, _ = run3(bill.with_hash(), FakeProvider(fake_model))
     bundled = by_rule(findings, BUNDLED)
     assert len(bundled) == 1 and bundled[0].severity == "info" and bundled[0].scope == "section"
     assert bundled[0].evidence["total_bundled_precast_length_m"] == "20.67"
@@ -266,6 +277,62 @@ def test_explicit_dimensions_override_unsupported_model_values():
     assert finding.evidence["missing_fields"] == ["color_pigment_ral"]
     measured = finding.evidence["extracted"]
     assert (measured["height_m"], measured["length_m"], measured["layers"]["total_thickness_cm"]) == (0.8, 6.35, 30)
+
+
+@pytest.mark.parametrize("backend", ["x83", "json"])
+def test_compact_ollama_precast_seed_and_planted_faults(tmp_path, monkeypatch, backend):
+    from analysis.eval.mutate import generate
+
+    generate(out_dir=tmp_path, only={"__precast_only__"}, include_precast=True, demo=False, backends=(backend,))
+    provider = OllamaProvider()
+    def answer(request):
+        if request.prompt_version == "l3-precast-local-v1":
+            batch = payload(request)["items"]
+            schema = request.schema["properties"]["items"]
+            assert schema["maxItems"] == len(batch)
+            assert set(schema["items"]["required"]) == {
+                "line_ref", "item_type", "rebar_purpose", "color_pigment_ral",
+            }
+            return {"items": [
+                {"line_ref": item["ref"], "item_type": "embedded_part" if item["code"] == "3.2.90" else "other",
+                 "rebar_purpose": "unspecified", "color_pigment_ral": None}
+                for item in batch
+            ]}
+        if request.prompt_version == "l3-precast-local-rebar-v1":
+            assert "rebar_scope_quote" in request.schema["properties"]["items"]["items"]["required"]
+            return {"items": [
+                {"line_ref": item["ref"], "item_type": "rebar", "rebar_purpose": "factory_reinforcement",
+                 "rebar_scope_quote": "werkseitige Bewehrung" if item["code"] == "3.2.70" else "invented purpose"}
+                for item in payload(request)["items"]
+            ]}
+        if request.prompt_version == prompts.SCOPE_VERSION:
+            roles = {item["code"]: item.get("rebar_purpose") for item in payload(request)["items"]}
+            assert roles["3.2.70"] == "site_connection"
+            assert roles["3.2.75"] == "unspecified"
+            return audit_like_a_model(request)
+        return {"findings": [], "reviews": []}
+    monkeypatch.setattr(provider, "complete_json", answer)
+    monkeypatch.setattr(layer3, "provider_from_env", lambda: provider)
+    monkeypatch.setattr(layer3, "audit_provider_from_env", lambda provider: provider)
+    monkeypatch.setenv("ANALYSIS_L3_CACHE", "off")
+
+    extension = "X83" if backend == "x83" else "json"
+
+    def run_file(name):
+        path = tmp_path / "mutated" / f"{name}.{extension}"
+        result = analyze(adapter.from_file(path) if backend == "x83" else adapter.from_json(path), [1, 2, 3])
+        assert not result.errors
+        return result.findings
+
+    assert run_file("precast_lv11_clean") == []
+    missing, = by_rule(run_file("PRECAST-MISSING-SPEC"), MISSING)
+    assert missing.target.line_code == "3.2.40"
+    assert missing.evidence["missing_fields"] == ["height_m", "color_pigment_ral"]
+    assert "Elementhöhe" in missing.evidence["bieterfrage_de"]
+    rebar, = by_rule(run_file("PRECAST-REBAR-SCOPE"), REBAR)
+    assert rebar.target.line_code == "3.2.75"
+    assert rebar.evidence["related_codes"] == SANDWICH_CODES
+    assert "Anschlussbewehrung" in rebar.evidence["bieterfrage_de"]
 
 
 def test_model_omitting_a_position_reports_partial_coverage():
@@ -369,6 +436,19 @@ def test_time_budget_stops_calls_and_is_reported():
     session.report()
     assert provider.requests == []
     assert session.errors == ["L3.X: 2 batch(es) not checked (time budget of 1 s reached)"]
+
+
+def test_serial_batches_respect_deadline_after_each_request(monkeypatch):
+    monotonic = iter([0, 2])
+    monkeypatch.setattr("analysis.layer3.common.time.monotonic", lambda: next(monotonic))
+    provider = FakeProvider(lambda request: {"findings": []})
+    session = Session(provider, ResponseCache(None), [], started=0, deadline=1, concurrency=1)
+    first = LLMRequest("s", "first", {"type": "object"}, "v")
+    second = LLMRequest("s", "second", {"type": "object"}, "v")
+    assert session.ask_many("L3.X", [first, second]) == [{"findings": []}, None]
+    session.report()
+    assert provider.requests == [first]
+    assert session.errors == ["L3.X: 1 batch(es) not checked (time budget of 1 s reached)"]
 
 
 def test_contradiction_check_skips_lines_with_l1_value_conflict():
