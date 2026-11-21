@@ -161,6 +161,7 @@ def load_products(conn, project_id) -> list[Product]:
         FROM product p JOIN product_category c ON c.id = p.category_id
         LEFT JOIN supplier s ON s.id = p.supplier_id
         LEFT JOIN catalogue_product_spec spec ON spec.product_id = p.id
+        WHERE p.archived_at IS NULL
         ORDER BY p.id
     """):
         category = row["category"] or row["catalogue_category"]

@@ -124,7 +124,8 @@ def source_links(connection, sha):
             """
             SELECT DISTINCT c.source_line_code, c.decision, p.id, p.name, pc.name AS category
             FROM source_document d JOIN catalogue_source_line c ON c.source_document_id=d.id
-            LEFT JOIN product p ON c.product_id=p.id LEFT JOIN product_category pc ON p.category_id=pc.id
+            LEFT JOIN product p ON c.product_id=p.id AND p.archived_at IS NULL
+            LEFT JOIN product_category pc ON p.category_id=pc.id
             WHERE d.sha256=%s AND c.source_kind <> 'price' AND c.source_line_code IS NOT NULL
             """, (sha,),
         ):
@@ -138,7 +139,8 @@ def catalogue_names(connection):
         """SELECT p.id, p.name, p.description, p.unit_code, pc.name AS category,
             array(SELECT DISTINCT c.tender_unit FROM catalogue_source_line c
                   WHERE c.product_id=p.id AND c.tender_unit IS NOT NULL) AS tender_units
-           FROM product p JOIN product_category pc ON pc.id=p.category_id"""
+           FROM product p JOIN product_category pc ON pc.id=p.category_id
+           WHERE p.archived_at IS NULL"""
     ):
         indexed[words(row["name"])].append(row)
     return indexed

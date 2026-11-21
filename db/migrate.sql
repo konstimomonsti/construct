@@ -122,5 +122,13 @@ SELECT NOT EXISTS (
     INSERT INTO db_migration.applied_version (version) VALUES (14);
 \endif
 
+SELECT NOT EXISTS (
+    SELECT FROM db_migration.applied_version WHERE version = 15
+) AS apply_catalogue_crud \gset
+\if :apply_catalogue_crud
+    \ir migrations/015_catalogue_crud.sql
+    INSERT INTO db_migration.applied_version (version) VALUES (15);
+\endif
+
 \ir runtime_role.sql
 COMMIT;
