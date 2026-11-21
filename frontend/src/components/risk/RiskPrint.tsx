@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { int, money } from '../../lib/format'
 import { rescore, type Decisions, type Question, type Report, type ReviewItem, type Risk } from '../../lib/risk-assessment'
 import { decisionText } from '../../lib/risk-export'
+import { categoryLabel, categoryPoints, layer3Coverage } from '../../lib/risk-labels'
 
 /** print-only copy of the risk review (see `.risk-print` in index.css); the app UI is hidden while printing */
 export function RiskPrint({ title, report, risk, decisions, sections, questions, texts }: {
@@ -26,6 +27,8 @@ export function RiskPrint({ title, report, risk, decisions, sections, questions,
     groups.set(key, group)
   }
   const atStake = risk.money_at_stake == null ? null : Number(risk.money_at_stake)
+  const coverage = layer3Coverage(report.errors)
+  const partial = coverage && coverage.run < coverage.planned
   return createPortal(
     <div className="risk-print">
       <h1>Risk review: {title}</h1>
@@ -33,6 +36,9 @@ export function RiskPrint({ title, report, risk, decisions, sections, questions,
         Risk score {int(live.score)} ({live.level}) · Money at stake {atStake != null && Number.isFinite(atStake) && risk.priced
           ? money(atStake) : risk.priced ? 'Unavailable' : 'Not priced'} · {printedAt}
       </p>
+      {partial && <p>Based on partial analysis: {coverage.skipped} AI checks were skipped. {coverage.details}</p>}
+      <h2>Risk by category (open)</h2>
+      <ul>{categoryPoints(risk, report, decisions).map(([category, points]) => <li key={category}>{categoryLabel(category)}: {int(points)} pts</li>)}</ul>
       <h2>Position review</h2>
       {[...groups].map(([section, findings]) => (
         <section key={section}>

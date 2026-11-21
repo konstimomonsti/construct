@@ -147,7 +147,9 @@ export async function importFiles(files: File[], folderId: string, activeListId?
   const parts: string[] = []
   if (res.lists.length) parts.push(`${res.lists.length} ${res.lists.length === 1 ? 'list' : 'lists'} (${res.positions.toLocaleString('de-DE')} positions)`)
   if (res.docs) parts.push(`${res.docs} ${res.docs === 1 ? 'document' : 'documents'}`)
-  if (parts.length) toast(`Imported ${parts.join(' + ')}`)
+  if (parts.length) toast(`Imported ${parts.join(' + ')}`, 'ok', files.length === 1 && res.lists.length === 1
+    ? { label: 'Open list', run: () => window.location.assign(`/list/${res.lists[0]}`) }
+    : undefined)
   if (res.failed.length) toast(importErrors[0] ?? `Could not read: ${res.failed.join(', ')}`, 'error')
   return res
 }

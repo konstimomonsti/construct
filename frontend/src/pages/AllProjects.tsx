@@ -50,6 +50,7 @@ export function FolderCollection({
   const openDialog = useUi((s) => s.openDialog)
   const { openLists, deleteFolders } = useActions()
   const [selectMode, setSelectMode] = useState(false)
+  const [introDismissed, setIntroDismissed] = useState(() => localStorage.getItem('billbuild:intro-dismissed') === '1')
   const [sel, setSel] = useState<Set<string>>(new Set())
   const [view, setView] = useState<View>('all')
 
@@ -108,6 +109,16 @@ export function FolderCollection({
           </div>
         ) : undefined}
       />
+
+      {withOpenAll && !introDismissed && <div className="mb-6 max-w-2xl rounded-lg bg-brand-50 p-5 text-sm text-slate-800">
+        <button type="button" className="float-right text-xs text-slate-600 underline" onClick={() => { localStorage.setItem('billbuild:intro-dismissed', '1'); setIntroDismissed(true) }}>Dismiss</button>
+        <h2 className="text-lg font-semibold text-slate-900">Check a tender before you price it</h2>
+        <p className="mt-1">Upload a tender (GAEB, PDF, Excel). BillBuild checks it for errors, missing work and change-order risk before you price it.</p>
+        <Button className="mt-4" variant="primary" icon="upload" onClick={() => scoped.length ? openDialog({ kind: 'folder-target', action: 'import' }) : newProject()}>
+          Import a tender
+        </Button>
+        {!scoped.length && <p className="mt-2 text-xs text-slate-600">Create a project first, then add the tender to it.</p>}
+      </div>}
 
       {withOpenAll && scoped.length > 0 && (
         <Summary
