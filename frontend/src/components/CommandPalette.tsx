@@ -192,6 +192,9 @@ export function CommandPalette() {
       act('budgets', 'account_balance_wallet', 'Go to Active Budgets', 'Every priced list against its cap', go('/active')),
       act('archived', 'archive', 'Go to Archived', 'Projects set aside', go('/archived')),
       act('trash', 'delete', 'Go to Trash', 'Restore or delete forever', go('/trash')),
+      act('products', 'inventory_2', 'Go to Products', 'Catalogue items and prices', go('/catalogues/products')),
+      act('suppliers', 'local_shipping', 'Go to Suppliers', 'Companies you buy from', go('/catalogues/suppliers')),
+      act('subcontractors', 'engineering', 'Go to Subcontractors', 'Companies you hire for trades', go('/catalogues/subcontractors')),
       act('theme', theme === 'dark' ? 'light_mode' : 'dark_mode', theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode', 'Remembered on this device', () => setTheme(theme === 'dark' ? 'light' : 'dark')),
     ].filter((a) => !t || a.title.toLowerCase().includes(t))
     // a query that names no command can still become one

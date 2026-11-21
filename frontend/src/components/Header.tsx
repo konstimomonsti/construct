@@ -4,6 +4,7 @@ import { useStore } from '../lib/store'
 import { useUi } from '../lib/ui-store'
 import { clearDocuments } from '../lib/documents'
 import { useTheme } from '../lib/theme'
+import { MOD_KEY } from '../lib/keys'
 
 export function Header() {
   const setPalette = useUi((s) => s.setPalette)
@@ -34,7 +35,7 @@ export function Header() {
         >
           <Icon name="search" size={20} className="text-slate-600" />
           <span className="flex-1 truncate"><span className="sm:hidden">Search</span><span className="max-sm:hidden">Search projects, lists, positions</span></span>
-          <kbd className="hidden rounded-md bg-white px-1.5 py-0.5 text-xs font-medium text-slate-600 shadow-xs sm:inline">⌘K</kbd>
+          <kbd className="hidden rounded-md bg-white px-1.5 py-0.5 text-xs font-medium text-slate-600 shadow-xs sm:inline">{MOD_KEY === '⌘' ? '⌘K' : 'Ctrl K'}</kbd>
         </button>
       </div>
 

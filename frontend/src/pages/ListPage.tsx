@@ -442,11 +442,15 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   const detailCatalogue = detail && report?.positions[detail.id]
   const detailFindings = detail ? findingsByRow.get(detail.id) : undefined
 
-  const toggleReviewed = (findingId: string) => {
+  // screen readers hear the outcome, since the button they pressed changes its own label
+  const [reviewNote, setReviewNote] = useState('')
+  const toggleReviewed = (findingId: string, title: string) => {
     const store = useStore.getState()
     const next = new Set(store.listPatch[doc.id]?.reviewedFindings)
-    if (!next.delete(findingId)) next.add(findingId)
+    const reopened = next.delete(findingId)
+    if (!reopened) next.add(findingId)
     store.patchList(doc.id, { reviewedFindings: [...next] })
+    setReviewNote(`${title}: ${reopened ? 'reopened' : 'marked reviewed'}`)
   }
 
   // opening a row from its finding badge focuses the field the finding is about
@@ -581,39 +585,39 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
             <span className="num">{plural(st.positionsCount, 'position', 'positions')}</span>
             {unpriced > 0 && (
               <span className="inline-flex items-center gap-x-1.5">
-                <span aria-hidden>·</span>
+                <span aria-hidden className="max-sm:hidden">·</span>
                 <MetaLink onClick={() => only('unpriced')} pressed={onlyUnpriced}><span className="num">{int(unpriced)}</span> still to price</MetaLink>
               </span>
             )}
             {zeroQty > 0 && (
               <span className="inline-flex items-center gap-x-1.5">
-                <span aria-hidden>·</span>
+                <span aria-hidden className="max-sm:hidden">·</span>
                 <MetaLink onClick={() => only('zero')} pressed={onlyZero}><span className="num">{int(zeroQty)}</span> with quantity 0</MetaLink>
               </span>
             )}
             {flaggedCount > 0 && (
               <span className="inline-flex items-center gap-x-1.5">
-                <span aria-hidden>·</span>
+                <span aria-hidden className="max-sm:hidden">·</span>
                 <MetaLink onClick={() => { setFindingFilter((f) => (f === 'flagged' ? 'all' : 'flagged')); toTable() }} pressed={findingFilter === 'flagged'}><span className="num">{int(flaggedCount)}</span> flagged by the upload check</MetaLink>
               </span>
             )}
             {editedCount > 0 && (
               <span className="inline-flex items-center gap-x-1.5">
-                <span aria-hidden>·</span>
+                <span aria-hidden className="max-sm:hidden">·</span>
                 <MetaLink onClick={() => only('edited')} pressed={onlyEdited}><span className="num">{int(editedCount)}</span> edited</MetaLink>
               </span>
             )}
             {sections.length > 1 && (
               <span className="inline-flex items-center gap-x-1.5">
-                <span aria-hidden>·</span>
-                <button type="button" aria-expanded={showSections} aria-controls="pricing-legend" onClick={() => setShowSections((v) => !v)} className="inline-flex h-7 items-center gap-0.5 rounded-md pr-1 pl-2 font-medium text-slate-900 ring-1 ring-slate-400 ring-inset hover:bg-slate-100">
+                <span aria-hidden className="max-sm:hidden">·</span>
+                <button type="button" aria-expanded={showSections} aria-controls="pricing-legend" onClick={() => setShowSections((v) => !v)} className="relative inline-flex h-7 items-center gap-0.5 rounded-md pr-1 pl-2 font-medium after:absolute after:inset-x-0 after:-inset-y-2 after:content-[''] text-slate-900 ring-1 ring-slate-400 ring-inset hover:bg-slate-100">
                   <span>Cost by section</span><Icon name="expand_more" size={18} className={clsx('text-slate-500 transition-transform', showSections && 'rotate-180')} />
                 </button>
               </span>
             )}
             {(status.tone === 'warn' || status.tone === 'over') && largest && (
               <span className="inline-flex items-center gap-x-1.5">
-                <span aria-hidden>·</span>
+                <span aria-hidden className="max-sm:hidden">·</span>
                 <MetaLink onClick={review}>Review the biggest positions</MetaLink>
               </span>
             )}
@@ -680,12 +684,12 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
             onClick={() => { if (selectMode) setSelected(new Set()); setSelectMode((v) => !v) }}
             className={pillCls(selectMode || selected.size > 0)}
           >
-            <Icon name="checklist" size={18} />Select
+            <Icon name="checklist" size={18} /><span className="max-sm:sr-only">Select</span>
           </button>
           <div className="flex items-center gap-2 sm:ml-auto">
             {!sortTotal && !filtered && tree.length > 0 && (
-              <ToolButton icon={sectionsOpen ? 'unfold_less' : 'unfold_more'} onClick={() => setSectionsOpen((v) => !v)}>
-                {sectionsOpen ? 'Collapse all' : 'Expand all'}
+              <ToolButton icon={sectionsOpen ? 'unfold_less' : 'unfold_more'} aria-expanded={sectionsOpen} onClick={() => setSectionsOpen((v) => !v)} className="max-sm:w-10 max-sm:justify-center max-sm:px-0">
+                <span className="max-sm:sr-only">{sectionsOpen ? 'Collapse all' : 'Expand all'}</span>
               </ToolButton>
             )}
             <SortMenu value={sortTotal ? 'amount' : 'oz'} options={{ oz: 'Position order', amount: 'Highest amount' }} onChange={(k) => setSortTotal(k === 'amount')} noun="positions" />
@@ -729,10 +733,20 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
             </div>
           ) : (
             <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-sm text-slate-600">
-              <span className={rows.length === positions.length ? 'max-sm:hidden' : undefined}>
-                {rows.length !== positions.length
-                  ? <><span className="num font-semibold text-slate-900">{int(rows.length)}</span> of <span className="num">{int(positions.length)}</span> positions shown</>
-                  : <span className="num">{plural(positions.length, 'position', 'positions')}</span>}
+              <span className="flex items-center gap-3">
+                <button
+                  type="button"
+                  aria-label="Search positions"
+                  onClick={() => { tableRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); searchRef.current?.focus({ preventScroll: true }) }}
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-md text-slate-700 ring-1 ring-slate-400 ring-inset hover:bg-slate-100"
+                >
+                  <Icon name="search" size={20} />
+                </button>
+                <span className={rows.length === positions.length ? 'max-sm:hidden' : undefined}>
+                  {rows.length !== positions.length
+                    ? <><span className="num font-semibold text-slate-900">{int(rows.length)}</span> of <span className="num">{int(positions.length)}</span> positions shown</>
+                    : <span className="num">{plural(positions.length, 'position', 'positions')}</span>}
+                </span>
               </span>
               <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
                 <span>List total</span>
@@ -814,7 +828,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
                 return (
                   <li key={finding.id} className="space-y-3">
                     <FindingText finding={finding} reviewed={done} />
-                    <Button size="sm" className="ml-[15px]" icon={done ? 'undo' : 'check'} onClick={() => toggleReviewed(finding.id)}
+                    <Button size="sm" className="ml-[15px]" icon={done ? 'undo' : 'check'} onClick={() => toggleReviewed(finding.id, finding.title)}
                       aria-label={`${done ? 'Reopen' : 'Mark reviewed'}: ${finding.title}`}>
                       {done ? 'Reopen' : 'Mark reviewed'}
                     </Button>
@@ -822,6 +836,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
                 )
               })}
             </ul>
+            <p className="sr-only" aria-live="polite">{reviewNote}</p>
           </section>
         ) : undefined}
         focusField={detailField}

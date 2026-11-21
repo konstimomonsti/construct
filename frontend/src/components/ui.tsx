@@ -33,8 +33,9 @@ const variants: Record<Variant, string> = {
   soft: 'bg-brand-50 text-brand-700 hover:bg-brand-100 font-semibold',
 }
 const sizes: Record<Size, string> = {
-  sm: 'h-8 px-3 text-[13px] gap-1.5 rounded-md',
-  md: 'h-9 px-4 text-sm gap-1.5 rounded-md',
+  // small buttons keep their look but reach a 44px hit area through an invisible pad
+  sm: "relative h-8 px-3 text-[13px] gap-1.5 rounded-md after:absolute after:inset-x-0 after:-inset-y-1.5 after:content-['']",
+  md: "relative h-9 px-4 text-sm gap-1.5 rounded-md after:absolute after:inset-x-0 after:-inset-y-1 after:content-['']",
   lg: 'h-10 px-5 text-sm gap-2 rounded-md',
 }
 

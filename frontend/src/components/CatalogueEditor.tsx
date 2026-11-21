@@ -1,6 +1,7 @@
 import { useEffect, useId, useState, type FormEvent } from 'react'
 import { clsx } from 'clsx'
 import { Button, Dialog, Field, Icon, inputCls, Menu, toast } from './ui'
+import { MOD_KEY } from '../lib/keys'
 import {
   CATALOGUES, cataloguePriceSource, formatCataloguePrice, requestCatalogue, writeCatalogue,
   type CatalogueEntry, type CatalogueKind, type ProductOptions,
@@ -62,7 +63,10 @@ function ProductFields({ entry, options }: { entry: CatalogueEntry | null; optio
         <textarea required name="description" rows={4} maxLength={250000} defaultValue={entry?.description} className={`${inputCls} h-auto resize-y py-2`} />
       </Field>
       <section aria-labelledby={`${categoriesId}-price`} className="space-y-3 border-t border-slate-200 pt-4">
-        <h3 id={`${categoriesId}-price`} className="text-[15px] font-semibold text-slate-900">Price</h3>
+        <div>
+          <h3 id={`${categoriesId}-price`} className="text-[15px] font-semibold text-slate-900">Price <span className="font-normal text-slate-600">(optional)</span></h3>
+          <p className="mt-0.5 text-sm text-slate-600">{entry?.unit_price != null ? 'A new price is added to the history from its date. Leave it blank to keep the current one.' : 'A price is stored with the date it applies from. You can add it later.'}</p>
+        </div>
         {entry?.unit_price != null && (
           <p className="text-sm text-slate-600">
             Current price <strong className="num text-slate-900">{formatCataloguePrice(entry)}</strong>
@@ -168,7 +172,7 @@ export function CatalogueEditor({ kind, entry, onClose, onSaved }: {
       title={`${entry ? 'Edit' : 'Add'} ${CATALOGUES[kind].item}`}
       width={isProduct ? 'max-w-xl' : undefined}
       footer={<>
-        <span className="mr-auto text-[13px] text-slate-500 max-sm:hidden"><kbd className="inline-flex h-6 min-w-6 items-center justify-center rounded-md bg-slate-100 px-1.5 font-sans text-xs font-medium text-slate-700">⌘</kbd> <kbd className="inline-flex h-6 min-w-6 items-center justify-center rounded-md bg-slate-100 px-1.5 font-sans text-xs font-medium text-slate-700">↵</kbd> to save</span>
+        <span className="mr-auto text-[13px] text-slate-500 max-sm:hidden"><kbd className="inline-flex h-6 min-w-6 items-center justify-center rounded-md bg-slate-100 px-1.5 font-sans text-xs font-medium text-slate-700">{MOD_KEY}</kbd> <kbd className="inline-flex h-6 min-w-6 items-center justify-center rounded-md bg-slate-100 px-1.5 font-sans text-xs font-medium text-slate-700">↵</kbd> to save</span>
         <Button disabled={saving} onClick={onClose}>Cancel</Button>
         <Button variant="primary" type="submit" form={formId} disabled={saving || !ready}>{saving ? 'Saving…' : 'Save'}</Button>
       </>}

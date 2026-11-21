@@ -191,6 +191,21 @@ export interface HeroStatus {
   word: string
 }
 
+/** the cap figure with a visible pencil: the cap is a setting, so it reads as one */
+function CapButton({ cap, capLabel, onClick }: { cap: number; capLabel: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={`${capLabel === 'cap' ? 'Cap' : capLabel}: ${moneyWhole(cap)}. Edit budget cap`}
+      className="group/cap relative inline-flex items-center gap-1 rounded text-slate-700 hover:text-slate-900 after:absolute after:-inset-x-1 after:-inset-y-3 after:content-['']"
+    >
+      <span className="underline decoration-slate-400 decoration-dotted underline-offset-4 group-hover/cap:decoration-slate-900">{moneyWhole(cap)}</span>
+      <Icon name="edit" size={14} className="text-slate-500 group-hover/cap:text-slate-900" />
+    </button>
+  )
+}
+
 /**
  * One hero per screen: label, number, bar, ONE status line, at most one muted line, actions.
  * The pill always shows the worst state (a project near its cap makes the whole page "1 near cap").
@@ -231,7 +246,7 @@ export function Summary({
           {/* on phones the hero states the two judging numbers in one line, so the work starts sooner */}
           {cap > 0 && (
             <p className="num mt-1 text-sm text-slate-600 sm:hidden">
-              {Math.round(st.pct)}% of {moneyWhole(cap)} · <span className={left < 0 ? 'font-semibold text-rose-700' : undefined}>{money(Math.abs(left))} {left >= 0 ? 'left' : 'over'}</span>
+              {Math.round(st.pct)}% of {onEditCap ? <CapButton cap={cap} capLabel={capLabel} onClick={onEditCap} /> : moneyWhole(cap)} · <span className={left < 0 ? 'font-semibold text-rose-700' : undefined}>{money(Math.abs(left))} {left >= 0 ? 'left' : 'over'}</span>
             </p>
           )}
         </div>
@@ -242,13 +257,7 @@ export function Summary({
               <dd className="num mt-0.5 text-xl font-semibold text-slate-900 sm:text-2xl">{Math.round(st.pct)}%</dd>
               <dd className="num text-sm text-slate-600">
                 of{' '}
-                {onEditCap ? (
-                  <button type="button" onClick={onEditCap} className="rounded underline decoration-slate-400 decoration-dotted underline-offset-4 hover:text-slate-900 hover:decoration-slate-900" aria-label={`${capLabel === 'cap' ? 'Cap' : capLabel}: ${moneyWhole(cap)}. Edit budget cap`}>
-                    {moneyWhole(cap)}
-                  </button>
-                ) : (
-                  moneyWhole(cap)
-                )}
+                {onEditCap ? <CapButton cap={cap} capLabel={capLabel} onClick={onEditCap} /> : moneyWhole(cap)}
               </dd>
             </div>
             {!hideLeft && (
@@ -336,7 +345,7 @@ export function TrussMeter({ total, cap, tone, label }: { total: number; cap: nu
             <rect x="0" y="-2" height="22" className="transition-[width] duration-700 ease-out-expo motion-reduce:transition-none" style={{ width: `${fill}%` }} />
           </clipPath>
         </defs>
-        <g className="text-slate-300" stroke="currentColor" strokeDasharray="4 3">{jib('rest')}</g>
+        <g className="text-slate-400" stroke="currentColor" strokeDasharray="4 3">{jib('rest')}</g>
         <g className={trussInk[tone] ?? trussInk.none} stroke="currentColor" clipPath={`url(#${id}-clip)`}>{jib('lit')}</g>
         <rect x={`${capAt}%`} y="-5" width="3" height="28" className="fill-slate-700" transform="translate(-1.5 0)" />
       </svg>
@@ -379,7 +388,7 @@ export function worstTone(own: { total: number; cap: number }, children: { total
 /** a filter link inside hero meta: only the action words are underlined */
 export function MetaLink({ children, onClick, pressed }: { children: ReactNode; onClick: () => void; pressed?: boolean }) {
   return (
-    <button type="button" aria-pressed={pressed} onClick={onClick} className="inline-flex h-7 items-center gap-1 rounded-md px-2 font-medium text-slate-900 ring-1 ring-slate-400 ring-inset hover:bg-slate-100 aria-pressed:bg-slate-900 aria-pressed:text-white">
+    <button type="button" aria-pressed={pressed} onClick={onClick} className="relative inline-flex h-7 items-center gap-1 rounded-md px-2 font-medium text-slate-900 ring-1 after:absolute after:inset-x-0 after:-inset-y-2 after:content-[''] ring-slate-400 ring-inset hover:bg-slate-100 aria-pressed:bg-slate-900 aria-pressed:text-white">
       {children}
     </button>
   )
@@ -524,8 +533,8 @@ export function SortMenu<K extends string>({ value, options, onChange, noun }: {
       width="w-56"
       items={(Object.keys(options) as K[]).map((k) => ({ label: options[k], checked: value === k, onSelect: () => onChange(k) }))}
       trigger={(p) => (
-        <ToolButton {...p} icon="swap_vert">
-          <span>Sort<span className="max-sm:sr-only">: {options[value]}</span></span>
+        <ToolButton {...p} icon="swap_vert" className="max-sm:w-10 max-sm:justify-center max-sm:px-0">
+          <span className="max-sm:sr-only">Sort: {options[value]}</span>
         </ToolButton>
       )}
     />
@@ -568,7 +577,7 @@ export function EmptyState({ icon, title, text, children, hint, className, activ
     <div
       className={clsx(
         'flex flex-col items-center rounded-lg border-2 border-dashed px-5 text-center transition-colors',
-        compact ? 'py-10' : 'py-14 sm:py-20',
+        compact ? 'py-10' : 'py-12 sm:py-16',
         active ? 'border-brand-600 bg-brand-50' : 'border-slate-300 bg-slate-50',
         className,
       )}
