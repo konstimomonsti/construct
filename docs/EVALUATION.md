@@ -98,6 +98,16 @@ WORKSPACE_PARSE_ORIGIN=http://127.0.0.1:8080 \
   | python -m analysis.eval.uploads
 ```
 
+## Concrete exposure and strength replay
+
+Layer 1 now checks a grade and exposure written together in one concrete specification. It also links a separate exposure attribute to a unique grade for the same named component. The finding drawer shows the source excerpts and whether each came from the heading or detail. If the source leaves the pairing open, BillBuild asks for the grade and exposure of the affected component. The numerical checks use the project's supplied screening matrix. Edition and clause-level compliance require the governing standard and project documents. [DIN 1045-2 publication](https://www.dinmedia.de/de/norm/din-1045-2/369550272)
+
+The `exposure-scope` upload suite caught eight below-matrix grade/exposure pairs and eight uncertain attributions across PDF, Word, JSON, and X83. All findings included guidance. The eight controls produced zero findings. A six-file replay through all three layers using local Qwen 2.5 7B caught its four labels and both controls stayed clear. The existing 46 X83 and JSON controls also passed.
+
+The real X83 and D86 curb items now attach their XF2 note to the bedding grade quoted in the detail. The repository earthworks and precast PDF samples kept their source-linked concrete checks. The four repository uploads linked all 775 positions and produced no below-matrix findings. This is a preliminary replay of the supplied screening rules.
+
+To reproduce, use `--suite exposure-scope` with the same document generator, local preview server, and upload replay command shown above.
+
 ## Product declarations and published DIN scope
 
 Import [the synthetic drainage bill](../data/examples/drainage-variant-bom.json), then open the list's menu and choose **Attach product evidence** with [the matching evidence package](../data/examples/drainage-variant-evidence.json). You can also import both files together into the same folder. The offered variant is written on its own line as `Hersteller: Synthetic Works; SKU: P160-A`. The SKU must match exactly, including case. The assessment uses the original position text for the comparison.

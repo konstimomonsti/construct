@@ -25,6 +25,20 @@ class GradeMention:
     grade: str
     components: frozenset[str]
     quote: str
+    grade_span: tuple[int, int]
+
+
+def _component_prefix(prefix):
+    preceding = _BEFORE.search(prefix)
+    if preceding and not _RELATION.search(prefix[:preceding.start()]):
+        return preceding
+    return None
+
+
+def preceding_components(prefix: str) -> frozenset[str]:
+    if match := _component_prefix(prefix[-100:]):
+        return frozenset(name.casefold() for name in _NAMES.findall(match["components"]))
+    return frozenset()
 
 
 def mentions(text: str) -> list[GradeMention]:
@@ -37,9 +51,7 @@ def mentions(text: str) -> list[GradeMention]:
         prefix = text[prefix_start:start]
         suffix = text[end:end + 100]
         anchor = _AFTER.match(suffix)
-        preceding = _BEFORE.search(prefix)
-        if preceding and _RELATION.search(prefix[:preceding.start()]):
-            preceding = None
+        preceding = _component_prefix(prefix)
         if anchor and preceding:
             forward = {name.casefold() for name in _NAMES.findall(anchor["components"])}
             backward = {name.casefold() for name in _NAMES.findall(preceding["components"])}
@@ -56,7 +68,7 @@ def mentions(text: str) -> list[GradeMention]:
                 start = prefix_start + preceding.start()
             else:
                 end += anchor.end()
-        result.append(GradeMention(next(iter(valid)), components, text[start:end]))
+        result.append(GradeMention(next(iter(valid)), components, text[start:end], grade.span()))
     return result
 
 

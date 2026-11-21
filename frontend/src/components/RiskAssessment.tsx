@@ -32,7 +32,9 @@ export function FindingBadge({ severity, children }: { severity: Severity; child
 
 /** what layer 3 or a DIN rule found, shown under the message in the drawer */
 function FindingEvidence({ finding }: { finding: Finding }) {
-  const din = finding.evidence?.din
+  const evidence = finding.evidence
+  const din = evidence?.din
+  const concrete = evidence?.family === 'concrete'
   const standard = finding.evidence?.din_standard
   const declarations = finding.evidence?.declarations ?? []
   const requirement = finding.rule_id === 'L1.PRODUCT.DECLARED_PROPERTY' ? finding.evidence?.requirement : undefined
@@ -44,7 +46,14 @@ function FindingEvidence({ finding }: { finding: Finding }) {
     : locator?.row ? (locator.sheet ? `${locator.sheet} · Row ${locator.row}` : `Source row ${locator.row}`)
     : locator?.record ? `Source record ${locator.record}`
     : locator?.source_id ? `Source item ${locator.source_id}` : null
-  if (!source && !din && !standard && !requirement && !declarations.length && !extracted.length) return null
+  const sourceField = (field?: string) => field === 'short_text' ? ' in heading' : field === 'long_text' ? ' in detail' : ''
+  const quotes = [
+    ['Grade' + sourceField(evidence?.grade_field), evidence?.grade_quote],
+    ['Exposure' + sourceField(evidence?.exposure_field), evidence?.exposure_quote],
+    ['Heading', concrete ? evidence.short_quote : undefined],
+    ['Detail', concrete ? evidence.long_quote : undefined],
+  ].filter(([, quote]) => !!quote)
+  if (!source && !din && !standard && !requirement && !declarations.length && !extracted.length && !quotes.length) return null
   const show = (v: unknown) => (v === null || v === undefined || v === '' ? '—' : Array.isArray(v) ? v.join(', ') || '—' : String(v))
   return (
     <div className="mt-2 space-y-2 text-[13px]">
@@ -56,6 +65,16 @@ function FindingEvidence({ finding }: { finding: Finding }) {
           {!!din.exposure?.length && <span>Exposure <span className="num font-medium">{din.exposure.join(', ')}</span></span>}
           {din.required_min && <span>Minimum <span className="num font-medium">{din.required_min}</span></span>}
         </p>
+      )}
+      {quotes.length > 0 && (
+        <dl className="space-y-1 text-slate-700">
+          {quotes.map(([label, quote]) => (
+            <div key={label}>
+              <dt className="inline font-medium text-slate-900">{label}</dt>
+              <dd className="ml-2 inline break-words"><q>{quote}</q></dd>
+            </div>
+          ))}
+        </dl>
       )}
       {standard && /^https:\/\/www\.dinmedia\.de\//.test(standard.url) && (
         <a className="font-medium text-brand-700 underline" href={standard.url} target="_blank" rel="noreferrer">

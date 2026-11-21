@@ -246,6 +246,34 @@ def generate_grade_scope(out):
             write_fixture_labels(out / f"{name}.{ext}", f"grade-clean.{ext}", label)
 
 
+def generate_exposure_scope(out):
+    """Exercise source-linked DIN screening for several components in one position."""
+    out.mkdir(parents=True, exist_ok=True)
+    strength = "L1.DIN.EXPOSURE_STRENGTH"
+    scope = "L1.DIN.EXPOSURE_SCOPE"
+    examples = (
+        ("exposure-clean", "Betonbord liefern", "Fundament C20/25 XC2. Bettung C35/45 XD3.", None),
+        ("exposure-cross-clean", "Fundament C20/25. Bettung C35/45.",
+         "Fundament: Expositionsklasse XC2. Bettung: Expositionsklasse XD3.", None),
+        ("exposure-low", "Betonbord liefern", "Fundament C20/25 XD3. Bettung C35/45 XD3.", strength),
+        ("exposure-cross-low", "Fundament C20/25. Bettung C35/45.",
+         "Fundament: Expositionsklasse XD3. Bettung: Expositionsklasse XC2.", strength),
+        ("exposure-unpaired", "Betonbord Fundament C20/25", "Bettung: Expositionsklasse XD3.", scope),
+        ("exposure-alternative", "Betonbord liefern", "Fundament C35/45 oder C20/25 XD3.", scope),
+    )
+    for name, heading, detail, rule in examples:
+        item = Item("01.0010", heading, 10, "m", detail=detail)
+        for ext, locator in _write_text_case(out, name, "Leistungsverzeichnis Betonborde", item, "exposure").items():
+            label = {"control": rule is None, "layers": [1], "expect": []}
+            if rule:
+                label.update(expect=[rule], match="line", target={
+                    "line_codes": [item.code], "severity": "error" if rule == strength else "info",
+                    "source_locator": locator,
+                })
+            write_fixture_labels(out / f"{name}.{ext}", f"exposure-clean.{ext}", label)
+
+
+
 def generate_dotted(out):
     """Render non-consecutive short position codes, including a planted amount."""
     out.mkdir(parents=True, exist_ok=True)
@@ -272,7 +300,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("out", type=Path)
     suites = {"tabular": generate, "precast": generate_precast, "gutter": generate_gutter,
-              "dimensions": generate_dimensions, "dotted": generate_dotted, "grade-scope": generate_grade_scope}
+              "dimensions": generate_dimensions, "dotted": generate_dotted, "grade-scope": generate_grade_scope,
+              "exposure-scope": generate_exposure_scope}
     parser.add_argument("--suite", choices=suites, default="tabular")
     args = parser.parse_args()
     suites[args.suite](args.out)

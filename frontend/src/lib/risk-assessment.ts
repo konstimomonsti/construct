@@ -10,13 +10,20 @@ export const RISK_STYLE = {
 } as const
 
 export type Evidence = {
-  din?: { grade?: string; exposure?: string[]; required_min?: string }
+  din?: { grade?: string | null; exposure?: string[]; required_min?: string | null }
   din_standard?: { identifier: string; edition: string; url: string }
   declarations?: { manufacturer: string; product_code: string; document: string; revision: string; locator: string }[]
   requirement?: { document: string; locator: string }
   extracted?: Record<string, unknown>
   bieterfrage_de?: string
   amount_at_stake?: string
+  family?: string
+  short_quote?: string
+  long_quote?: string
+  grade_quote?: string
+  grade_field?: string
+  exposure_quote?: string
+  exposure_field?: string
   change_order?: boolean
   [key: string]: unknown
 }

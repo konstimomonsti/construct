@@ -332,7 +332,8 @@ expected (info), while in a bid or award (84/86) they're a defect (warning).
 | `L1.TEXT.TYPO` | info | word unknown to the domain lexicon and the German hunspell dictionary, one edit from a known word (not an inflection, cut word or product name). Silent without the dictionary | `SetField` short/long text per item |
 | `L1.TEXT.SPELLING_VARIANT` | info | one word spelled two ways in the document (ß/ss, hyphen, c/k) | `SetField` to the dictionary or majority form |
 | `L1.TEXT.NOTATION_VARIANT` | info | one unit or value written differently (St/Stk, DN 100/DN100, 5 x 25/5x25) | - |
-| `L1.DIN.EXPOSURE_STRENGTH` | error | one unambiguous concrete grade below the supplied DIN 1045-2 exposure minimum; no inferred pairing of multiple grades | - |
+| `L1.DIN.EXPOSURE_STRENGTH` | error | a source-linked concrete grade below the supplied exposure screening minimum | Confirm the governing exposure and grade, then align the tender and product declaration |
+| `L1.DIN.EXPOSURE_SCOPE` | info | a stated exposure in the supplied matrix lacks a unique source-linked grade | Identify the component and state its grade and exposure together |
 | `L1.DIN.UNKNOWN_GRADE` | warning | stated C/LC grade absent from the screening rank table; this does not assert the grade is invalid | - |
 | `L1.DIN.NOTE` | info | one LP-concrete note per line/exposure XF2 or XF4, and an alkali-guideline note for WA | - |
 | `L1.PRECAST.LAYER_SUM` | error | sandwich facing + insulation + structural shell differs from total by more than 0.1 cm; all four unambiguous values required | - |
