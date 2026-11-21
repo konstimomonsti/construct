@@ -76,9 +76,21 @@ echo "exports ok"
 curl -fsS -o "$work/original" "$base/api/mvp/original?id=$document"
 cmp -s "$work/original" "$file" || fail "original download differs from the upload"
 
-# BillBuild starts assessment when an imported list reaches the shared workspace.
+# BillBuild assesses imported positions before the original arrives and refreshes the
+# assessment when original metadata or working edits reach the shared workspace.
 list_id="smoke-$(python3 -c 'from uuid import uuid4; print(uuid4())')"
 file_id="d-$list_id"
+wait_for_assessment() {
+    local minimum_revision=$1
+    for _ in $(seq 1 15); do
+        get "/api/workspace/analysis?id=$list_id" >"$work/workspace-assessment.json"
+        if [ "$(json "d['state'] == 'ready' and d['report']['assessed_revision'] == d['report']['target_revision'] >= $minimum_revision" <"$work/workspace-assessment.json")" = True ]; then
+            return
+        fi
+        sleep 1
+    done
+    fail "list $list_id did not get a ready assessment for revision $minimum_revision or later"
+}
 upload_change=$(cat <<EOF
 {"changes":{"userLists":{"set":{"$list_id":{
   "id":"$list_id","title":"Upload assessment smoke","fileName":"example.csv","currency":"EUR",
@@ -90,26 +102,27 @@ upload_change=$(cat <<EOF
 }}}}}
 EOF
 )
-post /api/workspace/state "$upload_change" >/dev/null
-before_upload=$(curl -sS -o /dev/null -w '%{http_code}' "$base/api/workspace/analysis?id=$list_id")
-[ "$before_upload" = 404 ] || fail "a list with no upload started an assessment"
-post /api/workspace/state "{\"changes\":{\"userDocuments\":{\"set\":{\"$file_id\":{
+list_revision=$(post /api/workspace/state "$upload_change" | json 'd["revision"]')
+wait_for_assessment "$list_revision"
+[ "$(json 'not d["report"]["used_source"]' <"$work/workspace-assessment.json")" = True ] || fail "assessment used an original that was not attached"
+original_revision=$(post /api/workspace/state "{\"changes\":{\"userDocuments\":{\"set\":{\"$file_id\":{
     \"name\":\"example.csv\",\"listId\":\"$list_id\",\"original\":true
-}}}}}" >/dev/null
-for _ in $(seq 1 15); do
-    get "/api/workspace/analysis?id=$list_id" >"$work/workspace-assessment.json"
-    [ "$(json 'd["state"]' <"$work/workspace-assessment.json")" = queued ] || break
-    sleep 1
-done
-[ "$(json 'd["state"]' <"$work/workspace-assessment.json")" = ready ] || fail "upload did not produce a risk assessment"
+}}}}}" | json 'd["revision"]')
+wait_for_assessment "$original_revision"
 [ "$(json 'any(f["rule_id"] == "L2.CONCRETE.STRUCTURE_NEEDS_FORMWORK" for f in d["report"]["findings"])' <"$work/workspace-assessment.json")" = True ] || fail "missing construction warning"
-key=$(json 'next(f["id"] for f in d["report"]["findings"] if f["rule_id"] == "L1.UNIT.MISSING")' <"$work/workspace-assessment.json")
+[ "$(json 'any(f["rule_id"] == "L1.UNIT.MISSING" for f in d["report"]["findings"])' <"$work/workspace-assessment.json")" = True ] || fail "missing billing-unit warning"
+edit_revision=$(post /api/workspace/state "{\"changes\":{\"edits\":{\"set\":{\"$list_id\":{
+    \"patch\":{\"missing-unit\":{\"unit\":\"m\"}}
+}}}}}" | json 'd["revision"]')
+wait_for_assessment "$edit_revision"
+[ "$(json 'd["report"]["assessed_edits"]["patch"]["missing-unit"]["unit"]' <"$work/workspace-assessment.json")" = m ] || fail "assessment did not use the working edits"
+[ "$(json 'not any(f["rule_id"] == "L1.UNIT.MISSING" for f in d["report"]["findings"])' <"$work/workspace-assessment.json")" = True ] || fail "resolved warning remains after reassessment"
+key=$(json 'next(f["id"] for f in d["report"]["findings"] if f["rule_id"] == "L2.CONCRETE.STRUCTURE_NEEDS_FORMWORK")' <"$work/workspace-assessment.json")
 post /api/workspace/state "{\"changes\":{
-    \"edits\":{\"set\":{\"$list_id\":{\"patch\":{\"missing-unit\":{\"unit\":\"m\"}}}}},
     \"listPatch\":{\"set\":{\"$list_id\":{\"reviewedFindings\":[\"$key\"]}}}
 }}" >/dev/null
-get "/api/workspace/analysis?id=$list_id" >"$work/workspace-after-edit.json"
-cmp -s "$work/workspace-assessment.json" "$work/workspace-after-edit.json" || fail "editing replaced the upload assessment"
+get "/api/workspace/analysis?id=$list_id" >"$work/workspace-after-review.json"
+cmp -s "$work/workspace-assessment.json" "$work/workspace-after-review.json" || fail "a review-only change replaced the assessment"
 post /api/workspace/state "{\"changes\":{
     \"userLists\":{\"delete\":[\"$list_id\"]},\"userDocuments\":{\"delete\":[\"$file_id\"]},
     \"edits\":{\"delete\":[\"$list_id\"]},\"listPatch\":{\"delete\":[\"$list_id\"]}
