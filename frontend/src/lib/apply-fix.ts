@@ -1,4 +1,4 @@
-import type { Finding } from './risk-assessment'
+import type { Finding, ReviewItem } from './risk-assessment'
 import type { Position } from './types'
 import { globalStep, leafOz, nextPositionOz } from './resolve'
 
@@ -151,6 +151,23 @@ export function planFix(finding: Finding, positions: Position[], newId: () => st
 }
 
 export const canAutoFix = (finding: Finding, positions: Position[]) => planFix(finding, positions, () => 'preview').steps.length > 0
+
+/**
+ * "Fix all": every open rule finding with an applicable fix goes into `plans`; the ids of everything else open
+ * (no fix, layer 3, change-order signals, or all of it when fixes are not allowed) go into `rest`.
+ */
+export function planFixAll(open: ReviewItem[], positions: Position[], allowFixes: boolean): { plans: { finding: Finding; plan: FixPlan }[]; rest: string[] } {
+  const plans: { finding: Finding; plan: FixPlan }[] = []
+  const rest: string[] = []
+  for (const item of open) {
+    if (allowFixes && 'severity' in item && item.origin !== 'llm') {
+      const plan = planFix(item, positions)
+      if (plan.steps.length) { plans.push({ finding: item, plan }); continue }
+    }
+    rest.push(item.id)
+  }
+  return { plans, rest }
+}
 
 /** the store calls one plan needs; the caller takes the undo snapshot */
 export type FixTarget = {

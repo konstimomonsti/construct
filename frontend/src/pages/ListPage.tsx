@@ -648,8 +648,9 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
     })
   }
   // applies suggested fixes as tracked edits and records them as accepted; one Undo puts back edits and decisions
-  const applyFixes = async (plans: { finding: Finding; plan: FixPlan }[]) => {
-    if (!plans.length || !fixesAvailable || !uploadReport?.run_id) return
+  const applyFixes = async (plans: { finding: Finding; plan: FixPlan }[]): Promise<boolean> => {
+    if (!plans.length) return true
+    if (!fixesAvailable || !uploadReport?.run_id) return false
     let latest: Assessment
     try {
       const response = await fetch(`/api/workspace/analysis?id=${encodeURIComponent(doc.id)}`, { cache: 'no-store' })
@@ -657,15 +658,15 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
       latest = await response.json() as Assessment
     } catch {
       toast('Could not verify the current assessment.', 'error')
-      return
+      return false
     }
     const store = useStore.getState()
     if (latest.report?.run_id !== uploadReport.run_id || !canApplyAssessmentFix(latest, store.edits[doc.id])) {
       toast('The assessment changed. Review the latest findings before applying a fix.', 'error')
-      return
+      return false
     }
     plans = plans.filter(({ finding }) => finding.origin !== 'llm')
-    if (!plans.length) return
+    if (!plans.length) return false
     const beforeEdits = store.edits[doc.id]
     const beforeDecisions = decisionsOf(store.listPatch[doc.id])
     const at = new Date().toISOString()
@@ -688,6 +689,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
         s.patchList(doc.id, { findingDecisions: beforeDecisions, reviewedFindings: Object.keys(beforeDecisions) })
       },
     })
+    return true
   }
   // web suggestions added to several long descriptions at once; Undo restores the edits from before
   const applySuggestions = (changes: { id: string; long: string }[]) => {
