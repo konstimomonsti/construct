@@ -1,12 +1,13 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import { Button, toast } from '../components/ui'
-import { Chips, EmptyState, PageFrame, PageHeader, PaletteKey, PillLink, RowMenu, Section, SortMenu, Summary, ToolButton, heroStatus, worstTone } from '../components/Kit'
+import { Chips, EmptyState, PageFrame, PageHeader, PaletteKey, PillLink, RowMenu, Section, SortMenu, ToolButton, worstTone } from '../components/Kit'
 import { FolderGrid } from '../components/FolderCard'
 import { Dock } from '../components/Dock'
-import { SORT_LABEL, counts, folderPath, useModel, useStore, type FolderView, type SortKey } from '../lib/store'
+import { ProjectCrane } from '../components/project/ProjectCrane'
+import { SORT_LABEL, counts, useModel, useStore, type FolderView, type SortKey } from '../lib/store'
 import { useUi } from '../lib/ui-store'
 import { useActions } from '../lib/actions'
-import { int, money, plural } from '../lib/format'
+import { plural } from '../lib/format'
 
 type View = 'all' | 'attention' | 'unpriced'
 /** a project is as bad as its worst counted list, so a list at its cap flags the project too */
@@ -78,26 +79,17 @@ export function FolderCollection({
     setSel(new Set())
   }
 
-  // the hero total and the cap it is measured against come from the same projects: priced ones with a cap
-  const priced = all.filter((f) => (f.total > 0 || f.priced > 0) && !folderPath(all, f.id).some((x) => x.archived || x.trashedAt))
-  const pricedTotal = priced.reduce((x, f) => x + f.total, 0)
-  const capped = priced.filter((f) => f.cap > 0)
-  // no caps at all: the hero is simply the priced total, with "No cap set"
-  const budget = capped.length ? { total: capped.reduce((x, f) => x + f.total, 0), cap: capped.reduce((x, f) => x + f.cap, 0) } : { total: pricedTotal, cap: 0 }
-  const uncapped = capped.length ? priced.length - capped.length : 0
   const listCount = scoped.reduce((x, f) => x + f.listMetas.length, 0)
   const newProject = () => openDialog({ kind: 'new-folder' })
-  // the hero's exception count is the way in for short lists too, where the chips stay hidden until a filter is on
-  const showAttention = () => {
-    setView('attention')
-    requestAnimationFrame(() => document.getElementById('sec-projects')?.focus())
-  }
+  const showFilters = view !== 'all'
+    || ((withOpenAll || scoped.length > 3) && flagged.length > 0)
+    || (scoped.length > 3 && unpriced.length > 0)
 
   return (
     <PageFrame>
       <PageHeader
         title={title}
-        subtitle={!scoped.length ? undefined : subtitle ?? (scoped.length ? `${plural(scoped.length, 'project', 'projects')} · ${plural(listCount, 'list', 'lists')}` : undefined)}
+        subtitle={scoped.length ? subtitle ?? (withOpenAll ? undefined : `${plural(scoped.length, 'project', 'projects')} · ${plural(listCount, 'list', 'lists')}`) : undefined}
         aside={withOpenAll && scoped.length > 0 ? (
           <div className="flex items-center gap-2">
             <Button variant="primary" icon="upload" onClick={() => openDialog({ kind: 'folder-target', action: 'import' })} aria-label="Import files" className="max-sm:w-10 max-sm:px-0">
@@ -109,28 +101,13 @@ export function FolderCollection({
         ) : undefined}
       />
 
-      {withOpenAll && scoped.length > 0 && (
-        <Summary
-          label={uncapped ? 'Total of priced projects with a cap' : 'Total of priced projects'}
-          amount={money(budget.total)}
-          total={budget.total}
-          cap={budget.cap}
-          capLabel="in project caps"
-          capNote={<span className="num">caps of the same {plural(capped.length, 'project', 'projects')}</span>}
-          subject="Portfolio"
-          status={heroStatus(budget, flagged.map((f) => ({ tone: projectTone(f) })), ['project', 'projects'], { always: true })}
-          onStatus={showAttention}
-          statusAction="show them in Needs attention"
-          meta={uncapped ? <span className="num">{plural(uncapped, 'priced project', 'priced projects')} without a cap · {money(pricedTotal)} across all {int(priced.length)}</span> : undefined}
-        />
-      )}
+      {withOpenAll && scoped.length > 0 && <ProjectCrane />}
 
       {scoped.length ? (
         <Section
           title="Projects"
-          count={folders.length}
-          focusable
-          filters={((scoped.length > 3 && (flagged.length > 0 || unpriced.length > 0)) || view !== 'all') && (
+          count={withOpenAll ? undefined : folders.length}
+          filters={showFilters && (
             <Chips
               label="Filter projects"
               value={view}
