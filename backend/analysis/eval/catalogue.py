@@ -297,7 +297,7 @@ def plan_duplicate(kind: str):
                 new = clone_line(line, code, f"L{code}")
                 new["short_text"] = reword(line["short_text"])
                 new["long_text"] = reword(line["long_text"])
-                expect, also = ["L1.DUP.NEAR_TEXT"], []
+                expect, also = ["L1.DUP.NEAR_TEXT", "L3.DUP.SEMANTIC"], []
                 text = f"{line['code']} copied under the new OZ {code} with reworded texts"
             planted = [{"op": "insert_after", "after_id": line["id"], "line": new}]
             yield Plan(f"DUP-{kind}-{number:02d}", f"DUP-{kind}", text,
@@ -582,7 +582,7 @@ TYPES: list[MutationType] = [
                  plan_unit_dimension),
     MutationType("DUP-NEW-OZ", "Exact duplicate, new OZ", "L1.DUP.SUSPECTED", False, False, plan_duplicate("NEW-OZ")),
     MutationType("DUP-SAME-OZ", "Exact duplicate, same OZ", "L1.CODE.DUPLICATE", False, False, plan_duplicate("SAME-OZ")),
-    MutationType("DUP-REWORDED", "Potential overlap between reworded positions", "L1.DUP.NEAR_TEXT", False, False, plan_duplicate("REWORDED")),
+    MutationType("DUP-REWORDED", "Potential overlap between reworded positions", "L1.DUP.NEAR_TEXT / L3.DUP.SEMANTIC", False, False, plan_duplicate("REWORDED")),
     MutationType("TEXT-TYPO", "Typo in the short text", "L1.TEXT.TYPO (source text or dictionary)", True, False, plan_typo),
     MutationType("TEXT-VAGUE", "Lump sum with open effort", "L1.LUMP.OPEN_SCOPE", False, False, plan_vague),
     MutationType("TEXT-CONFLICT-CLASS", "Concrete class differs in the long text",

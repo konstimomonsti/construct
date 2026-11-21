@@ -123,7 +123,7 @@ def test_gaps_and_controls_are_labelled(seed_doc):
     plans = catalogue.plan_all(seed_doc, 1, 1)
     by_type = {p.type: p for p in plans}
     assert by_type["TEXT-TYPO"].label["gap"] is True and by_type["TEXT-TYPO"].label["expect"]
-    assert by_type["DUP-REWORDED"].label["expect"] == ["L1.DUP.NEAR_TEXT"]
+    assert by_type["DUP-REWORDED"].label["expect"] == ["L1.DUP.NEAR_TEXT", "L3.DUP.SEMANTIC"]
     for name in ("TEXT-CONFLICT-CLASS", "TEXT-CONFLICT-DN"):
         assert by_type[name].label["gap"] is False
     for name in ("TEXT-CONFLICT-CLASS", "TEXT-CONFLICT-DN"):

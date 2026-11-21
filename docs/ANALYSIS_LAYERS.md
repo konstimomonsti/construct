@@ -148,7 +148,7 @@ review, never an automatic change.
 | `L3.UNIT.SEMANTIC_MISMATCH` | Unit doesn't fit what the item is ("Bodenfliesen verlegen" in `St`, "Rohrleitung" in `m²`) when the text states no unit | Needs to understand the item |
 | `L3.QTY.IMPLAUSIBLE` | Quantity implausible for the item (50 × "Baustelleneinrichtung", 0.5 m² of facade, 10 000 h) | Needs domain sense |
 | `L3.TEXT.UNDERSPECIFIED` | Item can't be priced from its text: no dimensions, material, class or thickness where they're needed | Judgement |
-| `L3.DUP.SEMANTIC` | Same work with different wording, or overlapping scope (an item "inkl. Schalung" plus a separate formwork item) | Paraphrase |
+| `L3.DUP.SEMANTIC` | Closely related positions with different wording that may cover the same work | Paraphrase |
 | `L3.STRUCT.WRONG_TRADE` | Item placed in an unrelated section or trade | Semantics |
 | `L3.TEXT.REFERENCE_UNRESOLVED` | "Leistung wie Position …", "wie vor", "gemäß Pos. …" pointing at a missing or different item | Reference resolution |
 | `L3.REVIEW.L2_CONFIRM` | Re-check each layer 2 finding against the full texts: is the dependency included in another line ("inkl. Randdämmstreifen"), excluded ("bauseits"), or really missing? Downgrade or confirm with a reason | Reduces layer 2 false positives |
@@ -254,6 +254,12 @@ order in which the call budget is spent (`checks/__init__.py`):
   quantity and unit only; sections with fewer than 2 quantified lines are skipped); lines with a layer 1
   error on quantity or unit are left out. Quantities use a decimal point without grouping or padding.
   A finding needs a numeric comparison in a compatible unit that differs from the source quantity.
+
+- **`L3.DUP.SEMANTIC`** (warning, `checks/overlap.py`). The check compares similar titles and descriptions
+  within a section when quantities, units, and stated numeric values agree. It keeps explicit cable,
+  documentation, paving-layer, and reducer variants separate. The finding requires a work quote from
+  each position, includes both source locations, and asks the reviewer to compare the approved takeoff.
+  Dimension contradictions likewise require two stated measurements that differ after unit conversion.
 
 Infrastructure:
 

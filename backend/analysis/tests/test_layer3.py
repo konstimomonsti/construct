@@ -108,7 +108,7 @@ def test_contradiction_found_with_verified_quotes():
     assert finding.evidence["short_quote"] == "DN 150" and finding.evidence["long_quote"] == "DN 200"
     assert finding.evidence["confidence"] == MAX_CONFIDENCE
     assert finding.evidence["prompt_version"].startswith("l3-contradiction-")
-    assert finding.suggested_fix is None
+    assert finding.suggested_fix.operations == [] and "drawings" in finding.suggested_fix.rationale
 
 
 def test_prefilter_sends_only_lines_with_values_and_two_texts():
@@ -381,6 +381,23 @@ def test_l2_confirm_sends_triggers_and_section_neighbours_only():
     codes = {item["code"] for r in confirm_requests
              for item in json.loads(r.prompt.split("\n\n", 1)[1])["items"]}
     assert "01.0020" in codes and "02.0010" not in codes
+
+
+@pytest.mark.parametrize("text,expected", [
+    ("Flachdecke herstellen, Beton C30/37 liefern.", False),
+    ("Flachdecke mit d = 240 mm herstellen.", False),
+    ("Flachdecke mit d = 22 cm herstellen.", True),
+])
+def test_dimension_contradiction_requires_two_different_stated_lengths(text, expected):
+    analysis_input = from_data({"lines": [
+        {"id": "a", "code": "01", "short_text": "Stahlbetondecke, d = 24 cm", "long_text": text},
+    ]})
+    findings = {"findings": [{"line_ref": "#1", "property": "thickness", "short_quote": "d = 24 cm",
+                              "long_quote": text, "message": "Thickness differs.", "confidence": 0.8}]}
+    result = by_rule(run3(analysis_input, FakeProvider([findings]))[0], CONTRA)
+    assert bool(result) is expected
+    if expected:
+        assert result[0].suggested_fix.rationale
 
 
 def test_no_l2_findings_means_no_l2_calls():

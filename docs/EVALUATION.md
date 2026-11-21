@@ -39,6 +39,12 @@ All 15 pricing ambiguities and 12 of 15 overlaps were caught. The other overlaps
 verb changes or a different named work item. The check requires comparable written rates and matching
 technical qualifiers. No false alarms were recorded on these runs.
 
+The Layer 3 overlap check recovered the three misses in those alternate seeds. A targeted full-pipeline
+replay of the two distinct missed examples in X83 and JSON found all four planted positions. Both clean
+controls completed with zero findings. Three false overlap warnings on the real StBALV23040 award led to
+source checks for the named cable families and documentation deliverables. The Layer 3 rerun also keeps
+the original tender variants for concentric and eccentric reducers separate.
+
 The optional spelling profile used the LibreOffice German Hunspell dictionary. It caught all 15 title typos across three additional X83 mutation seeds with zero false alarms in those runs. Four representative
 corrections were checked against their original GAEB item, GAEB 90 record or PDF page and against the
 unchanged text carried in each proposed edit. These spot checks do not establish overall spelling

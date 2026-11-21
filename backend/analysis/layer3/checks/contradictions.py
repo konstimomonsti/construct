@@ -5,6 +5,8 @@ from __future__ import annotations
 import re
 
 from ...contracts import Line
+from ...layer1.common import review_fix
+from ...layer1.textvalues import MEASURE, centimetres
 from ...registry import rule
 from .. import prompts
 from ..common import batches, clip, current, l1_error_fields, line_label
@@ -13,6 +15,9 @@ from ..schema import CONTRADICTION_SCHEMA, ContradictionItem, clamp_confidence, 
 
 RULE_ID = "L3.TEXT.SHORT_LONG_CONTRADICTION"
 L1_VALUE_CONFLICT = "L1.TEXT.VALUE_CONFLICT"  # layer 1 already reported a conflict on the line: don't repeat
+_DIMENSION_PROPERTY = re.compile(r"\b(?:thickness|dimension[s]?|height|length|width|depth|dicke|höhe|länge|breite|tiefe)\b", re.I)
+_LENGTH = re.compile(MEASURE, re.I)
+
 
 # Short texts worth checking carry a value: a number (DN 150, 12,5 mm, C25/30) or a material.
 _MATERIAL = re.compile(
@@ -79,6 +84,11 @@ def _finding(ctx, session, line: Line, item: ContradictionItem):
     short_value, long_value = normalize(item.short_quote), normalize(item.long_quote)
     if short_value == long_value or short_value in long_value:
         return None
+    if _DIMENSION_PROPERTY.search(item.property):
+        brief = {centimetres(match[1], match[2]) for match in _LENGTH.finditer(short_value)}
+        detail = {centimetres(match[1], match[2]) for match in _LENGTH.finditer(long_value)}
+        if not brief or not detail or brief & detail:
+            return None
     # The long text also states the short-text value: probably two parts of one item, not a conflict.
     also_in_long = quote_in(item.short_quote, line.long_text)
     confidence = clamp_confidence(item.confidence) if not also_in_long else min(clamp_confidence(item.confidence), 0.3)
@@ -92,4 +102,6 @@ def _finding(ctx, session, line: Line, item: ContradictionItem):
         evidence={"property": item.property.strip(), "short_quote": item.short_quote.strip(),
                   "long_quote": item.long_quote.strip(), "long_text_also_has_short_value": also_in_long,
                   "confidence": confidence, "prompt_version": prompts.CONTRADICTION_VERSION},
+        suggested_fix=review_fix("Confirm the intended specification in the drawings or tender schedule, "
+                                 "then align both descriptions or identify which component each value describes."),
     )
