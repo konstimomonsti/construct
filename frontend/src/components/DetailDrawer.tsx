@@ -269,7 +269,7 @@ export function DetailDrawer({
                   )}
                 </div>
                 <div className="border-y border-slate-200 py-4">
-                  <div className="text-sm font-medium text-slate-600">{projected != null ? 'Projected GP' : 'Gesamtpreis (GP)'}</div>
+                  <div className="text-sm font-medium text-slate-600">{projected != null ? 'Projected Gesamtpreis' : 'Gesamtpreis'}</div>
                   {projected != null ? (
                     <>
                       {/* not money yet: slate, with a dashed underline like the pending EP in the ledger */}
@@ -371,7 +371,7 @@ export function DetailDrawer({
                       </span>
                       {errOn('qty') && <p id={`${uid}-qty-err`} className="text-[13px] font-medium text-rose-700">Enter a number of 0 or more, like 12,5</p>}
                     </div>
-                    <Labeled label="Einheitspreis (EP)">
+                    <Labeled label="Einheitspreis">
                       <span className="relative block">
                         <input
                           key={`e-${p.up}`}

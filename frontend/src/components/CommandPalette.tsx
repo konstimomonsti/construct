@@ -252,7 +252,7 @@ export function CommandPalette() {
         const project = l ? folderName.get(l.folderId) : undefined
         const where = l ? `in ${displayName(l)}` : null
         // labelled like the ledger's EP and GP columns, with or without a unit
-        const ep = e.up != null ? `EP ${money(e.up)}${e.unit ? ` / ${e.unit}` : ''}` : undefined
+        const ep = e.up != null ? `${money(e.up)}${e.unit ? ` per ${e.unit}` : ''}` : undefined
         return {
           key: `p-${e.listId}-${e.id}`,
           group: 'Positions',
@@ -263,8 +263,8 @@ export function CommandPalette() {
           sub: [e.category, where && project ? `${where} (${project})` : where].filter(Boolean).join(' · '),
           subLocal: [e.category, where].filter(Boolean).join(' · '),
           projectId: l?.folderId,
-          right: !e.priced ? undefined : ep ?? `GP ${money(e.total)}`,
-          rightSub: e.priced && ep ? `GP ${money(e.total)}` : undefined,
+          right: !e.priced ? undefined : ep ?? `Gesamtpreis ${money(e.total)}`,
+          rightSub: e.priced && ep ? `Gesamtpreis ${money(e.total)}` : undefined,
           state: e.priced ? 'Priced' : 'Not priced',
           priced: e.priced,
           score: s,

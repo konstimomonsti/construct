@@ -88,7 +88,7 @@ function PriceCell({ value, onSave, oz, edited, muted, className }: { value: num
         setEdit(true)
       }}
       className={clsx(
-        value != null ? clsx(editableCls, edited ? 'font-semibold text-brand-700' : muted ? 'text-slate-600' : 'text-slate-900') : 'h-9 rounded-lg px-2 text-right text-sm font-semibold text-brand-700 hover:bg-brand-50',
+        value != null ? clsx(editableCls, edited ? 'font-semibold text-brand-700' : muted ? 'text-slate-600' : 'text-slate-900') : clsx(editableCls, 'font-semibold text-brand-700'),
         className ?? 'w-full',
       )}
     >
@@ -101,7 +101,7 @@ function PriceCell({ value, onSave, oz, edited, muted, className }: { value: num
 function PendingPrice({ s, oz, onConfirm, onReview, className }: { s: PriceSuggestion; oz: string; onConfirm: () => void; onReview: () => void; className?: string }) {
   return (
     // the box ends where saved prices end, and the confirm slot is reserved so every pending amount lines up
-    <span className={clsx('flex h-9 items-center justify-end gap-0.5 pr-2', className ?? 'w-full')}>
+    <span className={clsx('flex h-9 items-center justify-end gap-0.5', className ?? 'w-full')}>
       {s.unitKnown ? (
         <button
           type="button"
@@ -180,7 +180,7 @@ const Row = memo(function Row({ listId, p, showCategory, selected, flash, edited
       data-risk={risk?.severity}
       className={clsx(
         'group transition-colors lg:relative',
-        selected ? 'bg-brand-50/70' : 'hover:bg-slate-100',
+        selected ? 'bg-brand-50/70' : risk ? RISK_UI[risk.severity].tint : 'hover:bg-slate-100',
         risk && [RISK_UI[risk.severity].row, 'lg:[&>td]:align-top'],
         flash && 'bg-brand-50 outline-2 -outline-offset-2 outline-brand-300',
       )}
@@ -235,12 +235,12 @@ const Row = memo(function Row({ listId, p, showCategory, selected, flash, edited
         </div>
       </td>
       <td data-a="hide" className={clsx('w-16 py-1 pr-2 pl-1 text-sm leading-9 whitespace-nowrap text-slate-600')}>{p.unit || <span aria-label="no unit">—</span>}</td>
-      <td data-a="hide" className="relative w-[120px] py-1 pr-1 pl-2 text-right">
+      <td data-a="hide" className="relative w-[148px] py-1 pr-1 pl-2 text-right">
         <EditDot on={upEdited} />
         {price()}
       </td>
-      {/* desktop GP sits under the "GP (€)" header; cards have no header, so they carry the € */}
-      <td data-a="total" className={clsx('num w-32 py-1 pr-2 pl-2 text-right lg:pr-0 text-sm whitespace-nowrap lg:[@media(hover:hover)]:transition-[padding] lg:[@media(hover:hover)]:group-focus-within:pr-12 lg:[@media(hover:hover)]:group-hover:pr-12 lg:[@media(hover:hover)]:group-has-[[aria-expanded=true]]:pr-12', suggested || p.up == null || zero ? 'text-slate-600' : 'font-medium text-slate-900')}>
+      {/* desktop totals sit under the "Gesamtpreis (€)" header; cards have no header, so they carry the € */}
+      <td data-a="total" className={clsx('num w-36 py-1 pr-2 pl-2 text-right lg:pr-0 text-sm whitespace-nowrap lg:[@media(hover:hover)]:transition-[padding] lg:[@media(hover:hover)]:group-focus-within:pr-12 lg:[@media(hover:hover)]:group-hover:pr-12 lg:[@media(hover:hover)]:group-has-[[aria-expanded=true]]:pr-12', suggested || p.up == null || zero ? 'text-slate-600' : 'font-medium text-slate-900')}>
         <span className="inline-flex h-9 items-center justify-end">
           {suggested ? <><Icon name="schedule" size={16} className="mr-1 text-slate-500" />Pending</> : p.up == null ? 'Not priced' : zero ? <>{amount(0)}<span className="lg:hidden">&nbsp;€</span></> : <>{amount(total)}<span className="lg:hidden">&nbsp;€</span></>}
         </span>
@@ -424,10 +424,10 @@ export function LedgerTable({
 Menge
             </th>
             <th scope="col" className={clsx('w-16 py-2 pr-2 pl-1 font-medium', !visible.length && 'text-transparent')}>Einheit</th>
-            <th scope="col" className={clsx('w-[120px] py-2 pr-3 pl-2 text-right font-medium', !visible.length && 'text-transparent')}>
-EP (€)
+            <th scope="col" className={clsx('w-[148px] py-2 pr-3 pl-2 text-right font-medium', !visible.length && 'text-transparent')}>
+Einheitspreis (€)
             </th>
-            <th scope="col" className="w-32 py-2 pr-2 pl-2 text-right font-medium lg:pr-0">GP (€)</th>
+            <th scope="col" className="w-36 py-2 pr-2 pl-2 text-right font-medium lg:pr-0">Gesamtpreis (€)</th>
             <th scope="col" className="w-11 py-2 pr-1 lg:[@media(hover:hover)]:w-0 lg:[@media(hover:hover)]:p-0"><span className="sr-only">Actions</span></th>
           </tr>
         </thead>

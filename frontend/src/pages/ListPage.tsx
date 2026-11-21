@@ -234,7 +234,7 @@ function AddItemDialog({ open, onClose, listId, tree, positions }: { open: boole
           <Field label="Kurztext"><input data-autofocus className={inputCls} value={f.short} onChange={set('short')} maxLength={200} /></Field>
         </div>
         <Field label="Menge"><input inputMode="decimal" className={`${inputCls} num`} value={f.qty} onChange={set('qty')} /></Field>
-        <Field label="Einheitspreis (EP, €)"><input inputMode="decimal" className={`${inputCls} num`} value={f.up} onChange={set('up')} placeholder="optional" /></Field>
+        <Field label="Einheitspreis (€)"><input inputMode="decimal" className={`${inputCls} num`} value={f.up} onChange={set('up')} placeholder="optional" /></Field>
         <div className="col-span-2">
           <Field label="Kategorie">
             <select className={inputCls} value={f.cat} onChange={set('cat')}>
