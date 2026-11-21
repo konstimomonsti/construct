@@ -67,6 +67,8 @@ def finding_matches(label: dict, finding: dict) -> bool:
         return False
     if target.get("bidder_question") and not finding.get("has_bidder_question"):
         return False
+    if target.get("guidance") and finding.get("guidance") != target["guidance"]:
+        return False
     if target.get("family") and finding.get("family") != target["family"]:
         return False
     if target.get("reason") and finding.get("reason") != target["reason"]:

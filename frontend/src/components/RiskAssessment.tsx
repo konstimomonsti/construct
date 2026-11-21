@@ -70,6 +70,7 @@ function FindingEvidence({ finding }: { finding: Finding }) {
   const candidateCount = evidence?.position_candidate_count ?? positionCandidates.length
   const sourceField = (field?: string) => field === 'short_text' ? ' in heading' : field === 'long_text' ? ' in detail' : ''
   const quantityCheck = evidence?.quantity_check
+  const specificationConflicts = evidence?.specification_conflicts ?? []
   const scopeStatements = evidence?.scope_statements ?? []
   const quotes = [
     ['Requirement' + sourceField(evidence?.requirement_field), evidence?.requirement_quote],
@@ -79,11 +80,11 @@ function FindingEvidence({ finding }: { finding: Finding }) {
     ['Heading', concrete ? evidence.short_quote : undefined],
     ['Detail', concrete ? evidence.long_quote : undefined],
   ].filter(([, quote]) => !!quote)
-  if (!source && !din && !standard && !requirement && !declarations.length && !requirements.length && !extracted.length && !quotes.length && !scopeStatements.length && !quantityCheck) return null
+  if (!source && !din && !standard && !requirement && !declarations.length && !requirements.length && !extracted.length && !quotes.length && !scopeStatements.length && !specificationConflicts.length && !quantityCheck) return null
   const show = (v: unknown) => (v === null || v === undefined || v === '' ? '—' : Array.isArray(v) ? v.join(', ') || '—' : String(v))
   return (
     <div className="mt-2 space-y-2 text-[13px]">
-      {source && <p className="text-slate-700">{source}</p>}
+      {source && !specificationConflicts.length && <p className="text-slate-700">{source}</p>}
       {din && (
         <p className="flex flex-wrap gap-x-3 gap-y-1 text-slate-700">
           <span className="font-semibold text-slate-900">DIN 1045-2</span>
@@ -101,6 +102,18 @@ function FindingEvidence({ finding }: { finding: Finding }) {
             </div>
           ))}
         </dl>
+      )}
+      {specificationConflicts.length > 0 && (
+        <ul className="space-y-2 text-slate-700">
+          {specificationConflicts.map((conflict) => (
+            <li key={conflict.finding_id}>
+              {conflict.line_code && <span className="mr-2 font-medium text-slate-900">Position {conflict.line_code}</span>}
+              {sourceLabel(conflict.source_locator)}
+              {conflict.short_quote && <div>Heading <q className="break-words">{conflict.short_quote}</q></div>}
+              {conflict.long_quote && <div>Detail <q className="break-words">{conflict.long_quote}</q></div>}
+            </li>
+          ))}
+        </ul>
       )}
       {scopeStatements.length > 0 && (
         <ul className="space-y-1 text-slate-700">

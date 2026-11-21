@@ -668,6 +668,41 @@ def generate_fix_planning(out):
         _write_offer_tables(out, name, screed, "Ausbau", additional=(water,))
 
 
+def generate_dependency_specification(out):
+    """Exercise a cable in conflict as the trigger and as dependency coverage."""
+    out.mkdir(parents=True, exist_ok=True)
+    socket = Item("01.0010", "Schutzkontaktsteckdose 230 V", 3, "St",
+                  detail="Einschließlich Gerätedosen, RCD, Erstprüfung und Revisionsunterlagen.")
+    prefix = "L2.ELEC."
+    for name, size, routing in (("spec-clean", "3 x 1,5", " Inkl. Kabelrinne und Kabelanschluss."),
+                                ("spec-conflict", "5 x 2,5", "")):
+        cable = Item("01.0020", "PVC-Mantelleitung NYM-J 3 x 1,5 mm²", 25, "m",
+                     detail=f"Kabeltyp: NYM-J {size} mm².{routing}")
+        locators = _write_text_case(out, name, "Leistungsverzeichnis Elektro", socket, "spec", additional=(cable,))
+        locators.update(_write_offer_tables(out, name, socket, "Elektro", additional=(cable,)))
+        for ext, locator in locators.items():
+            locator = dict(locator)
+            if "row" in locator:
+                locator["row"] += 1
+            if "source_id" in locator:
+                locator["source_id"] = "spec-item-2"
+            if name == "spec-clean":
+                labels = [{"control": True, "layers": [1, 2], "expect": []}]
+            else:
+                labels = [
+                    {"layers": [1], "match": "line", "expect": ["L1.TEXT.VALUE_CONFLICT"],
+                     "target": {"line_codes": [cable.code], "family": "cable_conductors",
+                                "source_locator": locator, "bidder_question": True}},
+                ]
+                for rule_id, trigger in (("INSTALLATION_NEEDS_INSTALLATION_CABLE", socket.code),
+                                         ("CABLING_NEEDS_CABLE_ROUTING", cable.code),
+                                         ("CABLING_NEEDS_CABLE_TERMINATION", cable.code)):
+                    labels.append({"layers": [2], "match": "dependency", "expect": [prefix + rule_id],
+                                   "target": {"trigger_codes": [trigger], "severity": "info", "source_locator": locator,
+                                              "reason": "specification_not_assessable", "guidance": "review"}})
+            write_fixture_labels(out / f"{name}.{ext}", f"spec-clean.{ext}", *labels)
+
+
 def generate_grade_scope(out):
     """Test concrete grade conflicts, legitimate component differences and unclear attribution."""
     out.mkdir(parents=True, exist_ok=True)
@@ -783,7 +818,8 @@ if __name__ == "__main__":
               "written-quantities": generate_written_quantities, "underspecification": generate_underspecification,
               "fire-door-scope": generate_fire_door_scope, "fire-door-products": generate_fire_door_products,
               "fire-door-installation": generate_fire_door_installation,
-              "cable-designations": generate_cable_designations, "fix-planning": generate_fix_planning}
+              "cable-designations": generate_cable_designations, "fix-planning": generate_fix_planning,
+              "dependency-specification": generate_dependency_specification}
     parser.add_argument("--suite", choices=suites, default="tabular")
     args = parser.parse_args()
     suites[args.suite](args.out)

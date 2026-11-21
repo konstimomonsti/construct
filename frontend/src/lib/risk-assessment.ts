@@ -29,6 +29,10 @@ export type Evidence = {
   family?: string
   short_quote?: string
   long_quote?: string
+  specification_conflicts?: {
+    finding_id: string; line_code?: string | null; source_locator?: SourceLocator | null
+    short_quote?: string | null; long_quote?: string | null
+  }[]
   scope_statements?: { line_id: string; line_code?: string | null; role: string; quote: string }[]
   quantity_check?: { state: CoverageCheckState; unit?: string | null; minimum_shortfall?: string | null; quantity?: string | null }
   requirement_quote?: string

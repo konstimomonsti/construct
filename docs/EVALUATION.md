@@ -140,6 +140,12 @@ The bid simulator reuses the stored assessment of the original tender. On the sa
 
 A preliminary pass on the repository sanitary and screed PDFs and the Word bill linked all 246 positions. For the screed bill, the checker asks whether skirting belongs in another package. In the Word source, paragraphs 3 and 16 specify the units for positions 1.1.20 and 2.3.10 and leave their quantities blank. Verify them against the takeoff before entering values. These observations cover selected findings. Independent review still needs to judge the full set of findings, missed errors, and applicable DIN clauses.
 
+### Unresolved cable specifications in dependency checks
+
+Layer 2 uses the Layer 1 conductor conflict when checking installation cable coverage, routing, and termination. If a contradictory position is the only candidate, the dependency review links to the conflicting heading and detail and asks the reviewer to confirm the cable schedule before adding or replacing work. A firm independent candidate can still establish coverage within the same assessment scope. An explicit position reference into a contradictory item remains open. The Layer 3 dependency review leaves these source conflicts to the estimator.
+
+Generate with `--suite dependency-specification` and replay `spec-*.{pdf,docx,X83,json,csv,tsv,xlsx,xls}`. The replay caught eight conductor conflicts and 24 dependency reviews with no proposed edits, and cleared eight controls. The local three-layer replay matched all 12 labelled findings and cleared three controls. Tests also exercise room allocations and a synthetic socket paired with the original roadworks cable wording. Changing that cable's detail kept the dependent review anchored to record 4276.
+
 ### Applying dependency fixes to the editable BOM
 
 The X83 warnings panel plans bulk edits together and assigns distinct position numbers to eligible additions. Suggestions without a confirmed quantity or unit remain open for review, as do additions that need room allocations. A measured addition uses the assessed quantities, units and scope. If the working list has changed in those fields, the planner directs the reviewer to confirm the remaining work before adding a position. Direct fixes with a stale field or an incomplete set of operations also stay open.

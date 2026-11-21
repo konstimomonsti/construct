@@ -43,6 +43,8 @@ class DependencySpec(BaseModel):
     suggested_text: str | None = Field(default=None, alias="SuggestedText")
     # Unit of a proposed line when the quantity can't be derived (Boolean checks), e.g. "m" for skirting.
     suggested_unit: str | None = Field(default=None, alias="SuggestedUnit")
+    # Layer 1 value conflicts that make this dependency's trigger or coverage unreliable.
+    specification_families: tuple[str, ...] = Field(default=(), alias="SpecificationFamilies")
     # "info" for items that are usually tendered in another package (RCD protection in the
     # distribution board, emergency lighting, window sills), so a gap is a question, not a warning.
     severity: Literal["warning", "info"] = Field(default="warning", alias="Severity")

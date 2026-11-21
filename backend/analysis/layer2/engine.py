@@ -136,6 +136,17 @@ def _blocked_lines(prior_findings: list[Finding]) -> set[str]:
             and finding.target.field in {"quantity", "unit"}}
 
 
+def _specification_conflicts(prior_findings):
+    families = defaultdict(list)
+    for finding in prior_findings:
+        family = finding.evidence.get("family")
+        if (finding.layer == 1 and finding.rule_id == "L1.TEXT.VALUE_CONFLICT"
+                and finding.severity in {"warning", "error"} and finding.status == "open"
+                and finding.target.line_id and isinstance(family, str)):
+            families[family].append(finding)
+    return families
+
+
 # Dimensions a quantity can be measured in. A matched line measured in another one of these is a
 # different kind of item (insulation shells in pieces next to insulation in metres, stair treads in
 # pieces next to tiles in m²) and is left out of the comparison. Lump sums, composite and unknown
@@ -149,7 +160,7 @@ def _other_dimension(line_unit: str | None, unit: str) -> bool:
     return line_dimension in _MEASURED and line_dimension != shared_dimension(unit)
 
 
-def _quantity(entries: list[Entry], unit: str, blocked: set[str]) -> tuple[Decimal, list[dict], list[dict]]:
+def _quantity(entries: list[Entry], unit: str, blocked: set[str], conflicted: set[str]) -> tuple[Decimal, list[dict], list[dict]]:
     total = Decimal(0)
     problems = []
     skipped = []
@@ -160,6 +171,8 @@ def _quantity(entries: list[Entry], unit: str, blocked: set[str]) -> tuple[Decim
             continue
         if entry.line.id in blocked:
             reason = "layer1_quantity_or_unit_error"
+        elif entry.line.id in conflicted:
+            reason = "layer1_specification_conflict"
         elif entry.allocation_unreliable:
             reason = "incomplete_or_inconsistent_distribution"
         elif entry.quantity is None or entry.quantity <= 0:
@@ -204,7 +217,8 @@ def _proposal(dep: DependencySpec, triggers: list[Entry], context: Context,
 
 def _evaluate(input: AnalysisInput, rule: RuleSpec, dep: DependencySpec, triggers: list[Entry],
               matches: list[Entry], context: Context, tolerance: Decimal,
-              blocked: set[str], unassigned_candidates: list[str], scope_statements: list[dict]) -> Finding | None:
+              blocked: set[str], unassigned_candidates: list[str], scope_statements: list[dict],
+              spec_conflicts: list[Finding]) -> Finding | None:
     target = context.target.model_copy(update={"field": "quantity" if dep.check_type == "QuantityMatch" else None})
     rule_id = f"{rule.rule_id}_NEEDS_{dep.key}"
     evidence = {
@@ -218,7 +232,12 @@ def _evaluate(input: AnalysisInput, rule: RuleSpec, dep: DependencySpec, trigger
         "trigger_items": [{"id": entry.line.id, "code": entry.line.code,
                            "short_text": entry.line.short_text} for entry in triggers],
     }
-    trigger_unreliable = any(entry.line.id in blocked or entry.allocation_unreliable
+    involved = {entry.line.id: entry.line for entry in triggers + matches
+                if dep.check_type == "Boolean" or not _other_dimension(entry.line.unit, dep.quantity_unit)}
+    conflicts = [finding for finding in spec_conflicts if finding.target.line_id in involved]
+    conflicted = {finding.target.line_id for finding in conflicts}
+    unavailable = blocked | conflicted
+    trigger_unreliable = any(entry.line.id in unavailable or entry.allocation_unreliable
                              for entry in triggers)
     unresolved_reference = any(item["role"] == "reference" for item in scope_statements)
     severity = "warning"
@@ -226,7 +245,7 @@ def _evaluate(input: AnalysisInput, rule: RuleSpec, dep: DependencySpec, trigger
     if dep.check_type == "Boolean":
         if matches:
             if not unresolved_reference and not all(
-                entry.line.id in blocked or entry.allocation_unreliable for entry in matches
+                entry.line.id in unavailable or entry.allocation_unreliable for entry in matches
             ):
                 return None
             reason = "dependency_not_assessable"
@@ -238,10 +257,10 @@ def _evaluate(input: AnalysisInput, rule: RuleSpec, dep: DependencySpec, trigger
                 severity = "info"
             message = f"No {dep.name.lower()} was found for {rule.category.lower()} in {context.label}."
         evidence["unreliable_trigger_line_ids"] = [entry.line.id for entry in triggers
-                                                    if entry.line.id in blocked or entry.allocation_unreliable]
+                                                    if entry.line.id in unavailable or entry.allocation_unreliable]
     else:
-        trigger_qty, trigger_problems, trigger_skipped = _quantity(triggers, dep.quantity_unit, blocked)
-        dependency_qty, dependency_problems, dependency_skipped = _quantity(matches, dep.quantity_unit, blocked)
+        trigger_qty, trigger_problems, trigger_skipped = _quantity(triggers, dep.quantity_unit, blocked, conflicted)
+        dependency_qty, dependency_problems, dependency_skipped = _quantity(matches, dep.quantity_unit, blocked, conflicted)
         threshold = trigger_qty * (Decimal(1) - tolerance)
         evidence.update({
             "quantity_unit": dep.quantity_unit, "tolerance_pct": str(tolerance),
@@ -293,6 +312,19 @@ def _evaluate(input: AnalysisInput, rule: RuleSpec, dep: DependencySpec, trigger
         evidence["unclarified_trigger_line_ids"] = [entry.line.id for entry in uncertain]
         message = (f"Review the stated scope of {dep.name.lower()} in {context.label}. "
                    "Confirm which positions and quantities require coverage in this package.")
+    if conflicts:
+        severity = "info"
+        reason = "specification_not_assessable"
+        evidence["specification_conflicts"] = [
+            {"finding_id": finding.id, "rule_id": finding.rule_id, "line_id": finding.target.line_id,
+             "line_code": involved[finding.target.line_id].code, "source_locator": finding.source_locator,
+             "short_quote": finding.evidence.get("short_quote"), "long_quote": finding.evidence.get("long_quote")}
+            for finding in conflicts
+        ]
+        codes = ", ".join(dict.fromkeys(item["line_code"] or item["line_id"]
+                                        for item in evidence["specification_conflicts"]))
+        message = (f"Review the conflicting specification at {codes} before verifying "
+                   f"{dep.name.lower()} in {context.label}.")
     if unassigned_candidates:
         message += " Matching unassigned items may cover this area; confirm their allocation."
     evidence["reason"] = reason
@@ -304,12 +336,13 @@ def _evaluate(input: AnalysisInput, rule: RuleSpec, dep: DependencySpec, trigger
                     "or provided by others.")
     elif severity == "warning":
         message += " Confirm this work is included in the reviewed package."
-    title = (f"Confirm scope: {dep.name}" if scope_statements else
+    title = (f"Confirm specification: {dep.name}" if conflicts else
+             f"Confirm scope: {dep.name}" if scope_statements else
              f"Quantity cannot be verified: {dep.name}" if reason.endswith("not_assessable") else
              f"{'Missing' if reason == 'missing' else 'Insufficient'} {dep.name.lower()}")
     related = list(dict.fromkeys([entry.line.id for entry in triggers + matches]
                                  + [item["line_id"] for item in scope_statements]))
-    if rule.rule_id.startswith("L2.PRECAST.") or scope_statements:
+    if not conflicts and (rule.rule_id.startswith("L2.PRECAST.") or scope_statements):
         codes = ", ".join(dict.fromkeys(entry.line.code or entry.line.id for entry in triggers))
         evidence["bieterfrage_de"] = (
             f"Zu Pos. {codes}: Bitte bestätigen Sie den Leistungsumfang für "
@@ -320,8 +353,11 @@ def _evaluate(input: AnalysisInput, rule: RuleSpec, dep: DependencySpec, trigger
         id=finding_id(rule_id, target), layer=2, rule_id=rule_id,
         category="dependency", severity=severity, scope=context.scope, target=target,
         related_line_ids=related, title=title, message=message, evidence=evidence,
-        source_locator=scope_statements[0]["source_locator"] if scope_statements else None,
-        suggested_fix=(review_fix("Check the quoted responsibility or cross-reference. Confirm the included scope "
+        source_locator=(conflicts[0].source_locator if conflicts else
+                        scope_statements[0]["source_locator"] if scope_statements else None),
+        suggested_fix=(review_fix("Resolve the cited specification against the governing schedule, then reassess "
+                                  "coverage before adding or replacing a position.") if conflicts else
+                       review_fix("Check the quoted responsibility or cross-reference. Confirm the included scope "
                                   "and quantities before adding a separate line.") if scope_statements else
                        _proposal(dep, triggers, context, proposed_quantity, proposal_eligible)),
     )
@@ -339,6 +375,7 @@ def run(input: AnalysisInput, prior_findings: list[Finding], *,
     if not tolerance.is_finite() or not Decimal(0) <= tolerance < Decimal(1):
         raise ValueError("Tolerance must be a fraction >= 0 and < 1 (0.10 means 10%)")
     blocked = _blocked_lines(prior_findings)
+    specs_by_family = _specification_conflicts(prior_findings)
     contexts = _contexts(input, scope)
     rules = load_rules() if rules is None else rules
     texts = {line.id: _text(line) for line in input.lines}
@@ -356,14 +393,15 @@ def run(input: AnalysisInput, prior_findings: list[Finding], *,
         exclude_pattern = compile_regex(rule.exclude_regex) if rule.exclude_regex else None
         dependency_patterns = [(dep, compile_regex(dep.regex),
                                 compile_regex(dep.trigger_regex) if dep.trigger_regex else None,
-                                compile_regex(dep.exclude_regex) if dep.exclude_regex else None)
+                                compile_regex(dep.exclude_regex) if dep.exclude_regex else None,
+                                [finding for family in dep.specification_families for finding in specs_by_family[family]])
                                for dep in rule.dependencies]
         for context in contexts:
             triggers = [entry for entry in context.entries
                         if _is_trigger(trigger_texts[entry.line.id], trigger_pattern, exclude_pattern)]
             if not triggers:
                 continue
-            for dep, pattern, condition, dep_exclude in dependency_patterns:
+            for dep, pattern, condition, dep_exclude, spec_conflicts in dependency_patterns:
                 relevant_triggers = [entry for entry in triggers
                                      if (condition is None or condition.search(trigger_texts[entry.line.id]))
                                      and not (dep_exclude and dep_exclude.search(trigger_texts[entry.line.id]))]
@@ -373,8 +411,9 @@ def run(input: AnalysisInput, prior_findings: list[Finding], *,
                 source_scope = [item for entry in candidates for item in statements(entry.line, pattern, source_format)]
                 withheld = {item["line_id"] for item in source_scope if item["role"] != "included"}
                 matches = [entry for entry in candidates if entry.line.id not in withheld]
+                unavailable = blocked | {finding.target.line_id for finding in spec_conflicts}
                 counted_ids = {entry.line.id for entry in matches
-                               if entry.line.id not in blocked and not entry.allocation_unreliable
+                               if entry.line.id not in unavailable and not entry.allocation_unreliable
                                and (dep.check_type != "QuantityMatch" or (
                                    entry.quantity is not None and entry.quantity > 0
                                    and convert(entry.quantity, entry.line.unit, dep.quantity_unit) is not None
@@ -395,7 +434,7 @@ def run(input: AnalysisInput, prior_findings: list[Finding], *,
                                          if context.scope == "area" else [])
                 finding = _evaluate(input, rule, dep, relevant_triggers, matches, context,
                                     dep.tolerance if dep.tolerance is not None else tolerance,
-                                    blocked, unassigned_candidates, scope_statements)
+                                    blocked, unassigned_candidates, scope_statements, spec_conflicts)
                 if finding:
                     findings.append(finding)
     return findings
