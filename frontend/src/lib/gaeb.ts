@@ -16,10 +16,15 @@ export interface Position {
   category: string
   group?: string
   lumpSum?: boolean
+  /** A missing original quantity uses a table placeholder until the user supplies one. */
+  quantityMissing?: boolean
+  totalRule?: 'unit_price_only' | 'conditional'
   /** full category chain root→leaf (OZ prefix + label), e.g. [{oz:'1',label:'Bereich 1'},{oz:'1.1',label:'Abschnitt'}] */
   path?: CategoryRef[]
   /** source-specific ids for lossless same-format export (GAEB XML Item ID, GAEB90 first record line no., PDF page) */
   srcRef?: string
+  /** Explicit identity maintained across revisions of a confirmed package. */
+  positionKey?: string
 }
 
 export interface CategoryRef {
@@ -179,17 +184,23 @@ export function parseGaebXml(xml: string): ParsedList {
       const shortText = outline ? richToText(outline).replace(/\n+/g, ' ') : firstLine(longText)
       const qtyRaw = tag(body, 'Qty')
       const upRaw = tag(body, 'UP')
+      const quantity = qtyRaw == null || !qtyRaw.trim() ? NaN : Number(qtyRaw)
+      const rate = upRaw == null || !upRaw.trim() ? NaN : Number(upRaw)
+      const provisional = tag(body, 'Provis')
       out.positions.push({
         id: `p${n++}`,
         oz,
         short: shortText || '(ohne Kurztext)',
         long: clipLong(longText && longText !== shortText ? longText : undefined),
-        qty: qtyRaw ? parseFloat(qtyRaw) || 0 : 0,
+        qty: Number.isFinite(quantity) ? quantity : 0,
+        quantityMissing: !Number.isFinite(quantity) || undefined,
         unit: decodeEntities(tag(body, 'QU') ?? '').trim(),
-        up: upRaw ? parseFloat(upRaw) : null,
+        up: Number.isFinite(rate) ? rate : null,
         category: stack[stack.length - 1]?.label || 'Allgemein',
         group: stack[0]?.label,
         lumpSum: /<LumpSumItem>Yes<\/LumpSumItem>/.test(body) || undefined,
+        totalRule: provisional === 'WithoutTotal' ? 'unit_price_only'
+          : provisional || tag(body, 'AltItem') ? 'conditional' : undefined,
         path: stack.map((s) => ({ oz: s.node.oz, label: s.label })),
         srcRef: attrs.match(/\bID="([^"]*)"/)?.[1],
       })
@@ -304,18 +315,21 @@ export function parseGaeb90(text: string): ParsedList {
       }
       case '21': {
         const oz = formatOz(l.slice(2, 11), mask)
-        const qty = parseInt(l.slice(23, 34).trim() || '0', 10) / 1000
+        const qtyRaw = l.slice(23, 34).trim()
+        const qty = /^[+-]?\d+$/.test(qtyRaw) ? Number(qtyRaw) / 1000 : NaN
         const unit = l.slice(34, 38).trim()
         current = {
           id: `p${n++}`,
           oz,
           short: '',
           qty: Number.isFinite(qty) ? qty : 0,
+          quantityMissing: !Number.isFinite(qty) || undefined,
           unit,
           up: null,
           category: cats[cats.length - 1]?.label || 'Allgemein',
           group: cats[0]?.label,
-          lumpSum: unit.toLowerCase() === 'psch' || undefined,
+          lumpSum: l[13] === 'L' || unit.toLowerCase() === 'psch' || undefined,
+          totalRule: l[12] === 'E' ? 'unit_price_only' : l[11] === 'A' ? 'conditional' : undefined,
           path: cats.map((c) => ({ oz: c.oz, label: c.label })),
           srcRef: l.slice(74, 80).trim() || undefined,
           _long: [],

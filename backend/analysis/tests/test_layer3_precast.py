@@ -261,7 +261,7 @@ def test_audit_answers_that_break_the_preconditions_are_dropped():
         ]}
 
     findings, errors = run3(lv11(), FakeProvider(lambda r: fake_model(r, audit=bad_audit)))
-    assert complete_coverage(errors)
+    assert any("2 response item(s) rejected during validation" in error for error in errors)
     assert by_rule(findings, REBAR) == [] and by_rule(findings, EMBEDDED) == []
 
 

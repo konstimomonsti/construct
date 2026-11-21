@@ -191,3 +191,20 @@ test('GAEB 90 preserves signed figures and rejects values that overflow fixed-wi
   const overflow = { ...negative, positions: [{ ...negative.positions[0], qty: 100_000_000 }] }
   await assert.rejects(run('d83', { doc: overflow, resolved: resolveList(overflow) }), /GAEB 90 field width/)
 })
+import { positionTotal, sumPositionTotals } from '../src/lib/money'
+import { catSum, buildCats, gp } from '../src/lib/export/util'
+
+test('working and exported totals use signed decimal cents and firm items', () => {
+  const make = (id: string, up: number) => ({ id, oz: `01.${id}`, qty: 1, up, short: id, unit: 'St', category: 'Trade' })
+  const rows = [
+    make('0010', 10.075),
+    make('0020', -1.005),
+    { ...make('0030', 100), totalRule: 'conditional' as const },
+    { ...make('0040', 1.005), quantityMissing: true, lumpSum: true, qty: 0 },
+    { ...make('0050', 99), quantityMissing: true, qty: 0 },
+  ]
+  assert.equal(positionTotal(rows[1]), -1.01)
+  assert.equal(sumPositionTotals(rows), 10.08)
+  assert.equal(catSum(buildCats(rows).roots[0]), 10.08)
+  assert.deepEqual(rows.map(gp), [10.08, -1.01, 0, 1.01, 0])
+})

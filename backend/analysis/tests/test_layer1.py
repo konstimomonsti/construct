@@ -218,6 +218,32 @@ def test_parent_totals_use_discounted_subsection_amounts():
     assert not {"L1.ARITH.SECTION_TOTAL", "L1.ARITH.NET_TOTAL"} & rules(result)
 
 
+def test_working_net_uses_signed_cents_conversions_and_firm_items():
+    def rate(value, currency="EUR", price_unit=None):
+        return PriceInfo(unit_price=D(value), currency=currency, price_unit=price_unit)
+
+    result = run(
+        make_line(1, quantity=D(1), price=rate("1.005")),
+        make_line(2, short_text="Gutschrift", quantity=D(1), price=rate("-1.005")),
+        make_line(3, quantity=D("1000"), unit="cm", price=rate("2", price_unit="m")),
+        make_line(4, quantity=None, pricing_basis="lump_sum", price=rate("7.005")),
+        make_line(5, total_rule="conditional", price=rate("500")),
+        make_line(6, quantity=D(0), price=rate("50")),
+        make_line(7, quantity=D(2), price=rate("50", "USD")),
+    )
+    assert result.totals == {
+        "currency": "EUR", "working_net": "27.01", "complete": False, "counted_positions": 6,
+        "missing_amounts": 1, "source_net": None,
+    }
+
+
+def test_missing_line_amount_cannot_be_treated_as_zero_in_original_net():
+    result = run(make_line(quantity=D(1)), bom=Bom(stated_net_total=D("10")))
+    assert "L1.ARITH.NET_TOTAL" not in rules(result)
+    assert result.totals["working_net"] is None
+    assert result.totals["source_net"] == "10"
+
+
 # ---------------------------------------------------------------- pricing
 
 

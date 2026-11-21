@@ -74,7 +74,7 @@ def _shorten(text: str | None) -> str:
 
 
 def _oz_list(codes: list[str]) -> str:
-    codes = list(dict.fromkeys(codes))
+    codes = [str(c) for c in dict.fromkeys(codes) if c is not None]
     shown = codes[:MAX_LISTED]
     text = ", ".join(shown)
     return text + f" und {len(codes) - MAX_LISTED} weitere" if len(codes) > MAX_LISTED else text

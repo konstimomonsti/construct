@@ -5,7 +5,6 @@ reviewer's accept/reject decision carries over to the next run of the same BOM.
 """
 
 import importlib
-import os
 
 from psycopg.rows import tuple_row
 from psycopg.types.json import Jsonb
@@ -14,6 +13,7 @@ from analysis import adapter
 from analysis.registry import all_rules
 from analysis.runner import DEFAULT_LAYERS, analyze
 from analysis.contracts import Finding
+from analysis.layer3.provider import ProviderUnavailable, configured_provider
 from analysis.questions import build_questions
 from analysis.risk import assess
 
@@ -32,7 +32,10 @@ def _load_layers():
 
 def rules():
     _load_layers()
-    provider = os.environ.get("ANALYSIS_L3_PROVIDER", "ollama").strip().lower()
+    try:
+        provider = configured_provider()
+    except ProviderUnavailable:
+        provider = "unavailable"
     return {"rules": [info.as_dict() for info in all_rules()], "default_layers": list(DEFAULT_LAYERS),
             "layer3_provider": provider}
 
@@ -68,11 +71,14 @@ def run(connection, version_id, payload):
     result = analyze(snapshot, layers)
     with connection.transaction():
         connection.execute("SELECT id FROM bom_version WHERE id=%s FOR NO KEY UPDATE", (version_id,))
+        if _input(connection, version_id).input_hash != result.input_hash:
+            return {**latest(connection, version_id), "superseded": True}
         connection.execute(
             """INSERT INTO analysis_run (id, bom_version_id, schema_version, input_hash, layers_run, summary, created_at)
                VALUES (%s, %s, %s, %s, %s, %s, clock_timestamp())""",
             (result.run_id, version_id, result.schema_version, result.input_hash, result.layers_run,
-             Jsonb({**result.summary.model_dump(mode="json"), "errors": result.errors})),
+             Jsonb({**result.summary.model_dump(mode="json"), "errors": result.errors,
+                    "l3_status": result.l3_status, "graph_valid": result.graph_valid})),
         )
         # Carry forward the latest review state, including findings that were reopened.
         decisions = {row["finding_key"]: row for row in connection.execute(
@@ -111,8 +117,13 @@ def latest(connection, version_id):
         return {"run": None, "findings": [], "outdated": False, "risk": None, "questions": []}
     snapshot = _input(connection, version_id)
     findings = _findings(connection, run_row["id"])
+    summary = run_row.get("summary") or {}
     response = {"run": run_row, "findings": findings, "outdated": snapshot.compute_hash() != run_row["input_hash"],
-                "risk": None, "questions": []}
+                "risk": None, "questions": [], "l3_status": summary.get("l3_status"),
+                "graph_valid": summary.get("graph_valid")}
+    if response["outdated"]:
+        for finding in findings:
+            finding["suggested_fix"] = None
     try:
         models = [Finding.model_validate({key: value for key, value in finding.items() if key in Finding.model_fields})
                   for finding in findings]

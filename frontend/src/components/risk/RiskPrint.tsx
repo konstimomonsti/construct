@@ -1,9 +1,8 @@
 import { useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { int, money } from '../../lib/format'
-import { rescore, type Decisions, type Question, type Report, type ReviewItem, type Risk } from '../../lib/risk-assessment'
+import { analysisCoverage, openExposure, rescore, type Decisions, type Question, type Report, type ReviewItem, type Risk } from '../../lib/risk-assessment'
 import { decisionText } from '../../lib/risk-export'
-import { partialAnalysis } from '../../lib/risk-labels'
 
 /** print-only copy of the risk review (see `.risk-print` in index.css); the app UI is hidden while printing */
 export function RiskPrint({ title, report, risk, decisions, sections, questions, texts }: {
@@ -17,7 +16,7 @@ export function RiskPrint({ title, report, risk, decisions, sections, questions,
   texts: Record<string, string>
 }) {
   const live = rescore(risk, decisions)
-  const partial = partialAnalysis(report.errors)
+  const coverage = analysisCoverage(report)
   const printedAt = useMemo(() => new Date().toLocaleDateString('de-DE'), [])
   const groups = new Map<string, ReviewItem[]>()
   for (const item of [...report.findings, ...risk.change_order_signals]) {
@@ -27,15 +26,18 @@ export function RiskPrint({ title, report, risk, decisions, sections, questions,
     group.push(item)
     groups.set(key, group)
   }
-  const atStake = risk.money_at_stake == null ? null : Number(risk.money_at_stake)
+  const exposure = openExposure(risk, decisions)
+  const atStake = exposure == null ? null : Number(exposure)
   return createPortal(
     <div className="risk-print">
       <h1>Risk review: {title}</h1>
+      {report.outdated && <p>Previous assessment</p>}
+      {report.graph_valid === false && <p>Invalid references prevent applying suggested fixes.</p>}
       <p>
         Risk score {int(live.score)} ({live.level}) · Money at stake {atStake != null && Number.isFinite(atStake) && risk.priced
           ? money(atStake) : risk.priced ? 'Unavailable' : 'Not priced'} · {printedAt}
       </p>
-      {partial && <p><b>Based on partial analysis.</b> {partial.message}</p>}
+      <p>{coverage.message}</p>
       <h2>Position review</h2>
       {[...groups].map(([section, findings]) => (
         <section key={section}>

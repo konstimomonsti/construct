@@ -106,12 +106,15 @@ def finalize(analysis_input: AnalysisInput) -> AnalysisInput:
 # --------------------------------------------------------------------------- JSON
 
 
+MAX_FINANCIAL_NUMBER = Decimal("999999999999.99")
+
+
 def parse_number(value: Any) -> Decimal | None:
     """Lenient number parsing for hand-made JSON: 1234.5, "1.234,50", "1,234.50", "4,000"."""
     if value is None or isinstance(value, bool):
         return None
     text = str(value).strip().replace(" ", "").replace(" ", "")
-    if not text:
+    if not text or text.lower() in {"nan", "infinity", "-infinity", "inf", "-inf"}:
         return None
     if "," in text and "." in text:
         if text.rfind(",") > text.rfind("."):
@@ -181,6 +184,14 @@ def from_data(payload: dict | list, *, filename: str | None = None) -> AnalysisI
         if raw is not None and str(raw).strip() and container[key] is None:
             data["import_warnings"].append({"code": "INVALID_NUMBER", "message": f"Cannot parse {key}: {raw!r}",
                                             "locator": {**locator, "raw": str(raw)}})
+        elif container[key] is not None and abs(container[key]) > MAX_FINANCIAL_NUMBER:
+            container[key] = None
+            data["import_warnings"].append({"code": "OVERSIZED_NUMBER", "message": f"Oversized number in {key}: {raw!r}",
+                                            "locator": {**locator, "raw": str(raw)}})
+        elif isinstance(raw, str) and re.fullmatch(r"[+-]?[1-9]\d{0,2},\d{3}", raw.strip()):
+            data["import_warnings"].append({"code": "AMBIGUOUS_SEPARATOR",
+                                            "message": f"{key} uses an ambiguous separator; interpreted as decimal.",
+                                            "locator": {**locator, "raw": raw}})
 
     for index, line in enumerate(data["lines"]):
         if not isinstance(line, dict):
@@ -219,6 +230,10 @@ def from_data(payload: dict | list, *, filename: str | None = None) -> AnalysisI
                     numeric(price["reference_range"], field, locator)
     for index, section in enumerate(data.get("sections", [])):
         section.setdefault("sort_order", index)
+        for field in ("stated_total", "stated_total_after_discount", "stated_lump_sum_total"):
+            numeric(section, field, {"section_id": section.get("id")})
+    if isinstance(data.get("bom"), dict):
+        numeric(data["bom"], "stated_net_total", {})
     for area in data.get("areas", []):
         area.setdefault("name", area.get("id", ""))
     analysis_input = AnalysisInput.model_validate(data)
@@ -281,19 +296,22 @@ def from_import(result: Any, *, document: SourceDocument | None = None, boq_inde
         raise ValueError(f"The file has several BoQs. Choose boq_index from {boq_indexes}")
     if boq_index is not None:
         records = [r for r in records if r.payload.get("boq_index", boq_index) == boq_index]
+        if len(boq_indexes) > 1:
+            doc_key = f"{doc_key}:boq:{boq_index}"
     boq_title = next((r.payload.get("boq_title") for r in records if r.kind == "boq_header"), None)
     metadata = getattr(result, "metadata", {}) or {}
 
     sections, section_keys = _sections_from_records(records, doc_key)
     lines = _lines_from_records(records, doc_key, sections, section_keys)
 
-    subtotals = {tuple(r.payload.get("code_parts") or ()): r.payload for r in records if r.kind == "subtotal"}
+    subtotals = _unique_subtotals(r.payload for r in records if r.kind == "subtotal")
     for section in sections:
         subtotal = subtotals.get(tuple(section.code_parts), {})
         section.stated_total = to_decimal(subtotal.get("reported_amount"))
         section.stated_total_after_discount = to_decimal(subtotal.get("discounted_amount"))
         section.stated_lump_sum_total = to_decimal(subtotal.get("lump_sum_amount"))
-    summary = next((r.payload for r in records if r.kind == "summary"), {})
+    summaries = [r.payload for r in records if r.kind == "summary"]
+    summary = summaries[0] if len(summaries) == 1 else {}
 
     analysis_input = AnalysisInput(
         project=Project(
@@ -401,6 +419,17 @@ def _source_amounts(payload: dict) -> SourceAmounts | None:
     return SourceAmounts(unit_price=to_decimal(unit_price), line_amount=to_decimal(line_amount))
 
 
+def _unique_subtotals(payloads):
+    subtotals = {}
+    duplicates = set()
+    for payload in payloads:
+        key = tuple(payload.get("code_parts") or ())
+        if key in subtotals:
+            duplicates.add(key)
+        subtotals[key] = payload
+    return {key: value for key, value in subtotals.items() if key and key not in duplicates}
+
+
 # --------------------------------------------------------------------------- database
 
 
@@ -410,7 +439,7 @@ def from_db(connection, bom_version_id: str) -> AnalysisInput:
         """
         SELECT v.id, v.package_code, v.title, p.id, p.name,
                COALESCE(to_jsonb(v)->>'draft_currency', p.default_currency::text),
-               d.id, d.filename, d.format, d.exchange_phase
+               d.id, d.filename, d.format, d.exchange_phase, v.edit_revision
         FROM bom_version v
         JOIN project p ON p.id = v.project_id
         LEFT JOIN bom_source s ON s.bom_version_id = v.id AND s.role = 'primary_scope'
@@ -421,7 +450,7 @@ def from_db(connection, bom_version_id: str) -> AnalysisInput:
     if header is None:
         raise ValueError(f"BOM version {bom_version_id} not found")
     (version_id, package_code, title, project_id, project_name, currency,
-     document_id, filename, document_format, phase) = header
+     document_id, filename, document_format, phase, edit_revision) = header
 
     sections = [
         Section(id=str(row[0]), parent_id=_str(row[1]), code=row[2], code_parts=(row[2] or "").split(".") if row[2] else [],
@@ -431,6 +460,29 @@ def from_db(connection, bom_version_id: str) -> AnalysisInput:
                FROM bom_section WHERE bom_version_id = %s ORDER BY sort_order""", (version_id,),
         )
     ]
+
+    stated_net = None
+    if document_id and edit_revision == 0:
+        extracts = connection.execute(
+            """
+            SELECT e.kind, e.payload FROM source_extract e
+            JOIN source_import i ON i.id=e.import_id
+            WHERE i.source_document_id=%s AND e.kind IN ('subtotal', 'summary')
+              AND EXISTS (
+                  SELECT 1 FROM bom_line l WHERE l.bom_version_id=%s
+                    AND l.source_locator->>'import_id'=i.id::text
+              )
+            """, (document_id, version_id),
+        ).fetchall()
+        subtotals = _unique_subtotals(payload for kind, payload in extracts if kind == "subtotal")
+        for section in sections:
+            subtotal = subtotals.get(tuple(section.code_parts), {})
+            section.stated_total = to_decimal(subtotal.get("reported_amount"))
+            section.stated_total_after_discount = to_decimal(subtotal.get("discounted_amount"))
+            section.stated_lump_sum_total = to_decimal(subtotal.get("lump_sum_amount"))
+        summaries = [payload for kind, payload in extracts if kind == "summary"]
+        if len(summaries) == 1:
+            stated_net = to_decimal(summaries[0].get("net_total"))
 
     area_rows = connection.execute(
         """
@@ -468,13 +520,19 @@ def from_db(connection, bom_version_id: str) -> AnalysisInput:
         price = prices.get(line_id)
         if price is None and draft_price is not None:
             price = PriceInfo(unit_price=draft_price, currency=currency, price_unit=normalized_unit, source="client")
+        amounts = _source_amounts(source)
+        if amounts and (
+            quantity != to_decimal(source.get("quantity")) or normalized_unit != units.normalize(source.get("unit"))
+            or (draft_price is not None and draft_price != amounts.unit_price)
+        ):
+            amounts = None
         lines.append(Line(
             id=line_id, code=code, code_parts=code.split(".") if code else [], section_id=_str(section_id),
             sort_order=sort_order, short_text=clean_short(short), long_text=clean_long(long),
             quantity=quantity, quantity_raw=_raw_quantity(source, quantity),
             unit=normalized_unit, unit_raw=unit_raw,
             pricing_basis=pricing_basis, total_rule=total_rule, alternative_for=_str(alternative_for),
-            gaeb_flags=clean_flags(source.get("flags")), source_amounts=_source_amounts(source),
+            gaeb_flags=clean_flags(source.get("flags")), source_amounts=amounts,
             price=price, distributions=distributions.get(line_id, []),
             source_locator=locator or {},
         ))
@@ -484,7 +542,7 @@ def from_db(connection, bom_version_id: str) -> AnalysisInput:
             id=str(project_id), name=project_name, currency=currency, gaeb_phase=phase,
             source_document=SourceDocument(id=_str(document_id), filename=filename, format=document_format),
         ),
-        bom=Bom(bom_version_id=str(version_id), package_code=package_code, title=title),
+        bom=Bom(bom_version_id=str(version_id), package_code=package_code, title=title, stated_net_total=stated_net),
         areas=areas, sections=sections, lines=lines,
         import_warnings=_load_import_warnings(connection, document_id) if document_id else [],
     )

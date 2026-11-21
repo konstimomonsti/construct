@@ -17,14 +17,13 @@ import { ErrorBoundary } from '../components/ErrorBoundary'
 import { LedgerTable } from '../components/LedgerTable'
 import { BidSimulator } from '../components/BidSimulator'
 import { ChangeOrderText, FindingFilter, FindingText } from '../components/RiskAssessment'
-import { decisionsOf, indexFindings, matchesFindingFilter, SEVERITIES, useUploadAssessment, type ChangeOrderSignal, type Decision, type Finding, type Report, type ReviewItem } from '../lib/risk-assessment'
+import { analysisCoverage, assessmentMatchesEdits, canApplyAssessmentFix, currentDecisions, decisionsOf, indexFindings, matchesFindingFilter, reportRisk, SEVERITIES, useUploadAssessment, type Assessment, type ChangeOrderSignal, type Decision, type Finding, type Report, type ReviewItem } from '../lib/risk-assessment'
 import { riskXlsx, downloadBytes } from '../lib/risk-export'
 import type { RowRisk } from '../components/LedgerTable'
 import { DecisionControls, DismissMenu } from '../components/risk/DecisionControls'
 import { RiskSummary } from '../components/risk/RiskSummary'
 import { WarningsPanel, type WarningEntry } from '../components/risk/WarningsPanel'
 import { runSteps, type FixPlan } from '../lib/apply-fix'
-import { partialAnalysis } from '../lib/risk-labels'
 import { openQuestions } from '../components/risk/BidderQuestions'
 import { RiskPrint } from '../components/risk/RiskPrint'
 import { AddSectionDialog, PricingLegend, PricingBreakdown, pricingSections } from '../components/PricingSummary'
@@ -37,7 +36,7 @@ import { useWorkspaceCatalogue } from '../lib/workspace-catalogue'
 import { usePriceSuggestions, type PriceSuggestion } from '../lib/price-suggestions'
 import { CategoryTree, useExpanded, type CheckState } from '../components/split/CategoryTree'
 import { MoveToCategory } from '../components/split/MoveToCategory'
-import { int, money, parseNumber, plural } from '../lib/format'
+import { budgetMoney, budgetStatus, int, money, parseNumber, plural } from '../lib/format'
 import { positionTotal } from '../lib/money'
 import { groupByOz, hasSectionLabel } from '../lib/oz-groups'
 import { applyMoves, globalStep, indexTree, leafOz, nextChildOz, nextPositionOz, pathOf, resolveList, treeStats, type CatStat } from '../lib/resolve'
@@ -360,20 +359,50 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   }, [storedPackages, workflowDemo])
   const awardId = useStore((s) => s.listPatch[doc.id]?.awardDocumentId)
   const award = awardId ? documents.find((d) => d.id === awardId) : undefined
-  const workflow = useMemo(() => currentPhase(packages, !!award, positions.length > 0 && positions.every((p) => p.up != null)), [packages, award, positions])
   const st = useMemo(() => statsOf(positions), [positions])
   // findings from the automatic check that runs once on upload
   const assessment = useUploadAssessment(catalogueEnabled && original ? imported.id : null)
   const fixtureReport = useFixtureReport(params.get('risk') === 'fixture')
-  const uploadReport = fixtureReport ?? (assessment?.state === 'ready' ? assessment.report : null)
-  const risk = uploadReport?.risk ?? null
-  const partial = partialAnalysis(uploadReport?.errors ?? [])
+  const rawUploadReport = fixtureReport ?? (assessment && 'report' in assessment && assessment.report ? assessment.report : null)
+  const uploadReport = useMemo(() => {
+    if (!rawUploadReport) return null
+    if (!fixtureReport) return rawUploadReport
+    const byCode = new Map(positions.map(p => [p.oz, p.id]))
+    return { ...rawUploadReport, findings: rawUploadReport.findings.map(finding => {
+      const ids = new Map<string, string>()
+      if (finding.target.line_id && finding.target.line_code && byCode.has(finding.target.line_code)) ids.set(finding.target.line_id, byCode.get(finding.target.line_code)!)
+      for (const key of ['trigger_items', 'dependency_items', 'unassigned_candidate_items']) {
+        const entries = finding.evidence?.[key]
+        if (Array.isArray(entries)) for (const entry of entries) {
+          if (entry && typeof entry.id === 'string' && typeof entry.code === 'string' && byCode.has(entry.code)) ids.set(entry.id, byCode.get(entry.code)!)
+        }
+      }
+      const map = (id: string) => ids.get(id) ?? id
+      const operations = finding.suggested_fix?.operations?.map(op => {
+        if (op.op === 'set_field' || op.op === 'remove_line' || op.op === 'link_alternative') return { ...op, line_id: map(op.line_id) }
+        if (op.op === 'add_line') return { ...op, after_line_id: op.after_line_id ? map(op.after_line_id) : null }
+        return { ...op, keep_line_id: map(op.keep_line_id), remove_line_ids: op.remove_line_ids.map(map) }
+      })
+      return { ...finding, target: { ...finding.target, line_id: finding.target.line_id ? map(finding.target.line_id) : null }, related_line_ids: finding.related_line_ids.map(map), suggested_fix: finding.suggested_fix ? { ...finding.suggested_fix, operations } : null }
+    }) }
+  }, [rawUploadReport, fixtureReport, positions])
+  const isStale = !fixtureReport && !!uploadReport && !assessmentMatchesEdits(uploadReport, edits)
+  const fixesAvailable = !fixtureReport && canApplyAssessmentFix(assessment, edits)
+  const confirmedCap = useStore(s => s.listPatch[doc.id]?.capApproval)
+  const cap = isStale ? undefined : uploadReport?.cap_comparison
+  const comparableCap = cap && 'cap' in cap && cap.confirmation_reference === confirmedCap?.confirmationReference
+    && Number(cap.cap) === Number(confirmedCap.amount) && cap.currency === confirmedCap.currency ? cap : undefined
+  const phase = !isStale ? uploadReport?.phase_validation : undefined
+  const workflow = useMemo(() => currentPhase(packages, phase?.state === 'verified' && /86$/i.test(imported.phase ?? ''), positions.length > 0 && positions.every(p => p.up != null)), [packages, phase, imported.phase, positions])
+  const risk = useMemo(() => reportRisk(uploadReport), [uploadReport])
+  const coverage = uploadReport ? analysisCoverage(uploadReport) : null
   const analysisErrors = uploadReport?.errors.filter((error) =>
-    (risk == null || !partial?.details.includes(error)) && !/^layer 3 coverage:/i.test(error),
+    !/^layer 3 coverage:/i.test(error) && !coverage?.details.includes(error),
   ) ?? []
   const reviewedIds = useStore((s) => s.listPatch[doc.id]?.reviewedFindings)
   const decisionMap = useStore((s) => s.listPatch[doc.id]?.findingDecisions)
-  const decisions = useMemo(() => decisionsOf({ findingDecisions: decisionMap, reviewedFindings: reviewedIds }), [decisionMap, reviewedIds])
+  const decisions = useMemo(() => currentDecisions(decisionsOf({ findingDecisions: decisionMap, reviewedFindings: reviewedIds }), uploadReport), [decisionMap, reviewedIds, uploadReport])
+  const reviewKeys = useMemo(() => new Map(uploadReport?.findings.map(finding => [finding.id, finding.review_key])), [uploadReport])
   const reviewed = useMemo(() => new Set(Object.keys(decisions)), [decisions])
   const questionTexts: Record<string, string> = {}
   const questions = useMemo(() => openQuestions(uploadReport?.questions ?? [], decisions), [uploadReport, decisions])
@@ -404,6 +433,9 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   // a finding about a field the user has since edited no longer describes the position: show it as
   // "changed since upload" instead of flagging the row with an error the edit may already have fixed
   const changedFindings = useMemo(() => {
+    if (uploadReport?.assessed_revision != null) {
+      return new Set(isStale ? uploadReport.findings.map(finding => finding.id) : [])
+    }
     const out = new Set<string>()
     for (const finding of uploadReport?.findings ?? []) {
       const id = finding.target.line_id
@@ -422,7 +454,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
       if (touched) out.add(finding.id)
     }
     return out
-  }, [uploadReport, edits])
+  }, [uploadReport, edits, isStale])
   const settled = useMemo(() => new Set([...reviewed, ...changedFindings]), [reviewed, changedFindings])
   const rowPoints = useMemo(() => {
     const points = new Map<string, number>()
@@ -592,7 +624,13 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   // screen readers hear the outcome, since the button they pressed changes its own label
   const [reviewNote, setReviewNote] = useState('')
   const decide = (ids: string[], decision: Decision | null, title?: string) => {
-    useStore.getState().decideFindings(doc.id, ids, decision)
+    const store = useStore.getState()
+    if (isStale) return
+    if (decision) {
+      for (const id of ids) store.decideFindings(doc.id, [id], { ...decision, reviewKey: reviewKeys.get(id) })
+    } else {
+      store.decideFindings(doc.id, ids, null)
+    }
     const what = !decision ? 'reopened' : decision.status === 'accepted' ? 'accepted' : 'dismissed'
     setReviewNote(`${title ?? plural(ids.length, 'item', 'items')}: ${what}`)
     if (ids.length > 1) toast(`${plural(ids.length, 'warning', 'warnings')} ${what}`, 'ok', { label: 'Undo', run: () => useStore.getState().decideFindings(doc.id, ids, null) })
@@ -610,22 +648,42 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
     })
   }
   // applies suggested fixes as tracked edits and records them as accepted; one Undo puts back edits and decisions
-  const applyFixes = (plans: { finding: Finding; plan: FixPlan }[]) => {
-    if (!plans.length) return
+  const applyFixes = async (plans: { finding: Finding; plan: FixPlan }[]) => {
+    if (!plans.length || !fixesAvailable || !uploadReport?.run_id) return
+    let latest: Assessment
+    try {
+      const response = await fetch(`/api/workspace/analysis?id=${encodeURIComponent(doc.id)}`, { cache: 'no-store' })
+      if (!response.ok) throw new Error()
+      latest = await response.json() as Assessment
+    } catch {
+      toast('Could not verify the current assessment.', 'error')
+      return
+    }
     const store = useStore.getState()
+    if (latest.report?.run_id !== uploadReport.run_id || !canApplyAssessmentFix(latest, store.edits[doc.id])) {
+      toast('The assessment changed. Review the latest findings before applying a fix.', 'error')
+      return
+    }
+    plans = plans.filter(({ finding }) => finding.origin !== 'llm')
+    if (!plans.length) return
     const beforeEdits = store.edits[doc.id]
     const beforeDecisions = decisionsOf(store.listPatch[doc.id])
     const at = new Date().toISOString()
     for (const { plan } of plans) runSteps(store, doc.id, plan.steps)
     const findingDecisions = { ...beforeDecisions }
-    for (const { finding } of plans) findingDecisions[finding.id] = { status: 'accepted', at, applied: at }
+    for (const { finding } of plans) findingDecisions[finding.id] = { status: 'accepted', at, applied: at, reviewKey: finding.review_key }
     store.patchList(doc.id, { findingDecisions, reviewedFindings: Object.keys(findingDecisions) })
+    const afterEdits = useStore.getState().edits[doc.id]
     const changes = plans.reduce((sum, { plan }) => sum + plan.steps.length, 0)
     setReviewNote(`${plural(plans.length, 'warning', 'warnings')} fixed`)
     toast(plans.length === 1 ? `Fixed: ${plans[0].finding.title}` : `Fixed ${plural(plans.length, 'warning', 'warnings')} with ${plural(changes, 'change', 'changes')}`, 'ok', {
       label: 'Undo',
       run: () => {
         const s = useStore.getState()
+        if (s.edits[doc.id] !== afterEdits) {
+          toast('The working list changed after those fixes were applied.', 'error')
+          return
+        }
         s.setEdits(doc.id, beforeEdits)
         s.patchList(doc.id, { findingDecisions: beforeDecisions, reviewedFindings: Object.keys(beforeDecisions) })
       },
@@ -671,7 +729,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   }
   const exportExcel = async () => {
     if (!uploadReport) return
-    const data = await riskXlsx({ title, report: uploadReport, decisions, codes, questionTexts })
+    const data = await riskXlsx({ title, report: { ...uploadReport, outdated: isStale }, decisions, codes, questionTexts })
     downloadBytes(`Risikomatrix-${doc.fileName.replace(/\.[^.]+$/, '')}.xlsx`, data, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
   }
   const printSections = useMemo(() => new Map(imported.positions.map((p) => [p.id, { oz: p.oz, section: p.path?.map((part) => `${part.oz} ${part.label}`).at(-1) ?? 'Without section' }])), [imported.positions])
@@ -789,6 +847,13 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   const more: (MenuItem | 'sep')[] = [
     { label: 'Add pricing section…', icon: 'playlist_add', onSelect: () => setAddingSection(true) },
     { label: 'Split into new list…', icon: 'call_split', onSelect: split },
+    { label: 'Save corrected version', icon: 'content_copy', onSelect: () => {
+      const id = 'l-' + crypto.randomUUID()
+      const store = useStore.getState()
+      store.addList({ ...doc, id, folderId: view?.folderId ?? doc.folderId, title: title + ' (korrigiert)', file: undefined, fileName: title + ' (korrigiert)', positions, tree, ...st, userCreated: true })
+      store.patchList(id, { sourceListId: doc.id })
+      toast('Saved corrected version', 'ok')
+    } },
     { label: 'Rename list', icon: 'edit', onSelect: () => openDialog({ kind: 'rename-list', id: doc.id }) },
     ...(editedCount ? [{ label: 'Reset all edits', icon: 'restart_alt', onSelect: resetAll }] : []),
     ...(live ? [{ label: 'Move to another project…', icon: 'drive_file_move', onSelect: () => openDialog({ kind: 'folder-target', action: 'move-list', listId: doc.id }) }] : []),
@@ -890,9 +955,15 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
       />
 
       {tab === 'x83' && <PhasePanel phase="x83">
-      {risk && <RiskSummary risk={risk} decisions={decisions} partial={partial} />}
+      {risk && <RiskSummary risk={risk} decisions={decisions} coverage={coverage} outdated={isStale} />}
+      {comparableCap && <p role="status" className="mb-4 text-sm font-medium text-slate-800">
+        {budgetStatus(Number(comparableCap.working_net), Number(comparableCap.cap)).word}
+        {' · Working net '}{budgetMoney(Number(comparableCap.working_net), comparableCap.currency)}
+        {' · Recorded cap '}{budgetMoney(Number(comparableCap.cap), comparableCap.currency)}
+      </p>}
+      {cap && 'reason' in cap && <p role="note" className="mb-4 text-sm text-slate-600">{cap.reason}</p>}
       {uploadReport && (
-        <WarningsPanel entries={warningEntries} decisions={decisions} settled={settled} positions={positions}
+        <WarningsPanel entries={warningEntries} decisions={decisions} settled={settled} positions={positions} allowFixes={fixesAvailable}
           onOpen={(id) => openDetail(id, 'findings')} onFilter={showWarnings} onDecide={decide} onApplyFixes={applyFixes} />
       )}
 
@@ -1052,11 +1123,16 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
         </div>
       </div>
 
-      {(listWide.length > 0 || listSignals.length > 0 || uploadReport?.source_notice || analysisErrors.length > 0) && (
+      {(assessment || listWide.length > 0 || listSignals.length > 0 || uploadReport?.source_notice || analysisErrors.length > 0) && (
         <section aria-labelledby="list-findings-h" className="mt-8">
           <h2 id="list-findings-h" className="font-heading text-base font-bold text-slate-900">Warnings for the whole list</h2>
-          {(uploadReport?.source_notice || analysisErrors.length > 0) && (
+          {(assessment || uploadReport?.source_notice || analysisErrors.length > 0) && (
             <div className="mt-1 space-y-1 text-sm text-amber-900" role="note">
+              {isStale && <p>Previous assessment. Waiting for results for the working revision.</p>}
+              {assessment?.state === 'waiting' && <p>Assessment queued.</p>}
+              {assessment?.state === 'failed' && <p>Assessment failed after retrying.</p>}
+              {assessment?.state === 'unavailable' && <p>Assessment is currently unavailable.</p>}
+              {uploadReport?.graph_valid === false && <p>Invalid references prevent some checks and disable assessment fixes.</p>}
               {uploadReport?.source_notice && <p>{uploadReport.source_notice}</p>}
               {analysisErrors.slice(0, 3).map((error, index) => <p key={index}>{error}</p>)}
             </div>
@@ -1100,7 +1176,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
 
       {/* print output must work from every tab */}
       {uploadReport && risk && (
-        <RiskPrint title={title} report={uploadReport} risk={risk} decisions={decisions} sections={printSections} questions={questions} texts={questionTexts} />
+        <RiskPrint title={title} report={{ ...uploadReport, outdated: isStale }} risk={risk} decisions={decisions} sections={printSections} questions={questions} texts={questionTexts} />
       )}
 
       {tab === 'subcontractors' && (
@@ -1125,6 +1201,8 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
       )}
       {tab === 'x86' && (
         <PhasePanel phase="x86">
+            {phase?.state === 'verified' && <p role="status">Phase link verified for {phase.matched_positions} positions.</p>}
+            {phase?.reason && <p role="note">{phase.reason}</p>}
           <AwardTab listId={doc.id} award={award} onOpen={(d) => openDialog({ kind: 'doc', doc: d })} />
         </PhasePanel>
       )}

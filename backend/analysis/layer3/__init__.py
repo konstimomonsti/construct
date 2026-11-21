@@ -12,6 +12,7 @@ ANALYSIS_L3_DEADLINE, ANALYSIS_L3_CACHE, ...).
 """
 
 from __future__ import annotations
+from contextvars import ContextVar
 
 from ..contracts import AnalysisInput, Finding
 from ..registry import run_layer
@@ -26,6 +27,20 @@ from .provider import (
 
 LAYER = 3
 
+_LAST_OUTCOME: ContextVar[dict | None] = ContextVar("layer3_last_outcome", default=None)
+
+
+def get_last_outcome() -> dict | None:
+    return _LAST_OUTCOME.get()
+
+
+def empty_outcome(state: str, reason: str) -> dict:
+    return {
+        "state": state, "provider": None, "audit_provider": None, "planned": 0, "attempted": 0,
+        "validated": 0, "cached": 0, "failed": 0, "skipped": 0, "dropped": 0,
+        "reasons": [reason],
+    }
+
 
 def run(analysis_input: AnalysisInput, prior_findings: list[Finding], errors: list[str] | None = None, *,
         provider: LLMProvider | None = None, cache: ResponseCache | None = None,
@@ -34,6 +49,7 @@ def run(analysis_input: AnalysisInput, prior_findings: list[Finding], errors: li
 
     With an explicit `provider` and no `audit_provider`, audits use `provider` too (tests, eval).
     """
+    _LAST_OUTCOME.set(None)
     errors = errors if errors is not None else []
     if provider is None:
         try:
@@ -41,10 +57,12 @@ def run(analysis_input: AnalysisInput, prior_findings: list[Finding], errors: li
         except ProviderUnavailable as exc:
             errors.append(f"layer 3: {exc}")
             errors.append("layer 3 coverage: 0/0 batches")
+            _LAST_OUTCOME.set(empty_outcome("unavailable", str(exc)))
             return []
         if provider is None:
             errors.append("layer 3: disabled (ANALYSIS_L3_PROVIDER=none)")
             errors.append("layer 3 coverage: 0/0 batches")
+            _LAST_OUTCOME.set(empty_outcome("disabled", "Layer 3 is disabled"))
             return []
         if audit_provider is None:
             try:
@@ -61,9 +79,14 @@ def run(analysis_input: AnalysisInput, prior_findings: list[Finding], errors: li
         concurrency=max(1, int_env("ANALYSIS_L3_CONCURRENCY", DEFAULT_CONCURRENCY)),
     )
     token = session_scope(session)
+    error_count = len(errors)
     try:
         findings = run_layer(LAYER, analysis_input, prior_findings, errors)
     finally:
         reset_session(token)
-        session.report()
+    if any(error.startswith("L3.") and error not in session.reasons for error in errors[error_count:]):
+        session.rule_errors = True
+        session.reasons.append("One or more advisory checks did not finish")
+    session.report()
+    _LAST_OUTCOME.set(session.outcome())
     return findings

@@ -138,9 +138,13 @@ def test_prefilter_sends_only_lines_with_values_and_two_texts():
 ])
 def test_hallucinated_contradictions_are_dropped(bad):
     answer = {"findings": [{"property": "x", "message": "m", "confidence": 0.9, **bad}]}
-    findings, errors = run3(pipe_input(), FakeProvider([answer]))
+    findings, errors = run3(pipe_input(), FakeProvider(
+        lambda request: answer if request.prompt_version == CONTRADICTION_VERSION else {
+            key: [] for key in request.schema["required"]
+        },
+    ))
     assert by_rule(findings, CONTRA) == []
-    assert complete_coverage(errors)
+    assert any("response item(s) rejected during validation" in error for error in errors)
 
 
 def test_invalid_items_dropped_but_valid_ones_kept():

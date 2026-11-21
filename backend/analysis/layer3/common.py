@@ -24,7 +24,8 @@ import time
 from typing import Any, Callable, Iterable, Iterator
 
 from ..contracts import Finding, Line
-from .provider import LLMProvider, LLMRequest, ProviderError, ProviderUnavailable, ResponseCache
+from .provider import (AnthropicProvider, LLMProvider, LLMRequest, MAX_REQUEST_CHARS, OllamaProvider,
+                       ProviderError, ProviderUnavailable, ResponseCache)
 
 DEFAULT_MAX_CALLS = 12
 DEFAULT_DEADLINE = 75.0  # seconds of model calls per run; with a 30 s request timeout the layer ends < ~90 s
@@ -50,12 +51,65 @@ class Session:
     calls: int = 0
     cache_hits: int = 0
     planned: int = 0
-    consecutive_failures: int = 0
-    unavailable: str | None = None
+    main_consecutive_failures: int = 0
+    audit_consecutive_failures: int = 0
+    main_unavailable: str | None = None
+    audit_unavailable: str | None = None
     skipped: Counter = field(default_factory=Counter)  # rule_id -> batches not sent
     dropped: Counter = field(default_factory=Counter)  # rule_id -> answer items that failed validation
     late: Counter = field(default_factory=Counter)  # rule_id -> batches not sent because time ran out
     memo: dict[str, Any] = field(default_factory=dict)  # results shared between the rules of one run
+    attempted: int = 0
+    validated: int = 0
+    failed: int = 0
+    rule_errors: bool = False
+    reasons: list[str] = field(default_factory=list)
+
+    @property
+    def unavailable(self) -> str | None:
+        if self.main_unavailable:
+            return self.main_unavailable
+        return self.audit_unavailable
+
+    @unavailable.setter
+    def unavailable(self, val: str | None) -> None:
+        self.main_unavailable = val
+        self.audit_unavailable = val
+
+    @property
+    def consecutive_failures(self) -> int:
+        return max(self.main_consecutive_failures, self.audit_consecutive_failures)
+
+    @consecutive_failures.setter
+    def consecutive_failures(self, val: int) -> None:
+        self.main_consecutive_failures = val
+        self.audit_consecutive_failures = val
+
+    def _state(self) -> str:
+        if self.main_unavailable and (self.audit_unavailable or self.audit_provider is None):
+            return "unavailable"
+        if self.planned == 0 and not self.rule_errors:
+            return "no-candidates"
+        total_omitted = sum(self.skipped.values()) + sum(self.late.values())
+        total_dropped = sum(self.dropped.values())
+        if self.rule_errors or self.failed or total_omitted or total_dropped or self.main_unavailable or self.audit_unavailable:
+            return "degraded"
+        return "complete"
+
+    def outcome(self) -> dict[str, Any]:
+        return {
+            "state": self._state(),
+            "provider": self.provider.model_id,
+            "audit_provider": self.audit_provider.model_id if self.audit_provider else self.provider.model_id,
+            "planned": self.planned,
+            "attempted": self.attempted,
+            "validated": self.validated,
+            "cached": self.cache_hits,
+            "failed": self.failed,
+            "skipped": sum(self.skipped.values()) + sum(self.late.values()),
+            "dropped": sum(self.dropped.values()),
+            "reasons": sorted(set(self.reasons)),
+        }
 
     @property
     def model_id(self) -> str:
@@ -67,89 +121,161 @@ class Session:
     def _provider(self, audit: bool) -> LLMProvider:
         return self.audit_provider if audit and self.audit_provider is not None else self.provider
 
-    def ask(self, rule_id: str, request: LLMRequest, *, audit: bool = False) -> dict[str, Any] | None:
-        self.planned += 1
-        provider = self._provider(audit)
-        key = request.cache_key(provider.model_id)
-        cached = self.cache.get(key)
-        if cached is not None:
-            self.cache_hits += 1
-            return cached
-        if not self._reserve(rule_id):
-            return None
-        return self._settle(rule_id, provider, request, key, lambda: provider.complete_json(request))
+    def _is_unavailable(self, audit: bool = False) -> bool:
+        return bool(self.audit_unavailable if audit else self.main_unavailable)
 
-    def ask_many(self, rule_id: str, requests: list[LLMRequest], *,
-                 audit: bool = False) -> list[dict[str, Any] | None]:
-        """Like `ask` for independent batches; answers come back in the order of `requests`."""
-        self.planned += len(requests)
-        provider = self._provider(audit)
-        results: list[dict[str, Any] | None] = [None] * len(requests)
-        pending: list[tuple[int, LLMRequest, str]] = []
-        for index, request in enumerate(requests):
-            key = request.cache_key(provider.model_id)
-            cached = self.cache.get(key)
-            if cached is not None:
-                self.cache_hits += 1
-                results[index] = cached
-            elif self._reserve(rule_id):
-                pending.append((index, request, key))
-        if len(pending) <= 1 or self.concurrency <= 1:
-            for index, request, key in pending:
-                results[index] = self._settle(rule_id, provider, request, key,
-                                              lambda request=request: provider.complete_json(request))
-            return results
-        with ThreadPoolExecutor(max_workers=min(self.concurrency, len(pending))) as pool:
-            futures = [(index, request, key, pool.submit(provider.complete_json, request))
-                       for index, request, key in pending]
-            for index, request, key, future in futures:
-                results[index] = self._settle(rule_id, provider, request, key, future.result)
-        return results
-
-    def _reserve(self, rule_id: str) -> bool:
+    def _reserve(self, rule_id: str, audit: bool = False) -> bool:
         """Spend one call of the budget, or count the batch as not checked."""
-        if self.unavailable or self.calls >= self.max_calls:
+        if self._is_unavailable(audit) or self.calls >= self.max_calls:
             self.skipped[rule_id] += 1
             return False
         if self.deadline and time.monotonic() - self.started >= self.deadline:
             self.late[rule_id] += 1
             return False
         self.calls += 1
+        self.attempted += 1
         return True
 
+    def ask(self, rule_id: str, request: LLMRequest, *, audit: bool = False) -> dict[str, Any] | None:
+        return self.ask_many(rule_id, [request], audit=audit)[0]
+
+    def ask_many(self, rule_id: str, requests: list[LLMRequest], *,
+                 audit: bool = False) -> list[dict[str, Any] | None]:
+        """Process at most one wave of requests concurrently and settle in input order."""
+        self.planned += len(requests)
+        provider = self._provider(audit)
+        results: list[dict[str, Any] | None] = [None] * len(requests)
+        pending = []
+        for index, request in enumerate(requests):
+            if len(request.prompt) + len(request.system) > MAX_REQUEST_CHARS:
+                self.skipped[rule_id] += 1
+                self.reasons.append(f"{rule_id}: request exceeded the input size limit")
+                continue
+            key = request.cache_key(provider.model_id)
+            cached = self.cache.get(key, request=request, model_id=provider.model_id)
+            if cached is None:
+                pending.append((index, request, key))
+            else:
+                self.cache_hits += 1
+                self.validated += 1
+                results[index] = cached
+        if not pending:
+            return results
+
+        concurrency = max(1, min(self.concurrency, len(pending)))
+        pool = ThreadPoolExecutor(max_workers=concurrency)
+        deadline_at = self.started + self.deadline if self.deadline else None
+
+        def send(request):
+            if deadline_at is None:
+                return provider.complete_json(request)
+            remaining = deadline_at - time.monotonic()
+            if remaining <= 0:
+                raise TimeoutError
+            if isinstance(provider, (AnthropicProvider, OllamaProvider)):
+                return provider.complete_json(request, timeout_budget=remaining)
+            return provider.complete_json(request)
+
+        try:
+            for first in range(0, len(pending), concurrency):
+                wave = [
+                    (index, request, key, pool.submit(send, request))
+                    for index, request, key in pending[first:first + concurrency]
+                    if self._reserve(rule_id, audit=audit)
+                ]
+                for index, request, key, future in wave:
+                    remaining = max(0, deadline_at - time.monotonic()) if deadline_at else None
+                    results[index] = self._settle(
+                        rule_id, provider, request, key,
+                        lambda: future.result(timeout=remaining), audit=audit,
+                    )
+        finally:
+            pool.shutdown(wait=False, cancel_futures=True)
+        return results
+
     def _settle(self, rule_id: str, provider: LLMProvider, request: LLMRequest, key: str,
-                call: Callable[[], dict[str, Any]]) -> dict[str, Any] | None:
+                call: Callable[[], dict[str, Any]], audit: bool = False) -> dict[str, Any] | None:
         try:
             answer = call()
+        except TimeoutError:
+            self.failed += 1
+            self.reasons.append(f"{rule_id}: response deadline reached")
+            return None
         except ProviderUnavailable as exc:
-            self.unavailable = str(exc)
-            self.skipped[rule_id] += 1
+            if audit:
+                self.audit_unavailable = str(exc)
+            else:
+                self.main_unavailable = str(exc)
+            self.failed += 1
+            self.reasons.append(f"{rule_id}: provider unavailable: {exc}")
             return None
         except Exception as exc:  # ProviderError, or a provider bug: must not hide the other batches
-            message = str(exc) if isinstance(exc, ProviderError) else f"{type(exc).__name__}: {exc}"
+            self.failed += 1
+            message = str(exc) if isinstance(exc, ProviderError) else f"Unexpected provider failure ({type(exc).__name__})"
             self.errors.append(f"{rule_id}: {message}")
-            self.consecutive_failures += 1
-            if self.consecutive_failures >= MAX_CONSECUTIVE_FAILURES:
-                # A model that times out on every batch would otherwise hold the run for minutes.
-                self.unavailable = f"{self.consecutive_failures} requests failed in a row (last: {message})"
+            self.reasons.append(f"{rule_id}: {message}")
+            if audit:
+                self.audit_consecutive_failures += 1
+                if self.audit_consecutive_failures >= MAX_CONSECUTIVE_FAILURES:
+                    self.audit_unavailable = f"{self.audit_consecutive_failures} requests failed in a row (last: {message})"
+            else:
+                self.main_consecutive_failures += 1
+                if self.main_consecutive_failures >= MAX_CONSECUTIVE_FAILURES:
+                    self.main_unavailable = f"{self.main_consecutive_failures} requests failed in a row (last: {message})"
             return None
-        self.consecutive_failures = 0
+
+        if audit:
+            self.audit_consecutive_failures = 0
+        else:
+            self.main_consecutive_failures = 0
+
+        if not isinstance(answer, dict):
+            self.failed += 1
+            self.reasons.append(f"{rule_id}: malformed response: expected JSON object")
+            return None
+
+        # Validate envelope keys before caching: never cache malformed envelopes
+        has_valid_envelope = True
+        for req_key in request.schema.get("required", []):
+            if req_key not in answer or answer[req_key] is None:
+                has_valid_envelope = False
+                break
+            if request.schema.get("properties", {}).get(req_key, {}).get("type") == "array":
+                if not isinstance(answer[req_key], list):
+                    has_valid_envelope = False
+                    break
+
+        if not has_valid_envelope:
+            self.failed += 1
+            self.reasons.append(f"{rule_id}: malformed envelope: missing or invalid required keys")
+            return None
+
         self.cache.put(key, request, provider.model_id, answer)
+        self.validated += 1
         return answer
 
     def report(self) -> None:
         """Called once after the layer ran: say what was not checked, so a partial run is visible."""
         skipped = sum(self.skipped.values())
         omitted = self.skipped + self.late
-        checked = self.planned - sum(omitted.values())
+        checked = self.validated
         coverage = f"layer 3 coverage: {checked}/{self.planned} batches"
+        for rule_id, count in sorted(self.dropped.items()):
+            if count:
+                detail = f"{rule_id}: {count} response item(s) rejected during validation"
+                self.errors.append(detail)
+                self.reasons.append(detail)
         if omitted:
             coverage += "; skipped: " + ", ".join(f"{rule_id}×{count}" for rule_id, count in sorted(omitted.items()))
-        if self.unavailable:
-            line = f"layer 3: provider {self.provider.model_id} unavailable: {self.unavailable}"
-            if skipped:
-                line += f"; {skipped} batch(es) not checked"
-            self.errors.append(line)
+        if self.main_unavailable or self.audit_unavailable:
+            if self.main_unavailable:
+                line = f"layer 3: provider {self.provider.model_id} unavailable: {self.main_unavailable}"
+                if skipped:
+                    line += f"; {skipped} batch(es) not checked"
+                self.errors.append(line)
+            if self.audit_unavailable and self.audit_provider and self.audit_provider.model_id != self.provider.model_id:
+                line = f"layer 3: audit provider {self.audit_provider.model_id} unavailable: {self.audit_unavailable}"
+                self.errors.append(line)
             self.errors.append(coverage)
             return
         for rule_id, count in sorted(self.skipped.items()):

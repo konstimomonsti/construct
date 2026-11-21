@@ -14,6 +14,9 @@ import importlib
 from typing import Iterable
 
 from .contracts import AnalysisInput, AnalysisResult, Finding, Summary
+from .graph import validate_graph
+from .layer1.arithmetic import working_totals
+from .layer3 import empty_outcome
 from .questions import build_questions
 from .risk import assess
 
@@ -25,9 +28,11 @@ def analyze(analysis_input: AnalysisInput, layers: Iterable[int] = DEFAULT_LAYER
             include_risk: bool = True) -> AnalysisResult:
     if not analysis_input.input_hash:
         analysis_input = analysis_input.with_hash()
+    graph = validate_graph(analysis_input)
     findings: list[Finding] = []
     errors: list[str] = []
     layers_run: list[int] = []
+    l3_status = empty_outcome("disabled", "Layer 3 was not requested")
     for layer in sorted(set(layers)):
         try:
             module = importlib.import_module(f"analysis.layer{layer}")
@@ -36,7 +41,17 @@ def analyze(analysis_input: AnalysisInput, layers: Iterable[int] = DEFAULT_LAYER
                 raise
             errors.append(f"layer {layer}: not implemented yet")
             continue
-        findings.extend(module.run(analysis_input, list(findings), errors))
+        try:
+            findings.extend(module.run(analysis_input, list(findings), errors))
+        except Exception:
+            if layer != 3:
+                raise
+            errors = [error for error in errors if not error.startswith("layer 3 coverage:")]
+            errors.extend(["layer 3: advisory checks failed unexpectedly", "layer 3 coverage: 0/0 batches"])
+            l3_status = empty_outcome("unavailable", "Advisory checks failed unexpectedly")
+            continue
+        if layer == 3:
+            l3_status = module.get_last_outcome() or empty_outcome("unavailable", "Advisory outcome is missing")
         layers_run.append(layer)
 
     findings = _sorted(_dedupe(findings), analysis_input)
@@ -51,7 +66,8 @@ def analyze(analysis_input: AnalysisInput, layers: Iterable[int] = DEFAULT_LAYER
     return AnalysisResult(
         bom_version_id=analysis_input.bom.bom_version_id, input_hash=analysis_input.input_hash,
         layers_run=layers_run, findings=findings, summary=summarize(findings), errors=errors,
-        risk=risk, questions=questions,
+        risk=risk, questions=questions, l3_status=l3_status, graph_valid=graph.is_valid,
+        totals=working_totals(analysis_input, graph),
     )
 
 

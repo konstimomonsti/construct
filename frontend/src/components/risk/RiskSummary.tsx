@@ -1,7 +1,6 @@
 import { clsx } from 'clsx'
 import { int, money } from '../../lib/format'
-import { rescore, type Decisions, type Risk, type RiskLevel } from '../../lib/risk-assessment'
-import type { PartialAnalysis } from '../../lib/risk-labels'
+import { openExposure, openSections, rescore, type analysisCoverage, type Decisions, type Risk, type RiskLevel } from '../../lib/risk-assessment'
 
 const LEVEL: Record<RiskLevel, { label: string; text: string; bar: string }> = {
   low: { label: 'Low', text: 'text-slate-800', bar: 'bg-slate-400' },
@@ -10,22 +9,27 @@ const LEVEL: Record<RiskLevel, { label: string; text: string; bar: string }> = {
   critical: { label: 'Critical', text: 'text-rose-700', bar: 'bg-rose-600' },
 }
 
-export function RiskSummary({ risk, decisions, partial }: { risk: Risk; decisions: Decisions; partial: PartialAnalysis }) {
+export function RiskSummary({ risk, decisions, coverage, outdated }: {
+  risk: Risk; decisions: Decisions; coverage: ReturnType<typeof analysisCoverage> | null; outdated: boolean
+}) {
   const live = rescore(risk, decisions)
   const level = LEVEL[live.level]
-  const atStake = risk.money_at_stake == null ? null : Number(risk.money_at_stake)
+  const exposure = openExposure(risk, decisions)
+  const atStake = exposure == null ? null : Number(exposure)
+  const sections = openSections(risk, decisions)
 
   return (
     <section aria-label="Risk summary" className="mb-5">
-      {partial && (
-        <div className="mb-2 max-w-xl rounded-lg bg-amber-50 px-4 py-3 text-[13px] text-amber-900">
-          <p role="note"><strong>Based on partial analysis.</strong> {partial.message}</p>
-          <details className="mt-1">
+      {outdated && <p role="status" className="mb-2 text-sm font-semibold text-amber-900">Previous assessment</p>}
+      {coverage && (
+        <div className={clsx('mb-2 max-w-xl rounded-lg px-4 py-3 text-[13px]', coverage.partial ? 'bg-amber-50 text-amber-900' : 'bg-slate-50 text-slate-700')}>
+          <p role="note">{coverage.message}</p>
+          {coverage.details.length > 0 && <details className="mt-1">
             <summary className="cursor-pointer font-medium">Analysis details</summary>
             <ul className="mt-1 list-disc space-y-1 break-words ps-5">
-              {partial.details.map((error, index) => <li key={index}>{error}</li>)}
+              {coverage.details.map((error, index) => <li key={index}>{error}</li>)}
             </ul>
-          </details>
+          </details>}
         </div>
       )}
       <dl className="flex max-w-2xl flex-wrap items-center gap-x-6 gap-y-3 rounded-lg bg-slate-50 px-4 py-3">
@@ -49,6 +53,14 @@ export function RiskSummary({ risk, decisions, partial }: { risk: Risk; decision
           </dd>
         </div>
       </dl>
+      {sections.length > 0 && <details className="mt-2 text-sm text-slate-700">
+        <summary className="cursor-pointer font-medium">Risk by section</summary>
+        <ul className="mt-1 space-y-1">
+          {sections.map(section => <li key={section.section_id ?? 'list'}>
+            {[section.code, section.title].filter(Boolean).join(' ') || 'Whole list'} · {section.open} open
+          </li>)}
+        </ul>
+      </details>}
     </section>
   )
 }
