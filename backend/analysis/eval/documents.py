@@ -232,13 +232,14 @@ def _write_text_case(out, name, title, item, prefix, *, additional=()):
     return {"pdf": {"page": 1}, "docx": {"table": 1, "row": 2}, "json": {"row": 1}, "X83": {"source_id": identifier}}
 
 
-def _write_offer_tables(out, name, item, sheet_name="Entwässerung"):
+def _write_offer_tables(out, name, item, sheet_name="Entwässerung", *, additional=()):
     from openpyxl import Workbook
     from . import workbooks
 
+    items = [item, *additional]
     rows = [
         ("OZ", "Kurztext", "Menge", "ME", "EP", "GP", "Langtext"),
-        (*item.cells(), item.detail),
+        *((*entry.cells(), entry.detail) for entry in items),
     ]
     for ext, delimiter in (("csv", ";"), ("tsv", "\t")):
         with (out / f"{name}.{ext}").open("w", encoding="utf-8", newline="") as handle:
@@ -249,9 +250,9 @@ def _write_offer_tables(out, name, item, sheet_name="Entwässerung"):
     for row in rows:
         sheet.append(row)
     book.save(out / f"{name}.xlsx")
-    legacy_item = workbooks.Item(item.code, item.short, item.quantity, item.unit, item.price,
-                                 item.quantity * item.price, item.detail)
-    workbooks.workbook(out / f"{name}.xls", [(sheet_name, [legacy_item], 0, 0)])
+    legacy_items = [workbooks.Item(entry.code, entry.short, entry.quantity, entry.unit, entry.price,
+                                   entry.quantity * entry.price, entry.detail) for entry in items]
+    workbooks.workbook(out / f"{name}.xls", [(sheet_name, legacy_items, 0, 0)])
     return {"csv": {"row": 2}, "tsv": {"row": 2}, "xlsx": {"sheet": sheet.title, "row": 2},
             "xls": {"sheet": sheet.title, "row": 3}}
 
@@ -656,6 +657,17 @@ def generate_cable_designations(out):
             write_fixture_labels(out / f"{name}.{ext}", f"{baseline}.{ext}", label)
 
 
+def generate_fix_planning(out):
+    """A mixed-trade upload with measured and unmeasured dependency fixes."""
+    out.mkdir(parents=True, exist_ok=True)
+    screed = Item("01.0010", "Zementestrich d = 60 mm", 80, "m²")
+    for name, quantity in (("fix-planning", ""), ("fix-planning-conflict", "\nPositionsmenge: 12 m.")):
+        water = Item("01.0020", "TW-Rohrleitung DN 20", 10, "m",
+                     detail=f"Leitungsspülung und Wasserprobe enthalten.{quantity}")
+        _write_text_case(out, name, "Leistungsverzeichnis Ausbau", screed, "fix-planning", additional=(water,))
+        _write_offer_tables(out, name, screed, "Ausbau", additional=(water,))
+
+
 def generate_grade_scope(out):
     """Test concrete grade conflicts, legitimate component differences and unclear attribution."""
     out.mkdir(parents=True, exist_ok=True)
@@ -771,7 +783,7 @@ if __name__ == "__main__":
               "written-quantities": generate_written_quantities, "underspecification": generate_underspecification,
               "fire-door-scope": generate_fire_door_scope, "fire-door-products": generate_fire_door_products,
               "fire-door-installation": generate_fire_door_installation,
-              "cable-designations": generate_cable_designations}
+              "cable-designations": generate_cable_designations, "fix-planning": generate_fix_planning}
     parser.add_argument("--suite", choices=suites, default="tabular")
     args = parser.parse_args()
     suites[args.suite](args.out)

@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Button, Dialog, Icon, kbdCls } from '../ui'
 import { ChangeOrderText, FindingText, RISK_UI } from '../RiskAssessment'
 import { DismissMenu, accepted } from './DecisionControls'
-import { planFix, type FixPlan } from '../../lib/apply-fix'
+import { planFixes, type FixPlan } from '../../lib/apply-fix'
 import { int, plural } from '../../lib/format'
 import { SEVERITIES, type Decision, type Decisions, type Finding, type ReviewItem, type Severity } from '../../lib/risk-assessment'
 import type { Position } from '../../lib/types'
@@ -20,22 +20,20 @@ const KIND_PLURAL: Record<Severity | 'change', string> = { error: 'Critical', wa
  * "Fix all" for every warning that carries an applicable fix, and a one-at-a-time review that walks the open warnings
  * without scrolling the list. Nothing changes without a click; every bulk change can be undone.
  */
-export function WarningsPanel({ entries, decisions, settled, positions, onOpen, onFilter, onDecide, onApplyFixes }: {
+export function WarningsPanel({ entries, decisions, settled, positions, assessedPositions, onOpen, onFilter, onDecide, onApplyFixes }: {
   entries: WarningEntry[]
   decisions: Decisions
   settled: Set<string>
   positions: Position[]
+  assessedPositions: Position[]
   onOpen: (positionId: string) => void
   onFilter: (filter: string) => void
   onDecide: (ids: string[], decision: Decision | null, title?: string) => void
-  onApplyFixes: (plans: { finding: Finding; plan: FixPlan }[]) => void
+  onApplyFixes: (findings: Finding[]) => void
 }) {
   const open = useMemo(() => entries.filter(({ item }) => !settled.has(item.id)), [entries, settled])
-  const plans = useMemo(() => open.flatMap(({ item }) => {
-    if (!isFinding(item)) return []
-    const plan = planFix(item, positions)
-    return plan.steps.length ? [{ finding: item, plan }] : []
-  }), [open, positions])
+  const plans = useMemo(() => planFixes(open.flatMap(({ item }) => isFinding(item) ? [item] : []),
+    positions, assessedPositions).filter(({ plan }) => plan.steps.length), [open, positions, assessedPositions])
   const counts = useMemo(() => {
     const out = new Map<Severity | 'change', number>()
     for (const { item } of open) out.set(kindOf(item), (out.get(kindOf(item)) ?? 0) + 1)
@@ -94,7 +92,7 @@ export function WarningsPanel({ entries, decisions, settled, positions, onOpen, 
       </div>
 
       {reviewing && open.length > 0 ? (
-        <ReviewStepper open={open} positions={positions} decisions={decisions} onOpen={onOpen} onDecide={onDecide}
+        <ReviewStepper open={open} positions={positions} assessedPositions={assessedPositions} decisions={decisions} onOpen={onOpen} onDecide={onDecide}
           onApplyFixes={onApplyFixes} onClose={() => setReviewing(false)} />
       ) : open.length > 0 && (
         <ul className="mt-3 divide-y divide-slate-200 border-y border-slate-200">
@@ -135,7 +133,7 @@ export function WarningsPanel({ entries, decisions, settled, positions, onOpen, 
       )}
 
       <FixAllDialog open={confirming} plans={plans} remaining={open.length - plans.length} onClose={() => setConfirming(false)}
-        onConfirm={() => { onApplyFixes(plans); setConfirming(false) }} />
+        onConfirm={() => { onApplyFixes(plans.map(({ finding }) => finding)); setConfirming(false) }} />
     </section>
   )
 }
@@ -147,10 +145,10 @@ function FixAllDialog({ open, plans, remaining, onClose, onConfirm }: {
   return (
     <Dialog open={open} onClose={onClose} width="max-w-lg"
       title={`Fix ${plural(plans.length, 'warning', 'warnings')}?`}
-      description={<>These changes are made as edits you can undo. The uploaded file stays unchanged.{remaining > 0 && <> {plural(remaining, 'other warning has', 'other warnings have')} no automatic fix and stay open for review.</>}</>}
+      description={<>These changes are made as edits you can undo. The uploaded file stays unchanged.{remaining > 0 && <> {plural(remaining, 'other warning remains open', 'other warnings remain open')} for review.</>}</>}
       footer={<>
         <Button onClick={onClose}>Cancel</Button>
-        <Button variant="primary" icon="auto_fix_high" onClick={onConfirm}>Apply {plural(steps.length, 'change', 'changes')}</Button>
+        <Button variant="primary" icon="auto_fix_high" disabled={!steps.length} onClick={onConfirm}>Apply {plural(steps.length, 'change', 'changes')}</Button>
       </>}>
       <ul className="max-h-72 space-y-1 overflow-y-auto text-sm text-slate-800">
         {steps.map((step, index) => (
@@ -162,13 +160,14 @@ function FixAllDialog({ open, plans, remaining, onClose, onConfirm }: {
 }
 
 /** one open warning at a time; after each decision the next open one comes up. ← / → move, A accepts, F applies the fix */
-function ReviewStepper({ open, positions, decisions, onOpen, onDecide, onApplyFixes, onClose }: {
+function ReviewStepper({ open, positions, assessedPositions, decisions, onOpen, onDecide, onApplyFixes, onClose }: {
   open: WarningEntry[]
   positions: Position[]
+  assessedPositions: Position[]
   decisions: Decisions
   onOpen: (positionId: string) => void
   onDecide: (ids: string[], decision: Decision | null, title?: string) => void
-  onApplyFixes: (plans: { finding: Finding; plan: FixPlan }[]) => void
+  onApplyFixes: (findings: Finding[]) => void
   onClose: () => void
 }) {
   // follow the warning by id, so the cursor stays put when earlier ones are decided
@@ -179,7 +178,7 @@ function ReviewStepper({ open, positions, decisions, onOpen, onDecide, onApplyFi
   const entry = open[index]
   const item = entry?.item
   const currentId = item?.id
-  const plan = item && isFinding(item) ? planFix(item, positions) : null
+  const plan = item && isFinding(item) ? planFixes([item], positions, assessedPositions)[0].plan : null
   const move = (step: number) => {
     const next = (index + step + open.length) % open.length
     setCursor({ id: open[next]?.item.id, index: next })
@@ -187,7 +186,7 @@ function ReviewStepper({ open, positions, decisions, onOpen, onDecide, onApplyFi
   const card = useRef<HTMLDivElement>(null)
 
   const accept = () => item && onDecide([item.id], accepted(), item.title)
-  const fix = () => item && plan?.steps.length && isFinding(item) && onApplyFixes([{ finding: item, plan }])
+  const fix = () => item && plan?.steps.length && isFinding(item) && onApplyFixes([item])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

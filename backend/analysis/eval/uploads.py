@@ -44,7 +44,7 @@ def assessment_snapshot(path, document):
     return workspace_analysis._original_tender(editable, source, payload["original_refs"])
 
 
-def assess(connection, path, document, layers, evidence_path=None):
+def assess(connection, path, document, layers, evidence_path=None, *, include_fix_input=False):
     with connection.transaction(force_rollback=True):
         workspace.save_file(connection, "source", "application/octet-stream", path.read_bytes())
         documents = {"source": {"name": path.name, "original": True, "listId": "bom"}}
@@ -83,7 +83,10 @@ def assess(connection, path, document, layers, evidence_path=None):
     row_ids = {position["id"] for position in document["positions"]}
     matched = sum(line.id in row_ids for line in canonical.lines)
     print(f"{path.name}\t{matched}/{len(canonical.lines)} positions linked\t{len(result.findings)} findings", file=sys.stderr)
-    return {"findings": labels.compact(result, canonical)}
+    compact = {"findings": labels.compact(result, canonical)}
+    if include_fix_input:
+        compact["fix_input"] = {"path": str(path), "document": document, "findings": report["findings"]}
+    return compact
 
 
 def score(reports, layers):
@@ -118,6 +121,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--local-layer3", action="store_true", help="enable Layer 3 using Ollama on localhost")
     parser.add_argument("--product-evidence", type=Path, help="attach a synthetic evidence package to each evaluated bill")
+    parser.add_argument("--write-fix-input", type=Path, help="write parsed positions and findings for the frontend fix replay")
     args = parser.parse_args()
     local = args.local_layer3
     os.environ["ANALYSIS_L3_PROVIDER"] = "ollama" if local else "none"
@@ -135,9 +139,14 @@ def main():
                 path = Path(entry["path"]).resolve()
                 if path.suffix.lower() not in GAEB_SUFFIXES | DOCUMENT_SUFFIXES | TABLE_SUFFIXES:
                     raise ValueError(f"{path.name}: unsupported fixture format")
-                reports[path] = assess(connection, path, entry["document"], layers, args.product_evidence)
+                reports[path] = assess(connection, path, entry["document"], layers, args.product_evidence,
+                                       include_fix_input=args.write_fix_input is not None)
     if not reports:
         raise ValueError("Supply at least one parsed upload on stdin.")
+    if args.write_fix_input:
+        with args.write_fix_input.open("w", encoding="utf-8") as handle:
+            for report in reports.values():
+                handle.write(json.dumps(report["fix_input"], ensure_ascii=False) + "\n")
     counts = score(reports, layers)
     print(json.dumps({"uploads": len(reports), **counts}, sort_keys=True))
     return int(bool(counts["missed"] or counts["control_false_alarm"] or counts["caught"] != counts["guided"]))

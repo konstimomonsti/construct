@@ -23,7 +23,7 @@ import type { RowRisk } from '../components/LedgerTable'
 import { DecisionControls, DismissMenu } from '../components/risk/DecisionControls'
 import { RiskSummary } from '../components/risk/RiskSummary'
 import { WarningsPanel, type WarningEntry } from '../components/risk/WarningsPanel'
-import { runSteps, type FixPlan } from '../lib/apply-fix'
+import { planFixes, runSteps } from '../lib/apply-fix'
 import { partialAnalysis } from '../lib/risk-labels'
 import { BidderQuestions, openQuestions } from '../components/risk/BidderQuestions'
 import { RiskPrint } from '../components/risk/RiskPrint'
@@ -332,6 +332,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   const edits = useStore((s) => s.edits[doc.id])
   const resolved = useMemo(() => resolveList(doc, edits), [doc, edits])
   const positions = resolved.positions
+  const assessedPositions = useMemo(() => resolveList(doc).positions, [doc])
   const bidStandardRates = useMemo(() => {
     if (!original || imported.phase !== 'X83') return new Map<string, number>()
     const units = new Map(imported.positions.map((p) => [p.id, p.unit]))
@@ -612,11 +613,20 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
     })
   }
   // applies suggested fixes as tracked edits and records them as accepted; one Undo puts back edits and decisions
-  const applyFixes = (plans: { finding: Finding; plan: FixPlan }[]) => {
-    if (!plans.length) return
+  const applyFixes = (findings: Finding[]) => {
+    if (!findings.length) return
     const store = useStore.getState()
     const beforeEdits = store.edits[doc.id]
     const beforeDecisions = decisionsOf(store.listPatch[doc.id])
+    if (beforeEdits !== edits || findings.some((finding) => beforeDecisions[finding.id])) {
+      toast('The list changed. Review the updated fixes before applying them.')
+      return
+    }
+    const plans = planFixes(findings, resolveList(doc, beforeEdits).positions, assessedPositions)
+    if (plans.some(({ plan }) => !plan.steps.length)) {
+      toast('A proposed change needs review before it can be applied.')
+      return
+    }
     const at = new Date().toISOString()
     for (const { plan } of plans) runSteps(store, doc.id, plan.steps)
     const findingDecisions = { ...beforeDecisions }
@@ -916,7 +926,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
       {tab === 'x83' && <PhasePanel phase="x83">
       {risk && <RiskSummary risk={risk} decisions={decisions} partial={partial} />}
       {uploadReport && (
-        <WarningsPanel entries={warningEntries} decisions={decisions} settled={settled} positions={positions}
+        <WarningsPanel entries={warningEntries} decisions={decisions} settled={settled} positions={positions} assessedPositions={assessedPositions}
           onOpen={(id) => openDetail(id, 'findings')} onFilter={showWarnings} onDecide={decide} onApplyFixes={applyFixes} />
       )}
 

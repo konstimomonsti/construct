@@ -140,6 +140,24 @@ The bid simulator reuses the stored assessment of the original tender. On the sa
 
 A preliminary pass on the repository sanitary and screed PDFs and the Word bill linked all 246 positions. For the screed bill, the checker asks whether skirting belongs in another package. In the Word source, paragraphs 3 and 16 specify the units for positions 1.1.20 and 2.3.10 and leave their quantities blank. Verify them against the takeoff before entering values. These observations cover selected findings. Independent review still needs to judge the full set of findings, missed errors, and applicable DIN clauses.
 
+### Applying dependency fixes to the editable BOM
+
+The X83 warnings panel plans bulk edits together and assigns distinct position numbers to eligible additions. Suggestions without a confirmed quantity or unit remain open for review, as do additions that need room allocations. A measured addition uses the assessed quantities, units and scope. If the working list has changed in those fields, the planner directs the reviewer to confirm the remaining work before adding a position. Direct fixes with a stale field or an incomplete set of operations also stay open.
+
+The mixed screed and potable-water fixtures replay actual assessment findings through the frontend planner. Across eight formats, each unchanged fixture yields three measured additions with distinct codes and retains both named unmeasured suggestions for review. When the pipe detail says 12 m and the quantity column says 10 m, the pipe calculation stays open and the two screed additions remain available. A later working-list quantity edit withholds measured additions based on the old takeoff.
+
+Use the local upload setup below to reproduce the replay.
+
+```sh
+export PYTHONPATH=backend:backend/importer
+fixture_dir=$(mktemp -d)
+python -m analysis.eval.documents "$fixture_dir" --suite fix-planning
+WORKSPACE_PARSE_ORIGIN=http://127.0.0.1:8080 \
+  frontend/node_modules/.bin/tsx frontend/tests/risk-upload-fixtures.ts "$fixture_dir"/fix-planning* \
+  | python -m analysis.eval.uploads --write-fix-input "$fixture_dir/plans.ndjson"
+frontend/node_modules/.bin/tsx frontend/tests/risk-fix-fixtures.ts "$fixture_dir/plans.ndjson"
+```
+
 ## Concrete grade attribution replay
 
 Layer 1 compares concrete grades for explicitly named components. An identical grade on a second component can no longer conceal a conflict on the first. The finding quotes the heading and detail, names the affected component, and asks the reviewer to confirm the governing grade before aligning the two descriptions. Layer 3 checks the source component names when its model cites two grades. Wording that leaves a grade's component uncertain still calls for review.
