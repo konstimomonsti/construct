@@ -206,7 +206,7 @@ def test_report_has_recall_precision_controls_and_gaps(evaluated):
     counts = guidance_rows(evaluation)
     assert any(layer == 2 and patches > 0 for layer, patches, *_ in counts)
     assert sum(sum(row[1:]) for row in counts) == sum(c["tp"] for c in evaluation.per_rule.values())
-    assert all(row[-1] == 0 for row in counts)
+    assert all(row[-2:] == [0, 0] for row in counts)
     arithmetic_guidance = [finding["guidance"] for outcome in evaluation.outcomes
                            for finding in outcome.matched if finding["rule_id"].startswith("L1.ARITH.")]
     assert arithmetic_guidance and set(arithmetic_guidance) == {"review"}

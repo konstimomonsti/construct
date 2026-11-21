@@ -63,20 +63,32 @@ def test_quantity_missing_negative_zero():
     assert only(result, "L1.QTY.NEGATIVE")[0].target.line_id == "l2"
     zero = {f.target.line_id: f.severity for f in only(result, "L1.QTY.ZERO")}
     assert zero == {"l3": "warning", "l4": "error"}
+    quantity_rules = {"L1.QTY.MISSING", "L1.QTY.NEGATIVE", "L1.QTY.ZERO"}
+    for finding in result.findings:
+        if finding.rule_id in quantity_rules:
+            assert finding.suggested_fix.rationale
+            assert finding.suggested_fix.operations == []
 
 
 def test_fractional_count():
     result = run(make_line(1, unit="ea", unit_raw="St", quantity=D("2.5")), make_line(2, unit="ea", quantity=D("2.000")))
-    assert [f.target.line_id for f in only(result, "L1.QTY.FRACTIONAL_COUNT")] == ["l1"]
+    finding, = only(result, "L1.QTY.FRACTIONAL_COUNT")
+    assert finding.target.line_id == "l1"
+    assert "whole count" in finding.suggested_fix.rationale
+    assert finding.suggested_fix.operations == []
 
 
 def test_unit_missing_and_unknown():
     result = run(make_line(1, unit=None, unit_raw=None), make_line(2, unit="Fass", unit_raw="Fass"),
                  make_line(3, unit=None, unit_raw=None, pricing_basis="lump_sum", quantity=D(1)))
     missing = {f.target.line_id: f for f in only(result, "L1.UNIT.MISSING")}
-    assert missing["l1"].suggested_fix is None
+    assert "confirmed billing unit" in missing["l1"].suggested_fix.rationale
+    assert missing["l1"].suggested_fix.operations == []
     assert missing["l3"].suggested_fix.operations[0].new_value == "lump_sum"
-    assert only(result, "L1.UNIT.UNKNOWN")[0].target.line_id == "l2"
+    unknown, = only(result, "L1.UNIT.UNKNOWN")
+    assert unknown.target.line_id == "l2"
+    assert "conversion" in unknown.suggested_fix.rationale
+    assert unknown.suggested_fix.operations == []
 
 
 def test_text_missing_per_line_in_tender_once_in_bid():
@@ -112,6 +124,8 @@ def test_code_missing_and_duplicate():
     assert only(result, "L1.CODE.MISSING")[0].target.line_id == "l1"
     duplicate = only(result, "L1.CODE.DUPLICATE")
     assert [f.target.line_id for f in duplicate] == ["l3"] and duplicate[0].related_line_ids == ["l2"]
+    assert duplicate[0].suggested_fix.operations == []
+    assert "confirmed duplicate" in duplicate[0].suggested_fix.rationale
 
 
 # ---------------------------------------------------------------- consistency
@@ -130,7 +144,9 @@ def test_lump_sum_rules_and_no_noise_for_plain_psch():
     result = run(make_line(1, unit="lump_sum", unit_raw="psch", quantity=D(3)),
                  make_line(2, unit="m", pricing_basis="lump_sum", quantity=D(120)),
                  make_line(3, unit="lump_sum", unit_raw="psch", quantity=D(1), pricing_basis="unit_rate"))
-    assert {f.target.line_id for f in only(result, "L1.LUMP.INCONSISTENT")} == {"l1", "l2"}
+    findings = only(result, "L1.LUMP.INCONSISTENT")
+    assert {f.target.line_id for f in findings} == {"l1", "l2"}
+    assert all(f.suggested_fix.rationale and f.suggested_fix.operations == [] for f in findings)
 
 
 def test_bidder_input_severity_depends_on_phase():
@@ -160,14 +176,29 @@ def test_structure_rules():
     assert only(result, "L1.STRUCT.UNIT_PRICE_ONLY_IN_TOTAL")[0].target.line_id == "l4"
 
 
-def test_suspected_duplicate_suggests_low_confidence_merge():
+def test_suspected_duplicate_suggests_review_without_combining_quantities():
     result = run(make_line(1, short_text="Wurzelstock entsorgen", long_text="x", quantity=D(2)),
                  make_line(2, short_text="Wurzelstock entsorgen", long_text="x", quantity=D(3)))
-    finding = only(result, "L1.DUP.SUSPECTED")[0]
-    merge = finding.suggested_fix.operations[0]
-    assert merge.keep_line_id == "l1" and merge.remove_line_ids == ["l2"] and merge.new_quantity == D(5)
-    assert finding.suggested_fix.confidence < 0.5
+    finding, = only(result, "L1.DUP.SUSPECTED")
+    assert finding.related_line_ids == ["l1"]
+    assert finding.evidence["quantities"] == ["2", "3"]
+    assert finding.suggested_fix.operations == []
+    assert "approved takeoff" in finding.suggested_fix.rationale
 
+
+def test_real_relative_surcharges_refer_to_distinct_base_work():
+    snapshot = adapter.from_file(DATA / "501-24-01_GAEB-XML_sas.x83")
+    def duplicate_at_second_surcharge(analysis_input):
+        return [f for f in analyze(analysis_input, [1]).findings
+                if f.rule_id == "L1.DUP.SUSPECTED" and f.target.line_code == "02.03.0007"]
+
+    assert duplicate_at_second_surcharge(snapshot) == []
+    second_base, = [line for line in snapshot.lines if line.code == "02.03.0006"]
+    second_base.short_text = "Unspecified work"
+    second_base.long_text = None
+    finding, = duplicate_at_second_surcharge(snapshot.with_hash())
+    assert finding.evidence["same_as"] == "02.03.0005"
+    assert finding.suggested_fix.operations == []
 
 def test_distribution_sum():
     result = run(make_line(1, distributions=[Distribution(area_id="a", quantity=D(4)),

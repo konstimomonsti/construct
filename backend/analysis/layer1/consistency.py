@@ -2,12 +2,13 @@
 
 from collections import defaultdict
 from decimal import Decimal
+import re
 
 from .. import units
-from ..contracts import Fix, MergeLines, SetField
+from ..contracts import Fix, SetField
 from ..registry import rule
 from .common import (
-    BILLING_UNIT, BIDDER_INPUT, OR_EQUIVALENT, THRESHOLDS, excerpt, label, phase_has_prices, section_label,
+    BILLING_UNIT, BIDDER_INPUT, OR_EQUIVALENT, THRESHOLDS, excerpt, label, phase_has_prices, review_fix, section_label,
     section_subtrees, text_of,
 )
 
@@ -40,7 +41,10 @@ def lump_inconsistent(ctx):
         if line.unit == "lump_sum" and line.quantity is not None and line.quantity != 1:
             yield ctx.finding(line=line, field="quantity", discriminator="quantity",
                               message=f"{label(line)} is a lump sum (psch) with quantity {line.quantity}.",
-                              evidence={"quantity": line.quantity, "unit": line.unit})
+                              evidence={"quantity": line.quantity, "unit": line.unit},
+                              suggested_fix=review_fix("Confirm whether the price covers one lump sum or several "
+                                                       "measured items. For a single lump sum, use quantity 1 and "
+                                                       "verify the price covers the full scope."))
         elif line.unit == "lump_sum" and line.quantity is None:
             fix = Fix(operations=[SetField(line_id=line.id, field="quantity", old_value=None, new_value=Decimal(1))],
                       confidence=0.8, rationale="Lump sums are quantity 1.")
@@ -51,7 +55,9 @@ def lump_inconsistent(ctx):
             yield ctx.finding(line=line, field="unit", discriminator="unit",
                               message=f"{label(line)} is flagged as a lump sum but measured in "
                                       f"{line.unit_raw or line.unit} (quantity {line.quantity}).",
-                              evidence={"unit": line.unit, "quantity": line.quantity})
+                              evidence={"unit": line.unit, "quantity": line.quantity},
+                              suggested_fix=review_fix("Check whether the quoted amount is a lump sum or a unit rate. "
+                                                       "Align the pricing basis, unit and quantity with the confirmed offer."))
 
 
 @rule("L1.TEXT.BIDDER_INPUT", layer=1, category="text", severity="warning", title="Bidder field not filled in",
@@ -155,24 +161,45 @@ def unit_price_only_in_total(ctx):
                               evidence={"line_amount": amount})
 
 
+_PRECEDING_SCOPE = re.compile(
+    r"\b(?:für|zu)\s+(?:(?:den|die|das|dem)\s+)?vorbeschrieben\w*\s+([\w-]{4,})", re.I,
+)
+
+
 @rule("L1.DUP.SUSPECTED", layer=1, category="duplicate", severity="warning", title="Possible duplicate item",
       description="Same description and unit twice in the same section: possible double counting.")
 def suspected_duplicate(ctx):
     groups = defaultdict(list)
-    for line in ctx.input.lines:
+    previous_by_section = {}
+    base_work = {}
+    for line in sorted(ctx.input.lines, key=lambda item: item.sort_order):
+        previous = previous_by_section.get(line.section_id)
+        previous_by_section[line.section_id] = line
         if not line.short_text:
             continue
         key = (line.section_id, line.short_text.casefold(), (line.long_text or "").casefold(), line.unit)
         groups[key].append(line)
+        reference = _PRECEDING_SCOPE.search(line.short_text)
+        if reference and previous and previous.code and previous.short_text:
+            previous_text = text_of(previous).casefold()
+            term = re.escape(reference[1].casefold())
+            if re.search(rf"\b{term}\b", previous_text) and not _PRECEDING_SCOPE.search(previous_text):
+                base_work[line.id] = previous_text
+
     for lines in groups.values():
-        first, *repeats = lines
-        for line in repeats:
-            total = (first.quantity or 0) + (line.quantity or 0)
-            fix = Fix(operations=[MergeLines(keep_line_id=first.id, remove_line_ids=[line.id], new_quantity=total)],
-                      confidence=0.3, rationale="Only if both items describe the same work.")
-            yield ctx.finding(line=line, related_line_ids=[first.id], suggested_fix=fix,
+        resolved = all(line.id in base_work for line in lines)
+        first_by_scope = {}
+        for line in lines:
+            scope = base_work[line.id] if resolved else None
+            first = first_by_scope.setdefault(scope, line)
+            if line is first:
+                continue
+            yield ctx.finding(line=line, related_line_ids=[first.id],
                               message=f"{label(line)} has the same description and unit as {first.code}.",
-                              evidence={"same_as": first.code, "quantities": [first.quantity, line.quantity]})
+                              evidence={"same_as": first.code, "quantities": [first.quantity, line.quantity]},
+                              suggested_fix=review_fix("Check whether these positions duplicate the same work or "
+                                                       "cover separate quantities. If work is counted twice, remove the "
+                                                       "duplicate and reconcile the amount with the approved takeoff."))
 
 
 @rule("L1.DIST.SUM_MISMATCH", layer=1, category="arithmetic", severity="warning",

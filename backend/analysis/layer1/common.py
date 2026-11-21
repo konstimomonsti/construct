@@ -6,7 +6,12 @@ from dataclasses import dataclass
 from decimal import ROUND_HALF_UP, Decimal
 import re
 
-from ..contracts import AnalysisInput, Line, Section
+from ..contracts import AnalysisInput, Fix, Line, Section
+
+
+def review_fix(rationale: str) -> Fix:
+    """Suggest a source check or manual correction when the source cannot justify an edit."""
+    return Fix(operations=[], confidence=0.7, rationale=rationale)
 
 
 @dataclass(frozen=True)
