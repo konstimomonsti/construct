@@ -1,7 +1,7 @@
 """HTTP routing tests that need no database: frontend serving, admin routes, host and origin checks.
 
 Run from the repository root:
-    PYTHONPATH=backend:importer:. python -m pytest backend/tests
+    PYTHONPATH=backend:backend/importer python -m pytest backend/tests
 """
 
 import http.client

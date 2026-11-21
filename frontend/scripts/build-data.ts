@@ -1,13 +1,12 @@
 /**
- * Converts every file in ../data into the app's static dataset:
+ * Converts the samples in data/tenders/ into the app's static dataset:
  *   public/data/index.json        folders, list metadata, documents
  *   public/data/lists/<id>.json   positions per list
- *   public/files/<name>           original source files (PDF viewer / download)
  *
  * Requires `pdftotext` + `pdfinfo` (poppler) on PATH. Run: npm run data
  */
 import { execFileSync } from 'node:child_process'
-import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { inflateRawSync } from 'node:zlib'
 import {
@@ -16,9 +15,8 @@ import {
 } from '../src/lib/gaeb.ts'
 
 const ROOT = resolve(import.meta.dirname, '..')
-const DATA = resolve(ROOT, '..', 'data')
+const DATA = resolve(ROOT, '..', 'data', 'tenders')
 const OUT = join(ROOT, 'public', 'data')
-const FILES = join(ROOT, 'public', 'files')
 
 type Tone = 'indigo' | 'emerald' | 'amber' | 'blue' | 'sky' | 'violet'
 
@@ -259,7 +257,6 @@ rmSync(join(OUT, 'lists'), { recursive: true, force: true }) // data/layout is g
 rmSync(join(OUT, 'index.json'), { force: true })
 mkdirSync(join(OUT, 'lists'), { recursive: true })
 mkdirSync(join(OUT, 'layout'), { recursive: true })
-mkdirSync(FILES, { recursive: true })
 
 const parsedCache = new Map<string, ParsedList>()
 const get = (n: string) => {
@@ -418,7 +415,6 @@ for (const fd of FOLDERS) {
     listsMeta.push(meta)
     listIds.push(id)
     writeFileSync(join(OUT, 'lists', `${id}.json`), JSON.stringify({ ...meta, notes: parsed.notes, positions: parsed.positions, tree: parsed.tree, source: parsed.source }))
-    copyFileSync(join(DATA, name), join(FILES, name))
     {
       const withCats = (parsed.tree?.length ?? 0) > 0
       const noPath = parsed.positions.filter((p) => !p.path?.length).length
@@ -431,7 +427,6 @@ for (const fd of FOLDERS) {
 
   const documents = fd.documents.map((name) => {
     const f = join(DATA, name)
-    copyFileSync(f, join(FILES, name))
     const text = pdfText(f, false)
     const excerpt = text.split('\n').map((l) => l.replace(/\s+/g, ' ').trim()).filter((l) => l && !/^\[(BILD|FIRMA|ADRESSE|TELEFON|EMAIL)/.test(l)).slice(0, 14).join('\n')
     const id = slug(name)
@@ -445,7 +440,7 @@ for (const fd of FOLDERS) {
 
 // sanity: every data file is used
 const used = new Set(FOLDERS.flatMap((f) => [...f.lists, ...f.documents]))
-const all = execFileSync('ls', [DATA]).toString('utf8').split('\n').filter(Boolean)
+const all = readdirSync(DATA).filter((name) => !name.startsWith('.'))
 const unused = all.filter((f) => !used.has(f))
 if (unused.length) console.warn('UNUSED data files:', unused)
 

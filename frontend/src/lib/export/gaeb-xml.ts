@@ -1,13 +1,13 @@
 /**
  * GAEB DA XML writer (3.2 and 2004-07/3.1) and in-place patcher.
  *
- * Generation mirrors the notation found in ../data/8209.003_Leistungsverzeichnis_leer.X83 (3.2, compact)
- * and ../data/501-24-01_GAEB-XML_sas.x83 (2004, indented). Patching works on the original text
+ * Generation mirrors the notation found in ../data/tenders/8209.003_Leistungsverzeichnis_leer.X83 (3.2, compact)
+ * and ../data/tenders/501-24-01_GAEB-XML_sas.x83 (2004, indented). Patching works on the original text
  * (string splicing, no re-serialisation) so every untouched byte stays identical.
  */
 import type { ListDoc, Position } from '../types'
 import {
-  type Cat, type OzMask, buildCats, diffList, inferMask, rnoPart, xmlEsc,
+  type Cat, type OzMask, buildCats, diffList, inferMask, normOz, rnoPart, xmlEsc,
 } from './util'
 
 export type XmlVariant = '3.2' | '2004'
@@ -110,7 +110,18 @@ function pretty(xml: string): string {
 export function generateGaebXml(o: GenOpts): string {
   const phase = o.phase ?? '83'
   const priced = phase !== '83'
-  const tree = buildCats(o.positions, o.tree)
+  // Imported table categories can use synthetic numbers. Derive the XML hierarchy from the
+  // position numbers so a category label never changes an exported OZ.
+  const positions = o.positions.map((position) => {
+    const prefix = position.oz.split('.').slice(0, -1)
+    const leaf = position.path?.at(-1)
+    if (!leaf || normOz(leaf.oz) === normOz(prefix.join('.'))) return position
+    return { ...position, path: prefix.map((part, index) => ({
+      oz: prefix.slice(0, index + 1).join('.'),
+      label: position.path?.[index]?.label ?? part,
+    })) }
+  })
+  const tree = buildCats(positions, o.tree)
   const mask = o.mask ?? inferMask(o.doc, o.positions)
   const nlev = mask.levels.length
   let n = 1

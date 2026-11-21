@@ -1,5 +1,5 @@
 /**
- * PDF writer (pdf-lib, standard fonts) that reproduces the five printout families found in ../data:
+ * PDF writer (pdf-lib, standard fonts) that reproduces the five printout families found in ../data/tenders:
  *   A_anfrage  (LV_*.pdf)            B_kurz_langtext (Leistungsverzeichnis.pdf)
  *   C_angebot  (Angebot AN24-0305)   D_lv_ausdruck   (LV-Ausdruck-[PROJEKT_004].pdf)
  *   E_courier  (Leistungsverzeichnis_leer.pdf)

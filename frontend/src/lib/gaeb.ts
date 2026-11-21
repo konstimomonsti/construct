@@ -80,6 +80,7 @@ export function decodeEntities(s: string): string {
 /** XML rich text (p/span/br) → plain text with line breaks */
 export function richToText(xml: string): string {
   const t = xml
+    .replace(/>\s*\r?\n\s*</g, '><')
     .replace(/<br\s*\/?>/gi, '\n')
     .replace(/<\/p>/gi, '\n')
     .replace(/<p[^>]*\/>/gi, '\n')
@@ -254,9 +255,9 @@ export function parseGaeb90(text: string): ParsedList {
     const rec = l.slice(0, 2)
     switch (rec) {
       case '00': {
-        const m = l.match(/(\d{2})([LKA])\s/)
-        if (m) phase = `D${m[1]}`
-        const mk = l.slice(62, 71).trim()
+        const phaseCode = l.slice(10, 12)
+        if (/^8\d$/.test(phaseCode)) phase = 'D' + phaseCode
+        const mk = l.slice(61, 71).trim()
         if (/^[1-9P]+I?$/.test(mk)) mask = mk
         const prj = l.slice(28, 60).trim()
         if (prj) out.project = prj
@@ -324,6 +325,7 @@ export function parseGaeb90(text: string): ParsedList {
         lastCat = null
         break
       }
+      case '22':
       case '23': {
         const oz = formatOz(l.slice(2, 11), mask)
         let p = byOz.get(oz)
@@ -339,16 +341,11 @@ export function parseGaeb90(text: string): ParsedList {
           all.push(p)
           byOz.set(oz, p)
         }
-        const nums = l.slice(11, 74).trim().split(/\s+/).filter((x) => /^\d+$/.test(x))
-        if (nums.length >= 2) {
-          const ep = parseInt(nums[0], 10)
-          const gp = parseInt(nums[1], 10) / 100
-          if (nums[2] && !p.qty) p.qty = parseInt(nums[2], 10) / 1000
-          const c100 = ep / 100
-          const c1000 = ep / 1000
-          const q = p.qty || 1
-          p.up = Math.abs(c1000 * q - gp) < Math.abs(c100 * q - gp) ? c1000 : c100
-        }
+        const price = l.slice(12, 22).trim() + (l[22]?.trim() || '0')
+        // The last price column is an optional tenth of a cent.
+        if (l.slice(12, 23).trim() && /^[+-]?\d+$/.test(price)) p.up = Number(price) / 1000
+        const qty = l.slice(37, 48).trim()
+        if (!p.qty && /^[+-]?\d+$/.test(qty)) p.qty = Number(qty) / 1000
         current = p
         break
       }

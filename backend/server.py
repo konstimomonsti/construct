@@ -36,9 +36,7 @@ ADMIN = {
     "/admin/tables": (ROOT / "admin" / "index.html", "text/html; charset=utf-8"),
     "/admin/app.js": (ROOT / "admin" / "app.js", "text/javascript; charset=utf-8"),
     "/admin/styles.css": (ROOT / "admin" / "styles.css", "text/css; charset=utf-8"),
-    # Copied next to server.py in the image; in a checkout it lives at the repository root.
-    "/admin/schema": (next((path for path in (ROOT / "schema-dashboard.html", ROOT.parent / "schema-dashboard.html")
-                            if path.is_file()), ROOT / "schema-dashboard.html"), "text/html; charset=utf-8"),
+    "/admin/schema": (ROOT / "admin" / "schema-dashboard.html", "text/html; charset=utf-8"),
 }
 # Optional: serve a built frontend from this process (development). Production serves it from Caddy.
 FRONTEND_DIR = Path(os.environ["FRONTEND_DIR"]).resolve() if os.environ.get("FRONTEND_DIR") else None

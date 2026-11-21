@@ -1,8 +1,8 @@
 /**
  * GAEB 90 (D83 / D84 / D86) writer and in-place patcher.
  * 80-column fixed records: cols 1-2 record type, cols 3-74 content, cols 75-80 running line counter.
- * Layout mirrors ../data/8209.003_Leistungsverzeichnis_leer.D83, ../data/[ORT_024] LV24069.D86 and
- * ../data/Angebot AN24-0305.D84 (cp437 / cp1252 like the originals).
+ * Layout mirrors ../data/tenders/8209.003_Leistungsverzeichnis_leer.D83, ../data/tenders/[ORT_024] LV24069.D86 and
+ * ../data/tenders/Angebot AN24-0305.D84 (cp437 / cp1252 like the originals).
  */
 import type { ListDoc, Position } from '../types'
 import { type OzMask, buildCats, deDate, diffList, foldText, gp, inferMask, maskString, round2, walk } from './util'
@@ -77,7 +77,15 @@ function put(buf: string[], col: number, s: string) {
 }
 const blank = () => new Array<string>(74).fill(' ')
 const rec = (type: string, content = '') => (type + content).padEnd(74, ' ').slice(0, 74)
-const digits = (n: number, w: number) => String(Math.max(0, Math.round(n))).padStart(w, '0').slice(-w)
+function digits(value: number, width: number): string {
+  const negative = value < 0
+  const number = String(Math.round(Math.abs(value)))
+  const available = width - Number(negative)
+  if (!Number.isFinite(value) || number.length > available) {
+    throw new Error('A quantity, price, or total exceeds the GAEB 90 field width.')
+  }
+  return (negative ? '-' : '') + number.padStart(available, '0')
+}
 
 function levelKey(parts: string[], mask: OzMask, levelPad: '0' | ' ', isItem = false): string {
   let s = ''
@@ -427,14 +435,14 @@ export function patchGaeb90(original: Uint8Array, doc: ListDoc, positions: Posit
         if (i23 >= 0) out.splice(i23, 1)
       } else if (i23 >= 0) {
         const line = out[i23]
-        const wide = /^\d{11}$/.test(line.slice(12, 23)) && line[23] === ' '
+        const wide = /\d/.test(line[22] ?? '') || needsWide([now])
         const hasQty = /^\d{11}$/.test(line.slice(37, 48))
         let nl = rec23(key, now, { wide })
-        if (!hasQty) nl = nl.slice(0, 37) + ' '.repeat(11) + nl.slice(48)
+        if (!hasQty && !qtyChanged) nl = nl.slice(0, 37) + ' '.repeat(11) + nl.slice(48)
         out[i23] = nl.padEnd(74, ' ').slice(0, 74) + line.slice(74)
       } else {
         const at = i21 >= 0 ? i21 + 1 : 0
-        out.splice(at, 0, rec23(key, now, style))
+        out.splice(at, 0, rec23(key, now, { wide: style.wide || needsWide([now]) }))
       }
     }
     if (orig.short !== now.short || (orig.long ?? '') !== (now.long ?? '')) {

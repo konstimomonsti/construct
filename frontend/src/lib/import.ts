@@ -47,45 +47,6 @@ export function makeListDoc(
   }
 }
 
-function normalizeJson(raw: unknown): Position[] {
-  const arr = Array.isArray(raw) ? raw : (raw as { positions?: unknown })?.positions
-  if (!Array.isArray(arr) || arr.some((row) => !row || typeof row !== 'object' || Array.isArray(row))) throw new Error('Expected an array of list positions.')
-  return arr.map((r: Record<string, unknown>, i) => ({
-    id: String(r.id ?? `p${i}`),
-    oz: String(r.oz ?? i + 1),
-    short: String(r.short ?? r.kurztext ?? r.name ?? '(ohne Kurztext)'),
-    long: r.long ? String(r.long) : undefined,
-    qty: Number.isFinite(Number(r.qty)) ? Number(r.qty) : 1,
-    unit: String(r.unit ?? 'St'),
-    up: r.up == null || r.up === '' || !Number.isFinite(Number(r.up)) ? null : Number(r.up),
-    category: String(r.category ?? 'Import'),
-    group: r.group ? String(r.group) : undefined,
-    lumpSum: r.lumpSum ? true : undefined,
-    path: Array.isArray(r.path) && r.path.every((part) => part && typeof part.oz === 'string' && typeof part.label === 'string')
-      ? r.path : undefined,
-    srcRef: r.srcRef ? String(r.srcRef) : undefined,
-  }))
-}
-
-function isCategoryTree(value: unknown): value is ListDoc['tree'] {
-  if (!Array.isArray(value)) return false
-  return value.every((node) => node && typeof node.oz === 'string' && typeof node.label === 'string'
-    && Number.isInteger(node.depth) && isCategoryTree(node.children))
-}
-
-function parseListJson(text: string, kind: 'json' | 'pdf' | 'docx', format: string): ParsedList {
-  const raw = JSON.parse(text)
-  const positions = normalizeJson(raw)
-  return {
-    format,
-    currency: typeof raw?.currency === 'string' ? raw.currency : 'EUR',
-    title: typeof raw?.title === 'string' ? raw.title : undefined,
-    positions,
-    tree: isCategoryTree(raw?.tree) && positions.every((p) => p.path?.length) ? raw.tree : undefined,
-    source: { kind },
-  }
-}
-
 /** Existing sample exports can be byte-identical to the original document. */
 async function readSampleDocument(file: File): Promise<ParsedList | undefined> {
   const candidates = useStore.getState().base?.lists.filter((list) => list.file && list.fileName.toLowerCase() === file.name.toLowerCase()) ?? []
@@ -125,7 +86,7 @@ async function addFile(file: File, listId: string, original: boolean, list?: Lis
 }
 
 export async function importFiles(files: File[], folderId: string, activeListId?: string): Promise<ImportResult> {
-  const g = await import('./gaeb')
+  const { parseListFile } = await import('./parse-list-file')
   const res: ImportResult = { lists: [], positions: 0, docs: 0, failed: [] }
   const documents: File[] = []
   const offerFiles = new Set([
@@ -138,29 +99,15 @@ export async function importFiles(files: File[], folderId: string, activeListId?
     const name = f.name
     const ext = name.split('.').pop()?.toLowerCase() ?? ''
     try {
-      let parsed: ParsedList
-      if (/^x8\d$/.test(ext)) parsed = g.parseGaebXml(await f.text())
-      else if (/^d8\d$/.test(ext)) parsed = g.parseGaeb90(g.decodeGaeb90(new Uint8Array(await f.arrayBuffer())))
-      else if (ext === 'csv' || ext === 'tsv') parsed = g.parseCsv(await f.text())
-      else if (ext === 'json') parsed = parseListJson(await f.text(), 'json', 'JSON')
-      else if (ext === 'xlsx') parsed = await (await import('./import-documents')).readExcel(f)
-      else if (ext === 'pdf' || ext === 'docx') {
-        if (ext === 'pdf' && offerFiles.has(fileStem(name).toLowerCase())) {
-          documents.push(f)
-          continue
-        }
-        const { readPdfPayload, readWordPayload } = await import('./import-documents')
-        const payload = ext === 'pdf' ? await readPdfPayload(f) : await readWordPayload(f)
-        const itemList = payload ? parseListJson(payload, ext, ext === 'pdf' ? 'PDF' : 'Word') : await readSampleDocument(f)
-        if (!itemList) {
-          documents.push(f)
-          continue
-        }
-        parsed = itemList
-      } else {
-        throw new Error('Unsupported file type.')
+      if (ext === 'pdf' && offerFiles.has(fileStem(name).toLowerCase())) {
+        documents.push(f)
+        continue
       }
-      if (!parsed.positions.length && /^([xd])8\d$/.test(ext) && !parsed.tree?.length && !parsed.title) throw new Error('No list found.')
+      const parsed = await parseListFile(f) ?? await readSampleDocument(f)
+      if (!parsed) {
+        documents.push(f)
+        continue
+      }
       const list = makeListDoc(folderId, parsed.title || fileStem(name), name, parsed.positions, parsed)
       await addFile(f, list.id, true, list)
       res.lists.push(list.id)

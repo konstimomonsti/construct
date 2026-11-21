@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # End-to-end API check against a running backend on a migrated database:
-# upload a public GAEB file, build a draft, price a line, analyse it and export it.
+# import a public GAEB file, save and analyse a draft, then reimport every export.
 # Usage: .github/scripts/api-smoke.sh [base-url]   (default http://localhost:8080)
 set -euo pipefail
 
 base=${1:-http://localhost:8080}
-file=test-data/dbinfrago/spgk/SPGK.X83
+file=data/fixtures/dbinfrago/spgk/SPGK.X83
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 
@@ -61,6 +61,14 @@ fi
 for format in pdf docx x83 x83-31 x82 d83 d84 d86 zip; do
     curl -fsS -o "$work/export.$format" "$base/api/mvp/export?id=$bom&format=$format"
     [ -s "$work/export.$format" ] || fail "empty $format export"
+    ext=$format
+    [ "$format" != x83-31 ] || ext=x83
+    parsed=$(curl -fsS -X POST -H 'Content-Type: application/octet-stream' --data-binary "@$work/export.$format" \
+        "$base/api/mvp/upload?project=$project&filename=roundtrip-$format.$ext")
+    [ "$(echo "$parsed" | json 'd["status"] in ("parsed", "review")')" = True ] || fail "$format export could not be reimported"
+    if [ "$format" = zip ]; then
+        [ "$(echo "$parsed" | json 'd["counts"].get("archive_member")')" = 2 ] || fail "archive did not import both documents"
+    fi
 done
 head -c 4 "$work/export.pdf" | grep -q '%PDF' || fail "pdf export is not a PDF"
 echo "exports ok"

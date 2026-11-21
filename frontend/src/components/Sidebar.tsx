@@ -65,9 +65,13 @@ export function Sidebar() {
       <div className="flex min-h-0 flex-col">
         <div className={clsx('flex h-16 shrink-0 items-center', rail ? 'justify-center px-2' : 'justify-between pr-3 pl-5')}>
           <div className="flex items-center gap-2.5">
-            <div className="flex size-8 items-center justify-center rounded-md bg-brand-600 text-ink">
-              <Icon name="foundation" size={20} fill />
-            </div>
+            <img
+              src="/billbuild-logo.png"
+              width={32}
+              height={32}
+              alt={rail ? 'BillBuild' : ''}
+              className="size-8 shrink-0 rounded-md"
+            />
             {!rail && <span className="display text-[17px] text-slate-900">BillBuild</span>}
           </div>
           {!rail && (

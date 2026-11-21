@@ -1,0 +1,87 @@
+x-postgres-image: &postgres-image postgres:18
+
+services:
+  db:
+    image: *postgres-image
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-construction}
+      POSTGRES_USER: ${POSTGRES_USER:-construction}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  migrate:
+    image: *postgres-image
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGHOST: db
+      PGDATABASE: ${POSTGRES_DB:-construction}
+      PGUSER: ${POSTGRES_USER:-construction}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_APP_PASSWORD: ${POSTGRES_APP_PASSWORD:?Run ./db/ops.sh up to set POSTGRES_APP_PASSWORD}
+    volumes:
+      - ./db:/db:ro
+    command: ["psql", "-X", "-v", "ON_ERROR_STOP=1", "-f", "/db/migrate.sql"]
+    restart: "no"
+
+  importer:
+    profiles: ["tools"]
+    build: ./backend/importer
+    read_only: true
+    tmpfs: ["/tmp"]
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGHOST: db
+      PGDATABASE: ${POSTGRES_DB:-construction}
+      PGUSER: construction_app
+      PGPASSWORD: ${POSTGRES_APP_PASSWORD:?Run ./db/ops.sh up to set POSTGRES_APP_PASSWORD}
+
+  # API + built-in data tools, and (for local work) the frontend from ./frontend.
+  # ./db/ops.sh compose --profile app up -d --build backend   ->  http://localhost:8080
+  backend:
+    profiles: ["app"]
+    build: ./backend
+    read_only: true
+    tmpfs: ["/tmp"]
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      PGHOST: db
+      PGDATABASE: ${POSTGRES_DB:-construction}
+      PGUSER: construction_app
+      PGPASSWORD: ${POSTGRES_APP_PASSWORD:?Run ./db/ops.sh up to set POSTGRES_APP_PASSWORD}
+      FRONTEND_DIR: /frontend/${FRONTEND_DIST:-dist}
+      # Origins of a separate frontend dev server, e.g. http://localhost:5173 (comma separated).
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-}
+      ANALYSIS_L3_PROVIDER: ${ANALYSIS_L3_PROVIDER:-none}
+      ANALYSIS_L3_MODEL: ${ANALYSIS_L3_MODEL:-}
+      OLLAMA_HOST: ${OLLAMA_HOST:-http://host.docker.internal:11434}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ANALYSIS_L3_CACHE: /tmp/layer3
+    ports:
+      - "127.0.0.1:${BACKEND_PORT:-8080}:8080"
+    volumes:
+      - ./frontend:/frontend:ro
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

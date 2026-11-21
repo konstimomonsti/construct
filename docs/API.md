@@ -5,8 +5,8 @@ Use relative URLs such as `/api/mvp/workspace` for browser requests.
 
 | Environment | Who serves the frontend | Who serves `/api`, `/admin`, `/healthz` |
 | --- | --- | --- |
-| Production (`compose.prod.yaml`) | Caddy in the `web` container (`/srv`) | Caddy proxies to `backend:8080` |
-| Dev stack (`compose.yaml`, `--profile app`) | the backend, from `FRONTEND_DIR` | the backend, on `127.0.0.1:8080` |
+| Production (`backend/deploy/compose.prod.yaml`) | Caddy in the `web` container (`/srv`) | Caddy proxies to `backend:8080` |
+| Dev stack (`backend/deploy/compose.yaml`, `--profile app`) | the backend, from `FRONTEND_DIR` | the backend, on `127.0.0.1:8080` |
 | Frontend dev server (Vite etc.) | the dev server | the dev server proxies `/api` and `/admin` to `127.0.0.1:8080` |
 
 ## Conventions
@@ -159,10 +159,10 @@ Saves the changed lines in one transaction. Include only the fields that changed
 Returns a file download with `Content-Disposition: attachment`. The available formats:
 
 - `pdf` and `docx`: priced documents.
-- `x83`: GAEB XML 3.3. `x83-31`: GAEB XML 3.1.
+- `x83`: GAEB XML 3.2. `x83-31`: GAEB XML 3.1.
 - `x82`: cost estimate.
 - `d83`, `d84`, `d86`: GAEB 90.
-- `zip`: all of the above.
+- `zip`: a bundle containing the PDF and Word exports.
 
 A plain `<a href>` works for the download. With `fetch`, read the response as a blob.
 
@@ -183,12 +183,12 @@ catalogue links and keep different units and scopes separate.
 
 ## Analysis (plausibility checks)
 
-These endpoints run the `analysis/` pipeline on a stored BOM:
+These endpoints run the `backend/analysis/` pipeline on a stored BOM:
 
 - Layer 1: arithmetic, completeness, pricing and consistency checks.
 - Layer 2: GAEB dependency rules, such as concrete that needs formwork.
 - Layer 3: AI review of short- and long-text contradictions and layer 2 findings. Configure Ollama
-  or Anthropic as described in the [deployment guide](../README.md#enable-layer-3).
+  or Anthropic as described in the [deployment guide](OPERATIONS.md#enable-layer-3).
 
 Every run is stored. Each finding has a stable `id` (its finding key). An accept or reject decision
 carries over to later runs of the same BOM.

@@ -7,8 +7,12 @@ cd "$project_dir"
 umask 077
 
 usage() {
-    printf 'Usage: %s up | backup FILE | restore FILE NEW_DATABASE\n' "$0" >&2
+    printf 'Usage: %s up | backup FILE | restore FILE NEW_DATABASE | compose [ARGS...]\n' "$0" >&2
     exit 2
+}
+
+compose() {
+    docker compose --project-directory "$project_dir" -f backend/deploy/compose.yaml "$@"
 }
 
 host_path() {
@@ -36,13 +40,13 @@ case "${1:-}" in
     up)
         [ "$#" -eq 1 ] || usage
         if [ ! -e .env ]; then
-            cp .env.example .env
+            cp backend/deploy/.env.example .env
         fi
         chmod 600 .env
         ensure_password POSTGRES_PASSWORD
         ensure_password POSTGRES_APP_PASSWORD
-        docker compose up -d --wait db
-        docker compose run --rm -T migrate
+        compose up -d --wait db
+        compose run --rm -T migrate
         ;;
     backup)
         [ "$#" -eq 2 ] || usage
@@ -54,7 +58,7 @@ case "${1:-}" in
         mkdir -p "$(dirname -- "$archive")"
         temporary_archive=$(mktemp "$archive.XXXXXX")
         trap 'rm -f "$temporary_archive"' EXIT
-        docker compose exec -T db sh -c '
+        compose exec -T db sh -c '
             pg_dump --username="$POSTGRES_USER" --dbname="$POSTGRES_DB" --format=custom --no-owner --no-acl
         ' > "$temporary_archive"
         if ! ln "$temporary_archive" "$archive"; then
@@ -71,15 +75,16 @@ case "${1:-}" in
             ''|[!a-z_]*|*[!a-z0-9_]*) usage ;;
         esac
         [ "${#target}" -le 63 ] || usage
-        docker compose exec -T db pg_restore --list < "$archive" > /dev/null
-        docker compose exec -T db sh -c '
+        compose exec -T db pg_restore --list < "$archive" > /dev/null
+        compose exec -T db sh -c '
             createdb --username="$POSTGRES_USER" --template=template0 "$1"
         ' sh "$target"
-        docker compose exec -T db sh -c '
+        compose exec -T db sh -c '
             pg_restore --username="$POSTGRES_USER" --dbname="$1" --single-transaction --no-owner --no-acl
         ' sh "$target" < "$archive"
-        docker compose run --rm -T -e "PGDATABASE=$target" migrate
+        compose run --rm -T -e "PGDATABASE=$target" migrate
         printf 'Restored PostgreSQL database %s\n' "$target"
         ;;
+    compose) shift; compose "$@" ;;
     *) usage ;;
 esac

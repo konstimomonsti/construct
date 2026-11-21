@@ -26,7 +26,7 @@ import pymupdf
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LISTS = os.path.join(ROOT, 'public', 'data', 'lists')
-FILES = os.path.join(ROOT, 'public', 'files')
+FILES = os.path.join(ROOT, '..', 'data', 'tenders')
 OUT = os.path.join(ROOT, 'public', 'data', 'layout')
 
 HEADER_END = 152.0  # template A: everything above is page furniture

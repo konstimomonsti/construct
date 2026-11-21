@@ -1,4 +1,4 @@
-# API backend: JSON API under /api, built-in data tools under /admin. Build context is the repository root.
+# API backend: JSON API under /api and built-in data tools under /admin.
 FROM python:3.12-slim
 WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends poppler-utils fonts-dejavu-core \
@@ -9,8 +9,8 @@ RUN pip install --no-cache-dir -r importer-requirements.txt -r analysis-requirem
     "python-docx==1.2.0" "reportlab==4.5.1" "anthropic>=2.12,<3"
 COPY importer/tender_import /app/tender_import
 COPY analysis /app/analysis
-COPY backend/server.py backend/mvp.py backend/exports.py backend/analysis_api.py backend/workspace.py backend/workspace_catalogue.py backend/workspace_analysis.py backend/catalogues.py schema-dashboard.html /app/
-COPY backend/admin /app/admin
+COPY *.py /app/
+COPY admin /app/admin
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PORT=8080
 RUN install -d -o 65532 -g 65532 -m 0700 /var/cache/tenderdesk/layer3
 USER 65532:65532

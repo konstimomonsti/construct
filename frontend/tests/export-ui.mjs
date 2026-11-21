@@ -49,7 +49,7 @@ await b.close()
     await q.getByRole('button', { name: /^Export/ }).first().click(); await q.waitForTimeout(250)
     await q.getByRole('menuitem', { name: /More formats/ }).click(); await q.waitForTimeout(300)
     const [d] = await Promise.all([q.waitForEvent('download', { timeout: 60000 }), q.getByRole('dialog').getByRole('button', { name: /^(Export|Download)/ }).last().click()])
-    const same = Buffer.compare(readFileSync(await d.path()), readFileSync('../data/' + file)) === 0
+    const same = Buffer.compare(readFileSync(await d.path()), readFileSync('../data/tenders/' + file)) === 0
     ok(same, `UI dialog export of unedited ${file} is byte-identical`)
   }
   await b2.close()

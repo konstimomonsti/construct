@@ -1,7 +1,7 @@
 """side-by-side PNGs: original page (left) vs exported page (right). python tests/export-compare.py"""
 import pymupdf, os, sys
 R = os.path.dirname(os.path.abspath(__file__))
-F = os.path.join(R, '..', 'public', 'files')
+F = os.path.join(R, '..', '..', 'data', 'tenders')
 S = os.path.join(R, 'export-shots')
 PAIRS = [
     ('A', 'LV_03_Malerarbeiten.pdf', 'A-lv-03-malerarbeiten-pdf.pdf', 2),

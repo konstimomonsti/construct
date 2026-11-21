@@ -29,16 +29,18 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
           cache-dependency-path: |
-            requirements.txt
-            importer/requirements.txt
+            backend/requirements.txt
+            backend/importer/requirements.txt
       - name: Install dependencies
-        run: pip install -r requirements.txt -r importer/requirements.txt pytest python-docx==1.2.0 reportlab==4.5.1
+        run: pip install -r backend/requirements.txt -r backend/importer/requirements.txt pytest python-docx==1.2.0 reportlab==4.5.1
+      - name: Install PDF test tools
+        run: sudo apt-get install -y poppler-utils fonts-dejavu-core
       - name: Backend and analysis tests
         env:
-          PYTHONPATH: backend:importer:.
-        run: python -m pytest -q backend/tests analysis/tests
+          PYTHONPATH: backend:backend/importer
+        run: python -m pytest -q backend/tests backend/analysis/tests
       - name: Importer tests
-        working-directory: importer
+        working-directory: backend/importer
         run: python -m pytest -q tests
 
   database:
@@ -83,18 +85,17 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
           cache-dependency-path: |
-            requirements.txt
-            importer/requirements.txt
+            backend/requirements.txt
+            backend/importer/requirements.txt
       - name: Install dependencies
         run: |
-          pip install -r requirements.txt -r importer/requirements.txt pytest python-docx==1.2.0 reportlab==4.5.1
-          test -f /usr/share/fonts/truetype/dejavu/DejaVuSans.ttf \
-            || (sudo apt-get update -qq && sudo apt-get install -y -qq fonts-dejavu-core)
+          pip install -r backend/requirements.txt -r backend/importer/requirements.txt pytest python-docx==1.2.0 reportlab==4.5.1
+          sudo apt-get install -y poppler-utils fonts-dejavu-core
       - name: Start backend as the runtime role
         env:
           PGUSER: construction_app
           PGPASSWORD: ci-app-password
-          PYTHONPATH: backend:importer:.
+          PYTHONPATH: backend:backend/importer
           PORT: "8080"
         run: nohup python backend/server.py > backend.log 2>&1 &
       - name: API smoke test (upload, draft, save, analyse, export)
@@ -119,6 +120,7 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci --no-audit --no-fund
       - run: npm run lint
+      - run: npm test
       - run: npm run build
 
   docker:
@@ -136,17 +138,17 @@ jobs:
       - uses: actions/checkout@v5
       - name: Shell scripts
         run: |
-          bash -n deploy.sh
-          shellcheck -S warning deploy.sh db/ops.sh .github/scripts/*.sh
+          bash -n backend/deploy/deploy.sh
+          shellcheck -S warning backend/deploy/deploy.sh db/ops.sh .github/scripts/*.sh
       - name: Compose files
         run: |
-          docker compose -f compose.yaml --profile app --profile tools config -q
-          docker compose -f compose.prod.yaml --profile tools --profile llm config -q
+          docker compose --project-directory . -f backend/deploy/compose.yaml --profile app --profile tools config -q
+          docker compose --project-directory . -f backend/deploy/compose.prod.yaml --profile tools --profile llm config -q
       - uses: docker/setup-buildx-action@v3
       - name: Build backend image
         uses: docker/build-push-action@v6
         with:
-          context: .
+          context: backend
           file: backend/Dockerfile
           push: false
           cache-from: type=gha,scope=backend
@@ -155,14 +157,14 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: deploy/web.Dockerfile
+          file: backend/deploy/web.Dockerfile
           push: false
           cache-from: type=gha,scope=web
           cache-to: type=gha,scope=web,mode=max
       - name: Build importer image
         uses: docker/build-push-action@v6
         with:
-          context: importer
+          context: backend/importer
           push: false
           cache-from: type=gha,scope=importer
           cache-to: type=gha,scope=importer,mode=max

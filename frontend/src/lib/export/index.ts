@@ -43,8 +43,12 @@ export function sourceKindOf(doc: ListDoc): SourceKind {
 export function ownFormat(doc: ListDoc): FormatId | null {
   const k = sourceKindOf(doc)
   if (k === 'gaeb-xml') {
-    const v = `${doc.source?.version ?? ''} ${doc.format ?? ''}`
-    return /2004|3\.1|3\.0/.test(v) && !/3\.2/.test(v) ? 'x83-2004' : 'x83'
+    const phase = doc.phase?.match(/^(?:X|DA)?(\d{2})$/i)?.[1] ?? extOf(doc.fileName).match(/^x(\d{2})$/i)?.[1]
+    if (phase !== '83') return null
+    const version = doc.source?.version ?? doc.format
+    if (/\b3\.2\b/.test(version)) return 'x83'
+    if (/\b(?:2004|3\.1)\b/.test(version)) return 'x83-2004'
+    return null
   }
   if (k === 'gaeb90') {
     const e = extOf(doc.fileName ?? '').toLowerCase()
@@ -53,7 +57,7 @@ export function ownFormat(doc: ListDoc): FormatId | null {
   if (k === 'pdf') return 'pdf'
   if (k === 'docx') return 'docx'
   if (k === 'xlsx') return 'xlsx'
-  if (k === 'csv') return 'csv'
+  if (k === 'csv' && extOf(doc.fileName).toLowerCase() === 'csv') return 'csv'
   if (k === 'json') return 'json'
   return null
 }
