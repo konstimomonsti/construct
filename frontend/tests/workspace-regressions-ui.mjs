@@ -75,7 +75,7 @@ try {
   await page.goto(base + '/list/' + fixtureId)
   const search = page.getByRole('searchbox', { name: 'Search positions' })
   await search.fill('Retaining wall')
-  const exportButton = page.getByRole('button', { name: 'Export', exact: true })
+  const exportButton = page.getByRole('button', { name: /^Export(?: \d+)?$/ })
   await exportButton.click()
   const [download] = await Promise.all([
     page.waitForEvent('download'),
