@@ -43,7 +43,7 @@ LISTS = {
         ORDER BY lower(s.name), s.id
     """,
     "subcontractors": """
-        SELECT s.id, s.name, s.trade, s.contact_name, s.email, s.phone, s.archived_at
+        SELECT s.id, s.name, s.trade, s.contact_name, s.email, s.phone, s.billing_address, s.archived_at
         FROM subcontractor s
         WHERE ((s.archived_at IS NOT NULL) = %(archived)s)
           AND concat_ws(' ', s.name, s.trade, s.contact_name, s.email, s.phone) ILIKE %(pattern)s
@@ -200,4 +200,6 @@ def write(connection, kind, payload):
         raise ValueError("Enter a valid email address.")
     if kind == "subcontractors":
         fields["trade"] = field(payload, "trade", 120, required=True)
+        if "billing_address" in payload:
+            fields["billing_address"] = field(payload, "billing_address", 500)
     return write_row(connection, kind, fields, record_id)

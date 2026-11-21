@@ -8,7 +8,7 @@ import time
 import pytest
 
 from analysis import layer3
-from analysis.contracts import AnalysisInput, Finding, Target
+from analysis.contracts import AnalysisInput, Finding, Line, Section, Target
 from analysis.layer2.adapter import from_data
 from analysis.layer3 import prompts
 from analysis.layer3.common import Session
@@ -134,6 +134,10 @@ def by_rule(findings, rule_id):
     return [finding for finding in findings if finding.rule_id == rule_id]
 
 
+def complete_coverage(errors):
+    return len(errors) == 1 and re.fullmatch(r"layer 3 coverage: (\d+)/\1 batches", errors[0]) is not None
+
+
 def versions(provider):
     return [request.prompt_version for request in provider.requests]
 
@@ -159,7 +163,7 @@ def test_new_schemas_are_strict(schema):
 
 def test_lv11_missing_spec_on_all_sandwich_elements():
     findings, errors = run3(lv11(), FakeProvider(fake_model))
-    assert errors == []
+    assert complete_coverage(errors)
     missing = {f.target.line_code: f for f in by_rule(findings, MISSING)}
     assert sorted(missing) == SANDWICH_CODES
     finding = missing["3.2.20"]
@@ -179,7 +183,7 @@ def test_lv11_missing_spec_on_all_sandwich_elements():
 def test_lv11_rebar_scope_ambiguous_on_3_2_70_with_audit_model():
     extraction, auditor = FakeProvider(fake_model, model_id="fake-haiku"), FakeProvider(fake_model, model_id="fake-sonnet")
     findings, errors = run3(lv11(), extraction, audit_provider=auditor)
-    assert errors == []
+    assert complete_coverage(errors)
     assert versions(auditor) == [prompts.SCOPE_VERSION]  # one audit call for the one precast section
     assert prompts.SCOPE_VERSION not in versions(extraction)
     rebar = by_rule(findings, REBAR)
@@ -228,7 +232,7 @@ def complete_precast_input():
 def test_complete_element_and_explicit_rebar_give_no_findings():
     provider = FakeProvider(fake_model)
     findings, errors = run3(complete_precast_input(), provider)
-    assert errors == []
+    assert complete_coverage(errors)
     assert by_rule(findings, MISSING) == [] and by_rule(findings, REBAR) == []
     # rebar purpose stated, no shop drawings, no embedded parts: the audit is not even sent
     assert prompts.SCOPE_VERSION not in versions(provider)
@@ -257,7 +261,7 @@ def test_audit_answers_that_break_the_preconditions_are_dropped():
         ]}
 
     findings, errors = run3(lv11(), FakeProvider(lambda r: fake_model(r, audit=bad_audit)))
-    assert errors == []
+    assert complete_coverage(errors)
     assert by_rule(findings, REBAR) == [] and by_rule(findings, EMBEDDED) == []
 
 
@@ -305,7 +309,7 @@ def test_second_identical_run_is_served_from_cache(tmp_path):
     second = FakeProvider(lambda request: RuntimeError("must not be called"))
     findings_2, errors = run3(lv11(), second, cache=ResponseCache(tmp_path))
     assert second.requests == []  # 0 API calls
-    assert errors == []
+    assert complete_coverage(errors)
     assert sorted(f.id for f in findings_2) == sorted(f.id for f in findings_1)
     assert by_rule(findings_2, MISSING) and by_rule(findings_2, REBAR)
 
@@ -314,7 +318,7 @@ def test_lv11_fits_the_default_budget_and_batches_run_concurrently(monkeypatch):
     monkeypatch.setenv("ANALYSIS_L3_MAX_BATCH_LINES", "2")  # 5 extraction batches, sent concurrently
     provider = FakeProvider(fake_model)
     findings, errors = run3(lv11(), provider)
-    assert errors == []
+    assert complete_coverage(errors)
     assert versions(provider).count(prompts.PRECAST_VERSION) == 5
     assert len(provider.requests) <= layer3.DEFAULT_MAX_CALLS == 12
     assert sorted(f.target.line_code for f in by_rule(findings, MISSING)) == SANDWICH_CODES
@@ -328,6 +332,35 @@ def test_call_budget_reports_skipped_extraction_batches(monkeypatch):
     assert "L3.PRECAST.EXTRACTION: 2 batch(es) not checked (call budget of 3 reached)" in errors
 
 
+def test_twenty_small_sections_share_quantity_and_text_batches():
+    sections = [Section(id=f"s{i}", code=f"{i:02}", title=f"Abschnitt {i}", sort_order=i)
+                for i in range(20)]
+    lines = [Line(id=f"l{i}_{j}", code=f"{i:02}.{j:04}", section_id=f"s{i}", sort_order=i * 2 + j,
+                  short_text=f"Leistung {i} {j}", quantity=10, unit="ea", unit_raw="St")
+             for i in range(20) for j in range(2)]
+    provider = FakeProvider(fake_model)
+    _, errors = run3(AnalysisInput(sections=sections, lines=lines), provider, max_calls=100)
+    quantity = [request for request in provider.requests if request.prompt_version == prompts.QUANTITY_VERSION]
+    underspecified = [request for request in provider.requests
+                      if request.prompt_version == prompts.UNDERSPECIFIED_VERSION]
+    assert len(quantity) <= 3 and len(underspecified) <= 2
+    assert sum(len(payload(request)["items"]) for request in quantity) == 40
+    assert all("section" in item for request in quantity for item in payload(request)["items"])
+    assert all(len(request.prompt) <= 12_000 for request in quantity + underspecified)
+    assert len({item["ref"] for item in payload(quantity[0])["items"]}) == len(payload(quantity[0])["items"])
+    assert errors == [f"layer 3 coverage: {len(provider.requests)}/{len(provider.requests)} batches"]
+
+
+def test_coverage_line_reports_exact_skipped_rule_counts():
+    provider = FakeProvider(lambda request: {"findings": []})
+    session = Session(provider=provider, cache=ResponseCache(None), errors=[], max_calls=1)
+    requests = [LLMRequest("s", f"p{i}", {"type": "object"}, "v") for i in range(3)]
+    session.ask_many(QTY, requests)
+    session.report()
+    assert session.errors == [f"{QTY}: 2 batch(es) not checked (call budget of 1 reached)",
+                              f"layer 3 coverage: 1/3 batches; skipped: {QTY}×2"]
+
+
 def test_time_budget_stops_calls_and_is_reported():
     provider = FakeProvider(lambda request: {"findings": []})
     session = Session(provider=provider, cache=ResponseCache(None), errors=[], deadline=1.0,
@@ -336,7 +369,8 @@ def test_time_budget_stops_calls_and_is_reported():
     assert session.ask_many("L3.X", [request, request]) == [None, None]
     session.report()
     assert provider.requests == []
-    assert session.errors == ["L3.X: 2 batch(es) not checked (time budget of 1 s reached)"]
+    assert session.errors == ["L3.X: 2 batch(es) not checked (time budget of 1 s reached)",
+                              "layer 3 coverage: 0/2 batches; skipped: L3.X×2"]
 
 
 def test_contradiction_check_skips_lines_with_l1_value_conflict():
@@ -419,7 +453,7 @@ def test_task02_eval_runs_offline(monkeypatch):
     monkeypatch.setenv("ANALYSIS_L3_CACHE", "off")
     result = evaluate(FakeProvider(fake_model))
     task02 = result["task02"]
-    assert result["errors"] == []
+    assert all(e.startswith("layer 3 coverage: ") for e in result["errors"])
     assert task02["precision"] == 1.0
     lv11_row = next(row for row in task02["cases"] if row["id"] == "lv11_reference")
     assert lv11_row["missed"] == [] and lv11_row["false_positives"] == []

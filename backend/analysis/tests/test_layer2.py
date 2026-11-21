@@ -180,7 +180,7 @@ class RuleTests(unittest.TestCase):
         proposal = finding.suggested_fix.operations[0]
         self.assertIsNone(proposal.line.quantity)
         self.assertEqual(proposal.line.unit, "m²")  # SuggestedUnit: only the quantity is left to the reviewer
-        self.assertIn("enter it before accepting", finding.suggested_fix.rationale)
+        self.assertIn("enter it before applying the fix", finding.suggested_fix.rationale)
         self.assertLess(finding.suggested_fix.confidence, 1)
         self.assertEqual(proposal.after_line_id, "p")
 

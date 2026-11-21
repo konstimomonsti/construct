@@ -340,7 +340,7 @@ class RiskReport(_Model):
     version: Literal["risk/1"] = "risk/1"
     score: int = Field(ge=0, le=100)
     level: Literal["low", "medium", "high", "critical"]
-    scale: Literal[40] = 40
+    scale: int = Field(default=40, gt=0)
     priced: bool
     currency: str | None = None
     money_at_stake: Decimal | None = None

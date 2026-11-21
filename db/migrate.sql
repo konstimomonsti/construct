@@ -138,5 +138,13 @@ SELECT NOT EXISTS (
     INSERT INTO db_migration.applied_version (version) VALUES (16);
 \endif
 
+SELECT NOT EXISTS (
+    SELECT FROM db_migration.applied_version WHERE version = 19
+) AS apply_subcontractor_billing_address \gset
+\if :apply_subcontractor_billing_address
+    \ir migrations/019_subcontractor_billing_address.sql
+    INSERT INTO db_migration.applied_version (version) VALUES (19);
+\endif
+
 \ir runtime_role.sql
 COMMIT;
