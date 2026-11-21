@@ -4,12 +4,14 @@ import { Button, Dialog, Icon, kbdCls } from '../ui'
 import { ChangeOrderText, FindingText, RISK_UI } from '../RiskAssessment'
 import { FindingQuestions } from './BidderQuestions'
 import { DismissMenu, accepted } from './DecisionControls'
-import { planFix, type FixPlan } from '../../lib/apply-fix'
+import { planFix, planFixAll, type FixPlan } from '../../lib/apply-fix'
 import { int, plural } from '../../lib/format'
 import { SEVERITIES, type Decision, type Decisions, type Finding, type Question, type ReviewItem, type Severity } from '../../lib/risk-assessment'
 import type { Position } from '../../lib/types'
 
 export type WarningEntry = { item: ReviewItem; position: Position | null }
+
+type ApplyFixes = (plans: { finding: Finding; plan: FixPlan }[]) => Promise<boolean> | boolean | void
 
 const isFinding = (item: ReviewItem): item is Finding => 'severity' in item
 const kindOf = (item: ReviewItem): Severity | 'change' => (isFinding(item) ? item.severity : 'change')
@@ -32,14 +34,10 @@ export function WarningsPanel({ entries, decisions, settled, positions, allowFix
   onOpen: (positionId: string) => void
   onFilter: (filter: string) => void
   onDecide: (ids: string[], decision: Decision | null, title?: string) => void
-  onApplyFixes: (plans: { finding: Finding; plan: FixPlan }[]) => void
+  onApplyFixes: ApplyFixes
 }) {
   const open = useMemo(() => entries.filter(({ item }) => !settled.has(item.id)), [entries, settled])
-  const plans = useMemo(() => open.flatMap(({ item }) => {
-    if (!allowFixes || !isFinding(item) || item.origin === 'llm') return []
-    const plan = planFix(item, positions)
-    return plan.steps.length ? [{ finding: item, plan }] : []
-  }), [open, positions, allowFixes])
+  const { plans, rest } = useMemo(() => planFixAll(open.map(({ item }) => item), positions, allowFixes), [open, positions, allowFixes])
   const counts = useMemo(() => {
     const out = new Map<Severity | 'change', number>()
     for (const { item } of open) out.set(kindOf(item), (out.get(kindOf(item)) ?? 0) + 1)
@@ -85,11 +83,7 @@ export function WarningsPanel({ entries, decisions, settled, positions, allowFix
         </div>
         {open.length > 0 && (
           <div className="flex flex-wrap gap-2">
-            {plans.length > 0 && (
-              <Button variant="primary" icon="auto_fix_high" onClick={() => setConfirming(true)}>
-                {plans.length === open.length ? 'Fix all' : `Fix all ${int(plans.length)} fixable`}
-              </Button>
-            )}
+            <Button variant="primary" icon="auto_fix_high" onClick={() => setConfirming(true)}>Fix all</Button>
             <Button icon={reviewing ? 'close' : 'fact_check'} aria-expanded={reviewing} onClick={() => setReviewing((v) => !v)}>
               {reviewing ? 'Close review' : 'Review one by one'}
             </Button>
@@ -139,29 +133,42 @@ export function WarningsPanel({ entries, decisions, settled, positions, allowFix
         </ul>
       )}
 
-      <FixAllDialog open={confirming} plans={plans} remaining={open.length - plans.length} onClose={() => setConfirming(false)}
-        onConfirm={() => { onApplyFixes(plans); setConfirming(false) }} />
+      <FixAllDialog open={confirming} plans={plans} rest={rest.length} onClose={() => setConfirming(false)}
+        onConfirm={async () => {
+          const ok = plans.length ? (await onApplyFixes(plans)) !== false : true
+          if (ok && rest.length) onDecide(rest, accepted(), 'Fix all')
+          setConfirming(false)
+        }} />
     </section>
   )
 }
 
-function FixAllDialog({ open, plans, remaining, onClose, onConfirm }: {
-  open: boolean; plans: { finding: Finding; plan: FixPlan }[]; remaining: number; onClose: () => void; onConfirm: () => void
+function FixAllDialog({ open, plans, rest, onClose, onConfirm }: {
+  open: boolean; plans: { finding: Finding; plan: FixPlan }[]; rest: number; onClose: () => void; onConfirm: () => void
 }) {
   const steps = plans.flatMap(({ plan }) => plan.steps)
   return (
     <Dialog open={open} onClose={onClose} width="max-w-lg"
-      title={`Fix ${plural(plans.length, 'warning', 'warnings')}?`}
-      description={<>These changes are made as edits you can undo. The uploaded file stays unchanged.{remaining > 0 && <> {plural(remaining, 'other warning has', 'other warnings have')} no automatic fix and stay open for review.</>}</>}
+      title={plans.length ? `Fix ${plural(plans.length + rest, 'warning', 'warnings')}?` : `Mark ${plural(rest, 'warning', 'warnings')} as reviewed?`}
+      description="Changes are made as edits you can undo. The uploaded file stays unchanged."
       footer={<>
         <Button onClick={onClose}>Cancel</Button>
-        <Button variant="primary" icon="auto_fix_high" onClick={onConfirm}>Apply {plural(steps.length, 'change', 'changes')}</Button>
+        <Button variant="primary" icon="auto_fix_high" onClick={onConfirm}>
+          {plans.length ? `Apply ${plural(steps.length, 'change', 'changes')}${rest ? ` and mark ${int(rest)} as reviewed` : ''}` : `Mark ${int(rest)} as reviewed`}
+        </Button>
       </>}>
-      <ul className="max-h-72 space-y-1 overflow-y-auto text-sm text-slate-800">
-        {steps.map((step, index) => (
-          <li key={index} className="flex gap-2"><Icon name="arrow_right_alt" size={18} className="shrink-0 text-slate-500" />{step.label}</li>
-        ))}
-      </ul>
+      {steps.length > 0 && (
+        <ul className="max-h-72 space-y-1 overflow-y-auto text-sm text-slate-800">
+          {steps.map((step, index) => (
+            <li key={index} className="flex gap-2"><Icon name="arrow_right_alt" size={18} className="shrink-0 text-slate-500" />{step.label}</li>
+          ))}
+        </ul>
+      )}
+      {rest > 0 && (
+        <p className={clsx('text-sm text-slate-700', steps.length > 0 && 'mt-3')}>
+          {plural(rest, 'warning has', 'warnings have')} no automatic fix. {rest === 1 ? 'It is' : 'They are'} marked as reviewed (accepted) so the list is clear; you can reopen {rest === 1 ? 'it' : 'them'} from the undo toast.
+        </p>
+      )}
     </Dialog>
   )
 }
@@ -176,7 +183,7 @@ function ReviewStepper({ open, positions, decisions, allowFixes, title, question
   questionsByFinding: ReadonlyMap<string, Question[]>
   onOpen: (positionId: string) => void
   onDecide: (ids: string[], decision: Decision | null, title?: string) => void
-  onApplyFixes: (plans: { finding: Finding; plan: FixPlan }[]) => void
+  onApplyFixes: ApplyFixes
   onClose: () => void
 }) {
   // follow the warning by id, so the cursor stays put when earlier ones are decided
