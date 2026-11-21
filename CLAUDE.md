@@ -27,7 +27,7 @@ then finds what is wrong or risky **before** the contractor prices and submits a
 **State (2026-11-21, evening):** wave 1 (tasks 01–08) and tasks 09, 13, 14 and 16 are merged. Live on the VPS the
 hall demo runs layers 1–3 in about 31 s with full layer 3 coverage. Open work is in `STATUS.md`.
 
-The demo runs on the **VPS** (`backend/deploy/compose.prod.yaml`). The lead deploys `main` after merging; the CI deploy job stays off until `VPS_HOST` is set.
+The demo runs on the **VPS** (`backend/deploy/compose.prod.yaml`). The VPS pulls and deploys `main` about every 10 minutes, so a merge is live within ~10 minutes; the CI deploy job stays off until `VPS_HOST` is set.
 Layer 3 **must work live** with `ANALYSIS_L3_PROVIDER=anthropic`.
 
 The reference trade for the new precast and DIN checks is `data/tenders/LV_11_Stahlbetonfertigeile_Sandwichsockel.pdf`.
@@ -87,8 +87,8 @@ cd frontend; npm ci; npm run lint; npm run build; npm test
 - `python -m analysis run` accepts GAEB XML / GAEB 90, tender PDFs (Poppler needed), and `AnalysisInput` JSON.
 - The fixture `backend/analysis/tests/fixtures/lv11_precast.json` is LV_11 (9 positions) as an `AnalysisInput`:
   13 findings with layers 1–2 (10 `L1.DIN.NOTE`, 2 `L1.TEXT.SPEC_PLACEHOLDER`, 1 `L1.UNIT.TRADE_MISMATCH`).
-- **Deploying:** the lead deploys `main` to the VPS by hand after merging (`./backend/deploy/deploy.sh update`); see
-  `STATUS.md` "Lead checklist" for the last deployed commit.
+- **Deploying:** the VPS pulls `main` about every 10 minutes and redeploys (`./backend/deploy/deploy.sh update` on the server).
+  Only merge what is ready for the demo.
 
 ## 4. Conventions
 
@@ -119,7 +119,7 @@ cd frontend; npm ci; npm run lint; npm run build; npm test
 2. Commit in small steps. Write messages as full sentences (for example "Add DIN 1045-2 exposure class checks").
 3. Before pushing: `git fetch origin; git merge origin/main`, then run your task's tests.
 4. `git push -u origin feat/task-0X` and open a PR to `main` (`gh pr create`, or the GitHub web UI).
-   **Never push to `main` directly.** It is what the demo runs. The lead merges and deploys.
+   **Never push to `main` directly.** It is what the demo runs, and it goes live within ~10 minutes. The lead merges.
 5. **STATUS.md:** edit **only your own row**. Conflicts in that file are expected and the lead resolves them.
 
 ## 5. Shared interface contracts
