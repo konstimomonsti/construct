@@ -181,6 +181,69 @@ unit-price-only and lump-sum positions are counted separately from the quantity 
 Unquantified included positions are reported in `unquantified_included`. Groups use existing
 catalogue links and keep different units and scopes separate.
 
+## Supplier requests and communication log
+
+All routes take and return JSON. Failures return `{"error": "..."}` with status 400 (bad input), 404 (unknown
+supplier, subcontractor or entry) or 503 (database unavailable).
+
+### `POST /api/crm/sourcing`
+
+Body: `{list_id, positions: [{id, oz, short, long, unit}]}` (at most 2,000 positions). Returns `categories`,
+`positions` and `suppliers`, plus `ai`, which is true when a model is configured.
+- Each entry in `positions` has `category_id`, `category`, `source` (`user`, `catalogue`, `ai` or `keyword`),
+  `confidence`, `reason` and `product`.
+- Each entry in `suppliers` has its contact data, `category_ids` (explicit categories plus those of its catalogue
+  products), and `requested_at` and `answered` for this bill.
+
+### `POST /api/crm/categorize`
+
+Same body as `sourcing`, plus an optional `redo: true`, which also re-checks earlier `ai` and `keyword` choices.
+Categorizes the positions that have no category with Claude (`ANTHROPIC_API_KEY`, model `BILLBUILD_CATALOGUE_MODEL`).
+Without a model, or for a batch that fails, it falls back to keyword matching. A `user` choice is never overwritten.
+Returns the `sourcing` view plus `run: {method, checked, assigned, without_category, fallback}`.
+
+### `POST /api/crm/position-category`
+
+Body: `{list_id, position_id, category_id}`. Stores your own choice; `category_id: null` removes it.
+
+### `POST /api/crm/supplier-categories`
+
+Body: `{supplier_id, category_ids}`. Replaces the categories a supplier delivers besides those of its products.
+
+### `POST /api/crm/log`
+
+Body: one event, or `{events: [...]}` (at most 100, saved together). Each event has these fields:
+- `kind`: `rfq_sent`, `reply`, `offer_received`, `reminder_sent`, `call` or `note`.
+- `party_kind`: `supplier` or `subcontractor`.
+- Optional: `party_id`, `channel`, `list_id`, `list_title`, `subject`, `note`, `items`, `request_id`, `occurred_at`,
+  `due_at` and `remind_at`.
+
+What the log does with them:
+- An `rfq_sent` with `due_at` or `remind_at` creates a reminder.
+- An answer without `request_id` links to the party's latest open request, takes over its bill, sets its
+  `answered_at`, and closes its reminders.
+
+### `POST /api/crm/log-delete`
+
+Body: `{id}`. Deletes an entry. Deleting an answer reopens its request.
+
+### `GET /api/crm/log?party_kind=&party_id=&list_id=&limit=`
+
+Returns the newest entries first, with `party_name` and, for answered requests and their answers, `response_hours`.
+
+### `POST /api/crm/reminder`
+
+`{id, done?, due_at?, note?}` updates a reminder; `{party_kind, party_id, due_at, note?}` creates one.
+
+### `GET /api/crm/overview`
+
+Returns:
+- `parties`: per supplier and subcontractor, `requests`, `answered`, `open`, `overdue`, `avg_response_hours` and
+  `last_contact_at`.
+- `reminders`: the open reminders.
+- `totals`.
+- `categories`.
+
 ## Analysis (plausibility checks)
 
 These endpoints run the `backend/analysis/` pipeline on a stored BOM:

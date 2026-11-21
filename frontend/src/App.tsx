@@ -9,6 +9,7 @@ const Archived = lazy(() => import('./pages/Collections').then((m) => ({ default
 const FolderPage = lazy(() => import('./pages/FolderPage').then((m) => ({ default: m.FolderPage })))
 const ListPage = lazy(() => import('./pages/ListPage').then((m) => ({ default: m.ListPage })))
 const CataloguePage = lazy(() => import('./pages/CataloguePage').then((m) => ({ default: m.CataloguePage })))
+const Requests = lazy(() => import('./pages/Requests').then((m) => ({ default: m.Requests })))
 const Settings = lazy(() => import('./pages/Settings').then((m) => ({ default: m.Settings })))
 import { loadLibrary } from './lib/data'
 import { useStore } from './lib/store'
@@ -50,6 +51,7 @@ export default function App() {
         <Routes>
           <Route element={<Shell />}>
             <Route path="/settings" element={<Settings />} />
+            <Route path="/requests" element={<Requests />} />
             <Route path="/catalogues" element={<Navigate to="/catalogues/products" replace />} />
             <Route path="/catalogues/:kind" element={<CataloguePage />} />
             <Route

@@ -110,11 +110,8 @@ export async function importFiles(files: File[], folderId: string, activeListId?
         }
       }
       if (evidenceOnly) throw new Error('Choose a billbuild.product-evidence.v1 JSON file up to 1 MB.')
-      if (ext === 'pdf' && offerFiles.has(fileStem(name).toLowerCase())) {
-        documents.push({ file: f })
-        continue
-      }
-      const parsed = await parseListFile(f) ?? await readSampleDocument(f)
+      const supportingPdf = ext === 'pdf' && offerFiles.has(fileStem(name).toLowerCase())
+      const parsed = await parseListFile(f, { supportingPdf }) ?? (supportingPdf ? undefined : await readSampleDocument(f))
       if (!parsed) {
         documents.push({ file: f })
         continue

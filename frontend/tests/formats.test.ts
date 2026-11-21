@@ -59,6 +59,14 @@ for (const format of FORMATS) {
     assert.ok(categoryList)
     assert.deepEqual(categoryList.positions.map(snapshot), expected.slice(1))
 
+    const subsection = await run(format.id, { scope: 'categories', categoryOzs: ['01.02'] })
+    const subsectionList = await parseListFile(asFile(subsection.fileName, subsection.data), { supportingPdf: format.id === 'pdf' })
+    assert.ok(subsectionList)
+    assert.deepEqual(subsectionList.positions.map(snapshot), expected.slice(0, 1))
+    assert.deepEqual(subsectionList.tree?.map((node) => node.label), ['Versorgung'])
+    await assert.rejects(run(format.id, { scope: 'categories', categoryOzs: [] }), /selected scope has no positions/)
+    await assert.rejects(run(format.id, { scope: 'selection', selectedIds: [] }), /selected scope has no positions/)
+
     const original = { ...doc, ...parsed, fileName: output.fileName }
     const same = await run(format.id, { doc: original, resolved: resolveList(original), loadOriginal: async () => output.data })
     assert.equal(same.mode, 'original')
@@ -108,6 +116,7 @@ test('plain PDF and Word files are available as attachments', async () => {
   const pdf = await PDFDocument.create()
   pdf.addPage().drawText('Specification only')
   assert.equal(await parseListFile(asFile('spec.pdf', await pdf.save())), undefined)
+  assert.equal(await parseListFile(asFile('spec.pdf', await pdf.save()), { supportingPdf: true }), undefined)
   assert.equal(await parseListFile(asFile('spec.docx', await sample('LV-Positionen.docx'))), undefined)
 })
 
