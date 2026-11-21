@@ -43,7 +43,7 @@ export function FolderCollection({
     const set = new Set(ids)
     return folders.filter((f) => set.has(f.id)).flatMap((f) => f.listMetas.map((l) => l.id))
   }
-  const openAllIds = useMemo(() => folders.filter((f) => !f.archived).flatMap((f) => f.listMetas.map((l) => l.id)), [folders])
+  const openAllIds = useMemo(() => all.filter((f) => !f.archived && !f.trashedAt).flatMap((f) => f.listMetas.map((l) => l.id)), [all])
 
   const toggle = (id: string) =>
     setSel((s) => {
@@ -175,7 +175,7 @@ export function FolderCollection({
   )
 }
 
-const notArchived = (f: FolderView) => !f.archived
+const notArchived = (f: FolderView) => !f.archived && !f.parentId
 export function AllProjects() {
   return (
     <FolderCollection

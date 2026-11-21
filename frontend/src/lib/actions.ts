@@ -77,6 +77,7 @@ export function useActions() {
     { label: 'Open', icon: 'description', onSelect: () => navigate(`/list/${l.id}`) },
     { label: 'Open in new tab bar', icon: 'tab', onSelect: () => useStore.getState().openTab(l.id) },
     { label: 'Rename', icon: 'edit', onSelect: () => openDialog({ kind: 'rename-list', id: l.id }) },
+    { label: 'Move to folder…', icon: 'drive_file_move', onSelect: () => openDialog({ kind: 'folder-target', action: 'move-list', listId: l.id }) },
     { label: 'Set budget cap', icon: 'tune', onSelect: () => openDialog({ kind: 'cap', target: 'list', id: l.id }) },
     'sep',
     { label: 'Move to Trash', icon: 'delete', danger: true, onSelect: () => trashList(l) },

@@ -105,6 +105,16 @@ const slug = (s: string) =>
   s.toLowerCase().replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
     .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 
+const companionLists: Record<string, string> = {
+  'hem2301-2-gesamt-lv-pdf': '8209-003-leistungsverzeichnis-leer-x83',
+  'angebot-an24-0305-pdf': 'angebot-an24-0305-d84',
+  'leistungsverzeichnis-pdf': 'lv-positionen-docx',
+  'lv-schachtbauwerk-pdf': 'lv-positionen-docx',
+  'abgabe-lv-pdf': 'nummer-001-leer-x83',
+  'leistungsverzeichnis-leer-pdf': 'nummer-001-leer-x83',
+  'lv-ausdruck-projekt-004-pdf': 'gaeb-projekt-004-x83',
+}
+
 const pdfText = (f: string, raw = true) =>
   execFileSync('pdftotext', ['-enc', 'UTF-8', raw ? '-raw' : '-layout', f, '-'], { maxBuffer: 64 << 20 }).toString('utf8')
 
@@ -424,7 +434,10 @@ for (const fd of FOLDERS) {
     copyFileSync(f, join(FILES, name))
     const text = pdfText(f, false)
     const excerpt = text.split('\n').map((l) => l.replace(/\s+/g, ' ').trim()).filter((l) => l && !/^\[(BILD|FIRMA|ADRESSE|TELEFON|EMAIL)/.test(l)).slice(0, 14).join('\n')
-    return { id: slug(name), name, file: `files/${encodeURIComponent(name)}`, pages: pdfPages(f), excerpt }
+    const id = slug(name)
+    const listId = companionLists[id]
+    if (!listIds.includes(listId)) throw new Error(`Missing list association for ${name}`)
+    return { id, listId, name, file: `files/${encodeURIComponent(name)}`, pages: pdfPages(f), excerpt }
   })
 
   folders.push({ id: fd.id, name: fd.name, description: fd.description, icon: fd.icon, tone: fd.tone, lists: listIds, documents })

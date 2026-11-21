@@ -1,9 +1,10 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { useShallow } from 'zustand/react/shallow'
-import type { FolderMeta, Library, ListDoc, ListMeta, Position } from './types'
+import type { DocMeta, FolderMeta, Library, ListDoc, ListMeta, Position } from './types'
 import { niceCap } from './format'
 import { positionTotal } from './money'
+import { removeDocuments } from './documents'
 
 export type SortKey = 'cost-desc' | 'cost-asc' | 'name' | 'items'
 export const SORT_LABEL: Record<SortKey, string> = {
@@ -48,6 +49,9 @@ interface State {
   base: Library | null
   userFolders: FolderMeta[]
   userLists: ListDoc[]
+  userDocuments: DocMeta[]
+  documentLinks: Record<string, string>
+  documentFolders: Record<string, string>
   folderPatch: Record<string, FolderPatch>
   listPatch: Record<string, ListPatch>
   edits: Record<string, ListEdits>
@@ -61,13 +65,15 @@ interface State {
   setView: (v: 'grid' | 'list') => void
   setSort: (s: SortKey) => void
   toggleSidebar: () => void
-  createFolder: (name: string, description?: string, parentHint?: string) => string
+  createFolder: (name: string, description?: string, parentId?: string) => string
   patchFolder: (id: string, p: FolderPatch) => void
   patchList: (id: string, p: ListPatch) => void
   restoreFolder: (id: string) => void
   purgeFolder: (id: string) => void
   addList: (doc: ListDoc) => void
-  addDocument: (folderId: string, doc: FolderMeta['documents'][number]) => void
+  addImportedFile: (doc: DocMeta, list?: ListDoc) => boolean
+  linkDocument: (id: string, listId: string) => void
+  moveDocument: (id: string, folderId: string) => void
   openTab: (id: string) => void
   openTabs_: (ids: string[]) => void
   closeTab: (id: string) => void
@@ -98,12 +104,29 @@ export const normEdits = (e?: Partial<ListEdits>): ListEdits => {
 }
 const norm = normEdits
 
+function deleteLists(s: State, ids: Set<string>) {
+  const drop = s.userDocuments.filter((doc) => ids.has(s.documentLinks[doc.id] ?? doc.listId ?? ''))
+  const dropIds = new Set(drop.map((doc) => doc.id))
+  removeDocuments(drop.filter((doc) => doc.stored).map((doc) => doc.id))
+  return {
+    userLists: s.userLists.filter((list) => !ids.has(list.id)),
+    userDocuments: s.userDocuments.filter((doc) => !dropIds.has(doc.id)),
+    documentLinks: Object.fromEntries(Object.entries(s.documentLinks).filter(([doc, list]) => !dropIds.has(doc) && !ids.has(list))),
+    documentFolders: Object.fromEntries(Object.entries(s.documentFolders).filter(([doc]) => !dropIds.has(doc))),
+    userFolders: s.userFolders.map((folder) => ({ ...folder, lists: folder.lists.filter((id) => !ids.has(id)) })),
+    openTabs: s.openTabs.filter((id) => !ids.has(id)),
+  }
+}
+
 export const useStore = create<State>()(
   persist(
     (set, get) => ({
       base: null,
       userFolders: [],
       userLists: [],
+      userDocuments: [],
+      documentLinks: {},
+      documentFolders: {},
       folderPatch: {},
       listPatch: {},
       edits: {},
@@ -118,13 +141,13 @@ export const useStore = create<State>()(
       setSort: (sort) => set({ sort }),
       toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
 
-      createFolder: (name, description = '') => {
-        const id = `f-${Date.now().toString(36)}`
+      createFolder: (name, description = '', parentId) => {
+        const id = `f-${crypto.randomUUID()}`
         set((s) => ({
           userFolders: [
             ...s.userFolders,
             {
-              id, name, description: description || 'Awaiting initial line allocations', icon: 'folder_open',
+              id, parentId, name, description: description || 'Awaiting initial line allocations', icon: 'folder_open',
               tone: 'slate', lists: [], documents: [], createdAt: new Date().toISOString(), userCreated: true,
             },
           ],
@@ -136,20 +159,42 @@ export const useStore = create<State>()(
       restoreFolder: (id) =>
         set((s) => ({ folderPatch: { ...s.folderPatch, [id]: { ...s.folderPatch[id], trashedAt: undefined, archived: false } } })),
       purgeFolder: (id) =>
-        set((s) => ({
-          userFolders: s.userFolders.filter((f) => f.id !== id),
-          userLists: s.userLists.filter((l) => l.folderId !== id),
-          folderPatch: { ...s.folderPatch, [id]: { ...s.folderPatch[id], trashedAt: 'purged' } },
-        })),
+        set((s) => {
+          const deleted = new Set(s.userLists.filter((l) => (s.listPatch[l.id]?.folderId ?? l.folderId) === id).map((l) => l.id))
+          const remaining = deleteLists(s, deleted)
+          return {
+            ...remaining,
+            documentFolders: Object.fromEntries(Object.entries(remaining.documentFolders).filter(([, folder]) => folder !== id)),
+            userFolders: remaining.userFolders.filter((f) => f.id !== id).map((f) => f.parentId === id ? { ...f, parentId: undefined } : f),
+            folderPatch: { ...s.folderPatch, [id]: { ...s.folderPatch[id], trashedAt: 'purged' } },
+          }
+        }),
       addList: (doc) =>
         set((s) => ({
           userLists: [...s.userLists, doc],
           userFolders: s.userFolders.map((f) => (f.id === doc.folderId ? { ...f, lists: [...f.lists, doc.id] } : f)),
         })),
-      addDocument: (folderId, doc) =>
+      addImportedFile: (doc, list) => {
+        const model = selectModel(get())
+        const destination = list ?? model.lists.find((item) => item.id === doc.listId && !item.trashedAt)
+        if (!destination || !model.folders.some((folder) => folder.id === destination.folderId && !folder.trashedAt)) return false
         set((s) => ({
-          userFolders: s.userFolders.map((f) => (f.id === folderId ? { ...f, documents: [...f.documents, doc] } : f)),
-        })),
+          userDocuments: [...s.userDocuments, doc],
+          userLists: list ? [...s.userLists, list] : s.userLists,
+        }))
+        return true
+      },
+      linkDocument: (id, listId) =>
+        set((s) => ({ documentLinks: { ...s.documentLinks, [id]: listId } })),
+      moveDocument: (id, folderId) =>
+        set((s) => {
+          const { documents, lists } = selectModel(s)
+          const listId = documents.find((doc) => doc.id === id)?.listId
+          const documentFolders = { ...s.documentFolders }
+          if (lists.find((list) => list.id === listId)?.folderId === folderId) delete documentFolders[id]
+          else documentFolders[id] = folderId
+          return { documentFolders }
+        }),
       openTab: (id) => set((s) => ({ openTabs: s.openTabs.includes(id) ? s.openTabs : [...s.openTabs, id] })),
       openTabs_: (ids) => set((s) => ({ openTabs: [...new Set([...s.openTabs, ...ids])] })),
       closeTab: (id) => set((s) => ({ openTabs: s.openTabs.filter((t) => t !== id) })),
@@ -228,12 +273,7 @@ export const useStore = create<State>()(
           else delete edits[listId]
           return { edits }
         }),
-      deleteList: (id) =>
-        set((s) => ({
-          userLists: s.userLists.filter((l) => l.id !== id),
-          userFolders: s.userFolders.map((f) => ({ ...f, lists: f.lists.filter((x) => x !== id) })),
-          openTabs: s.openTabs.filter((t) => t !== id),
-        })),
+      deleteList: (id) => set((s) => deleteLists(s, new Set([id]))),
       addPosition: (listId, p) =>
         set((s) => {
           const e = norm(s.edits[listId])
@@ -325,9 +365,31 @@ function buildLists(s: State): ListView[] {
   })
 }
 
-function buildFolders(s: State, lists: ListView[]): FolderView[] {
+function buildDocuments(s: State): (DocMeta & { originalFolderId?: string })[] {
+  const documents = (s.base?.folders ?? []).concat(s.userFolders).flatMap((folder) =>
+    folder.documents.map((doc) => ({ ...doc, originalFolderId: folder.id })),
+  )
+  const listedFiles = new Set(documents.map((doc) => doc.file))
+  const originals: DocMeta[] = (s.base?.lists ?? []).flatMap((list) => list.file && !listedFiles.has(list.file)
+    ? [{ id: `source-${list.id}`, name: list.fileName, file: list.file, pages: list.pages ?? 0, excerpt: '', listId: list.id, original: true }]
+    : [])
+  return [...documents, ...originals, ...s.userDocuments].map((doc) => ({
+    ...doc, listId: s.documentLinks[doc.id] ?? doc.listId,
+  }))
+}
+
+function buildFolders(s: State, lists: ListView[], documents: ReturnType<typeof buildDocuments>): FolderView[] {
   const byId = new Map(lists.map((l) => [l.id, l]))
   const all = [...(s.base?.folders ?? []), ...s.userFolders]
+  const documentsByFolder = new Map<string, DocMeta[]>()
+  for (const doc of documents) {
+    const list = doc.listId ? byId.get(doc.listId) : undefined
+    const folderId = s.documentFolders[doc.id] ?? list?.folderId ?? doc.originalFolderId
+    if (!folderId || list?.trashedAt) continue
+    const group = documentsByFolder.get(folderId) ?? []
+    group.push(doc)
+    documentsByFolder.set(folderId, group)
+  }
   return all
     .map((f) => {
       const patch = s.folderPatch[f.id] ?? {}
@@ -341,6 +403,7 @@ function buildFolders(s: State, lists: ListView[]): FolderView[] {
       const baseTotal = ordered.reduce((a, l) => a + l.baseTotal, 0)
       return {
         ...f,
+        documents: documentsByFolder.get(f.id) ?? [],
         name: patch.name ?? f.name,
         description: patch.description ?? f.description,
         archived: !!patch.archived,
@@ -359,17 +422,29 @@ function buildFolders(s: State, lists: ListView[]): FolderView[] {
 
 /** memoised derived model (recomputed only when inputs change) */
 let memoKey: unknown[] = []
-let memoVal: { folders: FolderView[]; lists: ListView[] } = { folders: [], lists: [] }
+let memoVal: { folders: FolderView[]; lists: ListView[]; documents: DocMeta[] } = { folders: [], lists: [], documents: [] }
 export function selectModel(s: State) {
-  const key = [s.base, s.userFolders, s.userLists, s.folderPatch, s.listPatch, s.stats]
+  const key = [s.base, s.userFolders, s.userLists, s.userDocuments, s.documentLinks, s.documentFolders, s.folderPatch, s.listPatch, s.stats]
   if (key.every((k, i) => k === memoKey[i])) return memoVal
   const lists = buildLists(s)
-  memoVal = { lists, folders: buildFolders(s, lists) }
+  const documents = buildDocuments(s)
+  memoVal = { lists, documents, folders: buildFolders(s, lists, documents) }
   memoKey = key
   return memoVal
 }
 
 export const useModel = () => useStore(useShallow(selectModel))
+
+export function folderPath(folders: FolderView[], id: string): FolderView[] {
+  const path: FolderView[] = []
+  let folder = folders.find((entry) => entry.id === id)
+  while (folder && !path.includes(folder)) {
+    path.unshift(folder)
+    const parentId = folder.parentId
+    folder = folders.find((entry) => entry.id === parentId)
+  }
+  return path
+}
 
 export function useWorkspaceBudget() {
   const { folders } = useModel()

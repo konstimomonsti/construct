@@ -2,7 +2,7 @@ import { clsx } from 'clsx'
 import { lazy, Suspense, use, useEffect, useId, useMemo, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
-import { Button, Dialog, Field, Icon, inputCls, toast } from '../components/ui'
+import { Button, Dialog, Field, Icon, inputCls, Menu, toast } from '../components/ui'
 import { Page, TableSkeleton } from '../components/Page'
 import { ErrorBoundary } from '../components/ErrorBoundary'
 import { LedgerTable } from '../components/LedgerTable'
@@ -259,7 +259,8 @@ function AddItemDialog({ open, onClose, listId, cats, nextOz }: { open: boolean;
 
 function ListDetail({ doc }: { doc: ListDoc }) {
   const [params] = useSearchParams()
-  const { lists, folders } = useModel()
+  const { lists, folders, documents } = useModel()
+  const attached = documents.filter((document) => document.listId === doc.id)
   const openDialog = useUi((s) => s.openDialog)
   const view = lists.find((l) => l.id === doc.id)
   const folder = folders.find((f) => f.id === (view?.folderId ?? doc.folderId))
@@ -389,7 +390,19 @@ function ListDetail({ doc }: { doc: ListDoc }) {
 
       <div className="flex min-w-0 items-center justify-between gap-3 pb-4">
         <TabsBar activeId={doc.id} folderId={folder?.id ?? doc.folderId} />
-        <ExportMenu listId={doc.id} doc={doc} selectedIds={[...selected]} />
+        <div className="flex shrink-0 items-center gap-2">
+          {attached.length > 0 && (
+            <Menu
+              label="Documents"
+              width="w-60"
+              items={attached.map((document) => ({
+                label: document.name, icon: 'description', onSelect: () => openDialog({ kind: 'doc', doc: document }),
+              }))}
+              trigger={(props) => <Button {...props} icon="attach_file">Documents ({attached.length})</Button>}
+            />
+          )}
+          <ExportMenu listId={doc.id} doc={doc} selectedIds={[...selected]} />
+        </div>
       </div>
 
       <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
