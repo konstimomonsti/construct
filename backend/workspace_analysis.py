@@ -1,7 +1,15 @@
-"""Run the shared BoQ analysis on an editable workspace list."""
+"""Run the shared BoQ analysis and retain one report per uploaded list."""
 
 from collections import defaultdict
+import logging
 import os
+import re
+from threading import Thread
+import time
+
+import psycopg
+from psycopg.rows import dict_row
+from psycopg.types.json import Jsonb
 
 from analysis import adapter
 from analysis.contracts import SourceDocument
@@ -11,8 +19,11 @@ from tender_import.legacy import gaeb_1990
 from tender_import.structured import gaeb_xml
 
 
+LOG = logging.getLogger(__name__)
+
+
 def options():
-    provider = os.environ.get("ANALYSIS_L3_PROVIDER", "ollama").strip().lower()
+    provider = os.environ.get("ANALYSIS_L3_PROVIDER", "none").strip().lower()
     return {"ai_available": provider in {"ollama", "anthropic"}, "default_layers": list(DEFAULT_LAYERS)}
 
 
@@ -20,9 +31,7 @@ def _code(code):
     return tuple(part.lstrip("0") or "0" for part in str(code or "").strip(".").split("."))
 
 
-def _source(connection, workspace, list_id, file_id):
-    if not file_id:
-        return None
+def _source(connection, workspace, list_id, file_id, filename):
     row = connection.execute(
         """
         SELECT f.content, d.value->>'name' AS name
@@ -30,9 +39,13 @@ def _source(connection, workspace, list_id, file_id):
           ON (d.workspace, d.collection, d.record_id) = (f.workspace, 'userDocuments', f.file_id)
         LEFT JOIN workspace_record l
           ON (l.workspace, l.collection, l.record_id) = (d.workspace, 'documentLinks', d.record_id)
-        WHERE f.workspace=%s AND f.file_id=%s AND d.value->>'original'='true'
+        WHERE f.workspace=%s AND d.value->>'original'='true'
           AND coalesce(l.value #>> '{}',d.value->>'listId')=%s
-        """, (workspace, file_id, list_id),
+          AND (%s::text IS NULL OR f.file_id=%s)
+          AND (%s::text IS NULL OR d.value->>'name'=%s)
+        ORDER BY f.file_id
+        LIMIT 1
+        """, (workspace, list_id, file_id, file_id, filename, filename),
     ).fetchone()
     if not row:
         return None
@@ -99,13 +112,13 @@ def prepare(payload):
     return snapshot, layers
 
 
-def run(payload, connection=None, workspace=None, list_id=None, file_id=None):
+def run(payload, connection=None, workspace=None, list_id=None, file_id=None, filename=None):
     snapshot, layers = prepare(payload)
     used_source = False
     source_notice = None
-    if file_id and connection is not None:
+    if (file_id or filename) and connection is not None:
         try:
-            source = _source(connection, workspace, list_id, file_id)
+            source = _source(connection, workspace, list_id, file_id, filename)
         except (LookupError, ValueError, SyntaxError):
             source = None
             source_notice = "The original GAEB file could not be checked. Findings are based on the editable list."
@@ -116,3 +129,142 @@ def run(payload, connection=None, workspace=None, list_id=None, file_id=None):
             snapshot = snapshot.with_hash()
     return {**analyze(snapshot, layers).model_dump(mode="json"),
             "used_source": used_source, "source_notice": source_notice}
+
+
+def _uploaded_input(document):
+    phase_match = re.fullmatch(r"[XD]?(8[1-6])", str(document.get("phase") or ""), re.I)
+    phase = phase_match[1] if phase_match else None
+    currency = document.get("currency")
+    bid = phase in {"84", "86"}
+    sections = {}
+
+    def add_section(code, label, parent_id):
+        sections.setdefault(code, {"id": code, "parent_id": parent_id, "title": label,
+                                   "code_parts": code.split(".") if phase else []})
+
+    def visit(nodes, parent_id=None):
+        for node in nodes:
+            add_section(node["oz"], node.get("label"), parent_id)
+            visit(node.get("children") or [], node["oz"])
+
+    visit(document.get("tree") or [])
+    lines = []
+    original_codes = {}
+    for position in document["positions"]:
+        section_id = None
+        for part in position.get("path") or []:
+            add_section(part["oz"], part.get("label"), section_id)
+            section_id = part["oz"]
+        unit = position.get("unit")
+        short = position.get("short")
+        line = {
+            "id": position["id"],
+            "code": position.get("oz") or None,
+            "section_id": section_id,
+            "short_text": short if short != "(ohne Kurztext)" else None,
+            "long_text": position.get("long"),
+            "quantity": position.get("qty"),
+            "unit": unit,
+            "pricing_basis": "lump_sum" if position.get("lumpSum") or (unit or "").lower().rstrip(".") == "psch" else "unit_rate",
+        }
+        if bid:
+            line["source_amounts"] = {"unit_price": position.get("up")}
+        elif position.get("up") is not None:
+            line["price"] = {"unit_price": position["up"], "currency": currency, "source": "client"}
+        if line["code"]:
+            original_codes[line["id"]] = line["code"]
+        lines.append(line)
+    return {
+        "snapshot": {
+            "project": {"currency": currency, "gaeb_phase": phase,
+                        "source_document": {"filename": document.get("fileName"), "format": document["source"]["kind"]}},
+            "bom": {"title": document.get("title")},
+            "sections": list(sections.values()),
+            "lines": lines,
+        },
+        "original_codes": original_codes,
+        "layers": [*DEFAULT_LAYERS, 3] if options()["ai_available"] else list(DEFAULT_LAYERS),
+    }
+
+
+def enqueue(connection, workspace, writes):
+    list_ids = {key for collection, key, _ in writes if collection == "userLists"}
+    list_ids.update(value["listId"] for collection, _, value in writes
+                    if collection == "userDocuments" and isinstance(value, dict) and value.get("original") is True
+                    and isinstance(value.get("listId"), str))
+    if not list_ids:
+        return
+    connection.execute(
+        """
+        INSERT INTO workspace_assessment (workspace, list_id)
+        SELECT lists.workspace, lists.record_id FROM workspace_record lists
+        WHERE lists.workspace=%s AND lists.collection='userLists' AND lists.record_id=ANY(%s)
+          AND lists.value->'source'->>'kind' IN ('gaeb-xml', 'gaeb90', 'pdf', 'docx', 'csv', 'xlsx', 'json')
+          AND CASE WHEN jsonb_typeof(lists.value->'positions') = 'array'
+              THEN jsonb_array_length(lists.value->'positions') > 0 ELSE false END
+          AND EXISTS (
+              SELECT 1 FROM workspace_record doc
+              WHERE doc.workspace=lists.workspace AND doc.collection='userDocuments'
+                AND doc.value->>'original'='true' AND doc.value->>'listId'=lists.record_id
+                AND doc.value->>'name'=lists.value->>'fileName'
+          )
+        ON CONFLICT (workspace, list_id) DO NOTHING
+        """, (workspace, list(list_ids)),
+    )
+
+
+def status(connection, workspace, list_id):
+    result = connection.execute(
+        "SELECT state, report FROM workspace_assessment WHERE workspace=%s AND list_id=%s",
+        (workspace, list_id),
+    ).fetchone()
+    if not result:
+        raise LookupError("Upload assessment not found.")
+    return result
+
+
+def assess_next(connection):
+    with connection.transaction():
+        job = connection.execute(
+            """
+            SELECT a.workspace, a.list_id, d.value FROM workspace_assessment a
+            JOIN workspace_record d ON (d.workspace, d.collection, d.record_id)=(a.workspace, 'userLists', a.list_id)
+            WHERE a.state='queued' ORDER BY a.workspace, a.list_id LIMIT 1 FOR UPDATE OF a SKIP LOCKED
+            """,
+        ).fetchone()
+        if not job:
+            return False
+        workspace, list_id, document = job["workspace"], job["list_id"], job["value"]
+        try:
+            with connection.transaction():
+                filename = document.get("fileName") if document["source"]["kind"] in {"gaeb-xml", "gaeb90"} else None
+                report = run(_uploaded_input(document), connection, workspace, list_id, filename=filename)
+        except psycopg.OperationalError:
+            raise
+        except Exception:
+            LOG.exception("Could not assess an uploaded list")
+            state, report = "failed", None
+        else:
+            state, report = "ready", Jsonb(report)
+        connection.execute(
+            "UPDATE workspace_assessment SET state=%s, report=%s WHERE workspace=%s AND list_id=%s",
+            (state, report, workspace, list_id),
+        )
+        return True
+
+
+def _work():
+    while True:
+        try:
+            with psycopg.connect("", autocommit=True, row_factory=dict_row, connect_timeout=4,
+                                 options="-c statement_timeout=30000") as connection:
+                while True:
+                    if not assess_next(connection):
+                        time.sleep(1)
+        except psycopg.Error as error:
+            LOG.warning("Upload assessment worker waiting for the database (%s)", type(error).__name__)
+            time.sleep(4)
+
+
+def start_worker():
+    Thread(target=_work, name="upload-assessment", daemon=True).start()
