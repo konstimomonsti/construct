@@ -19,7 +19,7 @@ function NotFound() {
       <p className="text-sm font-medium text-slate-600">Error 404</p>
       <h1 className="mt-1 font-heading text-[28px] font-bold tracking-tight text-slate-900">Page not found</h1>
       <p className="mt-2 text-[15px] text-slate-600">This page doesn’t exist or was moved.</p>
-      <Link to="/" className="mt-6 inline-flex h-10 items-center rounded-md bg-brand-600 px-5 text-sm font-semibold text-white hover:bg-brand-700">
+      <Link to="/" className="mt-6 inline-flex h-10 items-center rounded-md bg-brand-600 px-5 text-sm font-semibold text-ink hover:bg-brand-500">
         Back to All Projects
       </Link>
     </Page>

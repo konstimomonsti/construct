@@ -65,14 +65,14 @@ export function PageHeader({
 /* Avatar (round icon, Wise-style)                                     */
 /* ------------------------------------------------------------------ */
 
-/** folder tones deliberately avoid the status hues (green/amber/orange/red) */
+/** every project and list gets the same tile: colour is kept for budget status, so tiles carry no hue of their own */
 export const toneTile: Record<string, string> = {
-  indigo: 'bg-[#2a1d07] text-[#edb03e]',
-  emerald: 'bg-[#0d0e17] text-[#9fb3d9] ring-1 ring-[#1d2033]',
-  amber: 'bg-[#523a0f] text-[#f6d28f]',
-  blue: 'bg-[#141726] text-[#c4cde0] ring-1 ring-[#23283d]',
-  sky: 'bg-[#1a0c01] text-[#d9a75a] ring-1 ring-[#3d2a10]',
-  violet: 'bg-[#2b1b0b] text-[#e6ddcd]',
+  indigo: 'bg-brand-50 text-brand-700',
+  emerald: 'bg-brand-50 text-brand-700',
+  amber: 'bg-brand-50 text-brand-700',
+  blue: 'bg-brand-50 text-brand-700',
+  sky: 'bg-brand-50 text-brand-700',
+  violet: 'bg-brand-50 text-brand-700',
   slate: 'bg-slate-100 text-slate-600',
 }
 
@@ -223,48 +223,62 @@ export function Summary({
   const pill = status ?? { tone: st.tone, word: st.word }
   return (
     <section aria-label={label} className={actions ? 'mb-10' : 'mb-8'}>
-      <div className="text-sm font-medium text-slate-600">{label}</div>
-      <BigMoney value={amount} className={clsx('num display mt-1 block leading-[1.05] text-slate-900', compact ? 'text-[30px] sm:text-[44px]' : 'text-[34px] sm:text-[54px]')} />
-      <div className="mt-3 max-w-xl">
-        {cap ? (
-          <>
-            {bar ?? <TrussMeter total={total} cap={cap} tone={st.tone} label={`${label}: share of ${capLabel} used`} />}
-            <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1.5 text-sm text-slate-700">
-              <StatusTag tone={pill.tone} word={pill.word} hint />
-              <span className="num">
-                <strong className="font-semibold text-slate-900">{Math.round(st.pct)}%</strong>
+      {/* the figure on the left, the two numbers it is judged by on the right, the jib across the full width */}
+      <div className="flex flex-wrap items-end justify-between gap-x-10 gap-y-4">
+        <div className="min-w-0">
+          <div className="text-sm font-medium text-slate-600">{label}</div>
+          <BigMoney value={amount} className={clsx('num display mt-1 block leading-[1.05] text-slate-900', compact ? 'text-[30px] sm:text-[44px]' : 'text-[34px] sm:text-[54px]')} />
+        </div>
+        {cap > 0 && (
+          <dl className="flex gap-x-10 gap-y-2 pb-1 sm:text-right">
+            <div>
+              <dt className="text-sm text-slate-600">Used</dt>
+              <dd className="num mt-0.5 text-xl font-semibold text-slate-900 sm:text-2xl">{Math.round(st.pct)}%</dd>
+              <dd className="num text-sm text-slate-600">
+                of{' '}
                 {onEditCap ? (
-                  <>
-                    <span className="max-sm:hidden"> of </span>
-                    <button type="button" onClick={onEditCap} className="rounded underline decoration-slate-400 decoration-dotted underline-offset-4 hover:decoration-slate-900 max-sm:hidden" aria-label={`${capLabel === 'cap' ? 'Cap' : capLabel}: ${moneyWhole(cap)}. Edit budget cap`}>
-                      {moneyWhole(cap)}
-                    </button>
-                  </>
+                  <button type="button" onClick={onEditCap} className="rounded underline decoration-slate-400 decoration-dotted underline-offset-4 hover:text-slate-900 hover:decoration-slate-900" aria-label={`${capLabel === 'cap' ? 'Cap' : capLabel}: ${moneyWhole(cap)}. Edit budget cap`}>
+                    {moneyWhole(cap)}
+                  </button>
                 ) : (
-                  <span className="max-sm:hidden"> of {moneyWhole(cap)}</span>
+                  moneyWhole(cap)
                 )}
-                {!hideLeft && (
-                  <>
-                    <span aria-hidden className="px-1.5 text-slate-400">·</span>
-                    <span className="font-medium text-slate-900">{left >= 0 ? `${money(left)} left` : `${money(-left)} over`}</span>
-                  </>
-                )}
-              </span>
+              </dd>
             </div>
-            {note && <p className="mt-1.5 text-sm text-slate-600">{note}</p>}
-          </>
-        ) : (
-          <div className="flex flex-wrap items-center gap-3 text-sm text-slate-700">
+            {!hideLeft && (
+              <div>
+                <dt className="text-sm text-slate-600">{left >= 0 ? 'Left' : 'Over'}</dt>
+                <dd className={clsx('num mt-0.5 text-xl font-semibold sm:text-2xl', left >= 0 ? 'text-slate-900' : 'text-rose-700')}>{money(Math.abs(left))}</dd>
+                <dd className="text-sm text-slate-600">{left >= 0 ? 'before the cap' : 'past the cap'}</dd>
+              </div>
+            )}
+          </dl>
+        )}
+      </div>
+      {cap ? (
+        <>
+          <div className="mt-5">{bar ?? <TrussMeter total={total} cap={cap} tone={st.tone} label={`${label}: share of ${capLabel} used`} />}</div>
+          <div className="mt-2 flex flex-wrap items-center justify-between gap-x-6 gap-y-2 text-sm text-slate-600">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+              <StatusTag tone={pill.tone} word={pill.word} hint />
+              {note && <span>{note}</span>}
+            </div>
+            {meta && <div>{meta}</div>}
+          </div>
+        </>
+      ) : (
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-x-6 gap-y-2 text-sm text-slate-600">
+          <div className="flex flex-wrap items-center gap-3">
             <StatusTag tone="none" word="No cap set" />
             {onEditCap && (
               <button type="button" onClick={onEditCap} className="h-9 rounded-md bg-slate-100 px-3 font-medium text-slate-900 hover:bg-slate-200">Set a cap</button>
             )}
           </div>
-        )}
-      </div>
-      {meta && <div className="mt-2 text-sm text-slate-600">{meta}</div>}
+          {meta && <div>{meta}</div>}
+        </div>
+      )}
       {extra}
-      {actions && <div className={clsx('flex flex-wrap items-center gap-2', compact ? 'mt-4' : 'mt-6')}>{actions}</div>}
+      {actions && <div className={clsx('flex flex-wrap items-center gap-2', compact ? 'mt-5' : 'mt-6')}>{actions}</div>}
     </section>
   )
 }
@@ -308,7 +322,7 @@ export function TrussMeter({ total, cap, tone, label }: { total: number; cap: nu
       aria-valuenow={Math.round(Math.min(pct, 100))}
       aria-valuetext={`${Math.round(pct)}%`}
       aria-label={label}
-      className="relative max-w-xl pb-4"
+      className="relative pb-4"
     >
       <svg width="100%" height="18" className="block overflow-visible" aria-hidden>
         <defs>
@@ -447,7 +461,7 @@ export function Row({
         <button type="button" aria-label={label} onClick={onOpen} className={hit} />
       )}
       {selectMode ? (
-        <span aria-hidden className={clsx('flex size-11 shrink-0 items-center justify-center rounded-full border-2', selected ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-400 bg-white')}>
+        <span aria-hidden className={clsx('flex size-11 shrink-0 items-center justify-center rounded-full border-2', selected ? 'border-brand-600 bg-brand-600 text-ink' : 'border-slate-400 bg-white')}>
           {selected && <Icon name="check" size={22} />}
         </span>
       ) : (

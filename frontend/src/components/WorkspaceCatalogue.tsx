@@ -37,7 +37,7 @@ export function CatalogueOverview({ report, error, retryFailed, positions, onOpe
     <section aria-label="Catalogue and web research" className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs">
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         <h2 className="flex items-center gap-1.5 font-semibold text-slate-900">
-          <Icon name="inventory_2" size={16} className="text-brand-600" /> Catalogue and web research
+          <Icon name="inventory_2" size={16} className="text-brand-700" /> Catalogue and web research
         </h2>
         <span role="status" className="text-slate-600">
           {error || (report?.state === 'failed' ? 'Catalogue matching failed.' :

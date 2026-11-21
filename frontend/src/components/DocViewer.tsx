@@ -49,7 +49,7 @@ export default function DocViewer() {
               Open in new tab
             </a>
           )}
-          <a href={url} download={doc.name} className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-brand-600 px-3 text-xs font-semibold text-white shadow-sm shadow-brand-600/20 hover:bg-brand-700">
+          <a href={url} download={doc.name} className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-brand-600 px-3 text-xs font-semibold text-ink shadow-sm shadow-brand-600/20 hover:bg-brand-500">
             <Icon name="download" size={16} />
             Download
           </a>

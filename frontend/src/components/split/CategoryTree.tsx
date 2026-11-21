@@ -86,7 +86,7 @@ function Box({ state }: { state: CheckState }) {
       aria-hidden
       className={clsx(
         'flex size-4 shrink-0 items-center justify-center rounded border transition-colors',
-        state === 'off' ? 'border-slate-300 bg-white' : 'border-brand-600 bg-brand-600 text-white',
+        state === 'off' ? 'border-slate-300 bg-white' : 'border-brand-600 bg-brand-600 text-ink',
       )}
     >
       {state === 'on' && <Icon name="check" size={13} />}
@@ -289,7 +289,7 @@ export function CategoryTree(props: CategoryTreeProps) {
             ) : (
               <span className="size-5 shrink-0" />
             )}
-            {mode === 'check' ? <Box state={state} /> : selected ? <Icon name="radio_button_checked" size={16} className="text-brand-600" /> : isCat ? <Icon name="radio_button_unchecked" size={16} className="text-slate-300" /> : null}
+            {mode === 'check' ? <Box state={state} /> : selected ? <Icon name="radio_button_checked" size={16} className="text-brand-700" /> : isCat ? <Icon name="radio_button_unchecked" size={16} className="text-slate-300" /> : null}
             <span className="shrink-0 font-mono text-xs text-slate-500">{isCat ? n!.oz : r.pos!.oz}</span>
             {isCat && renaming === n!.oz ? (
               <input

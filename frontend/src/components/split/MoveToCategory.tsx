@@ -115,7 +115,7 @@ export function MoveToCategory({
             <Button onClick={() => setAdding(false)}>Cancel</Button>
           </form>
         ) : (
-          <button type="button" onClick={() => setAdding(true)} className="flex items-center gap-1 text-xs font-semibold text-brand-600 hover:underline">
+          <button type="button" onClick={() => setAdding(true)} className="flex items-center gap-1 text-xs font-semibold text-brand-700 hover:underline">
             <Icon name="add" size={15} />
             New category {targetNode ? `in ${targetNode.oz}` : 'here'}
           </button>

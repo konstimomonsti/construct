@@ -37,7 +37,7 @@ export class ErrorBoundary extends Component<Props, S> {
               Retry
             </button>
           )}
-          <Link to="/" className="inline-flex h-8 items-center rounded-lg bg-brand-600 px-3.5 text-xs font-semibold text-white hover:bg-brand-700">
+          <Link to="/" className="inline-flex h-8 items-center rounded-lg bg-brand-600 px-3.5 text-xs font-semibold text-ink hover:bg-brand-500">
             Back to All Projects
           </Link>
         </div>

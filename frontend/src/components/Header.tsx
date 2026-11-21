@@ -3,12 +3,14 @@ import { Icon, Menu, toast } from './ui'
 import { useStore } from '../lib/store'
 import { useUi } from '../lib/ui-store'
 import { clearDocuments } from '../lib/documents'
+import { useTheme } from '../lib/theme'
 
 export function Header() {
   const setPalette = useUi((s) => s.setPalette)
   const setMobile = useUi((s) => s.setMobileNav)
   const openDialog = useUi((s) => s.openDialog)
   const navigate = useNavigate()
+  const [theme, setTheme] = useTheme()
 
   return (
     <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md">
@@ -37,6 +39,15 @@ export function Header() {
       </div>
 
       <div className="flex shrink-0 items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          title={theme === 'dark' ? 'Light mode' : 'Dark mode'}
+          className="flex size-10 items-center justify-center rounded-md text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
+        >
+          <Icon name={theme === 'dark' ? 'light_mode' : 'dark_mode'} size={20} />
+        </button>
         <Menu
           label="Account"
           width="w-56"

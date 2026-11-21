@@ -55,7 +55,7 @@ export function Sidebar() {
       <div className="flex flex-col">
         <div className={clsx('flex h-16 items-center', rail ? 'justify-center px-2' : 'justify-between pr-3 pl-5')}>
           <div className="flex items-center gap-2.5">
-            <div className="flex size-8 items-center justify-center rounded-md bg-brand-600 text-white">
+            <div className="flex size-8 items-center justify-center rounded-md bg-brand-600 text-ink">
               <Icon name="foundation" size={20} fill />
             </div>
             {!rail && <span className="display text-[17px] text-slate-900">BillBuild</span>}
@@ -90,7 +90,7 @@ export function Sidebar() {
             >
               {({ isActive }) => (
                 <>
-                  <Icon name={n.icon} size={20} fill={isActive} className={isActive ? 'text-brand-600' : 'text-slate-500'} />
+                  <Icon name={n.icon} size={20} fill={isActive} className={isActive ? 'text-brand-700' : 'text-slate-500'} />
                   {!rail && <span className="flex-1">{n.label}</span>}
                   {!rail && n.to === '/trash' && trashed > 0 && <span className="num text-sm font-medium text-slate-600">{trashed}</span>}
                 </>

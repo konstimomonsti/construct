@@ -192,7 +192,7 @@ function Panel({ onClose, doc, title, positions, tree, folders, folderId, presel
         <button type="button" onClick={ex.expandAll} className="rounded-md px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100">Expand all</button>
         <button type="button" onClick={ex.collapseAll} className="rounded-md px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100">Collapse all</button>
         <span className="hidden h-4 w-px bg-slate-200 sm:block" />
-        <button type="button" onClick={selectAll} className="rounded-md px-2 py-1 text-xs font-medium text-brand-600 hover:bg-brand-50">Select all</button>
+        <button type="button" onClick={selectAll} className="rounded-md px-2 py-1 text-xs font-medium text-brand-700 hover:bg-brand-50">Select all</button>
         <button type="button" onClick={() => setSel(new Set())} className="rounded-md px-2 py-1 text-xs font-medium text-slate-500 hover:bg-slate-100">Clear</button>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto p-2">
@@ -305,7 +305,7 @@ function Panel({ onClose, doc, title, positions, tree, folders, folderId, presel
         className="absolute inset-0 flex flex-col overflow-hidden bg-white shadow-2xl md:inset-6 md:rounded-2xl md:border md:border-slate-200 lg:inset-8"
       >
         <header className="flex items-center gap-3 border-b border-slate-200 px-4 py-3 sm:px-5">
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-600"><Icon name="call_split" size={20} /></span>
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-700"><Icon name="call_split" size={20} /></span>
           <div className="min-w-0 flex-1">
             <h2 id="split-title" className="font-heading text-base font-bold tracking-tight text-slate-900">Split list</h2>
             <p className="truncate font-mono text-xs text-slate-600">{doc.fileName}</p>

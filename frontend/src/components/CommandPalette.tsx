@@ -297,7 +297,7 @@ export function CommandPalette() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -4, transition: { duration: 0.1 } }}
             transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-            className="relative flex h-full w-full flex-col overflow-hidden bg-white sm:h-auto sm:max-w-2xl sm:rounded-3xl sm:shadow-[0_24px_60px_-12px_rgba(0,0,0,0.7)] sm:ring-1 sm:ring-slate-200"
+            className="relative flex h-full w-full flex-col overflow-hidden bg-white sm:h-auto sm:max-w-2xl sm:rounded-3xl sm:shadow-[0_24px_60px_-12px_var(--pop-shadow)] sm:ring-1 sm:ring-slate-200"
             onKeyDown={onKey}
           >
             <div className="flex shrink-0 items-center gap-3 border-b border-slate-100 px-5 pt-[env(safe-area-inset-top)] sm:pt-0">

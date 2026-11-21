@@ -10,6 +10,8 @@ const errors = []
 
 const browser = await chromium.launch({ channel: process.env.PW_CHANNEL ?? 'chrome' })
 const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1, reducedMotion: 'reduce' })
+// THEME=dark captures the dark mode; light is the app default
+if (process.env.THEME === 'dark') await ctx.addInitScript(() => { try { localStorage.setItem('billbuild-theme', 'dark') } catch {} })
 const page = await ctx.newPage()
 page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`))
 page.on('console', (m) => (m.type() === 'error' && !/Failed to load resource|api\/workspace/.test(m.text()) ? errors.push(`console: ${m.text()}`) : null))
@@ -75,6 +77,7 @@ await step('palette', async () => {
 
 // phone shots run in their own fresh context so earlier steps can't leak state into them
 const mctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, reducedMotion: 'reduce' })
+if (process.env.THEME === 'dark') await mctx.addInitScript(() => { try { localStorage.setItem('billbuild-theme', 'dark') } catch {} })
 {
 const page = await mctx.newPage()
 page.on('pageerror', (e) => errors.push(`pageerror (mobile): ${e.message}`))

@@ -26,7 +26,7 @@ type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'soft'
 type Size = 'sm' | 'md' | 'lg'
 
 const variants: Record<Variant, string> = {
-  primary: 'bg-brand-600 hover:bg-brand-700 text-white font-semibold',
+  primary: 'bg-brand-600 hover:bg-brand-500 text-ink font-semibold',
   secondary: 'bg-slate-100 hover:bg-slate-200 text-slate-900 font-semibold',
   ghost: 'text-slate-700 hover:text-slate-900 hover:bg-slate-100 font-medium',
   danger: 'bg-rose-600 hover:bg-rose-700 text-white font-semibold',
@@ -225,7 +225,7 @@ export function Menu({
                     {it.icon && <Icon name={it.icon} size={18} className={it.danger ? 'text-rose-600' : 'text-slate-600'} />}
                     <span className="flex-1 truncate">{it.label}</span>
                     {it.hint && <kbd className="text-xs text-slate-500">{it.hint}</kbd>}
-                    {it.checked && <Icon name="check" size={15} className="text-brand-600" />}
+                    {it.checked && <Icon name="check" size={15} className="text-brand-700" />}
                   </button>
                 ),
               )}
@@ -302,7 +302,7 @@ export function Dialog({
             exit={{ opacity: 0, scale: 0.98, y: 4, transition: { duration: 0.12 } }}
             transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
             className={clsx(
-              'relative w-full rounded-t-3xl bg-white shadow-[0_24px_48px_-12px_rgba(0,0,0,0.6)] ring-1 ring-slate-200 sm:rounded-3xl',
+              'relative w-full rounded-t-3xl bg-white shadow-[0_24px_48px_-12px_var(--pop-shadow)] ring-1 ring-slate-200 sm:rounded-3xl',
               width,
             )}
           >
@@ -347,7 +347,7 @@ const useToasts = create<{ toasts: Toast[]; push: (t: Omit<Toast, 'id'>) => void
   drop: (id) => set((s) => ({ toasts: s.toasts.filter((x) => x.id !== id) })),
 }))
 
-/** one toast; its timer pauses while hovered or focused, and runs longer when it offers an action */
+/** one toast — always the dark ink surface, in both themes; its timer pauses while hovered or focused, and runs longer when it offers an action */
 function ToastItem({ t, drop }: { t: Toast; drop: (id: number) => void }) {
   const [paused, setPaused] = useState(false)
   useEffect(() => {
@@ -366,20 +366,20 @@ function ToastItem({ t, drop }: { t: Toast; drop: (id: number) => void }) {
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, x: 24, transition: { duration: 0.15 } }}
       transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-      className="pointer-events-auto flex w-full items-center gap-2.5 rounded-2xl bg-slate-900 py-2 pr-2 pl-4 text-sm text-white shadow-lg shadow-black/40"
+      className="pointer-events-auto flex w-full items-center gap-2.5 rounded-lg bg-[#1a0c01] py-2 pr-2 pl-4 text-sm text-[#fffaf2] shadow-[0_8px_24px_var(--pop-shadow)] ring-1 ring-white/10"
     >
       <Icon
         name={t.tone === 'error' ? 'error' : t.tone === 'info' ? 'info' : 'check_circle'}
         size={17}
-        className={t.tone === 'error' ? 'text-rose-400' : t.tone === 'info' ? 'text-brand-300' : 'text-emerald-400'}
+        className={t.tone === 'error' ? 'text-[#ff7a6e]' : 'text-[#edb03e]'}
       />
       <span className="flex-1 py-1.5 font-medium">{t.text}</span>
       {t.action && (
-        <button type="button" className="h-9 rounded-md px-3 font-semibold text-brand-200 hover:bg-white/10" onClick={() => { t.action!.run(); drop(t.id) }}>
+        <button type="button" className="h-9 rounded-md px-3 font-semibold text-[#f3c160] hover:bg-white/10" onClick={() => { t.action!.run(); drop(t.id) }}>
           {t.action.label}
         </button>
       )}
-      <button type="button" aria-label="Dismiss" onClick={() => drop(t.id)} className="flex size-9 items-center justify-center rounded-md text-slate-300 hover:bg-white/10 hover:text-white">
+      <button type="button" aria-label="Dismiss" onClick={() => drop(t.id)} className="flex size-9 items-center justify-center rounded-md text-[#d2c6b1] hover:bg-white/10 hover:text-white">
         <Icon name="close" size={18} />
       </button>
     </motion.div>
