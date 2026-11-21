@@ -1,15 +1,15 @@
 import { Button } from './ui'
 import { EmptyState, PageFrame, PageHeader, PaletteKey, RowMenu } from './Kit'
-import { pickAndImport } from '../lib/import'
 import { folderDescription, type FolderView } from '../lib/store'
 import { useUi } from '../lib/ui-store'
 import { useActions } from '../lib/actions'
 
 /** one clear next step: drop or import files; a blank list is the only alternative */
-export function EmptyFolder({ folder: f, ancestors, dragging }: { folder: FolderView; ancestors: FolderView[]; dragging: boolean }) {
+export function EmptyFolder({ folder: f, ancestors, dragging, onImport }: {
+  folder: FolderView; ancestors: FolderView[]; dragging: boolean; onImport: () => void
+}) {
   const openDialog = useUi((s) => s.openDialog)
   const { folderMenu } = useActions()
-  const pick = () => pickAndImport(f.id)
   const crumbs = [{ label: 'All Projects', to: '/' }, ...ancestors.map((x) => ({ label: x.name, to: `/folder/${x.id}` }))]
   const menu = [
     { label: 'New sub-project', icon: 'create_new_folder', onSelect: () => openDialog({ kind: 'new-folder', parent: f.id }) },
@@ -45,7 +45,7 @@ export function EmptyFolder({ folder: f, ancestors, dragging }: { folder: Folder
             </>
           }
         >
-          <Button variant="primary" size="lg" icon="upload" onClick={pick}>Import files</Button>
+          <Button variant="primary" size="lg" icon="upload" onClick={onImport}>Import files</Button>
           <Button size="lg" icon="add" onClick={() => openDialog({ kind: 'blank-list', folderId: f.id })}>New list</Button>
         </EmptyState>
     </PageFrame>

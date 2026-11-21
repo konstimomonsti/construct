@@ -65,6 +65,7 @@ export interface ImportResult {
   positions: number
   docs: number
   failed: string[]
+  openListId?: string
 }
 
 async function addFile(file: File, listId: string, original: boolean, list?: ListDoc, productEvidence = false) {
@@ -123,6 +124,7 @@ export async function importFiles(files: File[], folderId: string, activeListId?
       if (parsed.warnings?.length) toast(`${name}: ${parsed.warnings[0]}`)
       res.lists.push(list.id)
       res.positions += list.positions.length
+      if (files.length === 1 && list.positions.length > 0) res.openListId = list.id
     } catch (err) {
       console.warn(`import failed: ${name}`, err)
       res.failed.push(name)

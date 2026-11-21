@@ -1,6 +1,7 @@
 import { clsx } from 'clsx'
 import { int, money } from '../../lib/format'
 import { rescore, type Decisions, type Risk, type RiskLevel } from '../../lib/risk-assessment'
+import type { PartialAnalysis } from '../../lib/risk-labels'
 
 const LEVEL: Record<RiskLevel, { label: string; text: string; bar: string }> = {
   low: { label: 'Low', text: 'text-slate-800', bar: 'bg-slate-400' },
@@ -9,13 +10,24 @@ const LEVEL: Record<RiskLevel, { label: string; text: string; bar: string }> = {
   critical: { label: 'Critical', text: 'text-rose-700', bar: 'bg-rose-600' },
 }
 
-export function RiskSummary({ risk, decisions }: { risk: Risk; decisions: Decisions }) {
+export function RiskSummary({ risk, decisions, partial }: { risk: Risk; decisions: Decisions; partial: PartialAnalysis }) {
   const live = rescore(risk, decisions)
   const level = LEVEL[live.level]
   const atStake = risk.money_at_stake == null ? null : Number(risk.money_at_stake)
 
   return (
     <section aria-label="Risk summary" className="mb-5">
+      {partial && (
+        <div className="mb-2 max-w-xl rounded-lg bg-amber-50 px-4 py-3 text-[13px] text-amber-900">
+          <p role="note"><strong>Based on partial analysis.</strong> {partial.message}</p>
+          <details className="mt-1">
+            <summary className="cursor-pointer font-medium">Analysis details</summary>
+            <ul className="mt-1 list-disc space-y-1 break-words ps-5">
+              {partial.details.map((error, index) => <li key={index}>{error}</li>)}
+            </ul>
+          </details>
+        </div>
+      )}
       <dl className="grid max-w-xl grid-cols-2 gap-3">
         <div className="min-w-0 rounded-lg bg-slate-50 px-4 py-3">
           <dt className="text-[13px] font-medium text-slate-600">Risk score</dt>
