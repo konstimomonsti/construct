@@ -9,6 +9,7 @@ from .. import adapter, units
 from ..contracts import ProductProperty, ProductRequirement
 from ..registry import rule
 from .common import BIDDER_INPUT, OR_EQUIVALENT, review_fix, source_detail, text_of
+from .fire_doors import parse_fire_class, written_fire_class
 from .standards import MATERIAL, material_family, supported_pipe_scopes
 
 
@@ -33,6 +34,7 @@ _MINIMUM_SN = re.compile(
 )
 _ALTERNATIVE = re.compile(r"\b(?:wahlweise|alternativ|oder)\b", re.I)
 _SN_PROPERTY = "ring_stiffness_sn"
+_FIRE_PROPERTY = "fire_resistance_class"
 _SN_SUBJECT = re.compile(rf"^(?:(?:{MATERIAL})[ -]+)?{_DRAINAGE.pattern}", re.I)
 _SN_CLAUSE = re.compile(r"(?<=[.!?;])\s+|\n")
 _SN_QUALIFIER = re.compile(r"\b(?:falls|sofern|wenn|gegebenenfalls|optional|bei Bedarf|für|oder|wahlweise|alternativ|Formstücke?|Muffen?|Bögen)\b", re.I)
@@ -98,7 +100,7 @@ def _by_identity(declarations):
 
 
 @dataclass(frozen=True)
-class WrittenStiffness:
+class WrittenRequirement:
     requirement: ProductRequirement
     field: str
     quote: str
@@ -130,8 +132,33 @@ def _written_stiffness(snapshot):
                 comparison="at_least", required=ProductProperty(value=str(value)),
                 document=(source.filename or "Original tender")[:240], locator=f"{location} of position {line.code or 'shown'}"[:240],
             )
-            written[line.id] = WrittenStiffness(requirement, field, quote)
+            written[line.id] = WrittenRequirement(requirement, field, quote)
     return written
+
+
+def _written_fire_requirements(snapshot):
+    source = snapshot.project.source_document
+    written = {}
+    for line in snapshot.lines:
+        if not line.code:
+            continue
+        result = written_fire_class(line.short_text, source_detail(line, source.format))
+        if result is None:
+            continue
+        rating, minimum, field, quote = result
+        location = "Heading" if field == "short_text" else "Description"
+        requirement = ProductRequirement(
+            position_code=line.code[:100], property_name=_FIRE_PROPERTY,
+            comparison="at_least" if minimum else "equal", required=ProductProperty(value=rating.label()),
+            document=(source.filename or "Original tender")[:240], locator=f"{location} of position {line.code}"[:240],
+        )
+        written[line.id, _FIRE_PROPERTY] = WrittenRequirement(requirement, field, quote)
+    return written
+
+
+def _written_requirements(snapshot):
+    return {**{(line_id, _SN_PROPERTY): source for line_id, source in _written_stiffness(snapshot).items()},
+            **_written_fire_requirements(snapshot)}
 
 
 def _sn_unit(unit):
@@ -177,7 +204,8 @@ def drainage_variant_comparisons(snapshot, written, conflicts):
       description="Compare an explicitly named offered pipe to the minimum SN specified on the position.")
 def ring_stiffness(ctx):
     written = _written_stiffness(ctx.input)
-    conflicts = _incompatible_requirements(_requirement_positions(ctx.input), written)
+    conflicts = _incompatible_requirements(_requirement_positions(ctx.input),
+                                           {(line_id, _SN_PROPERTY): source for line_id, source in written.items()})
     for line, minimum, variant, declarations, outcome in drainage_variant_comparisons(ctx.input, written, conflicts):
         if outcome == "satisfied":
             continue
@@ -227,6 +255,9 @@ def _requirement_positions(snapshot):
 
 
 def _requirement_bound(requirement):
+    if requirement.property_name == _FIRE_PROPERTY:
+        rating = parse_fire_class(requirement.required.value, requirement.required.unit)
+        return (("fire", rating.family, rating.qualifiers), rating.minutes) if rating else (None, None)
     unit = units.normalize(requirement.required.unit)
     if requirement.property_name == _SN_PROPERTY and _sn_unit(unit):
         value = adapter.parse_number(requirement.required.value)
@@ -280,8 +311,8 @@ def _incompatible_requirements(positions, written):
     for requirement, _, matches in positions:
         if len(matches) == 1:
             groups[matches[0].id, requirement.property_name].append(requirement)
-    for line_id, source in written.items():
-        groups[line_id, _SN_PROPERTY].append(source.requirement)
+    for key, source in written.items():
+        groups[key].append(source.requirement)
     return {key: pair for key, requirements in groups.items()
             if len(requirements) > 1 and (pair := _incompatible_pair(requirements))}
 
@@ -298,11 +329,11 @@ def _constraint_text(requirement):
       description="Find incompatible requirements for the same property on one resolved position.")
 def conflicting_product_requirements(ctx):
     lines = ctx.input.line_by_id()
-    written = _written_stiffness(ctx.input)
+    written = _written_requirements(ctx.input)
     conflicts = _incompatible_requirements(_requirement_positions(ctx.input), written)
     for (line_id, property_name), pair in conflicts.items():
         first, second = pair
-        source = written.get(line_id)
+        source = written.get((line_id, property_name))
         citations = []
         for requirement in pair:
             citation = requirement.model_dump(mode="json")
@@ -351,21 +382,61 @@ def _compare_property(line, requirement, source_format, declarations):
     return offer, items, actual, "satisfied" if matches else "conflict"
 
 
+def _compare_fire_property(line, requirement, source_format, declarations, *, written):
+    offers = _offers(line, source_format)
+    if len(offers) != 1:
+        return None, [], None, "insufficient_evidence", "offered_variant_unresolved"
+    key, offer = next(iter(offers.items()))
+    items = declarations.get(key, [])
+    expected = parse_fire_class(requirement.required.value, requirement.required.unit)
+    classes = {parse_fire_class(prop.value, prop.unit) for item in items
+               if (prop := item.properties.get(_FIRE_PROPERTY))}
+    if len(classes) != 1 or None in classes or expected is None:
+        return offer, items, None, "insufficient_evidence", "fire_class_unverified"
+    actual = next(iter(classes))
+    observed = actual.label()
+    if (actual.family, actual.qualifiers) != (expected.family, expected.qualifiers):
+        return offer, items, observed, "insufficient_evidence", "fire_class_basis_unverified"
+    if written and requirement.comparison == "equal" and actual.minutes > expected.minutes:
+        return offer, items, observed, "insufficient_evidence", "higher_fire_class_needs_confirmation"
+    matches = {"equal": actual.minutes == expected.minutes, "at_least": actual.minutes >= expected.minutes,
+               "at_most": actual.minutes <= expected.minutes}[requirement.comparison]
+    return offer, items, observed, "satisfied" if matches else "conflict", None
+
+
 @rule("L1.PRODUCT.DECLARED_PROPERTY", layer=1, category="product", severity="warning",
       title="Declared product property needs review",
       description="Compare an identified product variant with a typed, source-linked requirement.")
 def declared_properties(ctx):
     declarations = _by_identity(ctx.input.declarations)
     positions = list(_requirement_positions(ctx.input))
-    conflicts = _incompatible_requirements(positions, _written_stiffness(ctx.input))
+    written = _written_requirements(ctx.input)
+    conflicts = _incompatible_requirements(positions, written)
+    reported = {(matches[0].id, requirement.comparison, _requirement_bound(requirement))
+                for requirement, _, matches in positions
+                if len(matches) == 1 and requirement.property_name == _FIRE_PROPERTY}
+    lines = ctx.input.line_by_id()
+    source_format = ctx.input.project.source_document.format
+    for (line_id, name), source in written.items():
+        requirement = source.requirement
+        if name != _FIRE_PROPERTY or (line_id, requirement.comparison, _requirement_bound(requirement)) in reported:
+            continue
+        if _offers(lines[line_id], source_format):
+            positions.append((requirement, [], [lines[line_id]]))
     for requirement, codes, matches in positions:
         line = matches[0] if len(matches) == 1 else None
         reason, candidates = None, []
+        source = written.get((line.id, requirement.property_name)) if line else None
+        is_written = source is not None and source.requirement is requirement
         if line:
             if (line.id, requirement.property_name) in conflicts:
                 continue
-            offer, items, actual, outcome = _compare_property(line, requirement, ctx.input.project.source_document.format,
-                                                               declarations)
+            if requirement.property_name == _FIRE_PROPERTY:
+                offer, items, actual, outcome, reason = _compare_fire_property(
+                    line, requirement, source_format, declarations, written=is_written,
+                )
+            else:
+                offer, items, actual, outcome = _compare_property(line, requirement, source_format, declarations)
         else:
             offer, items, actual, outcome = None, [], None, "insufficient_evidence"
             candidates = matches or codes
@@ -377,7 +448,18 @@ def declared_properties(ctx):
         unit = requirement.required.unit or ""
         expected = f"{requirement.required.value} {unit}".strip()
         operator = {"equal": "requires", "at_least": "requires at least", "at_most": "allows at most"}[requirement.comparison]
-        if outcome == "conflict":
+        if name == _FIRE_PROPERTY and outcome == "conflict":
+            message = f"Position {position} {operator} {expected}. The declaration for {offer.label()} states {actual}."
+            action = "Request a declaration for the offered door assembly that meets the cited fire-resistance class " \
+                     "or select and substantiate a variant that meets it."
+        elif name == _FIRE_PROPERTY and reason in {"fire_class_unverified", "fire_class_basis_unverified",
+                                                   "higher_fire_class_needs_confirmation", "offered_variant_unresolved"}:
+            message = f"The evidence for position {position} does not establish a match to fire-resistance class {expected}."
+            if actual:
+                message += f" The supplied declaration states {actual}."
+            action = "Confirm the exact offered door assembly and obtain its governing declaration. " \
+                     "If the designated class differs, ask the specification owner to confirm acceptance."
+        elif outcome == "conflict":
             observed = f"{actual} {unit}".strip()
             message = f"Position {position} {operator} {expected} for {name}. The offered variant declares {observed}."
             action = f"Confirm the requirement and request a variant with matching {name} evidence."
@@ -394,6 +476,8 @@ def declared_properties(ctx):
             message = f"The available evidence cannot establish {name} for position {position} against the requirement {expected}."
             action = f"Confirm the position link and offered variant, then attach one governing declaration for {name} with comparable units."
         detail = requirement.model_dump(mode="json")
+        if is_written:
+            detail.update(quote=source.quote, field=source.field)
         discriminator = f"{position}/{name}/{requirement.document}/{requirement.locator}/{outcome}"
         # Keep the existing finding ID for unqualified links. Distinguish individually qualified requirements.
         if locator := detail.get("position_locator"):

@@ -508,6 +508,21 @@ def test_dimension_contradiction_requires_two_different_stated_lengths(text, exp
         assert result[0].suggested_fix.rationale
 
 
+@pytest.mark.parametrize("text,quote,expected", [
+    ("Angebotenes Fabrikat: Hersteller: Synthetic Doors; SKU: D-24", "Synthetic Doors", False),
+    ("Angebotenes Fabrikat: Hersteller: Holz; SKU: D-24", "Holz", False),
+    ("Angebotenes Fabrikat: Hersteller: Holz; SKU: D-24; Material: Holz.", "Holz", True),
+])
+def test_manufacturer_name_alone_is_not_material_evidence(text, quote, expected):
+    analysis_input = from_data({"lines": [
+        {"id": "door", "code": "01", "short_text": "Brandschutztür aus Stahl", "long_text": text},
+    ]})
+    answer = {"findings": [{"line_ref": "#1", "property": "material", "short_quote": "Stahl",
+                            "long_quote": quote, "message": "Materials differ.", "confidence": 0.8}]}
+    actual = by_rule(run3(analysis_input, FakeProvider([answer]))[0], CONTRA)
+    assert bool(actual) is expected
+
+
 def test_no_l2_findings_means_no_l2_calls():
     provider = FakeProvider(lambda request: {"findings": []})
     run3(pipe_input(), provider, prior=[])

@@ -544,6 +544,43 @@ def generate_fire_door_scope(out):
             write_fixture_labels(out / f"{name}.{ext}", f"{baseline}.{ext}", label)
 
 
+def generate_fire_door_products(out):
+    """Replay exact offered door classes and evidence gaps against the tender position."""
+    out.mkdir(parents=True, exist_ok=True)
+    manufacturer = "Synthetic Doors"
+    package = {"schema": "billbuild.product-evidence.v1", "declarations": [
+        {"manufacturer": manufacturer, "product_code": sku, "document": f"Synthetic declaration {sku}",
+         "revision": "A", "locator": "page 2, classification table",
+         "properties": {"fire_resistance_class": {"value": rating}}}
+        for sku, rating in (
+            ("D-24", "EI2 60 Sa C5"), ("D-25", "EI2 30-C5 Sa"), ("D-26", "T 60 RS"), ("D-27", "EI2 60-C5"),
+        )
+    ]}
+    (out / "product-evidence.json").write_text(json.dumps(package, indent=2), encoding="utf-8")
+    heading = "Brandschutztür aus Stahl, 1000 × 2125 mm, RAL 9010"
+    hardware = "Inkl. Türschließer, Profilzylinder und Drückergarnitur."
+    for name, sku, role, severity, reason in (
+        ("door-product-matching", "D-24", "Angebotenes Fabrikat", None, None),
+        ("door-product-lower", "D-25", "Angebotenes Fabrikat", "warning", None),
+        ("door-product-other-family", "D-26", "Angebotenes Fabrikat", "info", "fire_class_basis_unverified"),
+        ("door-product-no-smoke", "D-27", "Angebotenes Fabrikat", "info", "fire_class_basis_unverified"),
+        ("door-product-no-declaration", "D-28", "Angebotenes Fabrikat", "info", "fire_class_unverified"),
+        ("door-product-reference", "D-25", "Fabrikat der Planung", None, None),
+    ):
+        detail = f"Feuerwiderstand: EI2 60-C5 Sa.\n{hardware}\n{role}: Hersteller: {manufacturer}; SKU: {sku}"
+        item = Item("01.0010", heading, 1, "St", detail=detail)
+        locators = _write_text_case(out, name, "Leistungsverzeichnis Türen", item, "door-product")
+        locators.update(_write_offer_tables(out, name, item, "Türen"))
+        for ext, locator in locators.items():
+            label = {"control": severity is None, "layers": [1], "expect": []}
+            if severity:
+                label.update(match="line", expect=["L1.PRODUCT.DECLARED_PROPERTY"], target={
+                    "line_codes": [item.code], "severity": severity, "source_locator": locator, "reason": reason,
+                })
+            baseline = "door-product-matching" if severity else name
+            write_fixture_labels(out / f"{name}.{ext}", f"{baseline}.{ext}", label)
+
+
 def generate_grade_scope(out):
     """Test concrete grade conflicts, legitimate component differences and unclear attribution."""
     out.mkdir(parents=True, exist_ok=True)
@@ -657,7 +694,7 @@ if __name__ == "__main__":
               "product-requirements": generate_product_requirements, "written-stiffness": generate_written_stiffness,
               "action-spelling": generate_action_spelling, "outline-duplicates": generate_outline_duplicates,
               "written-quantities": generate_written_quantities, "underspecification": generate_underspecification,
-              "fire-door-scope": generate_fire_door_scope}
+              "fire-door-scope": generate_fire_door_scope, "fire-door-products": generate_fire_door_products}
     parser.add_argument("--suite", choices=suites, default="tabular")
     args = parser.parse_args()
     suites[args.suite](args.out)

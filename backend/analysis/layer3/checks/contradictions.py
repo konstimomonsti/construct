@@ -18,6 +18,8 @@ RULE_ID = "L3.TEXT.SHORT_LONG_CONTRADICTION"
 L1_VALUE_CONFLICT = "L1.TEXT.VALUE_CONFLICT"  # layer 1 already reported a conflict on the line: don't repeat
 _DIMENSION_PROPERTY = re.compile(r"\b(?:thickness|dimension[s]?|height|length|width|depth|dicke|höhe|länge|breite|tiefe)\b", re.I)
 _LENGTH = re.compile(MEASURE, re.I)
+_MATERIAL_PROPERTY = re.compile(r"\b(?:material\w*|werkstoff\w*)\b", re.I)
+_MANUFACTURER_FIELD = re.compile(r"\b(?:Hersteller|Manufacturer)[ \t]*:[ \t]*[^:;\r\n]+", re.I)
 _CONCRETE_GRADE_PROPERTY = re.compile(r"\b(?:concrete (?:grade|class|strength)|(?:Beton)?Festigkeitsklasse|Betonklasse)\b", re.I)
 
 
@@ -93,6 +95,10 @@ def _finding(ctx, session, line: Line, item: ContradictionItem):
         line.short_text, line.long_text, item.short_quote, item.long_quote,
     ):
         return None
+    if _MATERIAL_PROPERTY.search(item.property):
+        if (not quote_in(item.short_quote, _MANUFACTURER_FIELD.sub("", line.short_text or ""))
+                or not quote_in(item.long_quote, _MANUFACTURER_FIELD.sub("", line.long_text or ""))):
+            return None
     if _DIMENSION_PROPERTY.search(item.property):
         brief = {centimetres(match[1], match[2]) for match in _LENGTH.finditer(short_value)}
         detail = {centimetres(match[1], match[2]) for match in _LENGTH.finditer(long_value)}

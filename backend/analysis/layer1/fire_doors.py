@@ -1,9 +1,10 @@
 """Check whether a tender gives the class for an explicitly fire-rated door."""
 
+from dataclasses import dataclass
 import re
 
 from ..registry import rule
-from .common import source_detail
+from .common import OR_EQUIVALENT, source_detail
 from .text_defects import ordered_lines, refers_to_previous
 
 RULE_ID = "L1.TEXT.FIRE_DOOR_RATING_MISSING"
@@ -41,6 +42,101 @@ _REFERENCE = re.compile(
     r"(?:(?:der|dem)\s+)?(?:Tür(?:en)?list(?:e|en)|Türbuch|Türplan|Brandschutz(?:konzept|nachweis|plan))\b",
     re.I,
 )
+
+
+# EN designation families and qualifiers are kept distinct. Normalization
+# changes only typography and qualifier order.
+_CLASS_SUBSCRIPTS = str.maketrans("₁₂₃₄₀ₐ", "12340a")
+_CLASS = re.compile(r"(?<!\w)(?P<family>EI[12₁₂]|EW|E|T)[ \t]*-?[ \t]*"
+                    r"(?P<minutes>15|20|30|45|60|90|120|180|240|360)(?!\d)", re.I)
+_QUALIFIER = re.compile(r"(?:RS|S[ \t]*[2₂][0₀][0₀]|S[Aₐ][34₃₄]?|C[0-5]?)(?!\w)", re.I)
+_QUALIFIER_SEPARATOR = re.compile(r"[ \t]*[-–,]?[ \t]*")
+_MINIMUM = re.compile(r"(?:mindestens|min\.|≥|>=)\s*$", re.I)
+_UNCERTAIN_CLASS = re.compile(r"\b(?:falls|sofern|wenn|optional|gegebenenfalls|höchstens|"
+                              r"maximal|bis|bisher|vorhanden|Bestand|bei|Typ|Modell|Art\.?-?Nr\.?)\b|\?", re.I)
+
+
+@dataclass(frozen=True)
+class FireClass:
+    family: str
+    minutes: int
+    qualifiers: tuple[str, ...]
+
+    def label(self) -> str:
+        return " ".join((self.family, str(self.minutes), *self.qualifiers))
+
+
+def _read_class(match):
+    qualifiers = set()
+    end = match.end()
+    while True:
+        separator = _QUALIFIER_SEPARATOR.match(match.string, end)
+        suffix = _QUALIFIER.match(match.string, separator.end())
+        if not suffix:
+            break
+        qualifiers.add("".join(suffix[0].translate(_CLASS_SUBSCRIPTS).upper().split()))
+        end = suffix.end()
+    family = match["family"].translate(_CLASS_SUBSCRIPTS).upper()
+    minutes = int(match["minutes"])
+    if family == "T" and minutes not in {30, 60, 90, 120}:
+        return None
+    if (family == "T" and qualifiers - {"RS"}) or (family != "T" and "RS" in qualifiers):
+        return None
+    if sum(q.startswith("C") for q in qualifiers) > 1 or sum(q.startswith("S") for q in qualifiers) > 1:
+        return None
+    return FireClass(family, minutes, tuple(sorted(qualifiers))), end
+
+
+def parse_fire_class(value, unit=None):
+    if unit or not isinstance(value, str):
+        return None
+    text = value.strip()
+    match = _CLASS.match(text)
+    if match and (parsed := _read_class(match)) and parsed[1] == len(text):
+        return parsed[0]
+    return None
+
+
+def written_fire_class(heading, detail):
+    """Return one class explicitly scoped to a new door assembly on this position."""
+    heading = heading or ""
+    detail = detail or ""
+    if not (_DOOR_SUBJECT.match(heading) or _RATING_FIRST.match(heading)):
+        return None
+    heading_scope = _primary(heading)
+    if (_EXISTING_WORK.search(heading_scope) or _NO_FIRE_REQUIREMENT.search(heading_scope)
+            or _ALTERNATIVE.search(OR_EQUIVALENT.sub("", heading + "\n" + detail))):
+        return None
+    matches = {}
+    for field, text in (("short_text", heading), ("long_text", detail)):
+        for clause in _CLAUSES.split(text):
+            attributed = _FIELD_LABEL.match(clause) or _DOOR_SUBJECT.match(clause) or _RATING_FIRST.match(clause)
+            primary = _primary(clause)
+            if not attributed or _UNCERTAIN_CLASS.search(primary) or _EXISTING_WORK.search(primary):
+                continue
+            for match in _CLASS.finditer(primary):
+                if _NEGATED_RATING.search(primary[:match.start()]) or not (parsed := _read_class(match)):
+                    return None
+                rating, end = parsed
+                tail = primary[end:]
+                if re.match(r"\w|\s*/|[.,]\d|\s*(?:mm|cm)\b|\s*\(", tail, re.I):
+                    return None
+                if re.match(r"\s*[-–]\s*\w", tail) and not _RATING_FIRST.match(clause):
+                    return None
+                minimum = _MINIMUM.search(primary[:match.start()])
+                quote = primary[minimum.start() if minimum else match.start():end]
+                matches.setdefault(rating, (rating, False, field, quote))
+                if minimum:
+                    matches[rating] = (rating, True, field, quote)
+    if not matches:
+        return None
+    # A detailed designation may expand a heading that repeats only the family
+    # and duration. Use the fuller quote only when it covers every stated token.
+    most_specific = max(matches, key=lambda rating: len(rating.qualifiers))
+    if all((rating.family, rating.minutes) == (most_specific.family, most_specific.minutes)
+           and set(rating.qualifiers).issubset(most_specific.qualifiers) for rating in matches):
+        return matches[most_specific]
+    return None
 
 
 def _primary(clause: str) -> str:
