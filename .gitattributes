@@ -1,0 +1,7 @@
+public/files/** -text
+public/data/** -text
+*.D8* -text
+*.X8* -text
+*.x8* -text
+*.pdf binary
+*.docx binary
