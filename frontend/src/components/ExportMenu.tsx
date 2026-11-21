@@ -4,9 +4,9 @@ import { ExportDialog } from './ExportDialog'
 import { useStore } from '../lib/store'
 import { resolveList } from '../lib/resolve'
 import { FORMATS, downloadResult, exportList, isEdited, layoutLoader, originalLoader, ownFormat, type FormatId } from '../lib/export/index'
-import type { ListDoc } from '../lib/types'
+import type { DocMeta, ListDoc } from '../lib/types'
 
-export function ExportMenu({ listId, doc, selectedIds }: { listId: string; doc: ListDoc; selectedIds?: string[] }) {
+export function ExportMenu({ listId, doc, selectedIds, original }: { listId: string; doc: ListDoc; selectedIds?: string[]; original?: DocMeta }) {
   const [dialog, setDialog] = useState<FormatId | null>(null)
   const edits = useStore((s) => s.edits[listId])
   const resolved = useMemo(() => resolveList(doc, edits), [doc, edits])
@@ -18,7 +18,7 @@ export function ExportMenu({ listId, doc, selectedIds }: { listId: string; doc: 
         doc, resolved, format, longTexts: true, prices: true,
         scope: selectedIds?.length ? 'selection' : 'all',
         selectedIds: selectedIds?.length ? selectedIds : undefined,
-        loadOriginal: originalLoader(doc), loadLayout: layoutLoader(doc), edited: isEdited(doc, resolved.positions),
+        loadOriginal: originalLoader(doc, original), loadLayout: layoutLoader(doc), edited: isEdited(doc, resolved.positions),
       })
       downloadResult(res)
       toast(`Exported ${res.fileName}`)
@@ -52,7 +52,7 @@ export function ExportMenu({ listId, doc, selectedIds }: { listId: string; doc: 
           </button>
         )}
       />
-      {dialog && <ExportDialog open onClose={() => setDialog(null)} listId={listId} doc={doc} selectedIds={selectedIds} initial={dialog} />}
+      {dialog && <ExportDialog open onClose={() => setDialog(null)} listId={listId} doc={doc} original={original} selectedIds={selectedIds} initial={dialog} />}
     </>
   )
 }

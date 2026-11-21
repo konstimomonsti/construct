@@ -128,6 +128,12 @@ export async function importFiles(files: File[], folderId: string, activeListId?
   const g = await import('./gaeb')
   const res: ImportResult = { lists: [], positions: 0, docs: 0, failed: [] }
   const documents: File[] = []
+  const offerFiles = new Set([
+    ...files.map((file) => file.name),
+    ...selectModel(useStore.getState()).lists
+      .filter((list) => list.folderId === folderId && !list.trashedAt)
+      .map((list) => list.fileName),
+  ].filter((name) => /\.d84$/i.test(name)).map((name) => fileStem(name).toLowerCase()))
   for (const f of files) {
     const name = f.name
     const ext = name.split('.').pop()?.toLowerCase() ?? ''
@@ -139,6 +145,10 @@ export async function importFiles(files: File[], folderId: string, activeListId?
       else if (ext === 'json') parsed = parseListJson(await f.text(), 'json', 'JSON')
       else if (ext === 'xlsx') parsed = await (await import('./import-documents')).readExcel(f)
       else if (ext === 'pdf' || ext === 'docx') {
+        if (ext === 'pdf' && offerFiles.has(fileStem(name).toLowerCase())) {
+          documents.push(f)
+          continue
+        }
         const { readPdfPayload, readWordPayload } = await import('./import-documents')
         const payload = ext === 'pdf' ? await readPdfPayload(f) : await readWordPayload(f)
         const itemList = payload ? parseListJson(payload, ext, ext === 'pdf' ? 'PDF' : 'Word') : await readSampleDocument(f)

@@ -7,19 +7,19 @@ import {
   FORMATS, downloadResult, exportFileName, exportList, fidelityNote, isEdited, layoutLoader, originalLoader, ownFormat,
   type FormatId, type ExportRequest,
 } from '../lib/export/index'
-import type { ListDoc } from '../lib/types'
+import type { DocMeta, ListDoc } from '../lib/types'
 
 type Scope = 'all' | 'selection' | 'categories'
 
 export function ExportDialog({
-  open, onClose, listId, doc, selectedIds, initial,
-}: { open: boolean; onClose: () => void; listId: string; doc: ListDoc; selectedIds?: string[]; initial?: FormatId }) {
+  open, onClose, listId, doc, original, selectedIds, initial,
+}: { open: boolean; onClose: () => void; listId: string; doc: ListDoc; original?: DocMeta; selectedIds?: string[]; initial?: FormatId }) {
   const edits = useStore((s) => s.edits[listId])
   const resolved = useMemo(() => resolveList(doc, edits), [doc, edits])
   const edited = useMemo(() => isEdited(doc, resolved.positions), [doc, resolved])
   const own = ownFormat(doc)
   const [format, setFormat] = useState<FormatId>(initial ?? own ?? 'xlsx')
-  const [scope, setScope] = useState<Scope>('all')
+  const [scope, setScope] = useState<Scope>(() => selectedIds?.length ? 'selection' : 'all')
   const [cats, setCats] = useState<Set<string>>(new Set())
   const [longTexts, setLongTexts] = useState(true)
   const [prices, setPrices] = useState(true)
@@ -33,6 +33,7 @@ export function ExportDialog({
   const pricesOn = forcedOn ? true : forcedOff ? false : prices
   const canPrices = format !== 'json' || true
   const fileName = exportFileName(doc, format, edited || effScope !== 'all')
+  const loadOriginal = originalLoader(doc, original)
 
   const run = async () => {
     setBusy(true)
@@ -42,7 +43,7 @@ export function ExportDialog({
         selectedIds: effScope === 'selection' ? selectedIds : undefined,
         categoryOzs: effScope === 'categories' ? [...cats] : undefined,
         longTexts, prices: pricesOn,
-        loadOriginal: originalLoader(doc),
+        loadOriginal,
         loadLayout: layoutLoader(doc),
         edited,
       }
@@ -99,7 +100,7 @@ export function ExportDialog({
               <Icon name={f.icon} size={16} className="text-slate-400" />
               {f.label}
             </span>
-            <span className="text-[11px] leading-snug text-slate-500">{fidelityNote(doc, f.id, edited)}</span>
+            <span className="text-[11px] leading-snug text-slate-500">{fidelityNote(doc, f.id, edited, !!loadOriginal && effScope === 'all' && longTexts && (forcedOff || pricesOn))}</span>
           </button>
         ))}
       </div>

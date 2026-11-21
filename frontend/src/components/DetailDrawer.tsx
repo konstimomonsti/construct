@@ -24,9 +24,10 @@ function Labeled({ label, children, className }: { label: string; children: Reac
 }
 
 export function DetailDrawer({
-  p, onClose, edited, added, onPatch, onQty, onUp, onReset, onMoveCategory,
+  p, catalogue, onClose, edited, added, onPatch, onQty, onUp, onReset, onMoveCategory,
 }: {
   p: Position | null
+  catalogue?: React.ReactNode
   onClose: () => void
   edited: boolean
   added: boolean
@@ -84,6 +85,7 @@ export function DetailDrawer({
               <IconButton ref={closeRef} icon="close" label="Close details" onClick={onClose} />
             </div>
             <div className="flex-1 space-y-4 overflow-y-auto px-5 py-4" key={p.id}>
+              {catalogue}
               <Labeled label="Kurztext">
                 <input
                   key={`s-${p.short}`}

@@ -13,6 +13,8 @@ import { useActions } from '../lib/actions'
 import { DetailDrawer } from '../components/DetailDrawer'
 import { loadList } from '../lib/data'
 import { ExportMenu } from '../components/ExportMenu'
+import { CatalogueDetails, CatalogueOverview } from '../components/WorkspaceCatalogue'
+import { useWorkspaceCatalogue } from '../lib/workspace-catalogue'
 import { CategoryTree, useExpanded, type CheckState } from '../components/split/CategoryTree'
 import { MoveToCategory } from '../components/split/MoveToCategory'
 import { fixedBudget, money, plural } from '../lib/format'
@@ -272,10 +274,24 @@ function AddItemDialog({ open, onClose, listId, tree, positions }: { open: boole
 /* Detail                                                              */
 /* ------------------------------------------------------------------ */
 
-function ListDetail({ doc }: { doc: ListDoc }) {
+function ListDetail({ doc: imported }: { doc: ListDoc }) {
   const [params] = useSearchParams()
   const { lists, folders, documents } = useModel()
-  const attached = documents.filter((document) => document.listId === doc.id)
+  const attached = documents.filter((document) => document.listId === imported.id)
+  const original = attached.find((document) => document.original && document.name === imported.fileName)
+  const catalogueEnabled = Boolean(imported.userCreated && imported.source?.kind && imported.source.kind !== 'blank' && imported.positions.length)
+  const documentVersion = useStore((state) => attached.map(({ id }) =>
+    [id, state.sync?.hashes.userDocuments?.[id], state.sync?.hashes.documentLinks?.[id]].join(':'),
+  ).join(','))
+  const { report, error, retryFailed } = useWorkspaceCatalogue(catalogueEnabled ? imported.id : null, documentVersion)
+  const doc = useMemo(() => {
+    if (!report) return imported
+    const positions = imported.positions.map((position) => {
+      const recovered = report.positions[position.id]?.recovered
+      return recovered ? { ...position, short: recovered.short, long: recovered.long || undefined } : position
+    })
+    return { ...imported, positions }
+  }, [imported, report])
   const openDialog = useUi((s) => s.openDialog)
   const { listMenu } = useActions()
   const view = lists.find((l) => l.id === doc.id)
@@ -329,6 +345,7 @@ function ListDetail({ doc }: { doc: ListDoc }) {
   }, [positions])
 
   const detail = detailId ? positions.find((p) => p.id === detailId) ?? null : null
+  const detailCatalogue = detail && report?.positions[detail.id]
 
   const removeSelected = () => {
     const ids = [...selected]
@@ -417,9 +434,13 @@ function ListDetail({ doc }: { doc: ListDoc }) {
             />
           )}
           {view && !view.trashedAt && <MoreMenu items={listMenu(view)} label={`Options for ${view.title}`} />}
-          <ExportMenu listId={doc.id} doc={doc} selectedIds={[...selected]} />
+          <ExportMenu listId={doc.id} doc={doc} original={original} selectedIds={[...selected]} />
         </div>
       </div>
+
+      {catalogueEnabled && (
+        <CatalogueOverview report={report} error={error} retryFailed={retryFailed} positions={positions} onOpen={setDetailId} />
+      )}
 
       <PricingBudget tree={tree} stats={catStats} total={st.total} cap={cap} onAdd={(name) => {
         addCategory(null, name)
@@ -533,6 +554,10 @@ function ListDetail({ doc }: { doc: ListDoc }) {
       <AddItemDialog open={adding} onClose={() => setAdding(false)} listId={doc.id} tree={tree} positions={positions} />
       <DetailDrawer
         p={detail}
+        catalogue={detail && detailCatalogue ? (
+          <CatalogueDetails result={detailCatalogue} position={detail}
+            onApply={(long) => useStore.getState().patchPosition(doc.id, detail.id, { long })} />
+        ) : undefined}
         onClose={() => setDetailId(null)}
         edited={!!detail && editedIds.has(detail.id)}
         added={!!detail && addedIds.has(detail.id)}

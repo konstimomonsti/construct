@@ -106,5 +106,13 @@ SELECT NOT EXISTS (
     INSERT INTO db_migration.applied_version (version) VALUES (12);
 \endif
 
+SELECT NOT EXISTS (
+    SELECT FROM db_migration.applied_version WHERE version = 13
+) AS apply_workspace_catalogue \gset
+\if :apply_workspace_catalogue
+    \ir migrations/013_workspace_catalogue.sql
+    INSERT INTO db_migration.applied_version (version) VALUES (13);
+\endif
+
 \ir runtime_role.sql
 COMMIT;

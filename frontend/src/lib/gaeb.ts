@@ -356,7 +356,14 @@ export function parseGaeb90(text: string): ParsedList {
         if (current) current._short.push(content(l).trim())
         break
       case '26':
-        if (current) current._long.push(content(l).trim())
+        if (current) current._long.push(l.slice(5, 74).trim())
+        break
+      case '20':
+      case '31':
+      case '99':
+      case 'T0':
+      case 'T9':
+        current = null
         break
       default:
         break

@@ -16,6 +16,7 @@ from tender_import.store import original
 import analysis_api
 import mvp
 import workspace
+import workspace_catalogue
 from exports import export
 
 
@@ -431,7 +432,7 @@ class BrowserHandler(BaseHTTPRequestHandler):
     def workspace_request(self, request, write):
         """Shared workspace sync: GET/POST state, GET/POST file, POST file-delete."""
         path = request.path.removeprefix("/api/workspace/")
-        operations = {"state", "file", "file-delete"} if write else {"state", "file"}
+        operations = {"state", "file", "file-delete", "catalogue"} if write else {"state", "file", "catalogue"}
         if path not in operations:
             self.json(HTTPStatus.NOT_FOUND, {"error": "Action not found"})
             return
@@ -439,7 +440,7 @@ class BrowserHandler(BaseHTTPRequestHandler):
             params = {key: value[-1] for key, value in parse_qs(request.query, max_num_fields=4).items()}
             content = None
             if write:
-                limit = MAX_FILE_BYTES if path == "file" else workspace.MAX_STATE_BYTES
+                limit = {"file": MAX_FILE_BYTES, "catalogue": 1024}.get(path, workspace.MAX_STATE_BYTES)
                 length = int(self.headers.get("Content-Length", 0))
                 if not 0 < length <= limit:
                     self.json(HTTPStatus.REQUEST_ENTITY_TOO_LARGE, {"error": "The request is empty or too large."})
@@ -464,6 +465,10 @@ class BrowserHandler(BaseHTTPRequestHandler):
                     content_type, body = workspace.load_file(connection, params.get("id"))
                     self.send(HTTPStatus.OK, body, content_type, cache="private, max-age=31536000, immutable")
                     return
+                elif path == "catalogue":
+                    response = workspace_catalogue.status(connection, workspace.WORKSPACE,
+                                                          workspace.record_id(params.get("id")), start=write,
+                                                          retry=write and payload.get("retry") is True)
                 else:
                     response = workspace.delete_files(connection, payload)
             self.json(HTTPStatus.OK, response)
@@ -559,5 +564,6 @@ class BrowserHandler(BaseHTTPRequestHandler):
 
 
 if __name__ == "__main__":
+    workspace_catalogue.start_workers()
     ThreadingHTTPServer.daemon_threads = True
     ThreadingHTTPServer(("0.0.0.0", PORT), BrowserHandler).serve_forever()
