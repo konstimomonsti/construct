@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-export type ImportPhase = 'queued' | 'uploading' | 'reading' | 'building' | 'done' | 'failed'
+export type ImportPhase = 'queued' | 'reading' | 'building' | 'done' | 'failed'
 
 export interface ImportFileProgress {
   name: string
@@ -12,7 +12,11 @@ export interface ImportFileProgress {
 interface ImportProgressState {
   active: boolean
   files: ImportFileProgress[]
+  /** aborts the running import (the loader's Cancel button) */
+  controller: AbortController | null
+  cancelled: boolean
   begin: (files: { name: string; size: number }[]) => void
+  cancel: () => void
   update: (name: string, patch: Partial<Pick<ImportFileProgress, 'phase' | 'pct'>>) => void
   end: () => void
 }
@@ -20,8 +24,12 @@ interface ImportProgressState {
 export const useImportProgress = create<ImportProgressState>((set) => ({
   active: false,
   files: [],
+  controller: null,
+  cancelled: false,
   begin: (files) => set({
     active: true,
+    controller: new AbortController(),
+    cancelled: false,
     files: files.map((f) => ({ name: f.name, size: f.size, phase: 'queued' as const, pct: 0 })),
   }),
   update: (name, patch) => set((s) => {
@@ -33,7 +41,11 @@ export const useImportProgress = create<ImportProgressState>((set) => ({
     files[i] = { ...files[i], ...patch, pct: Math.max(0, Math.min(100, patch.pct ?? files[i].pct)) }
     return { files }
   }),
-  end: () => set({ active: false, files: [] }),
+  cancel: () => set((s) => {
+    s.controller?.abort()
+    return { cancelled: true }
+  }),
+  end: () => set({ active: false, files: [], controller: null, cancelled: false }),
 }))
 
 /** size-weighted mean of the per-file percentages (0..100) */

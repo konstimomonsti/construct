@@ -1,3 +1,5 @@
+import { serverReachable } from './server'
+
 const storeName = 'files'
 
 function openDocuments(): Promise<IDBDatabase> {
@@ -31,6 +33,8 @@ export async function saveDocument(id: string, file: File) {
   const blob = file.slice(0, file.size, type)
   await writeDocuments((store) => store.put(blob, id))
   try {
+    // without a backend the upload would hang the import (see lib/server.ts); the local copy is enough for now
+    if (!await serverReachable()) throw new Error('the server is not reachable')
     const response = await fetch(`${FILES}?id=${encodeURIComponent(id)}`, { method: 'POST', headers: { 'Content-Type': type }, body: blob })
     if (!response.ok) throw new Error(`HTTP ${response.status}`)
   } catch (error) {

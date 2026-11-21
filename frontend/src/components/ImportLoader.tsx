@@ -8,8 +8,7 @@ const SHOW_AFTER_MS = 600
 
 const PHASE_TEXT: Record<ImportPhase, string> = {
   queued: 'Getting ready…',
-  uploading: 'Uploading the PDF…',
-  reading: 'Reading positions… (estimated)',
+  reading: 'Uploading and reading the PDF…',
   building: 'Building the list…',
   done: 'Done',
   failed: 'Could not read this file',
@@ -34,10 +33,12 @@ function Wheel({ cx, spin }: { cx: number; spin: boolean }) {
 
 function Illustration({ percent, finished, failed }: { percent: number; finished: boolean; failed: boolean }) {
   const moving = !finished && !failed
-  const x = 4 + (Math.max(0, Math.min(100, percent)) / 100) * (VIEW_W - CONVOY_W - 8)
-  const fillTo = x + CONVOY_W - 6
+  // the road fill is exactly the percentage; the convoy's nose sits at its end, so at low percentages the trucks are
+  // still driving in from the left edge
+  const fillTo = (Math.max(0, Math.min(100, percent)) / 100) * (VIEW_W - 2)
+  const x = fillTo - CONVOY_W - 2
   return (
-    <svg viewBox={`0 0 ${VIEW_W} 150`} className="block h-auto w-full" aria-hidden="true" focusable="false">
+    <svg viewBox={`0 0 ${VIEW_W} 150`} className="block h-auto w-full overflow-hidden" aria-hidden="true" focusable="false">
       <style>{`
         .bb-spin { animation: bb-spin 0.6s linear infinite; }
         .bb-drum { animation: bb-spin 3.2s linear infinite; transform-box: fill-box; transform-origin: center; }
@@ -131,7 +132,7 @@ interface View {
   files: ImportFileProgress[]
 }
 
-function LoaderCard({ files, onHide }: View & { onHide: () => void }) {
+function LoaderCard({ files, onHide, onCancel, cancelling }: View & { onHide: () => void; onCancel?: () => void; cancelling?: boolean }) {
   const percent = overallPercent(files)
   const current = files.findIndex((f) => f.phase !== 'done' && f.phase !== 'failed')
   const shown = files[current >= 0 ? current : files.length - 1]
@@ -162,6 +163,16 @@ function LoaderCard({ files, onHide }: View & { onHide: () => void }) {
           {files.length > 1 && <p className="text-xs text-slate-500">File {Math.min(files.length, (current >= 0 ? current : files.length - 1) + 1)} of {files.length}</p>}
           {phase === 'reading' && !finished && (
             <p className="mt-2 text-xs text-slate-500">The server reads the PDF; the percentage is an estimate.</p>
+          )}
+          {onCancel && !finished && (
+            <button
+              type="button"
+              onClick={onCancel}
+              disabled={cancelling}
+              className="mt-4 inline-flex h-9 items-center rounded-md bg-slate-100 px-4 text-sm font-semibold text-slate-900 hover:bg-slate-200 disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-600"
+            >
+              {cancelling ? 'Cancelling…' : 'Cancel import'}
+            </button>
           )}
         </div>
       </div>
@@ -199,13 +210,15 @@ function useDemoFiles(enabled: boolean): ImportFileProgress[] | null {
   }, [enabled])
   if (!enabled) return null
   const p = Math.min(100, (t / DEMO_MS) * 100)
-  const phase: ImportPhase = p >= 100 ? 'done' : p >= 95 ? 'building' : p >= 20 ? 'reading' : 'uploading'
+  const phase: ImportPhase = p >= 100 ? 'done' : p >= 95 ? 'building' : 'reading'
   return [{ name: 'LV_11_Stahlbetonfertigteile_Sandwichsockel.pdf', size: 2_400_000, phase, pct: p }]
 }
 
 export function ImportLoader() {
   const active = useImportProgress((s) => s.active)
   const real = useImportProgress((s) => s.files)
+  const cancel = useImportProgress((s) => s.cancel)
+  const cancelled = useImportProgress((s) => s.cancelled)
   const demo = useDemoFiles(typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('loader') === 'demo')
   const [delayed, setDelayed] = useState(false)
   const [hidden, setHidden] = useState(false)
@@ -225,7 +238,8 @@ export function ImportLoader() {
   if (!demo && !(active && delayed)) return null
   if (!files.length) return null
   return createPortal(
-    hidden ? <LoaderPill files={files} onShow={() => setHidden(false)} /> : <LoaderCard files={files} onHide={() => setHidden(true)} />,
+    hidden ? <LoaderPill files={files} onShow={() => setHidden(false)} />
+      : <LoaderCard files={files} onHide={() => setHidden(true)} onCancel={demo ? undefined : cancel} cancelling={cancelled} />,
     document.body,
   )
 }
