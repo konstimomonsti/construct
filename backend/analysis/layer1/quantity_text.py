@@ -72,7 +72,7 @@ def _written_values(text, line_unit, legacy):
             }
 
 
-def _display(value: Decimal):
+def format_quantity(value: Decimal) -> str:
     text = format(value, "f")
     return text.rstrip("0").rstrip(".") if "." in text else text
 
@@ -107,8 +107,8 @@ def check_written_quantity(ctx):
         unit = line.unit_raw or line.unit
         yield ctx.finding(
             line=line, field="quantity",
-            message=f"The quantity column shows {_display(line.quantity)} {unit}. "
-                    f"“{quote}” gives {_display(first['quantity'])} {unit}.",
+            message=f"The quantity column shows {format_quantity(line.quantity)} {unit}. "
+                    f"“{quote}” gives {format_quantity(first['quantity'])} {unit}.",
             evidence={"quantity": line.quantity, "quantity_raw": line.quantity_raw, "unit": line.unit,
                       "unit_raw": line.unit_raw, "written_quantities": evidence},
             suggested_fix=review_fix("Confirm the intended quantity against the takeoff or hire schedule. "

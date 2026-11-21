@@ -497,7 +497,7 @@ def generate_written_quantities(out):
             label = {"control": not expected, "layers": [1], "expect": []}
             if expected:
                 label.update(match="line", expect=["L1.QTY.WRITTEN_CONFLICT"], target={
-                    "line_codes": [item.code], "severity": "error", "source_locator": locator,
+                    "line_codes": [item.code], "severity": "error", "source_locator": locator, "bidder_question": True,
                 })
             write_fixture_labels(out / f"{name}.{ext}", f"{baseline}.{ext}", label)
 

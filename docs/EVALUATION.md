@@ -108,6 +108,8 @@ The `written-quantities` suite caught all 16 planted conflicts with guidance acr
 
 Across four repository exports, all 56 comparable formulas agreed with their quantity columns. Some exports represent the same tender. In temporary X83 and D86 copies, changing 840 to 800 while keeping the written hire formula produced a conflict at the original position and cited source item I4 and record 395 respectively. The two copies also passed through the workspace uploader.
 
+The written-quantity replay also requires a German bidder question linked to each planted conflict. All 16 findings had one. Each draft quotes the written value or hire formula, preserves the precision of both quantities, and asks which quantity governs. Internal amount and subtotal errors stay in the assessor's report. The two modified GAEB repository copies produced linked questions through the workspace uploader. The D86 question omits legacy formatting markers while the raw finding retains that source evidence.
+
 The X83 bid-simulator replay imported a planted seat quantity conflict through the workspace uploader. The options and result both cite the issued three seats and the six stated in the description. Base pricing retained the issued quantity. A manual change was rejected, and a stale shortfall based on a conflicting trigger was withheld. The tests exercise an older stored report, review decisions, and a reconciled source.
 
 Generate with `--suite written-quantities` and replay `written-*.{pdf,docx,X83,json,csv,tsv,xlsx,xls}`.

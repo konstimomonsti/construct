@@ -1,8 +1,9 @@
 """Bidder questions (Bieterfragen) from findings: deterministic German templates keyed by rule id.
 
 Nothing here calls a model or any service, so every question traces back to a finding and to
-the position text, and no tender content leaves the machine. Rules about prices, arithmetic,
-bidder input and import warnings have no template: they are not questions for the client.
+the position text, and no tender content leaves the machine. Price checks, internal arithmetic,
+bidder input and import warnings stay outside the client questions. Conflicting written quantities
+ask which value governs.
 
 Findings the reviewer dismissed (``status == rejected``) are left out. Findings of one rule in
 one section are merged into one question that lists the OZ, so 73 positions without a quantity
@@ -21,7 +22,9 @@ from hashlib import sha256
 import re
 from typing import Any
 
+from .adapter import to_decimal
 from .contracts import AnalysisInput, BidderQuestion, Finding, RiskReport
+from .layer1.quantity_text import RULE_ID as WRITTEN_QUANTITY_RULE, format_quantity
 from .risk import assess
 from .risk.signals import anchor, excluded_sections, matching_families
 
@@ -227,6 +230,38 @@ def _number(value: Any) -> str:
     return f"{number:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".").rstrip("0").rstrip(",")
 
 
+def _written_quantity_question(finding: Finding, source_format: str | None) -> str | None:
+    def amount(value):
+        number = to_decimal(value)
+        return format_quantity(number).replace(".", ",") if number is not None else None
+
+    evidence = finding.evidence
+    original = amount(evidence.get("quantity"))
+    unit = evidence.get("unit_raw") or evidence.get("unit")
+    written_values = evidence.get("written_quantities")
+    if original is None or not isinstance(unit, str) or not unit.strip() or not isinstance(written_values, list):
+        return None
+    unit = unit.strip().rstrip(".")
+    statements = []
+    for item in written_values:
+        quote = item.get("quote") if isinstance(item, dict) else None
+        if not isinstance(quote, str) or not quote.strip():
+            continue
+        written = amount(item.get("quantity"))
+        if source_format == "gaeb_1990" and item.get("factors"):
+            quote = re.sub(r"\[TA\d{2}(?=\s)|[\[\]]", " ", quote)
+        if written is not None and written != original:
+            statements.append(f"Die Angabe „{' '.join(quote.split())}“ ergibt {written} {unit}.")
+    if not statements:
+        return None
+    return " ".join([
+        f"In der Mengenspalte sind {original} {unit} angegeben.",
+        *statements,
+        "Bitte bestätigen Sie die für die Kalkulation maßgebende Menge und stimmen Sie "
+        "die Mengenspalte und den Positionstext darauf ab.",
+    ])
+
+
 def _dependency_question(finding: Finding) -> str | None:
     evidence = finding.evidence or {}
     if evidence.get("reason") not in ("missing", "quantity_shortfall"):
@@ -243,7 +278,7 @@ def _dependency_question(finding: Finding) -> str | None:
 
 
 def has_template(rule_id: str) -> bool:
-    return rule_id in TEMPLATES or ("_NEEDS_" in rule_id and rule_id.startswith("L2."))
+    return rule_id == WRITTEN_QUANTITY_RULE or rule_id in TEMPLATES or ("_NEEDS_" in rule_id and rule_id.startswith("L2."))
 
 
 def _body(text: str, refs: list[str]) -> str:
@@ -255,7 +290,8 @@ def _body(text: str, refs: list[str]) -> str:
 
 
 def _excluded(finding: Finding) -> bool:
-    return (finding.status != "open" or finding.category in {"price", "arithmetic", "bidder_input"}
+    return (finding.status != "open" or finding.category in {"price", "bidder_input"}
+            or (finding.category == "arithmetic" and finding.rule_id != WRITTEN_QUANTITY_RULE)
             or finding.rule_id.startswith(("L1.PRICE.", "L1.ARITH."))
             or "BIDDER_INPUT" in finding.rule_id)
 
@@ -304,7 +340,9 @@ def build_questions(analysis_input: AnalysisInput, findings: list[Finding], risk
                 refs = [lines[id].code for id in finding.related_line_ids if id in lines and lines[id].code] or refs
         explicit = finding.evidence.get("bieterfrage_de")
         template = None
-        if isinstance(explicit, str) and explicit.strip():
+        if finding.rule_id == WRITTEN_QUANTITY_RULE:
+            text = _written_quantity_question(finding, analysis_input.project.source_document.format)
+        elif isinstance(explicit, str) and explicit.strip():
             text = explicit.strip()
         elif finding.rule_id.startswith("L2.") and "_NEEDS_" in finding.rule_id:
             text = _dependency_question(finding)

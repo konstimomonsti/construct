@@ -76,3 +76,6 @@ def test_written_quantity_conflict_blocks_layer_two_shortfall_fix():
     finding, = [f for f in report.findings if f.rule_id == "L2.SANITARY.WC_NEEDS_WC_SEAT"]
     assert finding.evidence["reason"] == "quantity_not_assessable"
     assert not finding.suggested_fix or not finding.suggested_fix.operations
+    assert all(question.rule_id != finding.rule_id for question in report.questions)
+    assert any(question.rule_id == RULE and "10 St" in question.text_de and "6 St" in question.text_de
+               for question in report.questions)

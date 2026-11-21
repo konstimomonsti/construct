@@ -65,6 +65,8 @@ def finding_matches(label: dict, finding: dict) -> bool:
     target = label.get("target", {})
     if target.get("severity") and finding.get("severity") != target["severity"]:
         return False
+    if target.get("bidder_question") and not finding.get("has_bidder_question"):
+        return False
     if target.get("reason") and finding.get("reason") != target["reason"]:
         return False
     locator = finding.get("source_locator") or {}
@@ -102,6 +104,7 @@ def guidance_kind(finding: Finding) -> str:
 def compact(result: AnalysisResult, analysis_input) -> list[dict]:
     """Findings reduced to what labels can refer to. No ids, no hashes."""
     sections = {section.id: section.code for section in analysis_input.sections}
+    questioned = {finding_id for question in result.questions or [] for finding_id in question.finding_ids}
     codes = {line.id: line.code for line in analysis_input.lines}
     rows = []
     for finding in result.findings:
@@ -114,6 +117,7 @@ def compact(result: AnalysisResult, analysis_input) -> list[dict]:
             "related_codes": [codes.get(line_id) for line_id in finding.related_line_ids if codes.get(line_id)],
             "title": finding.title, "message": finding.message[:300],
             "guidance": guidance_kind(finding),
+            "has_bidder_question": finding.id in questioned,
             "source_locator": finding.source_locator,
             **({"reason": finding.evidence["reason"]} if isinstance(finding.evidence.get("reason"), str) else {}),
         })
