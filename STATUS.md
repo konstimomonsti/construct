@@ -17,6 +17,8 @@ The lead merges PRs and resolves conflicts in this file. Contracts are in [CLAUD
 | 08 | [Calibrate the risk score and money at stake (queued)](tasks/08-risk-calibration.md) | `feat/task-08` | queued | Best taken by task 03's author |
 | 09 | [Check line amounts and totals on uploaded GAEB files](tasks/09-upload-amount-checks.md) | `feat/task-09` | queued | Demo gap: the planted wrong amount only shows in the CLI |
 | 10 | [Apply accepted fixes (reviewed, undoable, original kept)](tasks/10-apply-accepted-fixes.md) | `feat/task-10` | queued | |
+| 11 | [Unusual-quantity rules and layer 2 ratio checks](tasks/11-quantity-rules-and-ratios.md) | `feat/task-11` | queued | |
+| 12 | [Reference prices from past offers and a what-if view](tasks/12-reference-prices-what-if.md) | `feat/task-12` | queued | Opus; P0 = references + price rules |
 
 Suggested merge order: 01 → 03 → 02 → 05 → 04 → 06. Each PR must pass CI (Python tests, frontend lint/build).
 
