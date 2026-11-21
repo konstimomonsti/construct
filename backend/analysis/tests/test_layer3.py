@@ -1,6 +1,7 @@
 """Layer 3 tests. No network: every model answer comes from FakeProvider."""
 
 import json
+import re
 
 import pytest
 
@@ -61,6 +62,10 @@ def by_rule(findings, rule_id):
     return [finding for finding in findings if finding.rule_id == rule_id]
 
 
+def complete_coverage(errors):
+    return len(errors) == 1 and re.fullmatch(r"layer 3 coverage: (\d+)/\1 batches", errors[0]) is not None
+
+
 # --------------------------------------------------------------------------- registration and helpers
 
 
@@ -99,7 +104,7 @@ def test_cache_key_depends_on_model_prompt_version_and_text():
 def test_contradiction_found_with_verified_quotes():
     findings, errors = run3(pipe_input(), FakeProvider(contradiction_answer))
     found = by_rule(findings, CONTRA)
-    assert errors == []
+    assert complete_coverage(errors)
     assert len(found) == 1
     finding = found[0]
     assert finding.target.line_code == "01.0010"
@@ -135,7 +140,7 @@ def test_hallucinated_contradictions_are_dropped(bad):
     answer = {"findings": [{"property": "x", "message": "m", "confidence": 0.9, **bad}]}
     findings, errors = run3(pipe_input(), FakeProvider([answer]))
     assert by_rule(findings, CONTRA) == []
-    assert errors == []
+    assert complete_coverage(errors)
 
 
 def test_invalid_items_dropped_but_valid_ones_kept():
@@ -191,7 +196,7 @@ def test_cache_answers_repeat_run_without_calling_the_model(tmp_path):
     errors = []
     findings = layer3.run(pipe_input(), [], errors, provider=second, cache=ResponseCache(cache_dir))
     assert second.requests == []
-    assert errors == []
+    assert complete_coverage(errors)
     assert len(by_rule(findings, CONTRA)) == 1
 
 
@@ -258,7 +263,7 @@ def test_disabled_provider(monkeypatch):
     monkeypatch.setenv("ANALYSIS_L3_PROVIDER", "none")
     errors = []
     assert layer3.run(pipe_input(), [], errors) == []
-    assert errors == ["layer 3: disabled (ANALYSIS_L3_PROVIDER=none)"]
+    assert errors == ["layer 3: disabled (ANALYSIS_L3_PROVIDER=none)", "layer 3 coverage: 0/0 batches"]
 
 
 def test_provider_from_env(monkeypatch):
@@ -321,7 +326,7 @@ def test_l2_confirm_included_excluded_missing():
                             if "findings" in request.prompt and "requirement" in request.prompt else {"findings": []})
     findings, errors = run3(analysis_input, provider, prior=prior)
     confirm = {f.evidence["reviews_finding_id"]: f for f in by_rule(findings, CONFIRM)}
-    assert errors == []
+    assert complete_coverage(errors)
 
     included = confirm[reviewed["Edge insulation"].id]
     assert included.severity == "info" and included.evidence["verdict"] == "included"
@@ -393,6 +398,6 @@ def test_eval_harness_runs_offline(monkeypatch):
     from analysis.layer3.eval import evaluate
     monkeypatch.setenv("ANALYSIS_L3_CACHE", "off")
     result = evaluate(FakeProvider(lambda request: {"findings": [], "reviews": []}))
-    assert result["model"] == "fake" and result["errors"] == []
+    assert result["model"] == "fake" and all(e.startswith("layer 3 coverage: ") for e in result["errors"])
     assert result["contradiction"]["recall"] == 0
     assert all(row["got"] == "unclear" for row in result["l2_confirm"]["cases"])

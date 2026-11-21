@@ -8,6 +8,8 @@ verbatim in code) and drafts the question. Confidence is capped at 0.6.
 
 from __future__ import annotations
 
+import json
+
 from ...contracts import Line
 from ...registry import rule
 from .. import prompts
@@ -36,13 +38,11 @@ def candidates(lines: list[Line], prior_findings) -> list[Line]:
                   "are verified, confidence <= 0.6.")
 def underspecified(ctx):
     session = current()
-    by_section: dict[str | None, list[Line]] = {}
-    for line in candidates(ctx.input.lines, ctx.prior_findings):
-        by_section.setdefault(line.section_id, []).append(line)
-    chunks = []
-    for section_lines in by_section.values():
-        sized = [(line, len(line.short_text or "") + len(line.long_text or "") + 80) for line in section_lines]
-        chunks.extend(batches(sized, session.max_batch_chars, 25))
+    sized = [(line, len(json.dumps({"ref": "#25", "code": line.code, "short_text": line.short_text,
+                                    "long_text": line.long_text, "quantity": _plain(line.quantity),
+                                    "unit": line.unit_raw or line.unit}, ensure_ascii=False, indent=1)) + 4)
+             for line in candidates(ctx.input.lines, ctx.prior_findings)]
+    chunks = list(batches(sized, max(1, session.max_batch_chars - 100), 25))
     requests = []
     for chunk in chunks:
         payload = [{"ref": f"#{index}", "code": line.code, "short_text": line.short_text,

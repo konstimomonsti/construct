@@ -177,7 +177,7 @@ def _proposal(dep: DependencySpec, triggers: list[Entry], context: Context,
     if quantity is None:
         # Presence checks can't infer an amount: the reviewer must enter it, otherwise the new line
         # would be flagged by L1.QTY.MISSING after it is applied.
-        rationale += " The quantity cannot be derived: enter it before accepting."
+        rationale += " The quantity cannot be derived: enter it before applying the fix."
     return Fix(
         confidence=0.55 if quantity is not None else 0.4,
         rationale=rationale,
