@@ -1,5 +1,5 @@
 import { Row, RowList, RowMenu, BudgetBadge, BudgetMini, budgetPhrase } from './Kit'
-import { int, money, plural } from '../lib/format'
+import { int, money, moneyWhole, plural } from '../lib/format'
 import { useActions } from '../lib/actions'
 import type { ListView } from '../lib/store'
 
@@ -43,24 +43,45 @@ export function displayTitle(title: string, project?: string) {
   return t
 }
 
+/** pricing coverage read from confirmed position counts, so a saved zero price counts as priced */
+function listPricing(l: ListView) {
+  const blank = !l.positionsCount
+  const priced = l.pricedCount > 0 || l.total > 0
+  const coverage = blank ? 'no positions yet' : `${int(l.pricedCount)} of ${plural(l.positionsCount, 'position', 'positions')} priced`
+  return { blank, priced, coverage }
+}
+
 export function ListRow({
   list: l, siblings = [], tone = 'indigo', selectMode, selected, onToggle,
 }: { list: ListView; siblings?: ListView[]; tone?: string; selectMode?: boolean; selected?: boolean; onToggle?: () => void }) {
   const { listMenu } = useActions()
   const { title } = listLabel(l, siblings)
-  const subtitle = [phaseLabel(l), plural(l.positionsCount, 'position', 'positions'), l.total > 0 ? completeness(l) : null].filter(Boolean).join(' · ')
+  const { blank, priced, coverage } = listPricing(l)
+  const subtitle = [phaseLabel(l), blank ? null : plural(l.positionsCount, 'position', 'positions'), priced ? completeness(l) : null].filter(Boolean).join(' · ')
+  // the link names the cap and how much is priced, also for a list whose prices were saved as zero
+  const capPhrase = l.cap ? `cap ${moneyWhole(l.cap)}` : 'no cap set'
+  const label = [
+    title, phaseLabel(l), coverage,
+    priced ? money(l.total) : blank ? null : 'not priced',
+    l.supersededBy ? 'earlier version, not counted' : priced && l.cap ? `${budgetPhrase(l.total, l.cap, true)} of ${moneyWhole(l.cap)}` : capPhrase,
+  ].filter(Boolean).join(', ')
+  const meta = l.supersededBy
+    ? <span className="text-sm text-slate-600">Replaced by {l.supersededBy}</span>
+    : blank ? <span className="text-sm text-slate-600">No positions yet</span>
+    : priced ? <BudgetMini total={l.total} cap={l.cap} priced label={`${title} budget used`} />
+    : <span className="text-sm text-slate-600">Not priced</span>
   return (
     <Row
       dataRow="list"
       to={`/list/${l.id}`}
-      label={[title, phaseLabel(l), plural(l.positionsCount, 'position', 'positions'), l.total > 0 ? completeness(l) : null, money(l.total), l.supersededBy ? 'earlier version, not counted' : budgetPhrase(l.total, l.cap)].filter(Boolean).join(', ')}
+      label={label}
       icon="request_quote"
       tone={l.supersededBy ? 'slate' : tone}
       title={title}
       badge={l.supersededBy ? undefined : <BudgetBadge total={l.total} cap={l.cap} />}
       subtitle={subtitle}
-      amount={<span className={l.supersededBy ? 'text-slate-500 line-through decoration-slate-500' : undefined}>{money(l.total)}</span>}
-      meta={l.supersededBy ? <span className="text-sm text-slate-600">Replaced by {l.supersededBy}</span> : <BudgetMini total={l.total} cap={l.cap} label={`${title} budget used`} />}
+      amount={priced || l.supersededBy ? <span className={l.supersededBy ? 'text-slate-500 line-through decoration-slate-500' : undefined}>{money(l.total)}</span> : undefined}
+      meta={meta}
       menu={<RowMenu items={listMenu(l)} label={`Options for ${title}`} />}
       selectMode={selectMode}
       selected={selected}
