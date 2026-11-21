@@ -6,22 +6,6 @@ const SEVERITY_FILL: Record<Severity, string> = { error: 'FFFFC7CE', warning: 'F
 export const decisionText = (d?: Decision) =>
   !d ? 'Open' : d.status === 'accepted' ? 'Accepted' : `Dismissed${d.reason ? ` (${REASONS[d.reason]})` : ''}`
 
-/** the Bieterfragen as a formal German e-mail */
-export function questionsMarkdown(title: string, texts: string[]) {
-  return [
-    'Sehr geehrte Damen und Herren,',
-    '',
-    `zur Ausschreibung „${title}“ bitten wir um Klärung der folgenden Punkte:`,
-    '',
-    ...texts.map((text, i) => `${i + 1}. ${text}`),
-    '',
-    'Für Ihre Rückmeldung vor Ablauf der Angebotsfrist bedanken wir uns.',
-    '',
-    'Mit freundlichen Grüßen',
-    '',
-  ].join('\n')
-}
-
 export type RiskExportInput = {
   title: string
   report: Report

@@ -1,19 +1,17 @@
 import { useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { int, money } from '../../lib/format'
-import { rescore, type Decisions, type Question, type Report, type ReviewItem, type Risk } from '../../lib/risk-assessment'
+import { rescore, type Decisions, type Report, type ReviewItem, type Risk } from '../../lib/risk-assessment'
 import { decisionText } from '../../lib/risk-export'
 
 /** print-only copy of the risk review (see `.risk-print` in index.css); the app UI is hidden while printing */
-export function RiskPrint({ title, report, risk, decisions, sections, questions, texts }: {
+export function RiskPrint({ title, report, risk, decisions, sections }: {
   title: string
   report: Report
   risk: Risk
   decisions: Decisions
   /** line id → OZ and section title */
   sections: Map<string, { oz: string; section: string }>
-  questions: Question[]
-  texts: Record<string, string>
 }) {
   const live = rescore(risk, decisions)
   const printedAt = useMemo(() => new Date().toLocaleDateString('de-DE'), [])
@@ -57,12 +55,6 @@ export function RiskPrint({ title, report, risk, decisions, sections, questions,
           </table>
         </section>
       ))}
-      {questions.length > 0 && (
-        <>
-          <h2>Bieterfragen</h2>
-          <ol lang="de">{questions.map((q) => <li key={q.id}>{texts[q.id] ?? q.text_de}</li>)}</ol>
-        </>
-      )}
     </div>,
     document.body,
   )
