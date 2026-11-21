@@ -151,11 +151,24 @@ WORKSPACE_PARSE_ORIGIN=http://127.0.0.1:8080 \
 
 Poppler and local Tesseract can transcribe raster pages that have no extractable text. Tesseract uses the installed German and English language data. BillBuild tries at most eight raster pages within a 60-second OCR budget per import. Set `PDF_OCR=off` to skip transcription. The assessment marks OCR page numbers on findings linked to transcribed positions and asks the reviewer to check quantities and specifications against the original scan. Embedded structured BOM data takes precedence when present. [Tesseract language data](https://tesseract-ocr.github.io/tessdoc/Data-Files.html)
 
-The first deterministic replay of six rasterized PDFs raised four false alarms on the clean bill. Three superscripts read as `m?`, and the unclear area unit prevented a floor-covering quantity check. The importer now re-reads an ambiguous unit cell when the page has an identifiable price column. Two focused reads must agree on the exponent. The position locator keeps the original token, both readings, and their page coordinates. An ambiguous unit stays available for review.
+The first deterministic replay of six rasterized PDFs raised four false alarms on the clean bill. Three superscripts read as `m?`, and the unclear area unit prevented a floor-covering quantity check. The importer now re-reads an ambiguous unit cell when the page has an identifiable price column. Two focused reads must agree on the unit. A crop can recover a metre from an initial `Mo` reading, including on an unpriced row with dotted placeholders. The position locator keeps the original token, both readings, and their page coordinates. An ambiguous unit stays available for review.
 
 The latest deterministic replay linked all 35 scanned positions, caught all five planted defects with guidance, and produced zero findings on the clean scan. The 12 corresponding native PDF and Word uploads caught all ten planted defects with guidance and both native controls produced zero findings. A separate two-file replay caught the copper versus titanium-zinc contradiction with local Qwen 2.5 7B, linked the finding to OCR page 1, and left the clean counterpart without findings. The scanned replay used German and English Tesseract data. The mixed native and scan regression also passes with English data alone on the local engine.
 
-A rasterized copy of page 3 from the repository's screed tender linked all five positions. Four retained the same quantity and unit as the native page. OCR read the linear metre on position 11.3.80 as `Mo`. This case and independent real scans are still needed to measure errors where OCR returns a plausible but incorrect unit.
+The original scan of screed position 11.3.80 read the linear metre as `Mo`. The focused reads recovered `m` directly from the unit cell. Both the literal `Mo` and the full `Monat` survived in a synthetic rental control.
+
+The following preliminary comparison rasterized the original repository page with the most positions starting on it in each trade. The reference is the import of the same page with its text layer intact. Agreement requires the same position number, quantity, and normalized unit, including fields left blank in the native import.
+
+| Repository tender | Page | Native positions | Linked scan positions | Quantity and unit agree |
+| --- | ---: | ---: | ---: | ---: |
+| LV 18 screed | 3 | 5 | 5 | 5 |
+| LV 13 electrical | 9 | 9 | 9 | 3 |
+| LV 17 drywall | 5 | 6 | 6 | 3 |
+| LV 14b roof drainage | 10 | 8 | 0 | 0 |
+| LV 11 precast | 1 | 3 | 3 | 1 |
+| LV 22 joinery | 14 | 4 | 4 | 1 |
+
+OCR still merged blank price placeholders into electrical and drywall unit cells. On the electrical page it also replaced a decimal comma with a dot in one quantity. The roof drainage layout lost the leading dots on position numbers. These cases need extraction review before their measurements or dependency checks can be trusted.
 
 Run with the local preview server and replay database. The replay returns a nonzero status when the clean scan triggers false alarms.
 

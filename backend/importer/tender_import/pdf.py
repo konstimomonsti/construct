@@ -155,35 +155,42 @@ OCR_RASTER_SIZE = 2400
 OCR_DPI = 240
 OCR_UNIT_LIMIT = 8
 OCR_UNIT_PADDING = 8
-_OCR_METRE_UNIT = re.compile(r"(?<!\S)m\?(?!\S)")
-_OCR_METRE_ROW = re.compile(
-    rf"^[ \t]*{_NUMBER}[ \t]+(?P<unit>m\?)[ \t]{{2,}}{_NUMBER}[ \t]{{2,}}{_NUMBER}[ \t]*$", re.M
+_OCR_UNIT_TOKEN = re.compile(r"(?<!\S)(?:m\?|mo)(?!\S)", re.I)
+_OCR_UNIT_ROW = re.compile(
+    rf"^[ \t]*{_NUMBER}[ \t]+(?:"
+    rf"(?P<superscript>m\?)[ \t]{{2,}}{_NUMBER}[ \t]{{2,}}{_NUMBER}"
+    r"|(?P<linear>mo)(?:[ \t]{2,}\S[^\n]*)?)[ \t]*$", re.M | re.I,
 )
-_OCR_RECOVERED_UNITS = {"m2": "m²", "m²": "m²", "m3": "m³", "m³": "m³"}
+_OCR_UNIT_READINGS = {
+    "m?": {"m2": "m²", "m²": "m²", "m3": "m³", "m³": "m³"},
+    "mo": {"m": "m"},
+}
 
 
 def _reread_ocr_units(layout, boxes, render, recognize):
-    """Retry unread superscripts in a single price column, keeping the original reading."""
-    rows = list(_OCR_METRE_ROW.finditer(layout))
-    if not 0 < len(rows) <= OCR_UNIT_LIMIT or len(_OCR_METRE_UNIT.findall(layout)) != len(rows):
+    """Retry confusable units in one price column, keeping the original reading."""
+    rows = list(_OCR_UNIT_ROW.finditer(layout))
+    if not 0 < len(rows) <= OCR_UNIT_LIMIT or len(_OCR_UNIT_TOKEN.findall(layout)) != len(rows):
         return layout, []
 
     words = parse_xml(boxes(), generated=True)
     scale = OCR_DPI / 72
     unit_boxes = sorted(
-        (tuple(round(float(word.get(key, "")) * scale) for key in ("yMin", "xMin", "yMax", "xMax"))
-         for word in words.iter() if local_name(word) == "word" and word.text == "m?"),
+        tuple(round(float(word.get(key, "")) * scale) for key in ("yMin", "xMin", "yMax", "xMax"))
+        + (word.text,)
+        for word in words.iter() if local_name(word) == "word" and _OCR_UNIT_TOKEN.fullmatch(word.text or "")
     )
-    if len(unit_boxes) != len(rows):
+    originals = [row[row.lastgroup] for row in rows]
+    if [token for *_, token in unit_boxes] != originals:
         return layout, []
     # Both representations must describe one column of separate rows. A second
     # column or a reference in prose makes this alignment ambiguous.
-    tops, lefts, bottoms, _ = zip(*unit_boxes)
+    tops, lefts, bottoms, _, _ = zip(*unit_boxes)
     if max(lefts) - min(lefts) > 12 or any(bottom >= top for bottom, top in zip(bottoms, tops[1:])):
         return layout, []
 
     rereads = []
-    for row, (top, left, bottom, right) in zip(rows, unit_boxes):
+    for row, (top, left, bottom, right, original) in zip(rows, unit_boxes):
         if not (0 <= left < right <= OCR_RASTER_SIZE and 0 <= top < bottom <= OCR_RASTER_SIZE):
             continue
         x, y = max(0, left - OCR_UNIT_PADDING), max(0, top - OCR_UNIT_PADDING)
@@ -191,15 +198,16 @@ def _reread_ocr_units(layout, boxes, render, recognize):
         h = min(OCR_RASTER_SIZE, bottom + OCR_UNIT_PADDING) - y
         image = render(["-x", str(x), "-y", str(y), "-W", str(w), "-H", str(h)])
         readings = [recognize(image, mode).decode("utf-8", errors="replace").strip() for mode in ("7", "8")]
-        unit = _OCR_RECOVERED_UNITS.get(readings[0])
-        if unit and _OCR_RECOVERED_UNITS.get(readings[1]) == unit:
-            offset = row.start("unit")
+        candidates = _OCR_UNIT_READINGS[original.casefold()]
+        unit = candidates.get(readings[0].casefold())
+        if unit and candidates.get(readings[1].casefold()) == unit:
+            offset = row.start(row.lastgroup)
             rereads.append({"offset": offset, "line": layout.count("\n", 0, offset) + 1,
-                            "original": "m?", "readings": readings, "unit": unit,
+                            "original": original, "readings": readings, "unit": unit,
                             "bbox_px": [left, top, right, bottom]})
     for reread in reversed(rereads):
         offset = reread["offset"]
-        layout = layout[:offset] + reread["unit"] + layout[offset + 2:]
+        layout = layout[:offset] + reread["unit"] + layout[offset + len(reread["original"]):]
     return layout, rereads
 
 

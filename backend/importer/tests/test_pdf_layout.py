@@ -23,7 +23,6 @@ def extract(*pages):
     return items, sections, result
 
 
-
 def test_ocr_unit_reread_requires_matching_price_rows_and_agreement():
     layout = " 5,000   m?   10,00   50,00\n 7,000   m?   10,00   70,00\n"
     boxes = b"""
@@ -41,6 +40,24 @@ def test_ocr_unit_reread_requires_matching_price_rows_and_agreement():
     render.reset_mock()
     assert pdf_module._reread_ocr_units(layout, lambda: multi_column, render, recognize) == (layout, [])
     render.assert_not_called()
+
+def test_ocr_metres_recovered_from_price_placeholder_row_but_month_unit_kept():
+    unpriced = " 10,000 Mo     eeeeeeeeee   Sereeeeeee"
+    month = " 8,000 Mo     10,00   80,00"
+    layout = f"{unpriced}\n{month}\n"
+    boxes = b"""
+        <html><word xMin="300" yMin="100" xMax="308" yMax="107">Mo</word>
+        <word xMin="300" yMin="131" xMax="310" yMax="138">Mo</word></html>
+    """
+    recognize = mock.Mock(side_effect=[b"m", b"m", b"Mo", b"Mo"])
+    revised, details = pdf_module._reread_ocr_units(layout, lambda: boxes, mock.Mock(), recognize)
+    corrected, retained = revised.splitlines()
+    assert retained == month
+    assert read_quantity(corrected)["unit"] == "m"
+    assert read_quantity(corrected)["quantity"] == "10.000"
+    assert read_quantity(corrected)["unit_price"] is None
+    assert read_quantity(corrected)["line_amount"] is None
+    assert [(record["original"], record["unit"]) for record in details] == [("Mo", "m")]
 
 
 def warning_codes(result):

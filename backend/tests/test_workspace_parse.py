@@ -170,6 +170,8 @@ def test_mixed_pdf_upload_marks_scanned_positions_and_arithmetic_evidence(tmp_pa
         Item("02.0010", "Bodenbelag liefern", 5, "m²", amount=85),
         Item("02.0020", "Bodenaushub herstellen", 7, "m³"),
         Item("02.0030", "Kabelkanal montieren", 9, "m?"),
+        Item("02.0040", "Gerüstvorhaltung je Monat", 8, "Mo"),
+        Item("02.0050", "Baucontainer monatlich mieten", 2, "Monat"),
     ])
     rasterize(original_scan, scanned)
     assert not poppler("pdftotext", scanned, "-").strip()
@@ -187,8 +189,11 @@ def test_mixed_pdf_upload_marks_scanned_positions_and_arithmetic_evidence(tmp_pa
     monkeypatch.delenv("PDF_OCR")
     source = read_document(combined.name, data).snapshots[0]
     assert source.project.source_document.ocr_pages == [2]
-    assert [line.code for line in source.lines] == ["01.0010", "02.0010", "02.0020", "02.0030"]
-    assert [line.unit for line in source.lines] == ["m", "m²", "m³", "m?"]
+    assert [line.code for line in source.lines] == ["01.0010", "02.0010", "02.0020", "02.0030", "02.0040", "02.0050"]
+    assert [line.unit for line in source.lines[:4]] == ["m", "m²", "m³", "m?"]
+    assert source.lines[4].unit_raw.casefold() == "mo"
+    assert source.lines[5].unit == "month"
+    assert all("unit_ocr" not in line.source_locator for line in source.lines[3:])
     assert "ocr_pages" not in source.lines[0].source_locator
     assert source.lines[1].source_locator["ocr_pages"] == [2]
 
@@ -205,9 +210,8 @@ def test_mixed_pdf_upload_marks_scanned_positions_and_arithmetic_evidence(tmp_pa
         assert unit_ocr["page"] == 2
         assert unit_ocr["original"] == "m?"
         assert unit_ocr["unit"] == "m²"
-    assert "unit_ocr" not in source.lines[3].source_locator
-    unknown = next(f for f in report["findings"] if f["rule_id"] == "L1.UNIT.UNKNOWN")
-    assert unknown["target"]["line_code"] == "02.0030"
+    unknown = next(f for f in report["findings"]
+                   if f["rule_id"] == "L1.UNIT.UNKNOWN" and f["target"]["line_code"] == "02.0030")
     assert unknown["evidence"]["unit_raw"] == "m?"
     assert finding["evidence"]["stated_amount"] == "85.00"
     assert finding["evidence"]["expected_amount"] == "50.00"
