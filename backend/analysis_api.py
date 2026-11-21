@@ -13,6 +13,9 @@ from psycopg.types.json import Jsonb
 from analysis import adapter
 from analysis.registry import all_rules
 from analysis.runner import DEFAULT_LAYERS, analyze
+from analysis.contracts import Finding
+from analysis.questions import build_questions
+from analysis.risk import assess
 
 LAYERS = (1, 2, 3)
 DECISIONS = {"open", "accepted", "rejected"}
@@ -105,10 +108,20 @@ def latest(connection, version_id):
            WHERE bom_version_id=%s ORDER BY created_at DESC, id DESC LIMIT 1""", (version_id,),
     ).fetchone()
     if not run_row:
-        return {"run": None, "findings": [], "outdated": False}
-    current = _input(connection, version_id).compute_hash()
-    return {"run": run_row, "findings": _findings(connection, run_row["id"]),
-            "outdated": current != run_row["input_hash"]}
+        return {"run": None, "findings": [], "outdated": False, "risk": None, "questions": []}
+    snapshot = _input(connection, version_id)
+    findings = _findings(connection, run_row["id"])
+    response = {"run": run_row, "findings": findings, "outdated": snapshot.compute_hash() != run_row["input_hash"],
+                "risk": None, "questions": []}
+    try:
+        models = [Finding.model_validate({key: value for key, value in finding.items() if key in Finding.model_fields})
+                  for finding in findings]
+        risk = assess(snapshot, models)
+        response.update(risk=risk.model_dump(mode="json"),
+                        questions=[question.model_dump(mode="json") for question in build_questions(snapshot, models, risk)])
+    except Exception as error:
+        response["errors"] = [f"risk report: {type(error).__name__}: {error}"]
+    return response
 
 
 def decide(connection, payload, user=None):
