@@ -1,11 +1,13 @@
-import { Link, useParams } from 'react-router-dom'
-import { Button, Icon } from '../components/ui'
+import { useState } from 'react'
+import { useParams } from 'react-router-dom'
+import { Button, Icon, toast } from '../components/ui'
+import { Dock } from '../components/Dock'
 import { EmptyFolder } from '../components/EmptyFolder'
 import { DropOverlay, useDropImport } from '../components/DropImport'
 import { ListGrid } from '../components/ListCard'
 import { FolderGrid } from '../components/FolderCard'
-import { EmptyState, PageFrame, PageHeader, RowMenu, Section, SortMenu, Summary } from '../components/Kit'
-import { int, moneyWhole, needsAttention, plural } from '../lib/format'
+import { Chips, EmptyState, MetaLink, PageFrame, PageHeader, PillLink, RowMenu, Section, SortMenu, Summary, ToolButton, heroStatus } from '../components/Kit'
+import { int, money, needsAttention, plural } from '../lib/format'
 import { pickAndImport } from '../lib/import'
 import { folderDescription, folderPath, SORT_LABEL, useModel, useStore, type SortKey } from '../lib/store'
 import { useUi } from '../lib/ui-store'
@@ -18,11 +20,15 @@ export function FolderPage() {
   const setSort = useStore((s) => s.setSort)
   const openDialog = useUi((s) => s.openDialog)
   const { openLists, folderMenu } = useActions()
+  const [view, setView] = useState<'all' | 'attention'>('all')
+  const [selectMode, setSelectMode] = useState(false)
+  const [sel, setSel] = useState<Set<string>>(new Set())
   const f = folders.find((x) => x.id === folderId)
   const dragging = useDropImport(folderId, !!f && !f.trashedAt)
   const subfolders = folders.filter((item) => item.parentId === folderId && !item.trashedAt)
   const ancestors = folderPath(folders, folderId).slice(0, -1)
-  const lists = [...(f?.listMetas ?? [])].sort((x, y) => {
+  const allLists = f?.listMetas ?? []
+  const lists = allLists.filter((l) => view === 'all' || needsAttention(l.total, l.cap)).sort((x, y) => {
     switch (sort) {
       case 'cost-desc': return y.total - x.total
       case 'cost-asc': return x.total - y.total
@@ -35,13 +41,13 @@ export function FolderPage() {
     return (
       <PageFrame>
         <EmptyState icon="folder_off" title="Project not found" text="It may have been deleted permanently.">
-          <Link to="/" className="inline-flex h-10 items-center rounded-full bg-slate-100 px-5 text-sm font-semibold text-slate-900 hover:bg-slate-200">Go to All Projects</Link>
+          <PillLink to="/" icon="arrow_back">Go to All Projects</PillLink>
         </EmptyState>
       </PageFrame>
     )
   }
 
-  const empty = lists.length === 0 && subfolders.length === 0
+  const empty = allLists.length === 0 && subfolders.length === 0
   if (empty && !f.trashedAt) {
     return (
       <>
@@ -54,9 +60,25 @@ export function FolderPage() {
   const crumbs = [{ label: 'All Projects', to: '/' }, ...ancestors.map((x) => ({ label: x.name, to: `/folder/${x.id}` }))]
   const nested = ancestors.length > 0
   const toPrice = f.positions - f.priced
-  const flaggedLists = lists.filter((l) => needsAttention(l.total, l.cap)).length
+  const flaggedLists = allLists.filter((l) => needsAttention(l.total, l.cap)).length
+  const show = () => {
+    setView('attention')
+    requestAnimationFrame(() => document.getElementById('sec-lists')?.focus())
+  }
+  const status = heroStatus(f, allLists.filter((l) => !l.supersededBy), ['list', 'lists'], show)
+  const toggle = (id: string) =>
+    setSel((s) => {
+      const n = new Set(s)
+      if (n.has(id)) n.delete(id)
+      else n.add(id)
+      return n
+    })
+  const done = () => {
+    setSelectMode(false)
+    setSel(new Set())
+  }
   const menu = [
-    ...(lists.length > 1 ? [{ label: `Open all ${lists.length} lists in tabs`, icon: 'tab_group', onSelect: () => openLists(lists.map((l) => l.id)) }] : []),
+    ...(allLists.length > 1 ? [{ label: `Open all ${allLists.length} lists in tabs`, icon: 'tab_group', onSelect: () => openLists(allLists.map((l) => l.id)) }] : []),
     { label: 'New folder inside', icon: 'create_new_folder', onSelect: () => openDialog({ kind: 'new-folder', parent: f.id }) },
     { label: 'Import CSV / JSON', icon: 'table_view', onSelect: () => pickAndImport(f.id, undefined, '.csv,.tsv,.json') },
     'sep' as const,
@@ -82,16 +104,16 @@ export function FolderPage() {
 
       <Summary
         label={nested ? 'Folder total' : 'Project total'}
-        amount={moneyWhole(f.total)}
+        amount={money(f.total)}
         total={f.total}
         cap={f.cap}
-        statusWord={flaggedLists && !needsAttention(f.total, f.cap) ? 'On track overall' : undefined}
+        status={status}
         meta={
-          f.positions || flaggedLists ? (
+          f.positions ? (
             <span className="num">
               {plural(f.positions, 'position', 'positions')}
-              {toPrice > 0 ? <> · <strong className="font-semibold text-slate-900">{int(toPrice)}</strong> still to price</> : ', all priced'}
-              {flaggedLists > 0 && <> · {plural(flaggedLists, 'list', 'lists')} near {flaggedLists === 1 ? 'its' : 'their'} cap</>}
+              {toPrice > 0 && <> · <strong className="font-semibold text-slate-900">{int(toPrice)}</strong> still to price</>}
+              {!status && flaggedLists > 0 && <> · <MetaLink onClick={show}>{plural(flaggedLists, 'list', 'lists')} near {flaggedLists === 1 ? 'its' : 'their'} cap</MetaLink></>}
             </span>
           ) : undefined
         }
@@ -109,17 +131,61 @@ export function FolderPage() {
         </Section>
       )}
 
-      {lists.length > 0 && (
+      {allLists.length > 0 && (
         <Section
           title="Lists"
           count={lists.length}
+          focusable
           tools={
-            <SortMenu value={sort} options={SORT_LABEL} onChange={(k: SortKey) => setSort(k)} noun="lists" />
+            <>
+              <SortMenu value={sort} options={SORT_LABEL} onChange={(k: SortKey) => setSort(k)} noun="lists" />
+              <ToolButton icon={selectMode ? 'close' : 'checklist'} active={selectMode} aria-pressed={selectMode} onClick={() => (selectMode ? done() : setSelectMode(true))}>
+                {selectMode ? 'Cancel' : 'Select'}
+              </ToolButton>
+            </>
           }
         >
-          <ListGrid lists={lists} tone={f.tone} />
+          {(flaggedLists > 0 || view !== 'all') && (
+            <div className="mb-3">
+              <Chips
+                label="Filter lists"
+                value={view}
+                onChange={setView}
+                options={[
+                  { key: 'all', label: 'All' },
+                  { key: 'attention', label: 'Needs attention', count: flaggedLists },
+                ]}
+              />
+            </div>
+          )}
+          <p className="sr-only" aria-live="polite">{view === 'attention' ? `Showing ${plural(lists.length, 'list', 'lists')} near cap` : ''}</p>
+          {lists.length ? (
+            <ListGrid lists={lists} tone={f.tone} selectMode={selectMode} selected={sel} onToggle={toggle} />
+          ) : (
+            <EmptyState icon="check_circle" title="Nothing needs attention" text="Every list is below 75% of its cap." />
+          )}
         </Section>
       )}
+
+      <Dock
+        open={selectMode}
+        count={sel.size}
+        noun="list"
+        onOpen={() => {
+          openLists([...sel])
+          done()
+        }}
+        onDelete={() => {
+          const ids = [...sel]
+          ids.forEach((id) => useStore.getState().patchList(id, { trashedAt: new Date().toISOString() }))
+          toast(`Moved ${plural(ids.length, 'list', 'lists')} to Trash`, 'ok', {
+            label: 'Undo',
+            run: () => ids.forEach((id) => useStore.getState().patchList(id, { trashedAt: undefined })),
+          })
+          done()
+        }}
+        onDone={done}
+      />
 
       <DropOverlay show={dragging} name={f.name} />
     </PageFrame>

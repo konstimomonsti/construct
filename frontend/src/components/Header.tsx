@@ -31,7 +31,7 @@ export function Header() {
           className="group flex h-11 w-full max-w-[440px] min-w-0 items-center gap-2.5 rounded-full bg-slate-100 px-4 text-left text-[15px] text-slate-600 transition-colors hover:bg-slate-200/70"
         >
           <Icon name="search" size={20} className="text-slate-600" />
-          <span className="flex-1 truncate">Search projects, lists, positions</span>
+          <span className="flex-1 truncate"><span className="sm:hidden">Search</span><span className="max-sm:hidden">Search projects, lists, positions</span></span>
           <kbd className="hidden rounded-md bg-white px-1.5 py-0.5 text-xs font-medium text-slate-600 shadow-xs sm:inline">⌘K</kbd>
         </button>
       </div>

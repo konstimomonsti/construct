@@ -12,7 +12,7 @@ export function Archived() {
       filter={isArchived}
       emptyIcon="archive"
       emptyTitle="Nothing archived"
-      emptyText="Archive a project from its ⋯ menu to set it aside. It stops counting toward your totals."
+      emptyText="Archive a project from its More options menu to set it aside."
     />
   )
 }

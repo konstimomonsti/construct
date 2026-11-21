@@ -61,7 +61,7 @@ function PriceCell({ value, onSave, oz, edited, className }: { value: number | n
         setEdit(true)
       }}
       className={clsx(
-        value != null ? editableCls : 'h-9 rounded-lg px-2 text-right text-sm font-semibold text-brand-700 hover:bg-brand-50',
+        value != null ? clsx(editableCls, edited && 'font-semibold text-brand-700') : 'h-9 rounded-lg px-2 text-right text-sm font-semibold text-brand-700 hover:bg-brand-50',
         className ?? 'w-full',
       )}
     >
@@ -91,13 +91,14 @@ const Row = memo(function Row({ listId, p, showCategory, selected, flash, edited
     toast(`Removed ${p.oz}`, 'ok', { label: 'Undo', run: () => useStore.getState().restorePositions(listId, [p.id]) })
   }
   const hasShort = p.short && p.short !== '(ohne Kurztext)'
+  const zero = p.up != null && p.qty === 0
   const setUp = (v: number | null) => useStore.getState().setUp(listId, p.id, v)
   return (
     <tr
       data-pid={p.id}
       data-row="position"
       className={clsx(
-        'group border-b border-slate-100 transition-colors last:border-b-0',
+        'group transition-colors',
         selected ? 'bg-brand-50/70' : 'hover:bg-slate-50',
         flash && 'bg-brand-50 outline-2 -outline-offset-2 outline-brand-300',
       )}
@@ -113,10 +114,12 @@ const Row = memo(function Row({ listId, p, showCategory, selected, flash, edited
           type="button"
           data-open-detail
           onClick={() => onOpen(p)}
+          aria-haspopup="dialog"
           title="Show full description"
-          className="block max-w-full text-left text-[15px] text-slate-900 underline-offset-4 hover:underline max-xl:line-clamp-2 max-xl:font-medium xl:truncate"
+          className={clsx('block max-w-full text-left text-[15px] underline-offset-4 hover:underline max-xl:line-clamp-2 max-xl:font-medium xl:truncate', zero ? 'text-slate-500' : 'text-slate-900')}
         >
           {hasShort ? nbHyphen(p.short) : <span className="text-slate-600 italic">(ohne Kurztext)</span>}
+          <span className="sr-only">, open details</span>
         </button>
         <div className={clsx('mt-0.5 truncate text-[13px] text-slate-600', !showCategory && 'xl:hidden')}>
           <span className="num xl:hidden">{p.oz}</span>
@@ -139,8 +142,8 @@ const Row = memo(function Row({ listId, p, showCategory, selected, flash, edited
         <EditDot on={upEdited} />
         <PriceCell value={p.up} oz={p.oz} edited={upEdited} onSave={setUp} />
       </td>
-      <td data-a="total" className={clsx('num w-32 px-2 py-1 text-right text-[15px] font-medium whitespace-nowrap', p.up == null ? 'text-slate-600' : 'text-slate-900')}>
-        {p.up == null ? <span className="text-sm">Not priced</span> : <>{amount(total)}<span className="xl:hidden"> €</span></>}
+      <td data-a="total" className={clsx('num w-32 px-2 py-1 text-right text-[15px] whitespace-nowrap', p.up == null || zero ? 'text-slate-500' : 'text-slate-800')}>
+        {p.up == null ? <span className="text-sm">Not priced</span> : zero ? <span aria-label="0 €">—</span> : <>{amount(total)}<span className="xl:hidden"> €</span></>}
       </td>
       <td data-a="menu" className="w-11 py-1 pr-1 text-right">
         <Menu
@@ -280,11 +283,11 @@ export function LedgerTable({
             <th scope="col" className="w-[88px] px-2 py-2 font-medium">OZ</th>
             <th scope="col" className="px-2 py-2 font-medium">Kurztext</th>
             <th scope="col" className="w-24 py-2 pr-3 pl-2 text-right font-medium">
-              <span className="inline-flex items-center gap-1"><Icon name="edit" size={14} className="text-slate-500" aria-hidden />Menge</span>
+Menge
             </th>
             <th scope="col" className="w-16 py-2 pr-2 pl-1 font-medium">Einheit</th>
             <th scope="col" className="w-[120px] py-2 pr-3 pl-2 text-right font-medium">
-              <span className="inline-flex items-center gap-1"><Icon name="edit" size={14} className="text-slate-500" aria-hidden />EP (€)</span>
+EP (€)
             </th>
             <th scope="col" className="w-32 px-2 py-2 text-right font-medium">GP (€)</th>
             <th scope="col" className="w-11 py-2 pr-1"><span className="sr-only">Actions</span></th>
@@ -312,7 +315,13 @@ export function LedgerTable({
                     </button>
                   </th>
                   <td colSpan={2} className={clsx('num px-2 pr-[3.25rem] text-right whitespace-nowrap', top ? 'pt-6 text-base font-bold text-slate-900' : 'pt-3 text-sm font-semibold text-slate-800')}>
-                    {stats.has(cat.oz) ? <>{amount(stats.get(cat.oz)!.total)}<span className="xl:hidden"> €</span></> : <span className="text-sm font-normal text-slate-600">No positions yet</span>}
+                    {!stats.has(cat.oz) ? (
+                      <span className="text-sm font-normal text-slate-600">No positions yet</span>
+                    ) : stats.get(cat.oz)!.total === 0 ? (
+                      <span className="font-normal text-slate-500" aria-label="0 €">—</span>
+                    ) : (
+                      <>{amount(stats.get(cat.oz)!.total)}<span className="xl:hidden"> €</span></>
+                    )}
                   </td>
                 </tr>
               )}

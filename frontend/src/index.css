@@ -93,7 +93,7 @@
 
 /* touch: every control is at least 44px */
 @media (pointer: coarse) {
-  :is(button, a[href], input, label):is(.h-9, .h-10, .size-8, .size-9, .size-10) { min-height: 44px; }
+  :is(button, a[href], input, label):is(.h-8, .h-9, .h-10, .size-8, .size-9, .size-10) { min-height: 44px; }
   :is(button, a[href], label):is(.size-8, .size-9, .size-10) { min-width: 44px; }
 }
 

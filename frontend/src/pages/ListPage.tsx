@@ -1,10 +1,10 @@
 import { clsx } from 'clsx'
-import { lazy, Suspense, use, useEffect, useId, useMemo, useRef, useState, type FormEvent } from 'react'
+import { lazy, Suspense, use, useEffect, useId, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import { Button, Dialog, Field, Icon, inputCls, toast, type MenuItem } from '../components/ui'
 import { TableSkeleton } from '../components/Page'
-import { PageFrame, PageHeader, RowMenu, SortMenu, Summary, statusText } from '../components/Kit'
+import { MetaLink, PageFrame, PageHeader, RowMenu, SortMenu, Summary, statusText } from '../components/Kit'
 import { phaseLabel } from '../components/ListCard'
 import { ErrorBoundary } from '../components/ErrorBoundary'
 import { LedgerTable } from '../components/LedgerTable'
@@ -112,6 +112,22 @@ function TabsBar({ activeId, folderId }: { activeId: string; folderId: string })
 /* Category filter                                                     */
 /* ------------------------------------------------------------------ */
 
+const pillCls = (on: boolean) =>
+  clsx(
+    'inline-flex h-10 shrink-0 items-center gap-2 rounded-full px-3.5 text-sm whitespace-nowrap transition-colors',
+    on ? 'bg-brand-50 font-semibold text-brand-700 ring-1 ring-brand-300 ring-inset' : 'bg-slate-100 font-medium text-slate-800 ring-1 ring-slate-300 ring-inset hover:bg-slate-200',
+  )
+
+/** toggles one quick filter; the pressed state is the filter's only visible state */
+function FilterPill({ on, onClick, children }: { on: boolean; onClick: () => void; children: ReactNode }) {
+  return (
+    <button type="button" aria-pressed={on} onClick={onClick} className={pillCls(on)}>
+      {children}
+      {on && <Icon name="close" size={16} />}
+    </button>
+  )
+}
+
 function CategoryFilter({ tree, stats, value, onChange }: { tree: CategoryNode[]; stats: Map<string, CatStat>; value: Set<string> | null; onChange: (v: Set<string> | null) => void }) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
@@ -160,7 +176,13 @@ function CategoryFilter({ tree, stats, value, onChange }: { tree: CategoryNode[]
     onChange(cur.size === allOz.length ? null : cur)
   }
   return (
-    <div ref={root} className="relative inline-block">
+    <div
+      ref={root}
+      className="relative inline-block"
+      onBlur={(e) => {
+        if (open && e.relatedTarget && !root.current?.contains(e.relatedTarget as Node)) setOpen(false)
+      }}
+    >
       <button
         ref={trigger}
         type="button"
@@ -168,7 +190,7 @@ function CategoryFilter({ tree, stats, value, onChange }: { tree: CategoryNode[]
         aria-haspopup="dialog"
         aria-controls={id}
         onClick={() => setOpen((o) => !o)}
-        className={clsx('flex h-10 shrink-0 items-center gap-2 rounded-full px-3.5 text-sm font-medium whitespace-nowrap transition-colors', value ? 'bg-brand-50 font-semibold text-brand-700 ring-1 ring-brand-200' : 'bg-slate-100 text-slate-800 hover:bg-slate-200')}
+        className={pillCls(!!value)}
       >
         <Icon name="filter_list" size={18} />
         <span>{value ? `${value.size} of ${allOz.length} categories` : 'Categories'}</span>
@@ -187,7 +209,7 @@ function CategoryFilter({ tree, stats, value, onChange }: { tree: CategoryNode[]
             className="absolute left-0 z-40 mt-2 w-[26rem] max-w-[calc(100vw-2rem)] rounded-2xl bg-white p-2 shadow-[0_8px_30px_-4px_rgba(15,23,42,0.18)] ring-1 ring-slate-200"
           >
             <div className="flex items-center gap-2 px-1.5 py-1.5">
-              <input ref={search} aria-label="Search categories" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search categories…" className="h-10 min-w-0 flex-1 rounded-full border border-transparent bg-slate-100 px-4 text-sm outline-none placeholder:text-slate-600 focus:border-brand-600 focus:bg-white" />
+              <input ref={search} aria-label="Search categories" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search categories…" className="h-10 min-w-0 flex-1 rounded-full bg-white px-4 text-sm ring-1 ring-slate-400 outline-none ring-inset placeholder:text-slate-500 focus:ring-2 focus:ring-brand-600" />
               <span className="flex gap-1 text-sm font-semibold text-slate-800">
                 <button type="button" className="h-10 rounded-full px-3 hover:bg-slate-100" onClick={() => onChange(null)}>All</button>
                 <button type="button" className="h-10 rounded-full px-3 hover:bg-slate-100" onClick={() => onChange(new Set())}>None</button>
@@ -316,6 +338,8 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   const [cats, setCats] = useState<Set<string> | null>(null)
   const [sortTotal, setSortTotal] = useState(false)
   const [onlyUnpriced, setOnlyUnpriced] = useState(false)
+  const [onlyZero, setOnlyZero] = useState(false)
+  const [onlyEdited, setOnlyEdited] = useState(false)
   const [selectMode, setSelectMode] = useState(false)
   // the sticky total only appears once the hero total has scrolled away, so the number is never on screen twice
   const heroEnd = useRef<HTMLDivElement>(null)
@@ -356,11 +380,11 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   const rows = useMemo(() => {
     const t = q.trim().toLowerCase()
     let r = positions.filter(
-      (p) => (!cats || cats.has(leafOz(p))) && (!onlyUnpriced || p.up == null) && (!t || p.oz.toLowerCase().includes(t) || p.short.toLowerCase().includes(t) || p.path?.some((part) => part.label.toLowerCase().includes(t))),
+      (p) => (!cats || cats.has(leafOz(p))) && (!onlyUnpriced || p.up == null) && (!onlyZero || (p.up != null && p.qty === 0)) && (!onlyEdited || editedIds.has(p.id) || addedIds.has(p.id)) && (!t || p.oz.toLowerCase().includes(t) || p.short.toLowerCase().includes(t) || p.path?.some((part) => part.label.toLowerCase().includes(t))),
     )
     if (sortTotal) r = [...r].sort((a, b) => positionTotal(b) - positionTotal(a))
     return r
-  }, [positions, q, cats, sortTotal, onlyUnpriced])
+  }, [positions, q, cats, sortTotal, onlyUnpriced, onlyZero, onlyEdited, editedIds, addedIds])
 
   const largest = useMemo(() => {
     let best: Position | null = null
@@ -412,11 +436,20 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
     setCats(null)
     toTable()
   }
-  const showUnpriced = () => {
-    setOnlyUnpriced(true)
+  const only = (k: 'unpriced' | 'zero' | 'edited') => {
+    setOnlyUnpriced(k === 'unpriced')
+    setOnlyZero(k === 'zero')
+    setOnlyEdited(k === 'edited')
     setQ('')
     setCats(null)
     toTable()
+  }
+  const resetAll = () => {
+    const prev = useStore.getState().edits[doc.id]
+    const ids = [...editedIds].filter((x) => !addedIds.has(x))
+    ids.forEach((x) => useStore.getState().resetPosition(doc.id, x))
+    setOnlyEdited(false)
+    toast(`Reset ${plural(ids.length, 'position', 'positions')} to the imported values`, 'ok', { label: 'Undo', run: () => useStore.getState().setEdits(doc.id, prev) })
   }
 
   const phase = view ? phaseLabel(view) : null
@@ -428,12 +461,15 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   const zeroQty = positions.filter((p) => p.up != null && p.qty === 0).length
   const status = budgetStatus(st.total, cap)
   const unpriced = st.positionsCount - st.pricedCount
+  const editedCount = [...editedIds].filter((x) => !addedIds.has(x)).length
+  const filtered = !!q.trim() || !!cats || onlyUnpriced || onlyZero || onlyEdited
   const sections = pricingSections(tree, catStats)
   const live = view && !view.trashedAt ? view : null
   const more: (MenuItem | 'sep')[] = [
     { label: 'Add pricing section…', icon: 'playlist_add', onSelect: () => setAddingSection(true) },
     { label: 'Split into new list…', icon: 'call_split', onSelect: split },
     { label: 'Rename list', icon: 'edit', onSelect: () => openDialog({ kind: 'rename-list', id: doc.id }) },
+    ...(editedCount ? [{ label: 'Reset all edits', icon: 'restart_alt', onSelect: resetAll }] : []),
     ...(live ? [{ label: 'Move to another project…', icon: 'drive_file_move', onSelect: () => openDialog({ kind: 'folder-target', action: 'move-list', listId: doc.id }) }] : []),
     ...(attached.length
       ? (['sep' as const, ...attached.map((d) => ({ label: d.name, icon: 'attach_file', onSelect: () => openDialog({ kind: 'doc', doc: d }) }))] as (MenuItem | 'sep')[])
@@ -483,27 +519,29 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
         )}
         meta={
           <span className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
-            {unpriced > 0 ? (
+            <span className="num">{plural(st.positionsCount, 'position', 'positions')}</span>
+            {unpriced > 0 && (
               <>
-                <span className="num">{plural(st.positionsCount, 'position', 'positions')}</span>
                 <span aria-hidden>·</span>
-                <button type="button" onClick={showUnpriced} className="num rounded font-semibold text-slate-900 underline decoration-slate-500 underline-offset-4 hover:decoration-slate-800">
-                  {int(unpriced)} still to price
-                </button>
+                <MetaLink onClick={() => only('unpriced')} pressed={onlyUnpriced}><span className="num">{int(unpriced)}</span> still to price</MetaLink>
               </>
-            ) : (
-              <span className="num">{plural(st.positionsCount, 'position', 'positions')}, all priced</span>
             )}
             {zeroQty > 0 && (
               <>
                 <span aria-hidden>·</span>
-                <span className="num">{int(zeroQty)} with quantity 0</span>
+                <MetaLink onClick={() => only('zero')} pressed={onlyZero}><span className="num">{int(zeroQty)}</span> with quantity 0</MetaLink>
+              </>
+            )}
+            {editedCount > 0 && (
+              <>
+                <span aria-hidden>·</span>
+                <MetaLink onClick={() => only('edited')} pressed={onlyEdited}><span className="num">{int(editedCount)}</span> edited</MetaLink>
               </>
             )}
             {(status.tone === 'warn' || status.tone === 'over') && largest && (
               <>
                 <span aria-hidden>·</span>
-                <button type="button" onClick={review} className="rounded font-semibold text-brand-700 underline-offset-4 hover:underline">Review the biggest positions</button>
+                <MetaLink onClick={review}>Review the biggest positions</MetaLink>
               </>
             )}
           </span>
@@ -533,31 +571,27 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Search positions"
-              className="h-10 w-full rounded-full border border-transparent bg-slate-100 pr-4 pl-11 text-sm text-slate-900 transition-colors outline-none placeholder:text-slate-600 hover:bg-slate-200/70 focus:border-brand-600 focus:bg-white"
+              className="h-10 w-full rounded-full bg-white pr-4 pl-11 text-sm text-slate-900 ring-1 ring-slate-400 transition-shadow outline-none ring-inset placeholder:text-slate-500 hover:ring-slate-500 focus:ring-2 focus:ring-brand-600"
             />
           </div>
           <CategoryFilter tree={tree} stats={catStats} value={cats} onChange={setCats} />
           {(unpriced > 0 || onlyUnpriced) && (
-            <button
-              type="button"
-              aria-pressed={onlyUnpriced}
-              onClick={() => setOnlyUnpriced((v) => !v)}
-              className={clsx(
-                'inline-flex h-10 shrink-0 items-center gap-2 rounded-full px-3.5 text-sm font-medium whitespace-nowrap transition-colors',
-                onlyUnpriced ? 'bg-brand-50 font-semibold text-brand-700 ring-1 ring-brand-200' : 'bg-slate-100 text-slate-800 hover:bg-slate-200',
-              )}
-            >
+            <FilterPill on={onlyUnpriced} onClick={() => setOnlyUnpriced((v) => !v)}>
               Not priced <span className="num">{int(unpriced)}</span>
-            </button>
+            </FilterPill>
+          )}
+          {onlyZero && <FilterPill on onClick={() => setOnlyZero(false)}>Quantity 0 <span className="num">{int(zeroQty)}</span></FilterPill>}
+          {onlyEdited && (
+            <>
+              <FilterPill on onClick={() => setOnlyEdited(false)}>Edited <span className="num">{int(editedCount)}</span></FilterPill>
+              {editedCount > 0 && <button type="button" onClick={resetAll} className="h-10 rounded-full px-3 text-sm font-semibold text-slate-800 underline decoration-slate-400 underline-offset-4 hover:decoration-slate-900">Reset all</button>}
+            </>
           )}
           <button
             type="button"
             aria-pressed={selectMode || selected.size > 0}
             onClick={() => { if (selectMode) setSelected(new Set()); setSelectMode((v) => !v) }}
-            className={clsx(
-              'inline-flex h-10 shrink-0 items-center gap-2 rounded-full px-3.5 text-sm font-medium whitespace-nowrap transition-colors xl:hidden',
-              selectMode ? 'bg-brand-50 font-semibold text-brand-700 ring-1 ring-brand-200' : 'bg-slate-100 text-slate-800 hover:bg-slate-200',
-            )}
+            className={pillCls(selectMode || selected.size > 0)}
           >
             <Icon name="checklist" size={18} />Select
           </button>
@@ -570,7 +604,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
           listId={doc.id}
           rows={rows}
           tree={tree}
-          showEmpty={!q.trim() && !cats && !onlyUnpriced}
+          showEmpty={!filtered}
           selected={selected}
           setSelected={setSelected}
           focusId={focusId}
@@ -649,6 +683,8 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
         setQ('')
         setCats(null)
         setOnlyUnpriced(false)
+        setOnlyZero(false)
+        setOnlyEdited(false)
         setSortTotal(false)
         toast(`Added section "${name}"`)
       }} />
@@ -662,6 +698,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
         onClose={() => setDetailId(null)}
         edited={!!detail && editedIds.has(detail.id)}
         added={!!detail && addedIds.has(detail.id)}
+        imported={detail ? doc.positions.find((x) => x.id === detail.id) ?? null : null}
         onPatch={(patch) => detail && useStore.getState().patchPosition(doc.id, detail.id, patch)}
         onQty={(n) => detail && useStore.getState().setQty(doc.id, detail.id, n)}
         onUp={(n) => detail && useStore.getState().setUp(doc.id, detail.id, n)}

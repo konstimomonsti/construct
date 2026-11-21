@@ -1,4 +1,4 @@
-import { Row, RowList, RowMenu, BudgetMini, budgetPhrase } from './Kit'
+import { Row, RowList, RowMenu, BudgetBadge, BudgetMini, budgetPhrase } from './Kit'
 import { money, plural } from '../lib/format'
 import { useActions } from '../lib/actions'
 import type { ListView } from '../lib/store'
@@ -9,22 +9,45 @@ export function listLabel(l: ListView, siblings: ListView[]) {
   return dup ? { title: l.fileName, sub: l.title } : { title: l.title, sub: l.fileName }
 }
 
-/** "Award · D86" or "Bid · D84 · not counted" */
-export function phaseLabel(l: ListView) {
-  if (!l.phaseCode) return null
-  return [l.phaseName, l.phaseCode, l.supersededBy ? 'not counted' : null].filter(Boolean).join(' · ')
+const SOURCES: Record<string, string> = {
+  pdf: 'PDF import', doc: 'Word import', docx: 'Word import', xls: 'Excel import', xlsx: 'Excel import',
+  csv: 'CSV import', tsv: 'CSV import', json: 'JSON import',
 }
 
-export function ListRow({ list: l, siblings = [], tone = 'indigo' }: { list: ListView; siblings?: ListView[]; tone?: string }) {
-  const { listMenu } = useActions()
-  const { title, sub } = listLabel(l, siblings)
+/** "Award" for GAEB lists, "Word import" otherwise, so every row's subtitle reads the same way */
+export function phaseLabel(l: ListView) {
+  if (l.phaseName) return [l.phaseName, l.supersededBy ? 'not counted' : null].filter(Boolean).join(' · ')
+  const ext = l.fileName.split('.').pop()?.toLowerCase() ?? ''
+  if (/^[dpx]8\d$/.test(ext) || ext === 'xml') return 'GAEB import'
+  return SOURCES[ext] ?? (l.fileName ? 'Import' : 'Blank list')
+}
+
+/** "all priced", "12 to price" or "38 with quantity 0", so a list's completeness shows on every row */
+export function completeness(l: ListView) {
   const unpriced = l.positionsCount - l.pricedCount
-  const phase = phaseLabel(l)
-  const subtitle = [
-    phase ?? (sub !== title ? sub : null),
-    plural(l.positionsCount, 'position', 'positions'),
-    unpriced > 0 && l.total > 0 ? `${unpriced} to price` : null,
-  ].filter(Boolean).join(' · ')
+  if (!l.positionsCount) return 'no positions yet'
+  if (unpriced > 0) return `${unpriced} to price`
+  return 'all priced'
+}
+
+/** display-only: a list title that repeats its project ("RINGSCHLUSS …, Projekt") is shortened to the part that differs */
+export function displayTitle(title: string, project?: string) {
+  let t = title.trim()
+  if (project && t.toLowerCase().startsWith(project.toLowerCase()) && t.length > project.length + 3) {
+    t = t.slice(project.length).replace(/^[\s,–\-:·]+/, '')
+  }
+  if (t.length > 8 && t === t.toUpperCase() && /[A-ZÄÖÜ]{4}/.test(t)) {
+    t = t.toLowerCase().replace(/(^|[\s\-/(])(\p{L})/gu, (_, a, b) => a + b.toUpperCase())
+  }
+  return t
+}
+
+export function ListRow({
+  list: l, siblings = [], tone = 'indigo', selectMode, selected, onToggle,
+}: { list: ListView; siblings?: ListView[]; tone?: string; selectMode?: boolean; selected?: boolean; onToggle?: () => void }) {
+  const { listMenu } = useActions()
+  const { title } = listLabel(l, siblings)
+  const subtitle = [phaseLabel(l), plural(l.positionsCount, 'position', 'positions'), l.total > 0 ? completeness(l) : null].filter(Boolean).join(' · ')
   return (
     <Row
       dataRow="list"
@@ -33,19 +56,25 @@ export function ListRow({ list: l, siblings = [], tone = 'indigo' }: { list: Lis
       icon="request_quote"
       tone={l.supersededBy ? 'slate' : tone}
       title={title}
+      badge={l.supersededBy ? undefined : <BudgetBadge total={l.total} cap={l.cap} />}
       subtitle={subtitle}
       amount={<span className={l.supersededBy ? 'text-slate-500 line-through decoration-slate-500' : undefined}>{money(l.total)}</span>}
       meta={l.supersededBy ? <span className="text-sm text-slate-600">Replaced by {l.supersededBy}</span> : <BudgetMini total={l.total} cap={l.cap} label={`${title} budget used`} />}
       menu={<RowMenu items={listMenu(l)} label={`Options for ${title}`} />}
+      selectMode={selectMode}
+      selected={selected}
+      onToggle={onToggle}
     />
   )
 }
 
-export function ListGrid({ lists, tone }: { lists: ListView[]; tone?: string }) {
+export function ListGrid({
+  lists, tone, selectMode, selected, onToggle,
+}: { lists: ListView[]; tone?: string; selectMode?: boolean; selected?: Set<string>; onToggle?: (id: string) => void }) {
   return (
     <RowList>
       {lists.map((l) => (
-        <ListRow key={l.id} list={l} siblings={lists} tone={tone} />
+        <ListRow key={l.id} list={l} siblings={lists} tone={tone} selectMode={selectMode} selected={selected?.has(l.id)} onToggle={() => onToggle?.(l.id)} />
       ))}
     </RowList>
   )

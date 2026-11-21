@@ -1,5 +1,6 @@
-import { RowMenu, Row, RowList, BudgetMini, budgetPhrase } from './Kit'
-import { moneyWhole, plural } from '../lib/format'
+import { RowMenu, Row, RowList, BudgetBadge, BudgetMini, budgetPhrase } from './Kit'
+import { Meter } from './ui'
+import { int, money, plural } from '../lib/format'
 import { useActions } from '../lib/actions'
 import { folderDescription, type FolderView } from '../lib/store'
 
@@ -13,13 +14,23 @@ export function FolderRow({ folder: f, selectMode, selected, onToggle }: { folde
     <Row
       dataRow="folder"
       to={`/folder/${f.id}`}
-      label={`${f.name}, ${lists}, ${moneyWhole(f.total)}, ${budgetPhrase(f.total, f.cap)}`}
+      label={`${f.name}, ${lists}, ${f.total ? money(f.total) : 'not priced yet'}, ${budgetPhrase(f.total, f.cap)}`}
       icon={f.icon}
       tone={f.tone}
       title={f.name}
-      subtitle={[lists, folderDescription(f)].filter(Boolean).join(' · ')}
-      amount={f.total ? moneyWhole(f.total) : undefined}
-      meta={!f.total && f.listMetas.length ? <span className="text-sm text-slate-600">{plural(f.listMetas.length, 'list', 'lists')} to price</span> : <BudgetMini total={f.total} cap={f.cap} label={`${f.name} budget used`} />}
+      badge={<BudgetBadge total={f.total} cap={f.cap} />}
+      subtitle={[lists, folderDescription(f).split(' · ')[0]].filter(Boolean).join(' · ')}
+      amount={f.total ? money(f.total) : <span className="font-medium text-slate-500">Not priced</span>}
+      meta={
+        !f.total && f.positions ? (
+          <span className="flex items-center justify-end gap-2 text-sm whitespace-nowrap text-slate-600">
+            <span className="num">{int(f.priced)} of {int(f.positions)} priced</span>
+            <Meter value={(f.priced / f.positions) * 100} tone="brand" className="w-12 flex-none sm:w-14" label={`${f.name}: positions priced`} />
+          </span>
+        ) : (
+          <BudgetMini total={f.total} cap={f.cap} label={`${f.name} budget used`} />
+        )
+      }
       menu={<RowMenu items={folderMenu(f)} label={`Options for ${f.name}`} />}
       selectMode={selectMode}
       selected={selected}

@@ -7,7 +7,7 @@ export function Dock({
   open: boolean
   count: number
   noun: string
-  moveItems: (MenuItem | 'sep')[]
+  moveItems?: (MenuItem | 'sep')[]
   onOpen: () => void
   onDelete: () => void
   onDone: () => void
@@ -29,7 +29,7 @@ export function Dock({
               {count} {noun}{count === 1 ? '' : 's'} selected
             </span>
           </div>
-          <Menu
+          {moveItems?.length ? <Menu
             label="Move selected"
             align="start"
             items={moveItems}
@@ -44,7 +44,7 @@ export function Dock({
                 <span>Move</span>
               </button>
             )}
-          />
+          /> : null}
           <button
             type="button"
             disabled={!count}

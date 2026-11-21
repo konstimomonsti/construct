@@ -16,6 +16,8 @@ page.on('console', (m) => (m.type() === 'error' && !/Failed to load resource|api
 
 const settle = (ms = 700) => page.waitForTimeout(ms)
 const shot = async (n, full = false) => {
+  // park the pointer so no row shows its hover fill
+  await page.mouse.move(2, 898).catch(() => {})
   await page.screenshot({ path: `${out}/${n}.png`, fullPage: full })
   console.log('shot', n)
 }

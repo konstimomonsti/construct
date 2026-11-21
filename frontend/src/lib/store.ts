@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { useShallow } from 'zustand/react/shallow'
-import type { DocMeta, FolderMeta, Library, ListDoc, ListMeta, Position } from './types'
+import type { DocMeta, FolderMeta, Library, ListDoc, ListMeta, Position, Tone } from './types'
 import { fixedBudget, gaebPhase } from './format'
 import { positionTotal } from './money'
 import { removeDocuments } from './documents'
@@ -153,12 +153,13 @@ export const useStore = create<State>()(
 
       createFolder: (name, description = '', parentId) => {
         const id = `f-${crypto.randomUUID()}`
+        const tones: Tone[] = ['indigo', 'blue', 'violet', 'sky', 'emerald', 'amber']
         set((s) => ({
           userFolders: [
             ...s.userFolders,
             {
               id, parentId, name, description, icon: 'folder_open',
-              tone: 'slate', lists: [], documents: [], createdAt: new Date().toISOString(), userCreated: true,
+              tone: tones[s.userFolders.length % tones.length], lists: [], documents: [], createdAt: new Date().toISOString(), userCreated: true,
             },
           ],
         }))

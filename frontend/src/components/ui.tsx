@@ -27,7 +27,7 @@ type Size = 'sm' | 'md' | 'lg'
 
 const variants: Record<Variant, string> = {
   primary: 'bg-brand-600 hover:bg-brand-700 text-white font-semibold',
-  secondary: 'bg-slate-100 hover:bg-slate-200 text-slate-900 font-semibold',
+  secondary: 'bg-slate-100 hover:bg-slate-200 text-slate-900 font-semibold ring-1 ring-inset ring-slate-300',
   ghost: 'text-slate-700 hover:text-slate-900 hover:bg-slate-100 font-medium',
   danger: 'bg-rose-600 hover:bg-rose-700 text-white font-semibold',
   soft: 'bg-brand-50 text-brand-700 hover:bg-brand-100 font-semibold',
@@ -255,6 +255,7 @@ export function Dialog({
 }) {
   const panel = useRef<HTMLDivElement>(null)
   const titleId = useId()
+  useInertRoot(open)
   useEffect(() => {
     if (!open) return
     const prev = document.activeElement as HTMLElement | null
@@ -333,7 +334,7 @@ export function Field({ label, hint, children }: { label: string; hint?: string;
 }
 
 export const inputCls =
-  'w-full h-10 px-3.5 rounded-xl bg-white border border-slate-300 text-slate-900 placeholder:text-slate-500 text-sm outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20 transition-[border-color,box-shadow]'
+  'w-full h-10 px-3.5 rounded-xl bg-white border border-slate-400 text-slate-900 placeholder:text-slate-500 text-sm outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20 transition-[border-color,box-shadow]'
 
 /* ------------------------------------------------------------------ */
 /* Toasts                                                              */

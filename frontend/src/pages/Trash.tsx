@@ -1,6 +1,6 @@
-import { Link } from 'react-router-dom'
 import { Button, toast } from '../components/ui'
-import { Avatar, EmptyState, PageFrame, PageHeader, RowList, Section } from '../components/Kit'
+import { Avatar, EmptyState, PageFrame, PageHeader, PillLink, RowList, Section } from '../components/Kit'
+import { phaseLabel } from '../components/ListCard'
 import { useModel, useStore } from '../lib/store'
 import { useUi } from '../lib/ui-store'
 import { plural, relativeDate } from '../lib/format'
@@ -53,10 +53,10 @@ export function Trash() {
 
   return (
     <PageFrame>
-      <PageHeader title="Trash" subtitle="Items stay here until you delete them forever" />
+      <PageHeader title="Trash" subtitle="Items stay here until you delete them forever." />
       {!tf.length && !tl.length ? (
-        <EmptyState icon="delete" title="Trash is empty" text="Projects and lists you move to Trash can be restored from here.">
-          <Link to="/" className="inline-flex h-10 items-center rounded-full bg-slate-100 px-5 text-sm font-semibold text-slate-900 hover:bg-slate-200">Go to All Projects</Link>
+        <EmptyState icon="delete" title="Trash is empty" text="Projects and lists you move to Trash can be restored from here. Removed positions are restored with Undo in their list.">
+          <PillLink to="/" icon="arrow_back">Go to All Projects</PillLink>
         </EmptyState>
       ) : (
         <div>
@@ -88,7 +88,7 @@ export function Trash() {
                     key={l.id}
                     icon="request_quote"
                     title={l.title}
-                    sub={l.fileName}
+                    sub={[phaseLabel(l), plural(l.positionsCount, 'position', 'positions')].join(' · ')}
                     when={l.trashedAt}
                     onRestore={() => {
                       useStore.getState().patchList(l.id, { trashedAt: undefined })

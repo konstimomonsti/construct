@@ -1,6 +1,6 @@
 import { clsx } from 'clsx'
-import { Button, Icon } from './ui'
-import { PageFrame, PageHeader, RowMenu } from './Kit'
+import { Button } from './ui'
+import { EmptyState, PageFrame, PageHeader, RowMenu } from './Kit'
 import { pickAndImport } from '../lib/import'
 import { folderDescription, type FolderView } from '../lib/store'
 import { useUi } from '../lib/ui-store'
@@ -31,22 +31,24 @@ export function EmptyFolder({ folder: f, ancestors, dragging }: { folder: Folder
 
       <div
         className={clsx(
-          'flex flex-col items-center rounded-3xl border-2 border-dashed px-6 py-14 text-center transition-colors sm:py-20',
-          dragging ? 'border-brand-600 bg-brand-50' : 'border-transparent',
+          'rounded-3xl border-2 border-dashed px-5 transition-colors sm:px-8',
+          dragging ? 'border-brand-600 bg-brand-50' : 'border-slate-300',
         )}
       >
-        <span className="mb-4 flex size-14 items-center justify-center rounded-full bg-slate-100 text-slate-600">
-          <Icon name="upload_file" size={28} />
-        </span>
-        <h2 className="font-heading text-lg font-bold tracking-tight text-balance text-slate-900">Add your first list</h2>
-        <p className="mt-2 max-w-md text-[15px] leading-relaxed text-balance text-slate-600">
-          Drop tender files or price sheets anywhere on this page, or choose them from your computer.
-        </p>
-        <div className="mt-7 flex flex-wrap justify-center gap-2">
+        <EmptyState
+          icon="upload_file"
+          title="Add your first list"
+          text={
+            <>
+              <span className="[@media(pointer:coarse)]:hidden">Drop GAEB or price files anywhere on this page, or choose them from your computer.</span>
+              <span className="hidden [@media(pointer:coarse)]:inline">Choose tender files or price sheets from your device.</span>
+            </>
+          }
+          hint="Supports GAEB, CSV, TSV, Excel, JSON, Word and PDF. GAEB keeps OZ, Titel and Langtext."
+        >
           <Button variant="primary" size="lg" icon="upload" onClick={pick}>Import files</Button>
           <Button size="lg" icon="add" onClick={() => openDialog({ kind: 'blank-list', folderId: f.id })}>Start a blank list</Button>
-        </div>
-        <p className="mt-6 text-sm text-balance text-slate-600">Supports GAEB, CSV, TSV, Excel, JSON, Word and PDF</p>
+        </EmptyState>
       </div>
     </PageFrame>
   )

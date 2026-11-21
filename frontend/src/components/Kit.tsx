@@ -3,7 +3,7 @@ import { Fragment, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { Icon, Menu, Meter, type MenuItem } from './ui'
 import { Page } from './Page'
-import { budgetStatus, moneyWhole } from '../lib/format'
+import { budgetStatus, money, moneyWhole } from '../lib/format'
 
 /* ------------------------------------------------------------------ */
 /* Page frame + header                                                 */
@@ -83,7 +83,7 @@ export function Avatar({ icon, tone = 'slate', size = 'md' }: { icon: string; to
       className={clsx(
         'flex shrink-0 items-center justify-center rounded-full',
         toneTile[tone] ?? toneTile.slate,
-        size === 'lg' ? 'size-12' : size === 'sm' ? 'size-9' : 'size-11',
+        size === 'lg' ? 'size-10 sm:size-12' : size === 'sm' ? 'size-9' : 'size-11',
       )}
     >
       <Icon name={icon} size={size === 'lg' ? 24 : size === 'sm' ? 18 : 22} />
@@ -117,13 +117,29 @@ const statusIcon: Record<string, string> = {
   none: 'remove_circle_outline',
 }
 
-export function StatusTag({ tone, word }: { tone: string; word: string }) {
+export const NEAR_CAP_HINT = 'Near cap: 75% or more of the cap is used'
+
+export function StatusTag({ tone, word, small }: { tone: string; word: string; small?: boolean }) {
   return (
-    <span className={clsx('inline-flex items-center gap-1 rounded-full py-0.5 pr-2.5 pl-1.5 text-[13px] font-semibold whitespace-nowrap', statusCls[tone] ?? statusCls.none)}>
-      <Icon name={statusIcon[tone] ?? 'info'} size={16} fill />
+    <span
+      title={tone === 'ok' || tone === 'none' ? undefined : NEAR_CAP_HINT}
+      className={clsx(
+        'inline-flex items-center gap-1 rounded-full font-semibold whitespace-nowrap',
+        small ? 'py-px pr-2 pl-1 text-xs' : 'py-0.5 pr-2.5 pl-1.5 text-[13px]',
+        statusCls[tone] ?? statusCls.none,
+      )}
+    >
+      <Icon name={statusIcon[tone] ?? 'info'} size={small ? 14 : 16} fill />
       {word}
     </span>
   )
+}
+
+/** status chip for a row's title line; nothing when the budget is fine */
+export function BudgetBadge({ total, cap }: { total: number; cap: number }) {
+  const st = budgetStatus(total, cap)
+  if (!total || !cap || st.tone === 'ok') return null
+  return <StatusTag small tone={st.tone} word={st.word} />
 }
 
 /** spoken summary of a budget, used inside row link names */
@@ -134,16 +150,15 @@ export function budgetPhrase(total: number, cap: number) {
   return `${st.word.toLowerCase()}, ${Math.round(st.pct)}% of cap`
 }
 
-/** row right-column budget line: "Near cap · 82% of 2.500.000 €" — status in words, no chip */
+/** row right-column budget line: "75% of 2.000.000 €" plus a slim meter; the status word sits on the title line (BudgetBadge) */
 export function BudgetMini({ total, cap, label }: { total: number; cap: number; label: string }) {
   const st = budgetStatus(total, cap)
   if (!total) return <span className="text-sm text-slate-600">Not priced yet</span>
   if (!cap) return <span className="text-sm text-slate-600">No cap set</span>
   return (
-    <span className="flex items-center gap-2 text-sm whitespace-nowrap text-slate-600 sm:justify-end">
-      {st.tone !== 'ok' && <span className={clsx('font-semibold', statusText[st.tone])}>{st.word} ·</span>}
+    <span className="flex items-center justify-end gap-2 text-sm whitespace-nowrap text-slate-600">
       <span className="num">{Math.round(st.pct)}% of {moneyWhole(cap)}</span>
-      <Meter value={st.pct} tone={st.tone} className="hidden w-14 flex-none sm:block" label={label} />
+      <Meter value={st.pct} tone={st.tone} className="w-12 flex-none sm:w-14" label={label} />
     </span>
   )
 }
@@ -152,13 +167,36 @@ export function BudgetMini({ total, cap, label }: { total: number; cap: number; 
 /* Summary — the one hero number per screen                            */
 /* ------------------------------------------------------------------ */
 
+/** the hero number; cents are set smaller so the euros carry the weight (Wise-style) */
+export function BigMoney({ value, className }: { value: string; className?: string }) {
+  const m = value.match(/^(.*?)(,\d{2})?(\u00a0€)$/)
+  if (!m) return <span className={className}>{value}</span>
+  return (
+    <span className={className}>
+      {m[1]}
+      <span className="text-[0.62em] tracking-normal">{m[2] ?? ''}{m[3]}</span>
+    </span>
+  )
+}
+
+export interface HeroStatus {
+  tone: string
+  word: string
+  /** turns the pill into the filter for the flagged rows below */
+  onClick?: () => void
+}
+
+/**
+ * One hero per screen: label, number, bar, ONE status line, at most one muted line, actions.
+ * The pill always shows the worst state (a project near its cap makes the whole page "1 near cap").
+ */
 export function Summary({
-  label, amount, total, cap, actions, meta, capLabel = 'cap', compact, statusWord, bar, extra,
+  label, amount, total, cap, actions, meta, capLabel = 'cap', compact, status, bar, extra, hideLeft,
 }: {
-  /** list page: actions sit to the right of the number so the table starts higher */
   compact?: boolean
-  /** override the status word, e.g. "On track overall" when a child is near its cap */
-  statusWord?: string
+  /** the hero number already is the headroom */
+  hideLeft?: boolean
+  status?: HeroStatus
   label: string
   amount: string
   total: number
@@ -173,22 +211,30 @@ export function Summary({
 }) {
   const st = budgetStatus(total, cap)
   const left = cap - total
+  const pill = status ?? { tone: st.tone, word: st.word }
   return (
-    <section aria-label={label} className={clsx(compact ? 'mb-6 sm:flex sm:items-end sm:justify-between sm:gap-8' : 'mb-10')}>
-      <div className="min-w-0 sm:flex-1">
+    <section aria-label={label} className={actions ? 'mb-10' : 'mb-8'}>
       <div className="text-sm font-medium text-slate-600">{label}</div>
-      <div className={clsx('num mt-1 leading-tight font-semibold tracking-tight text-slate-900', compact ? 'text-[30px] sm:text-[38px]' : 'text-[34px] sm:text-[44px]')}>{amount}</div>
+      <BigMoney value={amount} className={clsx('num mt-1 block leading-tight font-semibold tracking-tight text-slate-900', compact ? 'text-[32px] sm:text-[40px]' : 'text-[34px] sm:text-[44px]')} />
       <div className="mt-3 max-w-xl">
         {cap ? (
           <>
             {bar ?? <Meter value={st.pct} tone={st.tone} height="h-2" className="max-w-md" label={`${label}: share of ${capLabel} used`} />}
             <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm text-slate-700">
-              <StatusTag tone={st.tone} word={statusWord ?? st.word} />
+              {pill.onClick ? (
+                <button type="button" onClick={pill.onClick} title={`${NEAR_CAP_HINT}. Show them.`} className="rounded-full transition-[filter] hover:brightness-95">
+                  <span className="inline-flex items-center">
+                    <StatusTag tone={pill.tone} word={pill.word} />
+                  </span>
+                </button>
+              ) : (
+                <StatusTag tone={pill.tone} word={pill.word} />
+              )}
               <span className="num">
-                <strong className="font-semibold text-slate-900">{Math.round(st.pct)}%</strong> of{' '}
-                {moneyWhole(cap)} {capLabel}
+                <strong className="font-semibold text-slate-900">{Math.round(st.pct)}%</strong> of {moneyWhole(cap)}
+                <span className="max-sm:hidden"> {capLabel}</span>
               </span>
-              <span className="num text-slate-600">{left >= 0 ? `${moneyWhole(left)} left` : `${moneyWhole(-left)} over`}</span>
+              {!hideLeft && <span className="num text-slate-600">{left >= 0 ? `${money(left)} left` : `${money(-left)} over`}</span>}
             </div>
           </>
         ) : (
@@ -199,9 +245,35 @@ export function Summary({
       </div>
       {meta && <div className="mt-2 text-sm text-slate-600">{meta}</div>}
       {extra}
-      </div>
-      {actions && <div className={clsx('flex flex-wrap items-center gap-2', compact ? 'mt-5 sm:mt-0 sm:shrink-0' : 'mt-6')}>{actions}</div>}
+      {actions && <div className="mt-6 flex flex-wrap items-center gap-2">{actions}</div>}
     </section>
+  )
+}
+
+const RANK: Record<string, number> = { none: 0, ok: 0, caution: 1, warn: 2, over: 3 }
+
+/**
+ * Aggregate pill: the worst state wins. When the total itself is fine but children are flagged,
+ * the pill names them ("1 project near cap") and becomes their filter.
+ */
+export function heroStatus(own: { total: number; cap: number }, children: { total: number; cap: number }[], noun: [string, string], onClick?: () => void): HeroStatus | undefined {
+  const mine = budgetStatus(own.total, own.cap)
+  const flagged = children.map((c) => budgetStatus(c.total, c.cap)).filter((st) => RANK[st.tone] > 0)
+  if (!flagged.length) return undefined
+  const worst = flagged.reduce((w, st) => (RANK[st.tone] > RANK[w] ? st.tone : w), 'caution' as string)
+  if (RANK[mine.tone] >= RANK[worst]) return undefined
+  const over = flagged.filter((st) => st.tone === 'over').length
+  const n = over || flagged.length
+  const word = `${n} ${n === 1 ? noun[0] : noun[1]} ${over ? 'over' : 'near'} cap`
+  return { tone: worst, word, onClick }
+}
+
+/** a filter link inside hero meta: only the action words are underlined */
+export function MetaLink({ children, onClick, pressed }: { children: ReactNode; onClick: () => void; pressed?: boolean }) {
+  return (
+    <button type="button" aria-pressed={pressed} onClick={onClick} className="rounded font-medium text-slate-900 underline decoration-slate-400 underline-offset-4 hover:decoration-slate-900">
+      {children}
+    </button>
   )
 }
 
@@ -209,12 +281,12 @@ export function Summary({
 /* Sections + rows                                                     */
 /* ------------------------------------------------------------------ */
 
-export function Section({ title, count, tools, children, className, id }: { title: string; count?: number; tools?: ReactNode; children: ReactNode; className?: string; id?: string }) {
+export function Section({ title, count, tools, children, className, id, focusable }: { title: string; count?: number; tools?: ReactNode; children: ReactNode; className?: string; id?: string; focusable?: boolean }) {
   const hid = id ?? `sec-${title.toLowerCase().replace(/\W+/g, '-')}`
   return (
     <section aria-labelledby={hid} className={clsx('mb-8', className)}>
-      <div className="mb-2 flex min-h-10 flex-wrap items-center justify-between gap-x-3 gap-y-2 px-1">
-        <h2 id={hid} className="font-heading text-base font-bold text-slate-900">
+      <div className="mb-2 flex min-h-10 flex-wrap items-center justify-between gap-x-3 gap-y-2">
+        <h2 id={hid} tabIndex={focusable ? -1 : undefined} className="rounded font-heading text-base font-bold text-slate-900">
           {title}
           {count !== undefined && <span className="num ml-2 font-sans text-sm font-medium text-slate-600">{count}</span>}
         </h2>
@@ -246,12 +318,13 @@ export function RowMenu({ items, label }: { items: (MenuItem | 'sep')[]; label: 
 }
 
 /**
- * Wise-style list row: round icon · title / subtitle · amount / meta · menu.
- * The whole row is one link (stretched); the menu sits above it.
- * Phones stack it: title (two lines max), then subtitle, then amount + meta on one line.
+ * Wise-style list row: round icon · title (+ status chip) / subtitle · amount / meta · menu.
+ * The whole row is one link (stretched); the menu sits above it. The row's content lines up with
+ * the page column and its hover fill bleeds 12px outside it, so every trailing control shares one edge.
+ * Phones keep the same anatomy: amount right on the title line, the budget line under the subtitle.
  */
 export function Row({
-  to, onOpen, label, icon, tone, title, subtitle, amount, meta, menu, selectMode, selected, onToggle, dataRow,
+  to, onOpen, label, icon, tone, title, badge, subtitle, amount, meta, menu, selectMode, selected, onToggle, dataRow,
 }: {
   to?: string
   onOpen?: () => void
@@ -259,6 +332,7 @@ export function Row({
   icon: string
   tone?: string
   title: ReactNode
+  badge?: ReactNode
   subtitle?: ReactNode
   amount?: ReactNode
   meta?: ReactNode
@@ -273,8 +347,8 @@ export function Row({
     <div
       data-row={dataRow}
       className={clsx(
-        'group relative flex items-start gap-3.5 rounded-2xl px-3 py-3 transition-colors sm:items-center sm:gap-4 sm:px-4',
-        selected ? 'bg-brand-50' : 'hover:bg-slate-50',
+        'group relative flex items-start gap-3 rounded-2xl px-2 py-3 transition-colors sm:items-center sm:gap-4 sm:px-3',
+        selected ? 'bg-brand-50' : 'hover:bg-slate-100',
       )}
     >
       {selectMode ? (
@@ -291,25 +365,22 @@ export function Row({
       ) : (
         <Avatar icon={icon} tone={tone} />
       )}
-      <div className="pointer-events-none relative flex min-w-0 flex-1 flex-col gap-1 sm:flex-row sm:items-center sm:gap-4">
-        <div className="min-w-0 flex-1">
-          <div className="line-clamp-2 text-[15px] leading-snug font-semibold break-words text-slate-900 sm:line-clamp-1">{title}</div>
-          {subtitle && <div className="mt-0.5 truncate text-sm text-slate-600">{subtitle}</div>}
+      <div className="pointer-events-none relative grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-3 gap-y-0.5 sm:gap-x-6">
+        <div className="col-start-1 row-start-1 flex min-w-0 items-center gap-2">
+          <span className="line-clamp-2 text-[15px] leading-snug font-semibold break-words text-slate-900 sm:line-clamp-1">{title}</span>
+          {badge && <span className="pointer-events-auto shrink-0">{badge}</span>}
         </div>
-        {(amount || meta) && (
-          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 sm:block sm:shrink-0 sm:text-right">
-            {amount && <div className="num text-[15px] font-semibold text-slate-900">{amount}</div>}
-            {meta && <div className="sm:mt-0.5">{meta}</div>}
-          </div>
-        )}
+        {amount && <div className="num col-start-2 row-start-1 text-right text-[15px] font-semibold whitespace-nowrap text-slate-900">{amount}</div>}
+        {subtitle && <div className="col-span-2 row-start-2 truncate text-sm text-slate-600 sm:col-span-1 sm:col-start-1">{subtitle}</div>}
+        {meta && <div className="col-span-2 row-start-3 flex justify-end sm:col-span-1 sm:col-start-2 sm:row-start-2">{meta}</div>}
       </div>
-      {menu && !selectMode && <div className="relative z-10 -my-1 -mr-1 sm:my-0">{menu}</div>}
+      {menu && !selectMode && <div className="relative z-10 -my-1.5 -mr-1 sm:my-0">{menu}</div>}
     </div>
   )
 }
 
 export function RowList({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={clsx('-mx-1 flex flex-col', className)}>{children}</div>
+  return <div className={clsx('-mx-2 flex flex-col sm:-mx-3', className)}>{children}</div>
 }
 
 /** soft filled pill used in section toolbars (sort, select, filter) */
@@ -319,7 +390,7 @@ export function ToolButton({ icon, children, className, active, ...rest }: React
       type="button"
       className={clsx(
         'inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-sm font-medium whitespace-nowrap transition-colors',
-        active ? 'bg-brand-50 text-brand-700 ring-1 ring-brand-200' : 'bg-slate-100 text-slate-800 hover:bg-slate-200',
+        active ? 'bg-brand-50 text-brand-700 ring-1 ring-brand-300 ring-inset' : 'bg-slate-100 text-slate-800 ring-1 ring-slate-300 ring-inset hover:bg-slate-200',
         className,
       )}
       {...rest}
@@ -360,7 +431,7 @@ export function Chips<K extends string>({ value, options, onChange, label }: { v
             onClick={() => onChange(o.key)}
             className={clsx(
               'inline-flex h-10 items-center gap-2 rounded-full px-4 text-sm font-medium transition-colors',
-              on ? 'bg-brand-50 font-semibold text-brand-700 ring-1 ring-brand-200' : 'bg-slate-100 text-slate-800 hover:bg-slate-200',
+              on ? 'bg-brand-50 font-semibold text-brand-700 ring-1 ring-brand-300 ring-inset' : 'bg-slate-100 text-slate-800 ring-1 ring-slate-300 ring-inset hover:bg-slate-200',
             )}
           >
             {o.label}
@@ -372,18 +443,29 @@ export function Chips<K extends string>({ value, options, onChange, label }: { v
   )
 }
 
-/** calm, unboxed empty state — one sentence and at most one way forward */
-export function EmptyState({ icon, title, text, children }: { icon?: string; title: string; text?: ReactNode; children?: ReactNode }) {
+/** calm empty state, left-aligned with the page title so every page has one axis */
+export function EmptyState({ icon, title, text, children, hint, className }: { icon?: string; title: string; text?: ReactNode; children?: ReactNode; hint?: ReactNode; className?: string }) {
   return (
-    <div className="flex flex-col items-center px-6 py-14 text-center sm:py-20">
+    <div className={clsx('max-w-xl py-10 sm:py-14', className)}>
       {icon && (
-        <span className="mb-4 flex size-14 items-center justify-center rounded-full bg-slate-100 text-slate-600">
-          <Icon name={icon} size={28} />
+        <span className="mb-5 flex size-16 items-center justify-center rounded-full bg-slate-100 text-slate-600">
+          <Icon name={icon} size={32} />
         </span>
       )}
-      <h2 className="font-heading text-lg font-bold text-balance text-slate-900">{title}</h2>
-      {text && <p className="mt-1.5 max-w-sm text-sm text-balance text-slate-600">{text}</p>}
-      {children && <div className="mt-6 flex flex-wrap justify-center gap-2">{children}</div>}
+      <h2 className="font-heading text-xl font-bold tracking-tight text-balance text-slate-900">{title}</h2>
+      {text && <p className="mt-2 text-[15px] leading-relaxed text-pretty text-slate-600">{text}</p>}
+      {children && <div className="mt-7 flex flex-col gap-2 min-[400px]:flex-row min-[400px]:flex-wrap">{children}</div>}
+      {hint && <p className="mt-5 text-[13px] leading-relaxed text-slate-500">{hint}</p>}
     </div>
+  )
+}
+
+/** secondary pill as a link ("Go to All Projects") */
+export function PillLink({ to, icon, children }: { to: string; icon?: string; children: ReactNode }) {
+  return (
+    <Link to={to} className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-slate-100 px-5 text-sm font-semibold text-slate-900 ring-1 ring-slate-300 ring-inset hover:bg-slate-200">
+      {icon && <Icon name={icon} size={18} />}
+      {children}
+    </Link>
   )
 }

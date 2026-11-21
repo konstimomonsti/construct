@@ -1,13 +1,19 @@
 import { useMemo, useState } from 'react'
 import { Button, toast } from '../components/ui'
-import { Link } from 'react-router-dom'
-import { Chips, EmptyState, PageFrame, PageHeader, RowMenu, Section, SortMenu, Summary, ToolButton } from '../components/Kit'
+import { Chips, EmptyState, MetaLink, PageFrame, PageHeader, PillLink, RowMenu, Section, SortMenu, Summary, ToolButton, heroStatus } from '../components/Kit'
 import { FolderGrid } from '../components/FolderCard'
 import { Dock } from '../components/Dock'
 import { SORT_LABEL, portfolioBudget, useModel, useStore, type FolderView, type SortKey } from '../lib/store'
 import { useUi } from '../lib/ui-store'
 import { useActions } from '../lib/actions'
-import { moneyWhole, needsAttention, plural } from '../lib/format'
+import { money, needsAttention, plural } from '../lib/format'
+
+type View = 'all' | 'attention' | 'unpriced'
+const VIEWS: Record<View, (f: FolderView) => boolean> = {
+  all: () => true,
+  attention: (f) => needsAttention(f.total, f.cap),
+  unpriced: (f) => !f.total && f.listMetas.length > 0,
+}
 
 export function sortFolders(folders: FolderView[], sort: SortKey): FolderView[] {
   const a = [...folders]
@@ -38,14 +44,20 @@ export function FolderCollection({
   const { openLists } = useActions()
   const [selectMode, setSelectMode] = useState(false)
   const [sel, setSel] = useState<Set<string>>(new Set())
-  const [view, setView] = useState<'all' | 'attention'>('all')
+  const [view, setView] = useState<View>('all')
 
   const scoped = useMemo(() => all.filter((f) => !f.trashedAt && filter(f)), [all, filter])
   const flagged = scoped.filter((f) => needsAttention(f.total, f.cap))
+  const unpriced = scoped.filter((f) => !f.total && f.listMetas.length > 0)
   const folders = useMemo(
-    () => sortFolders(view === 'attention' ? scoped.filter((f) => needsAttention(f.total, f.cap)) : scoped, sort),
+    () => sortFolders(scoped.filter(VIEWS[view]), sort),
     [scoped, sort, view],
   )
+  /** hero links apply a filter, then move focus to the list and say what it shows */
+  const show = (v: View) => {
+    setView(v)
+    requestAnimationFrame(() => document.getElementById('sec-projects')?.focus())
+  }
   const listsOf = (ids: Iterable<string>) => {
     const set = new Set(ids)
     return folders.filter((f) => set.has(f.id)).flatMap((f) => f.listMetas.map((l) => l.id))
@@ -81,24 +93,23 @@ export function FolderCollection({
       {withOpenAll && scoped.length > 0 && (
         <Summary
           label="Total across projects"
-          amount={moneyWhole(budget.total)}
+          amount={money(budget.total)}
           total={budget.total}
           cap={budget.cap}
           capLabel="in project caps"
-          statusWord={flagged.length && !needsAttention(budget.total, budget.cap) ? 'On track overall' : undefined}
+          status={heroStatus(budget, flagged, ['project', 'projects'], () => show('attention'))}
           meta={
-            flagged.length ? (
-              <button type="button" onClick={() => setView('attention')} className="rounded font-medium text-slate-900 underline decoration-slate-500 underline-offset-4 hover:decoration-slate-800">
-                {plural(flagged.length, 'project', 'projects')} near {flagged.length === 1 ? 'its' : 'their'} cap
-              </button>
-            ) : (
-              'No project is near its cap'
+            unpriced.length > 0 && (
+              <>
+                Counts {plural(budget.projects, 'priced project', 'priced projects')} ·{' '}
+                <MetaLink onClick={() => show('unpriced')}>{plural(unpriced.length, 'project', 'projects')} not priced yet</MetaLink>
+              </>
             )
           }
           actions={
             <>
-              <Button variant="primary" size="lg" icon="add" onClick={newProject}>New project</Button>
-              <Button size="lg" icon="upload" onClick={() => openDialog({ kind: 'folder-target', action: 'import' })}>Upload files</Button>
+              <Button variant="primary" size="lg" icon="upload" onClick={() => openDialog({ kind: 'folder-target', action: 'import' })}>Import files</Button>
+              <Button size="lg" icon="add" onClick={newProject}>New project</Button>
             </>
           }
         />
@@ -108,6 +119,7 @@ export function FolderCollection({
         <Section
           title="Projects"
           count={folders.length}
+          focusable
           tools={
             <>
               <SortMenu value={sort} options={SORT_LABEL} onChange={(k: SortKey) => setSort(k)} noun="projects" />
@@ -117,21 +129,25 @@ export function FolderCollection({
             </>
           }
         >
-          {(flagged.length > 0 || view === 'attention') && (
-            <div className="mb-3 px-1">
+          {(flagged.length > 0 || unpriced.length > 0 || view !== 'all') && (
+            <div className="mb-3">
               <Chips
                 label="Filter projects"
                 value={view}
                 onChange={setView}
                 options={[
                   { key: 'all', label: 'All' },
-                  { key: 'attention', label: 'Needs attention', count: flagged.length },
+                  ...(flagged.length ? [{ key: 'attention' as const, label: 'Needs attention', count: flagged.length }] : []),
+                  ...(unpriced.length ? [{ key: 'unpriced' as const, label: 'Not priced', count: unpriced.length }] : []),
                 ]}
               />
             </div>
           )}
+          <p className="sr-only" aria-live="polite">
+            {view === 'all' ? '' : `Showing ${plural(folders.length, 'project', 'projects')} ${view === 'attention' ? 'that need attention' : 'not priced yet'}`}
+          </p>
           {selectMode && (
-            <div className="mb-2 flex justify-end px-1">
+            <div className="mb-2 flex justify-end">
               <button type="button" className="h-10 rounded-full px-3 text-sm font-semibold text-brand-700 hover:bg-brand-50" onClick={() => setSel(sel.size === folders.length ? new Set() : new Set(folders.map((f) => f.id)))}>
                 {sel.size === folders.length ? 'Deselect all' : 'Select all'}
               </button>
@@ -140,7 +156,7 @@ export function FolderCollection({
           {folders.length ? (
             <FolderGrid folders={folders} selectMode={selectMode} selected={sel} onToggle={toggle} />
           ) : (
-            <EmptyState icon="check_circle" title="Nothing needs attention" text="Every project is below 75% of its cap." />
+            <EmptyState icon="check_circle" title={view === 'unpriced' ? 'Every project is priced' : 'Nothing needs attention'} text={view === 'unpriced' ? undefined : 'Every project is below 75% of its cap.'} />
           )}
         </Section>
       ) : (
@@ -148,7 +164,7 @@ export function FolderCollection({
           {withOpenAll ? (
             <Button variant="primary" size="lg" icon="add" onClick={newProject}>New project</Button>
           ) : (
-            <Link to="/" className="inline-flex h-10 items-center rounded-full bg-slate-100 px-5 text-sm font-semibold text-slate-900 hover:bg-slate-200">Go to All Projects</Link>
+            <PillLink to="/" icon="arrow_back">Go to All Projects</PillLink>
           )}
         </EmptyState>
       )}
