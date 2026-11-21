@@ -38,7 +38,7 @@ def plans(doc):
         Plan("PRECAST-MISSING-DRAWINGS", "PRECAST-MISSING-DRAWINGS", "Remove the workshop drawings position",
              [{"op": "remove", "id": lines["3.2.10"]["id"]}],
              label(target={"trigger_codes": ["3.2.20", "3.2.30", "3.2.40", "3.2.50", "3.2.60"]},
-                   expect=["L2.PRECAST.*"], match="dependency"), {"position": "3.2.10"}),
+                   expect=["L2.PRECAST.ELEMENTS_NEEDS_SHOP_DRAWINGS"], match="dependency"), {"position": "3.2.10"}),
         changed("PRECAST-MISSING-SPEC", "3.2.40", "Remove height and colour of through-coloured precast concrete",
                 "long_text", lines["3.2.40"]["long_text"].replace("Höhe 60 cm, ", "").replace(" in RAL 7032", ""),
                 ["L3.PRECAST.MISSING_SPEC"],
