@@ -289,13 +289,13 @@ def test_compact_ollama_precast_seed_and_planted_faults(tmp_path, monkeypatch, b
         if request.prompt_version == "l3-precast-local-v1":
             batch = payload(request)["items"]
             schema = request.schema["properties"]["items"]
-            assert schema["maxItems"] == len(batch)
+            assert schema["maxItems"] == len(batch) <= 4
             assert set(schema["items"]["required"]) == {
                 "line_ref", "item_type", "rebar_purpose", "color_pigment_ral",
             }
             return {"items": [
                 {"line_ref": item["ref"], "item_type": "embedded_part" if item["code"] == "3.2.90" else "other",
-                 "rebar_purpose": "unspecified", "color_pigment_ral": None}
+                 "rebar_purpose": "unspecified", "color_pigment_ral": "Sichtbeton"}
                 for item in batch
             ]}
         if request.prompt_version == "l3-precast-local-rebar-v1":
@@ -305,11 +305,12 @@ def test_compact_ollama_precast_seed_and_planted_faults(tmp_path, monkeypatch, b
                  "rebar_scope_quote": "werkseitige Bewehrung" if item["code"] == "3.2.70" else "invented purpose"}
                 for item in payload(request)["items"]
             ]}
-        if request.prompt_version == prompts.SCOPE_VERSION:
-            roles = {item["code"]: item.get("rebar_purpose") for item in payload(request)["items"]}
+        if request.prompt_version == "l3-scope-local-v1":
+            data = payload(request)
+            roles = {item["code"]: item.get("rebar_purpose") for item in data["items"]}
             assert roles["3.2.70"] == "site_connection"
             assert roles["3.2.75"] == "unspecified"
-            return audit_like_a_model(request)
+            return {"findings": [candidate["ref"] for candidate in data["candidates"]]}
         return {"findings": [], "reviews": []}
     monkeypatch.setattr(provider, "complete_json", answer)
     monkeypatch.setattr(layer3, "provider_from_env", lambda: provider)

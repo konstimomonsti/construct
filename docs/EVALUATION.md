@@ -41,10 +41,13 @@ Each generated file has a `construct-eval-labels/1` sidecar with stable position
 
 A local Qwen 7B run used Layers 1 through 3 on the clean precast seed and the missing-specification and
 ambiguous-rebar mutants in both X83 and JSON. All four planted labels matched the correct position and
-included a bidder question. Both unchanged seeds finished all three layers without a finding. This is a
-targeted development replay. The complete building-hall catalogue and an independent holdout still need
+included a bidder question. Both unchanged seeds finished all three layers without a finding. The run
+used one local request at a time, four lines per batch, a 55-second request limit, and a 180-second
+deadline. This is a targeted development replay. The complete building-hall catalogue and an independent holdout still need
 separate Layer 3 scoring. The representative LV 11 PDF gives the joint-sealing requirement across
-two physical lines. The Layer 2 matcher recognizes the wrapped phrase as included scope.
+two physical lines. The Layer 2 matcher recognizes the wrapped phrase as included scope. The local model also completed the nine-position PDF. It returned five element specification
+findings and three cross-position scope questions, each linked to its source page. These findings are
+candidates for independent review.
 
 ## Preliminary review of repository files
 

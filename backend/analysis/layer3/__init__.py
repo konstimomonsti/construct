@@ -17,7 +17,8 @@ from ..contracts import AnalysisInput, Finding
 from ..registry import run_layer
 from . import checks  # noqa: F401  (registers the rules)
 from .common import (
-    DEFAULT_CONCURRENCY, DEFAULT_DEADLINE, DEFAULT_MAX_BATCH_CHARS, DEFAULT_MAX_BATCH_LINES, DEFAULT_MAX_CALLS,
+    DEFAULT_CONCURRENCY, DEFAULT_DEADLINE, DEFAULT_LOCAL_MAX_BATCH_LINES, DEFAULT_MAX_BATCH_CHARS,
+    DEFAULT_MAX_BATCH_LINES, DEFAULT_MAX_CALLS,
     Session, float_env, int_env, reset_session, session_scope,
 )
 from .provider import (
@@ -50,14 +51,16 @@ def run(analysis_input: AnalysisInput, prior_findings: list[Finding], errors: li
             except ProviderUnavailable as exc:
                 errors.append(f"layer 3 audit model: {exc}")
                 audit_provider = provider
+    local_provider = isinstance(provider, OllamaProvider)
     session = Session(
         provider=provider, cache=cache if cache is not None else cache_from_env(), errors=errors,
         max_calls=max_calls if max_calls is not None else int_env("ANALYSIS_L3_MAX_CALLS", DEFAULT_MAX_CALLS),
         max_batch_chars=int_env("ANALYSIS_L3_MAX_BATCH_CHARS", DEFAULT_MAX_BATCH_CHARS),
-        max_batch_lines=max(1, int_env("ANALYSIS_L3_MAX_BATCH_LINES", DEFAULT_MAX_BATCH_LINES)),
+        max_batch_lines=max(1, int_env("ANALYSIS_L3_MAX_BATCH_LINES",
+                                   DEFAULT_LOCAL_MAX_BATCH_LINES if local_provider else DEFAULT_MAX_BATCH_LINES)),
         audit_provider=audit_provider, deadline=float_env("ANALYSIS_L3_DEADLINE", DEFAULT_DEADLINE),
         concurrency=max(1, int_env("ANALYSIS_L3_CONCURRENCY",
-                                   1 if isinstance(provider, OllamaProvider) else DEFAULT_CONCURRENCY)),
+                                   1 if local_provider else DEFAULT_CONCURRENCY)),
     )
     token = session_scope(session)
     try:

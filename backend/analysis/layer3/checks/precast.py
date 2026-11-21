@@ -26,7 +26,7 @@ from ...layer1.precast import LAYERS, item_type as source_item_type
 from ...layer1.textvalues import DIMENSIONS, EXPOSURE, MEASURE, centimetres, grades
 from ...registry import rule
 from .. import prompts
-from ..common import batches, clip, current
+from ..common import DEFAULT_LOCAL_MAX_BATCH_LINES, batches, clip, current
 from ..provider import LLMRequest, OllamaProvider
 from ..schema import ITEM_TYPES, PRECAST_SCHEMA, REBAR_PURPOSES, PrecastItem, items, quote_in, value_in
 
@@ -48,7 +48,6 @@ _THICKNESS = (
 _COLOURED = re.compile(r"durchgef(ä|ae)rbt|eingef(ä|ae)rbt|farbbeton", re.IGNORECASE)
 _COMPACT_VERSION = "l3-precast-local-v1"
 _REBAR_VERSION = "l3-precast-local-rebar-v1"
-_LOCAL_BATCH_LINES = 4
 _COMPACT_SYSTEM = """Classify each German construction bill item using its ref.
 FT-Sockel and Sandwichelement are sandwich_plinth. Other supplied precast elements are precast_element.
 Betonstahl is rebar. Classify only what the item supplies. Drawings, opening surcharges and separate
@@ -60,6 +59,11 @@ use not_applicable. Copy an explicit color or pigment for colored concrete, or u
 Return exactly one item for each ref."""
 _ELEMENT_MARK = re.compile(r"^\s*(FS\s*\d+)\s*:", re.I)
 _RAL = re.compile(r"\bRAL\s*(\d{4})\b", re.I)
+_COLOUR_ASSIGNMENT = re.compile(
+    r"\b(?:Farbton|Farbnummer|Farbbezeichnung|Betonfarbe|Pigment(?:ierung)?)\b"
+    r"|\b(?:durchgef[äa]rbt|eingef[äa]rbt)\w*\s+(?:in|mit Pigment)\b", re.I,
+)
+
 _REBAR_SYSTEM = """Read each German rebar position independently and copy its ref.
 The type is always rebar. Assign site_connection only when THIS position supplies reinforcement for
 connections made on site. Assign factory_reinforcement only when THIS position supplies reinforcement
@@ -115,7 +119,7 @@ def extracted(ctx) -> list[tuple[Line, dict[str, Any]]]:
         return session.memo[MEMO_KEY]
     titles = {section.id: section.title or "" for section in ctx.input.sections}
     compact = isinstance(session.provider, OllamaProvider)
-    max_lines = min(session.max_batch_lines, _LOCAL_BATCH_LINES) if compact else session.max_batch_lines
+    max_lines = min(session.max_batch_lines, DEFAULT_LOCAL_MAX_BATCH_LINES) if compact else session.max_batch_lines
     chunks: list[tuple[list[Line], bool]] = []
     for group in precast_groups(ctx.input.lines, titles):
         rebar_ids = {line.id for line in group if _source_kind(line.short_text or "") == "rebar"} if compact else set()
@@ -217,8 +221,12 @@ def _add_source_values(data: dict, short: str, text: str, rebar_quote: str | Non
         )
         for side, field in (("innen", "surface_inside"), ("außen", "surface_outside")):
             data[field] = _only({value.upper() for value in _SURFACES[side].findall(text)})
+        pigment = data[COLOUR_FIELD]
         if ral is not None:
             data[COLOUR_FIELD] = f"RAL {ral}"
+        elif pigment and not any(_COLOUR_ASSIGNMENT.search(clause) and quote_in(pigment, clause)
+                                 for clause in clauses):
+            data[COLOUR_FIELD] = None
 
 
 def verified(line: Line, item: PrecastItem, *, compact: bool = False) -> dict[str, Any]:

@@ -231,7 +231,8 @@ order in which the call budget is spent (`checks/__init__.py`):
   possible, and each answer must cite an item of the right type (open-purpose rebar next to precast
   elements, a shop-drawing item next to elements that include anchor design, an embedded part assigned to
   no element). Each finding carries `evidence.bieterfrage_de`; rebar and embedded parts also set
-  `evidence.change_order`.
+  `evidence.change_order`. With Ollama the audit selects from validated candidate references and BillBuild
+  drafts the bidder questions from the selected position and its related elements.
 
 - **`L3.TEXT.SHORT_LONG_CONTRADICTION`** (`checks/contradictions.py`). Sends lines that have both texts,
   differing texts, and a value in the short text (a number or a material word); skips lines with a
@@ -275,8 +276,8 @@ Configuration (environment variables):
 | `ANALYSIS_L3_TIMEOUT` | `120` | seconds per request |
 | `ANALYSIS_L3_MAX_CALLS` | `12` | model calls per run (cache hits are free); the P0 precast checks spend it first |
 | `ANALYSIS_L3_DEADLINE` | `75` | seconds of model calls per run; later batches are reported in `errors`, not sent. Prod timeout is 30 s, so layer 3 ends in about 90 s at worst |
-| `ANALYSIS_L3_CONCURRENCY` | `4` | parallel requests within one check |
-| `ANALYSIS_L3_MAX_BATCH_LINES` / `_CHARS` | `12` / `12000` | contradiction batch size |
+| `ANALYSIS_L3_CONCURRENCY` | `4` (`1` for Ollama) | parallel requests within one check |
+| `ANALYSIS_L3_MAX_BATCH_LINES` / `_CHARS` | `12` (`4` for Ollama) / `12000` | contradiction batch size |
 | `ANALYSIS_L3_CACHE` | `.cache/layer3` | directory, or `off` |
 
 The API provider needs `pip install -e ".[llm-api]"` and credentials the SDK can resolve

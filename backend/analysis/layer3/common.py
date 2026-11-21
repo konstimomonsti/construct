@@ -31,6 +31,7 @@ DEFAULT_DEADLINE = 75.0  # seconds of model calls per run; with a 30 s request t
 DEFAULT_CONCURRENCY = 4
 DEFAULT_MAX_BATCH_CHARS = 12_000
 DEFAULT_MAX_BATCH_LINES = 12
+DEFAULT_LOCAL_MAX_BATCH_LINES = 4
 MAX_TEXT_CHARS = 3_000  # per text in a prompt; quotes are still checked against the full text
 MAX_CONSECUTIVE_FAILURES = 3
 
