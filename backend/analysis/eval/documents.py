@@ -216,12 +216,33 @@ def generate_dimensions(out):
             baseline = "board-clean" if board else "height-clean"
             write_fixture_labels(out / f"{name}.{ext}", f"{baseline}.{ext}", label)
 
+def generate_dotted(out):
+    """Render non-consecutive short position codes, including a planted amount."""
+    out.mkdir(parents=True, exist_ok=True)
+    items = [
+        Item(".41", "Halteplatte aus Stahl liefern", 12, "St"),
+        Item(".47", "Abdeckung aus Stahl liefern", 8, "St"),
+        Item(".87", "Tragschale aus Stahl liefern", 5, "m"),
+    ]
+    for name, positions in (
+        ("dotted-clean", items),
+        ("dotted-amount", [items[0], replace(items[1], amount=85), items[2]]),
+    ):
+        path = out / f"{name}.pdf"
+        pdf_file(path, positions)
+        clean = name == "dotted-clean"
+        write_fixture_labels(path, "dotted-clean.pdf", {
+            "control": clean, "layers": [1], "expect": [] if clean else ["L1.ARITH.LINE_AMOUNT"],
+            "match": "line", "target": {"line_codes": [".47"], "source_locator": {"page": 1}},
+        })
+
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("out", type=Path)
     suites = {"tabular": generate, "precast": generate_precast, "gutter": generate_gutter,
-              "dimensions": generate_dimensions}
+              "dimensions": generate_dimensions, "dotted": generate_dotted}
     parser.add_argument("--suite", choices=suites, default="tabular")
     args = parser.parse_args()
     suites[args.suite](args.out)

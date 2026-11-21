@@ -18,6 +18,7 @@ from pypdf.errors import PdfReadError
 from pypdf.generic import ByteStringObject, IndirectObject, NullObject
 
 from .common import BOM_PDF_ATTACHMENT, Result, decimal_text, german_decimal, local_name, parse_xml, xml_element
+from .ocr_codes import reread_codes
 
 _NUMBER = r"[+\-−]?(?:\d{1,3}(?:\.\d{3})+|\d+)(?:,\d+)?"
 _CODE = re.compile(r"^(?P<indent> *)(?P<code>\d+(?:\.\d+)*\.?|\.\d+)[ \t]{2,}(?P<body>\S.*)$")
@@ -350,8 +351,8 @@ def _ocr_layout(source, pages, result):
             result.warn("pdf_ocr_incomplete", {"page": number}, "The page could not be read by local OCR.")
             continue
         if len(layouts) == 1 and layouts[0].strip():
-            original = revised = measurements = layouts[0]
-            unit_rereads, measurement_rereads = [], []
+            original = revised = measurements = codes = layouts[0]
+            unit_rereads, measurement_rereads, code_rereads = [], [], []
 
             @cache
             def boxes():
@@ -363,9 +364,22 @@ def _ocr_layout(source, pages, result):
             def recognize(crop, mode):
                 return execute([*ocr, "--psm", mode], data=crop)
 
+            def render_codes(bounds):
+                x, y, width, height = map(str, bounds)
+                return execute([rasterizer, "-f", str(number), "-l", str(number), "-scale-to",
+                                str(OCR_RASTER_SIZE * 2), "-singlefile", "-gray", "-x", x, "-y", y,
+                                "-W", width, "-H", height, str(source)])
+
+            def recognize_codes(crop, mode):
+                return execute([*ocr, "--psm", mode, "-c", "tessedit_char_whitelist=0123456789.", "tsv"], data=crop)
+
             try:
                 revised, unit_rereads = _reread_ocr_units(original, boxes, render, recognize)
                 measurements, measurement_rereads = _reread_ocr_measurements(original, boxes, render, recognize)
+                codes, code_rereads = reread_codes(
+                    original, find_header(original.splitlines()), boxes, render_codes, recognize_codes,
+                    dpi=OCR_DPI, raster_size=OCR_RASTER_SIZE,
+                )
             except (OSError, SyntaxError, ValueError, TimeoutExpired):
                 # Preserve completed reads if an optional retry fails.
                 pass
@@ -376,9 +390,15 @@ def _ocr_layout(source, pages, result):
                 line = item["line"]
                 revised_lines[line - 1] = measurement_lines[line - 1]
                 evidence[line] = {"measurement_ocr": item}
+            code_lines = codes.splitlines(keepends=True)
+            for item in code_rereads:
+                line = item["line"]
+                revised_lines[line - 1] = code_lines[line - 1]
+                evidence[line] = {"code_ocr": item}
             found[number] = "".join(revised_lines), evidence
             result.add("pdf_ocr_page", {"page": number, "ocr_pages": [number]}, layout=original,
-                       language=language, unit_rereads=unit_rereads, measurement_rereads=measurement_rereads)
+                       language=language, unit_rereads=unit_rereads, measurement_rereads=measurement_rereads,
+                       code_rereads=code_rereads)
     if len(pages) > OCR_PAGE_LIMIT:
         result.warn("pdf_ocr_page_limit", {"page": pages[OCR_PAGE_LIMIT]},
                     f"Only the first {OCR_PAGE_LIMIT} raster-only pages are eligible for local OCR in one import.")
@@ -628,6 +648,8 @@ def extract_pdf_tables(pages, result, *, ocr_pages=(), ocr_evidence=None):
         pages_read_by_ocr = sorted(page for page in ocr_pages if locator["page"] <= page <= locator["end_page"])
         if pages_read_by_ocr:
             locator["ocr_pages"] = pages_read_by_ocr
+        if ocr_evidence:
+            locator.update(ocr_evidence.get((locator["page"], locator["line"]), {}))
         body = "\n".join(current.pop("description_lines")).strip()
         numbers = current.pop("amounts")
         flags = item_flags(body)

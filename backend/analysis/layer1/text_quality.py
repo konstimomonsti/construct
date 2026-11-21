@@ -249,7 +249,8 @@ def _styles(lines: list[Line], pattern: re.Pattern, style) -> dict[str, list[tup
       description="The same unit or value written in different ways: St / Stk, psch / Psch, DN15 / DN 15, "
                   "5x25 / 5 x 25.")
 def notation_variant(ctx):
-    lines = ctx.input.lines
+    # OCR can change capitalization and spacing even when the printed notation is consistent.
+    lines = [line for line in ctx.input.lines if not line.source_locator.get("ocr_pages")]
     units: dict[str, dict[str, list[Line]]] = defaultdict(lambda: defaultdict(list))
     for line in lines:
         if line.unit and line.unit_raw and line.unit_raw.strip():

@@ -224,6 +224,16 @@ def test_consistent_notation_has_no_finding():
     assert by_rule(findings, "L1.TEXT.NOTATION_VARIANT") == []
 
 
+def test_notation_variants_require_directly_extracted_text():
+    native = line(1, "Rohr DN 100", unit_raw="St")
+    scanned = line(2, "Rohr DN100", unit_raw="st", source_locator={"page": 2, "ocr_pages": [2]})
+    other_native = line(3, "Rohr DN125", unit_raw="Stk")
+    assert by_rule(run(native, scanned), "L1.TEXT.NOTATION_VARIANT") == []
+    variants = by_rule(run(native, scanned, other_native), "L1.TEXT.NOTATION_VARIANT")
+    assert {finding.evidence.get("kind", "unit") for finding in variants} == {"DN", "unit"}
+    assert {finding.target.line_id for finding in variants} == {"l3"}
+
+
 # ---------------------------------------------------------------- lexicon
 
 

@@ -164,13 +164,17 @@ The following preliminary comparison rasterized the original repository page wit
 | LV 18 screed | 3 | 5 | 5 | 5 |
 | LV 13 electrical | 9 | 9 | 9 | 9 |
 | LV 17 drywall | 5 | 6 | 6 | 6 |
-| LV 14b roof drainage | 10 | 8 | 0 | 0 |
+| LV 14b roof drainage | 10 | 8 | 8 | 6 |
 | LV 11 precast | 1 | 3 | 3 | 1 |
 | LV 22 joinery | 14 | 4 | 4 | 4 |
 
 Blank price placeholders originally caused the OCR pass to concatenate text such as `Meee` into the unit. One electrical quantity came back as `1.250.000` instead of the printed `1.250,000`. For damaged rows with no readable price, the importer aligns the `Menge`, `ME`, and `Einheitspreis` headers and re-reads the first two fields in isolation. Both crop readings must agree and preserve the first pass’s quantity digits and sign. The locator keeps the original quantity and unit, both focused readings, and the crop coordinates.
 
-The update increased quantity and unit agreement from 13 to 25 of 35 positions across the six pages. It removed 15 false quantity, unit, and import findings on the electrical page’s affected positions and restored the measurements on the drywall and joinery pages. Electrical text OCR still raised an extra notation finding. The roof drainage scan dropped leading dots and two position numbers. Two measurements remain unreadable on the precast page.
+The measurement update increased quantity and unit agreement from 13 to 25 of 35 positions. It removed 15 false quantity, unit, and import findings on the electrical page and restored all measurements on the drywall and joinery pages. Notation checks now use directly extracted text because OCR can change the casing and spacing the checks compare.
+
+The roof drainage scan initially linked zero positions after OCR dropped leading dots and damaged two digit strings. For tables with an OZ column and multiple numeric candidates, the importer now reads the position column twice at higher resolution and checks for separated dot-shaped ink before the digits. Each recovered number must align with one description. Its locator keeps the original transcription, both digit readings, and the crop coordinates. This restored all eight roof drainage positions, bringing the six-page comparison to 35 of 35 linked and 31 of 35 matching in quantity and unit. The two roof drainage and two precast measurements still need review.
+
+The `dotted` synthetic suite exercises non-consecutive position numbers. Its scanned amount error cites position .47 and the source page, and the clean control produces zero findings.
 
 Run with the local preview server and replay database. The replay returns a nonzero status when the clean scan triggers false alarms.
 
@@ -184,6 +188,8 @@ WORKSPACE_PARSE_ORIGIN=http://127.0.0.1:8080 \
   frontend/node_modules/.bin/tsx frontend/tests/risk-upload-fixtures.ts "$scan_dir"/*.pdf \
   | python -m analysis.eval.uploads
 ```
+
+Use `--suite dotted` on the document generator to replay the short position codes and the planted amount error.
 
 ### Layer 3 on ordinary PDF and Word uploads
 

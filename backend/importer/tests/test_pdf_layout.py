@@ -97,6 +97,59 @@ def test_ocr_focused_measurement_corrects_punctuation_and_unit_with_evidence():
     recognize.return_value = b"1.260,000 m"
     assert pdf_module._reread_ocr_measurements(layout, lambda: boxes, render, recognize) == (layout, [])
 
+def test_scanned_dotted_positions_require_ink_and_preserve_numeric_sections():
+    from tender_import.ocr_codes import reread_codes
+
+    layout = (
+        "OZ   Leistungsbeschreibung     Menge ME  Einheitspreis   Gesamtbetrag\n"
+        "41   Halter\n"
+        "                 2,000 St   ....   ....\n"
+        "     Spange\n"
+        "                 3,000 St   ....   ....\n"
+        "12   Abdeckungen\n"
+    )
+    boxes = b"""
+        <html>
+        <word xMin="46" yMin="22" xMax="55" yMax="31">OZ</word>
+        <word xMin="107" yMin="22" xMax="197" yMax="31">Leistungsbeschreibung</word>
+        <word xMin="107" yMin="66" xMax="132" yMax="75">Halter</word>
+        <word xMin="107" yMin="96" xMax="132" yMax="105">Spange</word>
+        <word xMin="107" yMin="126" xMax="170" yMax="135">Abdeckungen</word>
+        </html>
+    """
+    tsv = b"".join(
+        f"5\t1\t1\t1\t1\t1\t24\t{y}\t40\t20\t90\t{digits}\n".encode()
+        for y, digits in ((52, "41"), (112, "87"), (172, "12"))
+    )
+
+    def render(bounds):
+        _, _, width, height = bounds
+        pixels = bytearray(b"\xff") * (width * height)
+        for y in (52, 112, 172):
+            for row in range(y, y + 19):
+                pixels[row * width + 34:row * width + 61] = b"\x00" * 27
+        for y in (52, 112):  # Only the first two rows have a printed leading dot.
+            for row in range(y + 15, y + 19):
+                pixels[row * width + 24:row * width + 28] = b"\x00" * 4
+        return f"P5\n{width} {height}\n255\n".encode() + pixels
+
+    header = pdf_module.find_header(layout.splitlines())
+    revised, evidence = reread_codes(layout, header, lambda: boxes, render, lambda *_: tsv, dpi=72, raster_size=900)
+    assert [(item["original"], item["code"]) for item in evidence] == [("41", ".41"), (None, ".87")]
+    result = Result("pdf")
+    extract_pdf_tables([revised], result, ocr_pages=(1,),
+                       ocr_evidence={(1, item["line"]): {"code_ocr": item} for item in evidence})
+    items = [record for record in result.records if record.kind == "item_candidate"]
+    sections = [record for record in result.records if record.kind == "section_candidate"]
+    assert [(item.payload["code"], item.payload["quantity"]) for item in items] == [(".41", "2.000"), (".87", "3.000")]
+    assert items[1].locator["code_ocr"]["original"] is None
+    assert [section.payload["code"] for section in sections] == ["12"]
+
+    disagreement = tsv.replace(b"\t87\n", b"\t88\n")
+    _, partial = reread_codes(layout, header, lambda: boxes, render,
+                              lambda _, mode: tsv if mode == "6" else disagreement, dpi=72, raster_size=900)
+    assert [item["code"] for item in partial] == [".41"]
+
 
 def warning_codes(result):
     return [issue["code"] for issue in result.issues]
