@@ -39,9 +39,10 @@ class DependencySpec(BaseModel):
     tolerance: Decimal | None = Field(default=None, alias="TolerancePct", ge=0, lt=1)
     quantity_unit: str = Field(default="m²", alias="QuantityUnit")
     trigger_regex: str | None = Field(default=None, alias="TriggerRegex")
+    exclude_regex: str | None = Field(default=None, alias="ExcludeRegex")
     suggested_text: str | None = Field(default=None, alias="SuggestedText")
 
-    @field_validator("regex", "trigger_regex")
+    @field_validator("regex", "trigger_regex", "exclude_regex")
     @classmethod
     def valid_regex(cls, value: str | None) -> str | None:
         if value is not None:
@@ -72,12 +73,18 @@ class RuleSpec(BaseModel):
     rule_id: str = Field(alias="RuleID", pattern=r"^L2\.[A-Z0-9_]+(?:\.[A-Z0-9_]+)*$")
     category: str = Field(alias="Category", min_length=1)
     trigger_regex: str = Field(alias="TriggerRegex")
+    # Where the trigger is searched. "short_text" (default) avoids materials mentioned in passing in
+    # the long text (an EPDM pipe seal is not a roof). Falls back to the long text when there is no short text.
+    trigger_in: Literal["short_text", "all"] = Field(default="short_text", alias="TriggerIn")
+    # Lines matching this are never triggers: demolition, removal, precast parts, ...
+    exclude_regex: str | None = Field(default=None, alias="ExcludeRegex")
     dependencies: list[DependencySpec] = Field(alias="Required_Dependencies", min_length=1)
 
-    @field_validator("trigger_regex")
+    @field_validator("trigger_regex", "exclude_regex")
     @classmethod
-    def valid_regex(cls, value: str) -> str:
-        compile_regex(value)
+    def valid_regex(cls, value: str | None) -> str | None:
+        if value is not None:
+            compile_regex(value)
         return value
 
     @field_validator("dependencies")

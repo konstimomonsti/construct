@@ -3,6 +3,7 @@
 from collections import defaultdict
 from dataclasses import dataclass
 from decimal import Decimal
+import re
 from typing import Literal
 
 from ..contracts import (
@@ -31,6 +32,19 @@ class Context:
 
 def _text(line: Line) -> str:
     return " ".join(filter(None, [line.short_text, line.long_text, *line.tags]))
+
+
+def _trigger_text(line: Line) -> str:
+    """What a line *is*: its short text (long text only if there is none) plus classification tags.
+
+    Long texts mention materials in passing ("Dichtmanschette aus EPDM", "Stützen aus Beton werden
+    bauseits erstellt"), which must not make a pipe coupling a roof or a pipe removal a concrete job.
+    """
+    return " ".join(filter(None, [line.short_text or line.long_text, *line.tags]))
+
+
+def _is_trigger(text: str, trigger: re.Pattern, exclude: re.Pattern | None) -> bool:
+    return bool(trigger.search(text)) and not (exclude and exclude.search(text))
 
 
 def _active(line: Line) -> bool:
@@ -154,6 +168,7 @@ def _evaluate(input: AnalysisInput, rule: RuleSpec, dep: DependencySpec, trigger
         "trade_category": rule.category, "context": context.label,
         "dependency": dep.name, "check_type": dep.check_type,
         "trigger_regex": dep.trigger_regex or rule.trigger_regex, "dependency_regex": dep.regex,
+        "trigger_in": rule.trigger_in, "exclude_regex": dep.exclude_regex or rule.exclude_regex,
         "trigger_line_ids": list(dict.fromkeys(entry.line.id for entry in triggers)),
         "dependency_line_ids": list(dict.fromkeys(entry.line.id for entry in matches)),
         "unassigned_candidate_line_ids": unassigned_candidates,
@@ -240,20 +255,26 @@ def run(input: AnalysisInput, prior_findings: list[Finding], *,
     contexts = _contexts(input, scope)
     rules = load_rules() if rules is None else rules
     texts = {line.id: _text(line) for line in input.lines}
+    short_texts = {line.id: _trigger_text(line) for line in input.lines}
     unassigned = [entry for context in contexts if context.scope == "bom" for entry in context.entries]
     findings = []
     for rule in rules:
+        trigger_texts = short_texts if rule.trigger_in == "short_text" else texts
         trigger_pattern = compile_regex(rule.trigger_regex)
+        exclude_pattern = compile_regex(rule.exclude_regex) if rule.exclude_regex else None
         dependency_patterns = [(dep, compile_regex(dep.regex),
-                                compile_regex(dep.trigger_regex) if dep.trigger_regex else None)
+                                compile_regex(dep.trigger_regex) if dep.trigger_regex else None,
+                                compile_regex(dep.exclude_regex) if dep.exclude_regex else None)
                                for dep in rule.dependencies]
         for context in contexts:
-            triggers = [entry for entry in context.entries if trigger_pattern.search(texts[entry.line.id])]
+            triggers = [entry for entry in context.entries
+                        if _is_trigger(trigger_texts[entry.line.id], trigger_pattern, exclude_pattern)]
             if not triggers:
                 continue
-            for dep, pattern, condition in dependency_patterns:
-                relevant_triggers = ([entry for entry in triggers if condition.search(texts[entry.line.id])]
-                                     if condition else triggers)
+            for dep, pattern, condition, dep_exclude in dependency_patterns:
+                relevant_triggers = [entry for entry in triggers
+                                     if (condition is None or condition.search(trigger_texts[entry.line.id]))
+                                     and not (dep_exclude and dep_exclude.search(trigger_texts[entry.line.id]))]
                 if not relevant_triggers:
                     continue
                 matches = [entry for entry in context.entries if pattern.search(texts[entry.line.id])]

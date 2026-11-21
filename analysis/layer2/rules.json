@@ -3,6 +3,8 @@
     "RuleID": "L2.FLOOR.SCREED",
     "Category": "Floor screed and finishes",
     "TriggerRegex": "(?i)\\b([a-zäöüß]*estrich[a-zäöüß]*|hohlraumboden|doppelboden)\\b",
+    "TriggerIn": "short_text",
+    "ExcludeRegex": "(?i)\\b(abbrechen|abbruch\\w*|rückbau\\w*|zurückbauen|ausbauen|demontage|demontieren|entfernen|entsorg\\w*|aufnehmen|abtragen|stemmen|fräsen)\\b",
     "Required_Dependencies": [
       {"DependencyName": "Edge insulation", "Regex": "(?i)\\b(randdämmstreifen)\\b", "CheckType": "Boolean", "SuggestedText": "Randdämmstreifen"},
       {"DependencyName": "Underlays and insulation", "Regex": "(?i)\\b(?:trittschall)?dämmung\\b|\\b(?:eps|xps)\\b", "CheckType": "Boolean", "SuggestedText": "Trittschalldämmung unter Estrich"},
@@ -14,10 +16,12 @@
   {
     "RuleID": "L2.CONCRETE.STRUCTURE",
     "Category": "Concrete structures",
-    "TriggerRegex": "(?i)\\b(beton|bodenplatte|stb-wand|stb-decke|ortbeton)\\b",
+    "TriggerRegex": "(?i)\\b(beton|ortbeton|stahlbeton\\w*|bodenplatte|fundamentplatte|stb(?:-\\w+)?|streifenfundament\\w*|einzelfundament\\w*)\\b",
+    "TriggerIn": "short_text",
+    "ExcludeRegex": "(?i)\\b(abbrechen|abbruch\\w*|rückbau\\w*|zurückbauen|ausbauen|demontage|demontieren|entfernen|entsorg\\w*|aufnehmen|abtragen|stemmen|fräsen|\\w*fertigteil\\w*|bordstein\\w*|pflaster\\w*|\\w*rohr\\w*|\\w*schacht\\w*|sauberkeitsschicht|magerbeton|füllbeton|unterbeton|betonstahl|behelf\\w*|vorhalt\\w*|\\w*bohr\\w*|sägen|\\w*schnitt\\w*|durchbr\\w*|sanier\\w*|instandsetz\\w*)\\b",
     "Required_Dependencies": [
       {"DependencyName": "Formwork", "Regex": "(?i)\\b(schalung|randschalung|deckenschalung)\\b", "CheckType": "Boolean", "SuggestedText": "Schalung für Ortbetonbauteile"},
-      {"DependencyName": "Reinforcement steel", "Regex": "(?i)\\b(betonstahl|baustahl|bewehrung|matten|bst\\s*500)\\b", "CheckType": "Boolean", "SuggestedText": "Betonstahl / Bewehrung gemäß Statik"},
+      {"DependencyName": "Reinforcement steel", "Regex": "(?i)\\b(betonstahl|baustahl|bewehrung|matten|bst\\s*500)\\b", "CheckType": "Boolean", "SuggestedText": "Betonstahl / Bewehrung gemäß Statik", "TriggerRegex": "(?i)\\b(stahlbeton\\w*|stb(?:-\\w+)?|ortbeton|bodenplatte|fundamentplatte|bewehrt\\w*)\\b", "ExcludeRegex": "(?i)\\b(unbewehrt\\w*|c\\s?8/10|c\\s?12/15)\\b"},
       {"DependencyName": "Clean layer", "Regex": "(?i)\\b(sauberkeitsschicht|pe-folie)\\b", "CheckType": "Boolean", "TriggerRegex": "(?i)\\b(bodenplatte|floor\\s+slab)\\b", "SuggestedText": "Sauberkeitsschicht / PE-Folie unter Bodenplatte"}
     ]
   },
@@ -25,6 +29,8 @@
     "RuleID": "L2.DRYWALL.PARTITION",
     "Category": "Drywall partitions",
     "TriggerRegex": "(?i)\\b(metallständerwand|gkb|gkf|trockenbauwand|vorsatzschale)\\b",
+    "TriggerIn": "short_text",
+    "ExcludeRegex": "(?i)\\b(abbrechen|abbruch\\w*|rückbau\\w*|zurückbauen|ausbauen|demontage|demontieren|entfernen|entsorg\\w*|aufnehmen|abtragen|stemmen|fräsen)\\b",
     "Required_Dependencies": [
       {"DependencyName": "Insulation and acoustics", "Regex": "(?i)\\b(mineralwolle|trennwandplatte|dämmung)\\b", "CheckType": "QuantityMatch", "QuantityUnit": "m²", "SuggestedText": "Mineralwolle / Trennwanddämmung"},
       {"DependencyName": "Joint filling", "Regex": "(?i)\\b(spachtelung|fugen|verspachtelt)\\b", "CheckType": "QuantityMatch", "QuantityUnit": "m²", "SuggestedText": "Fugenverspachtelung der Trockenbauwände"},
@@ -35,6 +41,8 @@
     "RuleID": "L2.PAINT.COATING",
     "Category": "Painting works",
     "TriggerRegex": "(?i)\\b(dispersionsfarbe|anstrich|lackierung|silikatfarbe)\\b",
+    "TriggerIn": "short_text",
+    "ExcludeRegex": "(?i)\\b(abbrechen|abbruch\\w*|rückbau\\w*|zurückbauen|ausbauen|demontage|demontieren|entfernen|entsorg\\w*|aufnehmen|abtragen|stemmen|fräsen)\\b",
     "Required_Dependencies": [
       {"DependencyName": "Masking and protection", "Regex": "(?i)\\b(abdeckarbeiten|abdecken|schutzfolie|abkleben)\\b", "CheckType": "Boolean", "SuggestedText": "Abdeck- und Abklebearbeiten"},
       {"DependencyName": "Surface preparation and primer", "Regex": "(?i)\\b(tiefengrund|haftgrund|grundierung)\\b", "CheckType": "QuantityMatch", "QuantityUnit": "m²", "SuggestedText": "Grundierung der Anstrichflächen"}
@@ -43,7 +51,9 @@
   {
     "RuleID": "L2.ROOF.WATERPROOFING",
     "Category": "Flat roof waterproofing",
-    "TriggerRegex": "(?i)\\b(dachabdichtung|bitumenbahn|dachfolie|fpo|epdm)\\b",
+    "TriggerRegex": "(?i)\\b(dachabdichtung\\w*|\\w*dachbahn\\w*|dachfolie\\w*|flachdach\\w*|(?:fpo|epdm|pvc|tpo)[- ]?(?:dach)?(?:bahn|folie|abdichtung)\\w*)\\b",
+    "TriggerIn": "short_text",
+    "ExcludeRegex": "(?i)\\b(abbrechen|abbruch\\w*|rückbau\\w*|zurückbauen|ausbauen|demontage|demontieren|entfernen|entsorg\\w*|aufnehmen|abtragen|stemmen|fräsen|dichtung\\w*|dichtring\\w*|\\w*manschette\\w*|\\w*rohr\\w*|muffe\\w*|\\w*kupplung\\w*|schieber\\w*|ventil\\w*)\\b",
     "Required_Dependencies": [
       {"DependencyName": "Vapor barrier", "Regex": "(?i)\\b(dampfsperre|dampfbremse)\\b", "CheckType": "QuantityMatch", "QuantityUnit": "m²", "SuggestedText": "Dampfsperre / Dampfbremse für Flachdach"},
       {"DependencyName": "Thermal insulation", "Regex": "(?i)\\b(wärmedämmung|gefälledämmung|eps|pur)\\b", "CheckType": "QuantityMatch", "QuantityUnit": "m²", "SuggestedText": "Wärme- / Gefälledämmung für Flachdach"},
@@ -51,4 +61,3 @@
     ]
   }
 ]
-

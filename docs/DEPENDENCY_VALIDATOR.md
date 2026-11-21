@@ -84,7 +84,9 @@ Numbers are parsed as `Decimal`, including German decimal commas and grouped for
 | Painting | Masking/protection; primer area |
 | Flat roof waterproofing | Vapor barrier area; thermal insulation area; drainage |
 
-Matching searches each line's short text, long text, and tags, case insensitively. A line matching several synonyms in the same dependency is counted once. A bundled description can satisfy a dependency on the same line. Multiple matching lines, including different floor covering types, are summed. Conditional positions, alternatives, unit-price-only positions, and explicitly nonpositive quantities neither trigger nor satisfy these checks.
+**Triggers** are searched in each line's short text and tags (the long text only when there is no short text), and lines matching the rule's `ExcludeRegex` are never triggers. Long texts mention materials in passing ("Dichtmanschette aus EPDM", "Stützen aus Beton werden bauseits erstellt"), and on the real files in `Data/` that made pipe couplings look like roofs and pipe removals look like concrete jobs. The bundled rules exclude demolition and removal (abbrechen, Rückbau, Demontage, ausbauen, entsorgen), and for concrete also precast parts, pipes, manholes, kerbs, lean or blinding concrete, temporary or rental items and work on existing concrete (Kernbohrung, sägen, Sanierung). Reinforcement is only required for reinforced elements (Stahlbeton, StB, Ortbeton, Bodenplatte), not for `unbewehrt`. Set `"TriggerIn": "all"` on a rule to search long texts again.
+
+**Dependencies** are searched in each line's short text, long text and tags, case insensitively. A line matching several synonyms in the same dependency is counted once. A bundled description can satisfy a dependency on the same line. Multiple matching lines, including different floor covering types, are summed. Conditional positions, alternatives, unit-price-only positions, and explicitly nonpositive quantities neither trigger nor satisfy these checks.
 
 Scope options:
 
@@ -156,7 +158,7 @@ Rules live in [analysis/layer2/rules.json](../analysis/layer2/rules.json); no co
 ]
 ```
 
-`TolerancePct` is a fraction in `[0, 1)` and overrides the CLI/global tolerance for that dependency. `QuantityUnit` defaults to `m²` and must be canonical. A dependency-level `TriggerRegex` narrows the parent trigger, used for concrete floor slabs. `SuggestedText` enables a reviewable proposal. Python regexes and `/pattern/i` notation are supported. Derived finding IDs append `_NEEDS_<DEPENDENCY_NAME>` to the group's `RuleID`; dependency names must yield distinct ASCII keys. Keep names stable when human decisions already reference them.
+Rule-level `TriggerIn` (`short_text` by default, or `all`) chooses where the trigger is searched, and `ExcludeRegex` drops lines from the triggers. A dependency can also have its own `ExcludeRegex`, which drops triggers for that dependency only, e.g. `unbewehrt` for reinforcement. `TolerancePct` is a fraction in `[0, 1)` and overrides the CLI/global tolerance for that dependency. `QuantityUnit` defaults to `m²` and must be canonical. A dependency-level `TriggerRegex` narrows the parent trigger, used for concrete floor slabs. `SuggestedText` enables a reviewable proposal. Python regexes and `/pattern/i` notation are supported. Derived finding IDs append `_NEEDS_<DEPENDENCY_NAME>` to the group's `RuleID`; dependency names must yield distinct ASCII keys. Keep names stable when human decisions already reference them.
 
 ## Files
 

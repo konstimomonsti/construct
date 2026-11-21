@@ -376,6 +376,68 @@ class CliTests(unittest.TestCase):
                 self.assertEqual(caught.exception.code, 2)
 
 
+class FalsePositiveTests(unittest.TestCase):
+    """Texts taken from the GAEB files in Data/ that used to raise dependency warnings."""
+
+    def rules_hit(self, *lines):
+        return {f.rule_id for f in run(input_for(*lines), [])}
+
+    def test_material_in_long_text_is_not_a_trigger(self):
+        coupling = line("k", "Flexible Rohrkupplung, zugfest, DN 100", "4", "St",
+                        long_text="Dichtmanschette aus EPDM, Hersteller: '..........'")
+        removal = line("d", "Demontage der bestehenden Rohrleitungen", "1", "psch",
+                       long_text="Rohrleitungsstützen aus Beton werden bauseits entfernt.")
+        precast = line("e", "Einlaufbauwerk, Fertigteil", "1", "St",
+                       long_text="Bauwerk bestehend aus: Bodenplatte 3,00 x 1,20 m")
+        self.assertEqual(self.rules_hit(coupling, removal, precast), set())
+
+    def test_demolition_precast_and_temporary_items_are_excluded(self):
+        for text in ["Bordstein Beton abbrechen TB10/25", "Rückbau Bordstein Beton zur Wiederverwendung",
+                     "Bestehende Bachverrohrung DN 600 Beton ausbauen, entsorgen",
+                     "Behelfsüberfahrt L 2-4m Stahlbeton herstellen", "Estrich entfernen und entsorgen",
+                     "Kernbohrung Stahlbeton/Mauerwerk Durchm. 400 bis 500mm",
+                     "Rohrkupplung mit EPDM-Dichtung", "Stahlbetonrohre DN 800 liefern und verlegen"]:
+            with self.subTest(text=text):
+                self.assertEqual(self.rules_hit(line("a", text, "10", "m")), set())
+
+    def test_real_work_still_triggers(self):
+        wall = self.rules_hit(line("w", "Stahlbetonwand C30/37, d = 25 cm", "20", "m³"))
+        self.assertIn("L2.CONCRETE.STRUCTURE_NEEDS_FORMWORK", wall)
+        self.assertIn("L2.CONCRETE.STRUCTURE_NEEDS_REINFORCEMENT_STEEL", wall)
+        roof = self.rules_hit(line("r", "EPDM-Dachbahn verlegen", "300", "m²"))
+        self.assertTrue(any(rule.startswith("L2.ROOF.") for rule in roof))
+
+    def test_unreinforced_concrete_needs_no_reinforcement(self):
+        found = self.rules_hit(line("f", "Streifenfundament C25/30 unbewehrt", "12", "m³"))
+        self.assertIn("L2.CONCRETE.STRUCTURE_NEEDS_FORMWORK", found)
+        self.assertNotIn("L2.CONCRETE.STRUCTURE_NEEDS_REINFORCEMENT_STEEL", found)
+
+    def test_trigger_in_all_searches_long_text(self):
+        spec = {"RuleID": "L2.TEST.ALL", "Category": "Test", "TriggerRegex": "primary", "TriggerIn": "all",
+                "Required_Dependencies": [{"DependencyName": "Finish", "Regex": "finish", "CheckType": "Boolean"}]}
+        item = line("a", "Bauteil", long_text="primary element")
+        self.assertEqual(len(run(input_for(item), [], rules=[RuleSpec.model_validate(spec)])), 1)
+        spec["TriggerIn"] = "short_text"
+        self.assertEqual(run(input_for(item), [], rules=[RuleSpec.model_validate(spec)]), [])
+
+    def test_invalid_exclude_regex_is_rejected(self):
+        with self.assertRaises(ValueError):
+            RuleSpec.model_validate({"RuleID": "L2.TEST.BAD", "Category": "Test", "TriggerRegex": "x",
+                                     "ExcludeRegex": "(", "Required_Dependencies": [
+                                         {"DependencyName": "Y", "Regex": "y", "CheckType": "Boolean"}]})
+
+    def test_real_gaeb_files_raise_no_dependency_warnings(self):
+        from analysis.adapter import from_file
+        from analysis.runner import analyze as run_pipeline
+        files = [p for p in sorted((ROOT / "Data").glob("*"))
+                 if p.suffix.lower()[:2] in {".x", ".d"} and p.suffix[2:].isdigit()]
+        self.assertTrue(files)
+        for path in files:
+            with self.subTest(file=path.name):
+                result = run_pipeline(from_file(path), [1, 2])
+                warnings = [f.rule_id for f in result.findings if f.layer == 2 and f.severity == "warning"]
+                self.assertEqual(warnings, [])
+
 
 if __name__ == "__main__":
     unittest.main()
