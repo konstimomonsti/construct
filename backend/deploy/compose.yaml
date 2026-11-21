@@ -76,6 +76,7 @@ services:
       ANALYSIS_L3_MODEL: ${ANALYSIS_L3_MODEL:-}
       OLLAMA_HOST: ${OLLAMA_HOST:-http://host.docker.internal:11434}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      BILLBUILD_CATALOGUE_MODEL: ${BILLBUILD_CATALOGUE_MODEL:-}
       ANALYSIS_L3_CACHE: /tmp/layer3
     ports:
       - "127.0.0.1:${BACKEND_PORT:-8080}:8080"

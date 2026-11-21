@@ -209,10 +209,10 @@ TEMPLATES: dict[str, tuple[str, str]] = {
         "genauen Leistungsumfang und die Abgrenzung mit."),
 }
 
-_L2_SINGLE = ("Zu {refs} ist keine Position für {dependency} enthalten. Bitte teilen Sie mit, ob diese "
+_L2_SINGLE = ("Es ist keine Position für {dependency} enthalten. Bitte teilen Sie mit, ob diese "
               "Leistung in einer anderen Position enthalten ist, bauseits erbracht wird oder zusätzlich "
               "anzubieten ist.")
-_L2_SHORTFALL = ("Zu {refs} sind {dependency} nur mit {found} {unit} enthalten, bei {needed} {unit} der "
+_L2_SHORTFALL = ("Für {dependency} sind nur {found} {unit} enthalten, bei {needed} {unit} der "
                  "zugehörigen Leistung. Bitte teilen Sie mit, ob die Menge zu ergänzen ist oder die Leistung "
                  "an anderer Stelle enthalten ist.")
 
@@ -227,28 +227,31 @@ def _number(value: Any) -> str:
     return f"{number:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".").rstrip("0").rstrip(",")
 
 
-def _dependency_question(finding: Finding, refs: list[str]) -> str | None:
+def _dependency_question(finding: Finding) -> str | None:
     evidence = finding.evidence or {}
     if evidence.get("reason") not in ("missing", "quantity_shortfall"):
         return None  # "not assessable" is our uncertainty, not a gap in the tender
     key = finding.rule_id.split("_NEEDS_", 1)[-1]
     dependency = DEPENDENCY_DE.get(key) or str(evidence.get("dependency") or key.replace("_", " ").title())
-    where = ("Pos. " + _oz_list(refs)) if refs else "diesem Leistungsbereich"
     if evidence.get("reason") == "quantity_shortfall" and evidence.get("trigger_quantity") is not None:
         if evidence.get("dependency_quantity") is None:
             return None
-        return _L2_SHORTFALL.format(refs=where, dependency=dependency, unit=evidence.get("quantity_unit") or "",
+        return _L2_SHORTFALL.format(dependency=dependency, unit=evidence.get("quantity_unit") or "",
                                     found=_number(evidence.get("dependency_quantity")),
                                     needed=_number(evidence.get("trigger_quantity")))
-    return _L2_SINGLE.format(refs=where, dependency=dependency)
+    return _L2_SINGLE.format(dependency=dependency)
 
 
 def has_template(rule_id: str) -> bool:
     return rule_id in TEMPLATES or ("_NEEDS_" in rule_id and rule_id.startswith("L2."))
 
 
-def _body(text: str) -> str:
-    return re.sub(r"^(?:Zu\s+)?Pos\.\s+[^:]+:\s*", "", " ".join(text.split()), flags=re.I)
+def _body(text: str, refs: list[str]) -> str:
+    normalized = " ".join(text.split())
+    prefix = "Zu Pos. " + _oz_list(refs)
+    if normalized.casefold().startswith(prefix.casefold()) and normalized[len(prefix):len(prefix) + 1] in {" ", ":", ""}:
+        return normalized[len(prefix):].lstrip(" :")
+    return re.sub(r"^(?:Zu\s+)?Pos\.\s+[^:]+:\s*", "", normalized, flags=re.I)
 
 
 def _excluded(finding: Finding) -> bool:
@@ -275,7 +278,7 @@ def build_questions(analysis_input: AnalysisInput, findings: list[Finding], risk
     represented: set[str] = set()
 
     def add(rule_id, section_id, refs, text, finding_ids, item_ids, order, topic, template=None):
-        body = _body(text)
+        body = _body(text, refs)
         key = (rule_id, section_id, template or body)
         group = groups.setdefault(key, {"refs": [], "ids": set(), "items": set(), "order": order,
                                         "topic": topic, "template": template, "body": body})
@@ -304,7 +307,7 @@ def build_questions(analysis_input: AnalysisInput, findings: list[Finding], risk
         if isinstance(explicit, str) and explicit.strip():
             text = explicit.strip()
         elif finding.rule_id.startswith("L2.") and "_NEEDS_" in finding.rule_id:
-            text = _dependency_question(finding, refs)
+            text = _dependency_question(finding)
         elif finding.rule_id in TEMPLATES:
             item = _Item(finding, refs[0], _shorten(line.short_text if line else section.title if section else ""))
             extras = {**finding.evidence, "pos": _pos(item), "oz": refs[0], "short_text": item.short_text,
@@ -358,7 +361,8 @@ def build_questions(analysis_input: AnalysisInput, findings: list[Finding], risk
         refs.sort(key=lambda code: (order_by_code.get(code, -1), code))
         ids = sorted(group["ids"])
         identity = "|".join([rule_id, section_id or "", body, *sorted(group["items"])])
-        text = f"Zu Pos. {_oz_list(refs)}: {body}"
+        separator = " " if re.match(r"^(?:ist|sind)\b", body, re.I) else ": "
+        text = f"Zu Pos. {_oz_list(refs)}{separator}{body}"
         if len(refs) > 1 and group["template"]:
             text = TEMPLATES[group["template"]][1].format_map(_Safe({"ozs": _oz_list(refs), "n": len(refs)}))
         question = BidderQuestion(id="q_" + sha256(identity.encode()).hexdigest()[:20], rule_id=rule_id,

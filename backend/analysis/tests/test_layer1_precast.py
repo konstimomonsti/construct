@@ -56,3 +56,22 @@ def test_later_mentions_do_not_classify_the_item(short, unit):
 
 def test_element_code_prefix_still_classifies():
     assert [f.rule_id for f in selected("FS 01: FT-Sockel, Sandwichelement", unit="kg")] == ["L1.UNIT.TRADE_MISMATCH"]
+
+
+@pytest.mark.parametrize("text,unit,item_name,expected", [
+    ("Zulage Aussparung", "m", "Zulage für Aussparungen/Öffnungen", "St"),
+    ("Betonstahl", "m", "Betonstahl", "t, kg"),
+    ("Werkstattpläne", "m", "Werkstatt- und Montagepläne", "psch, h"),
+])
+def test_trade_unit_finding_uses_readable_names_and_tender_units(text, unit, item_name, expected):
+    [found] = selected(text, unit=unit)
+    assert item_name in found.message and item_name in found.evidence["bieterfrage_de"]
+    assert f"expected {expected}" in found.message
+    assert f"(üblich: {expected})" in found.evidence["bieterfrage_de"]
+    assert "opening_surcharge" not in found.message + found.evidence["bieterfrage_de"]
+
+
+def test_trade_unit_question_keeps_raw_area_notation():
+    [found] = selected("Zulage Öffnung", unit="m²")
+    assert " in m2 beabsichtigt" in found.evidence["bieterfrage_de"]
+    assert "(üblich: St)" in found.evidence["bieterfrage_de"]

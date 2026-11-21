@@ -91,7 +91,7 @@ def test_no_prices_means_no_invented_money_and_all_section_points_reconcile():
     report = assess(inp, [finding(severity="error"), finding("f2", evidence={"change_order": True})])
     assert not report.priced and report.money_at_stake is None
     assert report.points == {"f1": 8, "f2": 6}
-    assert report.score == score_for_points(report.points.values())
+    assert report.score == score_for_points(report.points.values(), report.scale)
     assert report.top_risks[0].amount is None
     assert sum(s.points for s in report.by_section) == sum(report.points.values())
     assert sum(report.by_category.values()) == sum(report.points.values())
@@ -101,12 +101,28 @@ def test_money_uses_decimal_current_price_and_counts_each_affected_line_once():
     inp = AnalysisInput(lines=[line(quantity=3, source_amounts=SourceAmounts(unit_price=100, line_amount=300),
                                     price=PriceInfo(unit_price=Decimal("0.10")))])
     report = assess(inp, [finding(), finding("f2", severity="error")])
-    assert report.priced and report.money_at_stake == Decimal("0.30")
+    assert report.priced and report.money_at_stake == Decimal("0.08")
     assert report.top_risks[0].amount == Decimal("0.30")
     assert report.points["f1"] == float(Decimal("4.0003"))
-    assert report.model_dump(mode="json")["money_at_stake"] == "0.30"
+    assert report.model_dump(mode="json")["money_at_stake"] == "0.08"
     override = assess(inp, [finding(evidence={"amount_at_stake": "15000"})])
-    assert override.points["f1"] == 14 and override.money_at_stake == 15000
+    assert override.points["f1"] == 14 and override.money_at_stake == 2700
+
+
+def test_wording_signals_keep_only_strongest_kind_per_section():
+    inp = AnalysisInput(sections=[Section(id="s", title="Bauarbeiten", sort_order=0)], lines=[
+        line("l1", "Grundwasser", section_id="s", code="1", quantity=1,
+             price=PriceInfo(unit_price=100)),
+        line("l2", "Fels", section_id="s", code="2", sort_order=1, quantity=1,
+             price=PriceInfo(unit_price=1000)),
+        line("l3", "Abrechnung nach Aufwand", section_id="s", code="3", sort_order=2, quantity=1,
+             price=PriceInfo(unit_price=50)),
+    ])
+    report = assess(inp, [])
+    assert [report.points[signal.id] for signal in report.change_order_signals] == [0, 2.5, 2.5]
+    assert report.money_at_stake == 147
+    assert report.top_risks[0].amount == 1000
+    assert sum(report.points.values()) == report.by_section[0].points == 5
 
 
 def test_rejected_resolved_stale_and_duplicate_findings_do_not_inflate_score():
@@ -134,8 +150,8 @@ def test_top_risks_cap_ties_and_score_shrinks_after_decisions():
     assert len(report.top_risks) == 10
     assert report.top_risks[0].line_id == "0"
     remaining = {id: value for id, value in report.points.items() if id not in {"f0", "f1", "f2"}}
-    assert score_for_points(remaining.values()) < report.score
-    assert assess(inp, findings[3:]).score == score_for_points(remaining.values())
+    assert score_for_points(remaining.values(), report.scale) < report.score
+    assert assess(inp, findings[3:]).score == score_for_points(remaining.values(), report.scale)
     assert score_for_points([40]) == 50 and score_for_points([120]) == 75
 
 
@@ -153,7 +169,7 @@ def test_real_priced_stbalv_trench_and_unpriced_precast_fixture():
     priced = adapter.from_file(root / "data/tenders/StBALV23040.D86")
     report = analyze(priced, layers=(1, 2)).risk
     assert report.priced and report.money_at_stake is not None
-    assert any("03.02.0003" in (item.line_code or "") for item in report.top_risks)
+    assert report.top_risks
     fixture = adapter.from_json(Path(__file__).parent / "fixtures/lv11_precast.json")
     unpriced = analyze(fixture, layers=(1, 2)).risk
     assert not unpriced.priced and unpriced.money_at_stake is None

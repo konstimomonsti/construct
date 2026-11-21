@@ -27,7 +27,10 @@ Root cause, in `backend/workspace_analysis.py`:
    compared with the source and no line was added, removed or moved there. Otherwise leave them `None`.
 3. Keep phase semantics: in a tender (83) the prices are the client's; in a bid or award (84/86) they're the bidder's.
    Don't change which analysis rules see them as `price` or `source_amounts`, beyond what step 1 needs.
-4. Tests in a new `backend/tests/test_workspace_analysis.py`. Call `_uploaded_input`, `_attach_source` and `run`
+4. **Also (from the task 07 walkthrough):** `_uploaded_input()` builds sections without a `code`, so risk-by-section
+   shows a literal `null` label in the UI. Set each section's `code` (the OZ it was built from, e.g. `02.02`), so
+   `risk.by_section[].code` is filled on uploads.
+5. Tests in a new `backend/tests/test_workspace_analysis.py`. Call `_uploaded_input`, `_attach_source` and `run`
    directly with an in-memory source (no DB): build the list snapshot the way the frontend sends it (see
    `_uploaded_input`'s input shape) from `data/demo/building_hall_planted.X83` parsed with the importer.
 
@@ -55,7 +58,8 @@ Root cause, in `backend/workspace_analysis.py`:
    upload path that the CLI doesn't also produce.
 4. `PYTHONPATH=backend:backend/importer python -m pytest -q backend/tests backend/analysis/tests` is green (on
    Windows, the 3 known font/MIME failures in `backend/tests` are acceptable; CI on Linux must be green).
-5. If you can run the local stack: upload the file in the UI and add a screenshot of the wrong-amount finding to the PR.
+5. A test proves that uploaded-list sections carry their OZ `code`, and `risk.by_section[].code` is never null for them.
+6. If you can run the local stack: upload the file in the UI and add a screenshot of the wrong-amount finding to the PR.
 
 ## Notes / blockers (fill in)
 
