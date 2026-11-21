@@ -389,14 +389,6 @@ function ListDetail({ doc }: { doc: ListDoc }) {
 
       <div className="flex min-w-0 items-center justify-between gap-3 pb-4">
         <TabsBar activeId={doc.id} folderId={folder?.id ?? doc.folderId} />
-        {doc.file && (
-          <a
-            href={`/tender-desk/?source=${encodeURIComponent(doc.id)}`}
-            className="shrink-0 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50"
-          >
-            Review original
-          </a>
-        )}
         <ExportMenu listId={doc.id} doc={doc} selectedIds={[...selected]} />
       </div>
 

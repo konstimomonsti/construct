@@ -33,12 +33,15 @@
 		}
 	}
 
+	@removed_ui path /tender-desk /tender-desk/*
+	handle @removed_ui {
+		respond 404
+	}
+
 	# Everything else is the frontend (frontend/ or its build output). Unknown paths fall back to
 	# index.html so client-side routes work on reload. Keep the CSP in sync with backend/server.py.
 	handle {
 		root * /srv
-		@tender_desk path /tender-desk /tender-desk/
-		rewrite @tender_desk /tender-desk/index.html
 		header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self'; frame-src 'self' blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
 		@pdf path_regexp pdf (?i)^/files/.+\.pdf$
 		header @pdf {

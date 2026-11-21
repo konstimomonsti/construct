@@ -114,18 +114,6 @@ export function Sidebar() {
                 )}
               </NavLink>
             ))}
-            <a
-              href="/tender-desk/"
-              aria-label="Tender Desk"
-              title="Tender Desk"
-              className={clsx(
-                'flex items-center gap-2.5 rounded-lg py-1.5 text-[13px] text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900',
-                rail ? 'justify-center px-0' : 'px-3',
-              )}
-            >
-              <Icon name="fact_check" size={18} className="text-slate-400" />
-              {!rail && <span>Tender Desk</span>}
-            </a>
           </nav>
         </div>
       </div>

@@ -14,9 +14,9 @@ The database uses PostgreSQL 18 and Docker Compose locally and on a VPS. The [sc
 
 ## Web app
 
-BillBuild at `/` provides the project and budget library. Open **Tender Desk** from its sidebar to
-upload files and work on shared PostgreSQL drafts. **Review original** on a bundled BillBuild list
-lets you import its source document into the selected Tender Desk project. Edits in the budget workspace are stored in the browser. Tender Desk saves its own edits and review decisions to PostgreSQL.
+BillBuild at `/` provides the project and budget library. Edits in this workspace are stored in
+the browser. The [HTTP API](docs/API.md) provides database-backed drafts, catalogue analytics, and
+saved risk assessments.
 
 On a saved draft, **Catalogue analytics** groups existing catalogue links by product, unit and
 supply or installed scope, with source positions and included quantities. Seed the Challenge A
@@ -65,9 +65,9 @@ docker compose exec db sh -c 'psql -X -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
 | `frontend/` | The product UI. It is swappable: replace the folder and rebuild ([contract](frontend/README.md)) |
 | `deploy/`, `compose.prod.yaml`, `deploy.sh` | Production stack: Caddy (HTTPS, login, frontend files) in front of the backend |
 
-## Try the BOM MVP
+## Run BillBuild locally
 
-Start the database and backend, build BillBuild, then open [Tender Desk](http://127.0.0.1:8080/tender-desk/) or [BillBuild](http://127.0.0.1:8080/).
+Start the database and backend, build the frontend, then open [BillBuild](http://127.0.0.1:8080/).
 
 ```sh
 ./db/ops.sh up
@@ -75,11 +75,8 @@ Start the database and backend, build BillBuild, then open [Tender Desk](http://
 docker compose --profile app up -d --build backend
 ```
 
-1. Select or create a project. Choose a PDF, DOCX, GAEB file, or ZIP. After a ZIP import, select the scope document before opening its draft. **Open sample tender** uses the existing Challenge A import when present.
-2. Edit quantities, units, draft rates, descriptions, and total rules. Click a description to inspect the source location and any catalogue suggestion. The review filters show scope gaps, missing rates, and conditional positions.
-3. Save the draft. Export PDF, Word, GAEB XML 3.1 or 3.2 X83, XML 3.2 X82, legacy D83/D84/D86, or a ZIP of the PDF and Word files. X83 and D83 carry unpriced scope. D84 carries bid prices by position and is intended to accompany the tender scope. Exchange files require compatible position numbers, units, and numeric precision.
-
-Rates are draft inputs or reconciled source rates. The subtotal includes only priced positions marked `include`. Historical catalogue rates remain reference evidence. These downloads represent the saved draft and its scope, and the original uploaded file remains available from the editor. GAEB exchange uses the [published GAEB profiles](https://www.gaeb.de/de/service/downloads/gaeb-datenaustausch/).
+Use the [HTTP API](docs/API.md) to upload tender documents, create and price saved drafts,
+run analysis, and export a bill of quantities. The API stores uploaded originals and review decisions.
 
 Open [Data tables](http://127.0.0.1:8080/admin/tables) to browse the live schema without editing. Search and sort rows, select visible columns, and follow relationships. Large structured values show a preview and binary files show their byte size.
 
@@ -87,7 +84,7 @@ The backend binds to localhost. Set `BACKEND_PORT` in `.env` to change its port.
 
 ## Deploy on a VPS
 
-`compose.prod.yaml` runs PostgreSQL, schema migrations, the backend API, Caddy with both frontends, and nightly backups. Caddy handles HTTPS and the site login. It is the only public service. Every page and API call requires the site login.
+`compose.prod.yaml` runs PostgreSQL, schema migrations, the backend API, Caddy with BillBuild, and nightly backups. Caddy handles HTTPS and the site login. It is the only public service. Every page and API call requires the site login.
 
 Requirements: a Linux VPS with Docker Engine and the Compose plugin, ports 80 and 443 open, and a DNS name that points at the server. With only an IP address, use `1-2-3-4.sslip.io` (the IP with dashes). It resolves to the server and gets a real certificate.
 

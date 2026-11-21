@@ -3,23 +3,7 @@ import tailwindcss from '@tailwindcss/vite'
 import { defineConfig } from 'vite'
 
 export default defineConfig({
-  plugins: [
-    react(),
-    tailwindcss(),
-    {
-      name: 'tender-desk-route',
-      configureServer(server) {
-        server.middlewares.use((request, _response, next) => {
-          const url = request.url ?? ''
-          const path = url.split('?', 1)[0]
-          if (path === '/tender-desk' || path === '/tender-desk/') {
-            request.url = '/tender-desk/index.html' + url.slice(path.length)
-          }
-          next()
-        })
-      },
-    },
-  ],
+  plugins: [react(), tailwindcss()],
   server: {
     port: 5173,
     proxy: {

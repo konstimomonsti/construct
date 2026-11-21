@@ -1,8 +1,7 @@
-# Tender desk HTTP API
+# BillBuild HTTP API
 
-The backend (`backend/server.py`) is a JSON API. Any frontend in `frontend/` talks to it on the
-**same origin**, using relative URLs such as `/api/mvp/workspace`. There is no API base URL to
-configure, and no CORS.
+The backend (`backend/server.py`) exposes a same-origin JSON API under `/api`.
+Use relative URLs such as `/api/mvp/workspace` for browser requests.
 
 | Environment | Who serves the frontend | Who serves `/api`, `/admin`, `/healthz` |
 | --- | --- | --- |
