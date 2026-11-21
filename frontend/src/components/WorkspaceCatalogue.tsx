@@ -25,7 +25,7 @@ export type ResearchView = 'suggested' | 'matched' | 'unresolved' | null
  */
 /** the cited note a web suggestion adds to the long description */
 export const suggestionNote = (suggestion: NonNullable<CataloguePosition['suggestion']>) =>
-  `${suggestion.name} — ${suggestion.description}\nWikipedia (CC BY-SA 4.0) ${suggestion.url}`
+  `${suggestion.name} — ${suggestion.description}\n${suggestion.source} ${suggestion.url}`
 /** the long description with the note added, or null when it is already there */
 export function withSuggestion(position: Position, result: CataloguePosition): string | null {
   if (!result.suggestion) return null
@@ -186,9 +186,9 @@ export function CatalogueDetails({ result, position, onApply }: {
       {result.product && <p><strong>{result.product.name}</strong> · {result.product.category}</p>}
       {suggestion && <>
         <p><strong>{suggestion.name}</strong> · {suggestion.description}</p>
+        {suggestion.price && <p>Retail price: {money(Number(suggestion.price))} per product package. This is not the tender unit price.</p>}
         <div className="flex flex-wrap gap-x-2">
-          <a href={suggestion.url} target="_blank" rel="noreferrer" className="font-medium text-brand-700 underline">Source on {suggestion.source}</a>
-          <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noreferrer" className="text-slate-600 underline">CC BY-SA 4.0</a>
+          <a href={suggestion.url} target="_blank" rel="noreferrer" className="font-medium text-brand-700 underline">View product on {suggestion.source}</a>
         </div>
         <p>Check the source against the tender specifications before applying.</p>
         <Button size="sm" disabled={applied} onClick={() => onApply([position.long, note].filter(Boolean).join('\n\n'))}>

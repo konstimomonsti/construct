@@ -2,6 +2,7 @@
 
 from collections import defaultdict
 from decimal import Decimal, InvalidOperation
+from html.parser import HTMLParser
 import json
 import logging
 import os
@@ -9,7 +10,7 @@ from pathlib import PurePath
 import re
 from threading import Thread
 import time
-from urllib.parse import quote, urlencode
+from urllib.parse import quote, urljoin, urlparse
 from urllib.request import Request, urlopen
 
 import psycopg
@@ -24,8 +25,11 @@ from workspace_product_match import ProductMatcher, clean_description, clipped_d
 from workspace_product_references import PositionReferences
 
 LOG = logging.getLogger(__name__)
-WIKI = "https://de.wikipedia.org"
-USER_AGENT = "BillBuild/1.0 (https://github.com/konstimomonsti/construct)"
+MARKETS = (
+    ("OBI", "https://www.obi.de", "/search/{query}/"),
+    ("BAUHAUS", "https://www.bauhaus.info", "/suche/produkte?text={query}"),
+)
+USER_AGENT = "Mozilla/5.0 (compatible; BillBuild/1.0; +https://github.com/konstimomonsti/construct)"
 STOP_WORDS = set("und der die das für mit von auf aus bis den dem des nach oder zum zur "
                  "liefern herstellen einbauen einschl inkl einschließlich gemäß sowie st mm cm dn".split())
 
@@ -124,6 +128,15 @@ def status(connection, workspace, list_id, start=False, retry=False):
     with connection.transaction():
         if start:
             enqueue(connection, workspace, {list_id})
+        if web_research_enabled():
+            connection.execute(
+                """UPDATE workspace_catalogue_position
+                   SET state='queued', suggestion=NULL,
+                       input=input || '{"research_version":"market-v1"}'::jsonb
+                   WHERE workspace=%s AND list_id=%s AND state IN ('suggested','no_evidence')
+                     AND input->>'research_version' IS DISTINCT FROM 'market-v1'""",
+                (workspace, list_id),
+            )
         if retry:
             connection.execute(
                 "UPDATE workspace_catalogue_run SET state='queued' WHERE workspace=%s AND list_id=%s AND state='failed'",
@@ -441,10 +454,47 @@ def keywords(name):
     return [word for word in re.findall(r"[^\W\d_]{3,}", name.casefold()) if word not in STOP_WORDS][:8]
 
 
-def wiki_json(path):
-    request = Request(WIKI + path, headers={"User-Agent": USER_AGENT, "Accept": "application/json"})
+class ProductLists(HTMLParser):
+    """Read the public schema.org product list without depending on shop CSS classes."""
+
+    def __init__(self):
+        super().__init__()
+        self.in_json = False
+        self.products = []
+
+    def handle_starttag(self, tag, attrs):
+        self.in_json = tag == "script" and dict(attrs).get("type") == "application/ld+json"
+
+    def handle_endtag(self, tag):
+        if tag == "script":
+            self.in_json = False
+
+    def handle_data(self, data):
+        if not self.in_json:
+            return
+        try:
+            document = json.loads(data)
+        except ValueError:
+            return
+        for node in document if isinstance(document, list) else [document]:
+            if not isinstance(node, dict):
+                continue
+            if node.get("@type") == "Product":
+                self.products.append(node)
+            if node.get("@type") == "ItemList":
+                for entry in node.get("itemListElement", []):
+                    item = entry.get("item", entry) if isinstance(entry, dict) else None
+                    if isinstance(item, dict) and item.get("@type") == "Product":
+                        self.products.append(item)
+
+
+def market_products(base, path):
+    request = Request(base + path, headers={"User-Agent": USER_AGENT, "Accept": "text/html"})
     with urlopen(request, timeout=8) as response:
-        return json.loads(response.read(256 * 1024))
+        page = response.read(2 * 1024 * 1024).decode("utf-8", "replace")
+    parser = ProductLists()
+    parser.feed(page)
+    return parser.products
 
 
 def related(term, token):
@@ -457,25 +507,34 @@ def related(term, token):
 
 
 def research(name):
-    """A job can refine its search once. Report only cited public evidence with title overlap."""
+    """Find a cited merchant product, never a general article or a service quote."""
     terms = keywords(name)
-    if not terms:
+    if not terms or any(word in name.casefold() for word in ("bodenaustausch", "regiearbeiten", "baustelleneinrichtung")):
         return None
-    # the whole name first, then single words, longest (most specific) first; at most four searches per position
-    queries = list(dict.fromkeys((" ".join(terms[:6]), *sorted(terms, key=len, reverse=True))))[:4]
-    for query in queries:
-        pages = wiki_json("/w/rest.php/v1/search/page?" + urlencode({"q": query, "limit": 5}))["pages"]
-        for page in pages:
-            if not any(related(term, token) for term in terms for token in keywords(page["title"])):
-                continue
-            article = quote(page["key"], safe="")
-            summary = wiki_json(f"/api/rest_v1/page/summary/{article}")
-            if summary.get("type") == "standard" and summary.get("extract"):
-                extract = summary["extract"].split()
-                note = " ".join(extract[:25]) + ("…" if len(extract) > 25 else "")
-                return {"name": page["title"], "description": note,
-                        "url": f"{WIKI}/wiki/{article}", "source": "Wikipedia"}
-            break
+    queries = list(dict.fromkeys((" ".join(terms[:4]), terms[0], max(terms, key=len))))
+    for source, base, template in MARKETS:
+        for query in queries:
+            path = template.format(query=quote(query, safe=""))
+            try:
+                products = market_products(base, path)
+            except OSError as error:
+                LOG.info("%s product search unavailable: %s", source, type(error).__name__)
+                break
+            for product in products:
+                title = product.get("name")
+                if not isinstance(title, str) or not any(
+                    related(term, token) for term in terms for token in keywords(title)
+                ):
+                    continue
+                url = urljoin(base, str(product.get("url") or ""))
+                if urlparse(url).netloc != urlparse(base).netloc or "/p/" not in urlparse(url).path:
+                    continue
+                offer = product.get("offers") or {}
+                if isinstance(offer, list):
+                    offer = offer[0] if offer else {}
+                price = str(offer.get("price")) if isinstance(offer, dict) and offer.get("priceCurrency") == "EUR" and offer.get("price") else None
+                return {"name": title, "description": product.get("category") or "Building material",
+                        "url": url, "source": source, "price": price}
     return None
 
 
@@ -536,7 +595,8 @@ def research_next(connection):
         state, result, product = "failed", None, None
     connection.execute(
         """
-        UPDATE workspace_catalogue_position SET state=%s, suggestion=%s, product=%s, lease_until=NULL
+        UPDATE workspace_catalogue_position SET state=%s, suggestion=%s, product=%s, lease_until=NULL,
+            input=input || '{"research_version":"market-v1"}'::jsonb
         WHERE (workspace,list_id,position_id,attempts)=(%s,%s,%s,%s) AND state='researching'
         """, (state, Jsonb(result) if result else None, Jsonb(product) if product else None,
               task["workspace"], task["list_id"], task["position_id"], task["attempts"]),
