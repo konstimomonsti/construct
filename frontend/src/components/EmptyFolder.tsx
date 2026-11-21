@@ -1,5 +1,5 @@
 import { Button } from './ui'
-import { EmptyState, PageFrame, PageHeader, RowMenu } from './Kit'
+import { EmptyState, PageFrame, PageHeader, PaletteKey, RowMenu } from './Kit'
 import { pickAndImport } from '../lib/import'
 import { folderDescription, type FolderView } from '../lib/store'
 import { useUi } from '../lib/ui-store'
@@ -32,11 +32,18 @@ export function EmptyFolder({ folder: f, ancestors, dragging }: { folder: Folder
           title="Add your first list"
           text={
             <>
-              <span className="[@media(pointer:coarse)]:hidden">Drop GAEB or price files anywhere on this page, or choose them from your computer.</span>
+              <span className="[@media(pointer:coarse)]:hidden">Drop tender files or price sheets anywhere on this page, or choose them from your computer.</span>
               <span className="hidden [@media(pointer:coarse)]:inline">Choose tender files or price sheets from your device.</span>
             </>
           }
-          hint="GAEB, CSV, TSV, Excel, JSON, Word or PDF"
+          hint={
+            <>
+              {/* the same two terms as the instruction above, so it's clear where an Excel price sheet belongs */}
+              <span className="block">Tender files: GAEB, PDF or Word</span>
+              <span className="block">Price sheets: Excel, CSV, TSV or JSON</span>
+              <span className="mt-2 flex items-center justify-center gap-1.5 [@media(pointer:coarse)]:hidden">or press <PaletteKey /> to search everything</span>
+            </>
+          }
         >
           <Button variant="primary" size="lg" icon="upload" onClick={pick}>Import files</Button>
           <Button size="lg" icon="add" onClick={() => openDialog({ kind: 'blank-list', folderId: f.id })}>New list</Button>

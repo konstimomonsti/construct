@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { Button, Icon, toast } from '../components/ui'
+import { Button, Icon } from '../components/ui'
 import { Dock } from '../components/Dock'
 import { EmptyFolder } from '../components/EmptyFolder'
 import { DropOverlay, useDropImport } from '../components/DropImport'
 import { ListGrid } from '../components/ListCard'
 import { FolderGrid } from '../components/FolderCard'
-import { Chips, EmptyState, MetaLink, PageFrame, PageHeader, PillLink, RowMenu, Section, SortMenu, Summary, ToolButton, heroStatus } from '../components/Kit'
+import { Chips, EmptyState, PageFrame, PageHeader, PillLink, RowMenu, Section, SortMenu, Summary, ToolButton, heroStatus } from '../components/Kit'
 import { budgetStatus, int, money, moneyWhole, needsAttention, plural } from '../lib/format'
 import { pickAndImport } from '../lib/import'
 import { counts, folderDescription, folderPath, SORT_LABEL, useModel, useStore, type SortKey } from '../lib/store'
@@ -19,7 +19,7 @@ export function FolderPage() {
   const sort = useStore((s) => s.sort)
   const setSort = useStore((s) => s.setSort)
   const openDialog = useUi((s) => s.openDialog)
-  const { openLists, folderMenu } = useActions()
+  const { openLists, folderMenu, deleteLists } = useActions()
   const [view, setView] = useState<'all' | 'attention'>('all')
   const [selectMode, setSelectMode] = useState(false)
   const [sel, setSel] = useState<Set<string>>(new Set())
@@ -65,12 +65,8 @@ export function FolderPage() {
   const status = heroStatus(f, counted.map((l) => ({ tone: budgetStatus(l.total, l.cap).tone })), ['list', 'lists'])
   // list caps are set independently; say when they promise more than the project cap allows
   const listCaps = allLists.filter(counts).reduce((x, l) => x + (l.cap || 0), 0)
-  const capNote = f.cap > 0 && listCaps > f.cap ? (
-    <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1">
-      List caps add up to {moneyWhole(listCaps)}, {moneyWhole(listCaps - f.cap)} more than the project cap.
-      <MetaLink onClick={() => openDialog({ kind: 'edit-cap', target: 'folder', id: f.id })}>Edit cap</MetaLink>
-    </span>
-  ) : undefined
+  // allocation, not spend: said under the editable project cap it is measured against
+  const capNote = f.cap > 0 && listCaps > f.cap ? <span className="num">List caps add up to {moneyWhole(listCaps)}</span> : undefined
   const toggle = (id: string) =>
     setSel((s) => {
       const n = new Set(s)
@@ -93,12 +89,13 @@ export function FolderPage() {
     <PageFrame>
       {f.trashedAt && (
         <div role="status" className="mb-6 flex items-center justify-between gap-3 rounded-lg bg-amber-50 px-5 py-3 text-sm text-amber-900">
-          <span className="flex items-center gap-2"><Icon name="delete" size={18} />This {nested ? 'sub-project' : 'project'} is in the Trash.</span>
+          <span className="flex items-center gap-2"><Icon name="delete" size={18} />This {nested ? 'sub-project' : 'project'} was deleted.</span>
           <Button size="sm" variant="ghost" onClick={() => useStore.getState().patchFolder(f.id, { trashedAt: undefined })}>Restore</Button>
         </div>
       )}
       <PageHeader
         crumbs={crumbs}
+        wrap
         title={f.name}
         subtitle={[folderDescription(f), f.positions ? plural(f.positions, 'position', 'positions') : ''].filter(Boolean).join(' · ') || undefined}
         aside={
@@ -118,9 +115,9 @@ export function FolderPage() {
         total={f.total}
         cap={f.cap}
         status={status}
-        note={capNote}
+        capNote={capNote}
         onEditCap={() => openDialog({ kind: 'edit-cap', target: 'folder', id: f.id })}
-        meta={toPrice > 0 ? <span className="num"><strong className="font-semibold text-slate-900">{int(toPrice)}</strong> still to price</span> : undefined}
+        meta={toPrice > 0 ? <span className="num"><strong className="font-semibold text-slate-900">{int(toPrice)}</strong> not priced</span> : undefined}
       />
 
       {subfolders.length > 0 && (
@@ -134,6 +131,17 @@ export function FolderPage() {
           title="Lists"
           count={lists.length}
           focusable
+          filters={((allLists.length > 3 && flaggedLists > 0) || view !== 'all') && (
+            <Chips
+              label="Filter lists"
+              value={view}
+              onChange={setView}
+              options={[
+                { key: 'all', label: 'All' },
+                { key: 'attention', label: 'Needs attention', count: flaggedLists },
+              ]}
+            />
+          )}
           tools={
             <>
               {allLists.length > 3 && <SortMenu value={sort} options={SORT_LABEL} onChange={(k: SortKey) => setSort(k)} noun="lists" />}
@@ -143,19 +151,6 @@ export function FolderPage() {
             </>
           }
         >
-          {((allLists.length > 3 && flaggedLists > 0) || view !== 'all') && (
-            <div className="mb-3">
-              <Chips
-                label="Filter lists"
-                value={view}
-                onChange={setView}
-                options={[
-                  { key: 'all', label: 'All' },
-                  { key: 'attention', label: 'Needs attention', count: flaggedLists },
-                ]}
-              />
-            </div>
-          )}
           <p className="sr-only" aria-live="polite">{view === 'attention' ? `Showing ${plural(lists.length, 'list', 'lists')} near cap` : ''}</p>
           {lists.length ? (
             <ListGrid lists={lists} tone={f.tone} selectMode={selectMode} selected={sel} onToggle={toggle} />
@@ -174,13 +169,7 @@ export function FolderPage() {
           done()
         }}
         onDelete={() => {
-          const ids = [...sel]
-          ids.forEach((id) => useStore.getState().patchList(id, { trashedAt: new Date().toISOString() }))
-          toast(`Moved ${plural(ids.length, 'list', 'lists')} to Trash`, 'ok', {
-            label: 'Undo',
-            run: () => ids.forEach((id) => useStore.getState().patchList(id, { trashedAt: undefined })),
-          })
-          done()
+          deleteLists(allLists.filter((l) => sel.has(l.id)), done)
         }}
         onDone={done}
       />

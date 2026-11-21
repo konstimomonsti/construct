@@ -52,7 +52,7 @@ function NewFolder({ open, parent, initialName, onClose }: { open: boolean; pare
     toast(parent ? `Created sub-project "${n}"` : `Created project "${n}"`, 'ok', {
       label: 'Undo',
       run: () => {
-        useStore.getState().patchFolder(id, { trashedAt: new Date().toISOString() })
+        useStore.getState().purgeFolder(id)
         navigate(parent ? `/folder/${parent}` : '/')
       },
     })

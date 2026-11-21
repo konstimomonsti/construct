@@ -6,7 +6,6 @@ import { GridSkeleton, Page, Skeleton } from './components/Page'
 const AllProjects = lazy(() => import('./pages/AllProjects').then((m) => ({ default: m.AllProjects })))
 const ActiveBudgets = lazy(() => import('./pages/ActiveBudgets').then((m) => ({ default: m.ActiveBudgets })))
 const Archived = lazy(() => import('./pages/Collections').then((m) => ({ default: m.Archived })))
-const Trash = lazy(() => import('./pages/Trash').then((m) => ({ default: m.Trash })))
 const FolderPage = lazy(() => import('./pages/FolderPage').then((m) => ({ default: m.FolderPage })))
 const ListPage = lazy(() => import('./pages/ListPage').then((m) => ({ default: m.ListPage })))
 const CataloguePage = lazy(() => import('./pages/CataloguePage').then((m) => ({ default: m.CataloguePage })))
@@ -59,7 +58,7 @@ export default function App() {
               <>
                 <Route path="/active" element={<ActiveBudgets />} />
                 <Route path="/archived" element={<Archived />} />
-                <Route path="/trash" element={<Trash />} />
+                <Route path="/trash" element={<Navigate to="/" replace />} />
                 <Route path="/folder/:folderId" element={<FolderPage />} />
                 <Route path="/list/:listId" element={<ListPage />} />
                 <Route path="*" element={<NotFound />} />

@@ -15,9 +15,9 @@ const cleanLabel = (s: string) => s.trim()
 const pctFmt = new Intl.NumberFormat(LOCALE, { maximumFractionDigits: 1 })
 const sharePct = (v: number) => (v > 0 && v < 0.05 ? `< ${pctFmt.format(0.1)}%` : `${pctFmt.format(v)}%`)
 
-/* text fields: white with a ≥3:1 slate-500 boundary and a brand focus ring (no padding/height, so callers never stack conflicting classes) */
+/* text fields: a filled slate-100 well (no outline at rest), a slate-400 ring on hover and a brand focus ring (no padding/height, so callers never stack conflicting classes) */
 const fieldCls =
-  'w-full rounded-md bg-slate-100 text-sm text-slate-900 ring-1 ring-slate-400 outline-none ring-inset transition-[background-color,box-shadow] placeholder:text-slate-500 hover:bg-slate-200/70 focus:bg-white focus:ring-2 focus:ring-brand-700 aria-invalid:ring-2 aria-invalid:ring-rose-600'
+  'w-full rounded-md bg-slate-100 text-sm text-slate-900 ring-1 ring-transparent outline-none ring-inset transition-[background-color,box-shadow] placeholder:text-slate-500 hover:bg-slate-200/70 hover:ring-slate-400 focus:bg-white focus:ring-2 focus:ring-brand-700 aria-invalid:ring-2 aria-invalid:ring-rose-600'
 /* header icon buttons: 44px hit area on the phone sheet, 40px on desktop */
 const headBtn =
   'inline-flex size-11 shrink-0 items-center justify-center rounded-md text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 active:scale-[0.94] disabled:pointer-events-none disabled:text-slate-400 disabled:opacity-60 sm:size-10'
@@ -43,7 +43,7 @@ function Labeled({ label, children, className }: { label: string; children: Reac
 }
 
 export function DetailDrawer({
-  p, catalogue, findings, focusField, onClose, edited, added, onPatch, onCode, onQty, onUp, onReset, onMoveCategory, onRemove, onPrev, onNext, position, listTotal, cap, imported,
+  p, catalogue, suggestion, findings, focusField, onClose, edited, added, onPatch, onCode, onQty, onUp, onReset, onMoveCategory, onRemove, onPrev, onNext, position, listTotal, cap, imported, pendingPrice,
 }: {
   onRemove?: () => void
   /** live list total and cap, so a price change shows its effect on the budget */
@@ -51,6 +51,10 @@ export function DetailDrawer({
   cap?: number | null
   p: Position | null
   catalogue?: React.ReactNode
+  /** a catalogue price waiting for confirmation, shown right under the GP */
+  suggestion?: React.ReactNode
+  /** the suggested unit price behind `suggestion`, so the GP can show what confirming would add */
+  pendingPrice?: number | null
   findings?: React.ReactNode
   focusField?: string | null
   onClose: () => void
@@ -70,6 +74,8 @@ export function DetailDrawer({
   imported?: Pick<Position, 'qty' | 'unit' | 'up'> | null
 }) {
   const closeRef = useRef<HTMLButtonElement>(null)
+  const prevRef = useRef<HTMLButtonElement>(null)
+  const nextRef = useRef<HTMLButtonElement>(null)
   const asideRef = useRef<HTMLElement>(null)
   const uid = useId()
   const isDesktop = useIsDesktop()
@@ -132,6 +138,8 @@ export function DetailDrawer({
   const total = p ? positionTotal(p) : 0
   const share = p && p.up != null && listTotal ? (total / listTotal) * 100 : null
   const headroom = listTotal != null && cap ? cap - listTotal : null
+  // a suggestion waits: the GP shows what confirming it would add, set apart from confirmed money
+  const projected = p && p.up == null && pendingPrice != null ? Math.round(p.qty * pendingPrice * 100) / 100 : null
   const changed = !!p && !!imported && (imported.qty !== p.qty || imported.up !== p.up)
   const delta = changed && p && imported ? total - positionTotal(imported) : 0
 
@@ -154,7 +162,7 @@ export function DetailDrawer({
             onKeyDown={trap}
             role="dialog"
             aria-modal="true"
-            aria-label={`Position ${p.oz}`}
+            aria-label={`Position ${p.oz}${p.short && p.short !== '(ohne Kurztext)' ? ` ${p.short}` : ''}`}
             initial={isDesktop ? { x: '100%' } : { y: '100%' }}
             animate={isDesktop ? { x: 0 } : { y: 0 }}
             exit={{ ...(isDesktop ? { x: '100%' } : { y: '100%' }), transition: { duration: 0.16 } }}
@@ -168,10 +176,10 @@ export function DetailDrawer({
               </button>
               <div className="ml-auto flex items-center gap-0.5 sm:gap-1">
                 {navCounter('px-1')}
-                <button type="button" aria-label="Previous position" aria-keyshortcuts="k" title="Previous position (k)" onClick={onPrev} disabled={!onPrev} className={headBtn}>
+                <button ref={prevRef} type="button" aria-label="Previous position" aria-keyshortcuts="k" title="Previous position (k)" onClick={() => { onPrev?.(); requestAnimationFrame(() => { if (prevRef.current?.disabled) nextRef.current?.focus() }) }} disabled={!onPrev} className={headBtn}>
                   <Icon name="keyboard_arrow_up" size={22} />
                 </button>
-                <button type="button" aria-label="Next position" aria-keyshortcuts="j" title="Next position (j)" onClick={onNext} disabled={!onNext} className={headBtn}>
+                <button ref={nextRef} type="button" aria-label="Next position" aria-keyshortcuts="j" title="Next position (j)" onClick={() => { onNext?.(); requestAnimationFrame(() => { if (nextRef.current?.disabled) prevRef.current?.focus() }) }} disabled={!onNext} className={headBtn}>
                   <Icon name="keyboard_arrow_down" size={22} />
                 </button>
               </div>
@@ -192,7 +200,7 @@ export function DetailDrawer({
               />
             </div>
             <div className="relative flex min-h-0 flex-auto flex-col">
-              <div className="min-h-0 flex-auto space-y-5 overflow-y-auto px-5 pt-3 pb-6 sm:px-6" key={p.id}>
+              <div className="min-h-0 flex-auto space-y-5 overflow-y-auto px-5 pt-3 pb-10 sm:px-6" key={p.id}>
                 {/* title line: OZ prefix · Kurztext (edits in place) · badges */}
                 <div className="flex items-start gap-1.5">
                   <h2 className="sr-only">{`${p.oz} ${p.short}`}</h2>
@@ -220,6 +228,7 @@ export function DetailDrawer({
                     <label htmlFor={`${uid}-short`} className="sr-only">Kurztext</label>
                     <textarea
                       id={`${uid}-short`}
+                      lang="de"
                       key={`s-${p.short}`}
                       data-risk-field="short_text"
                       rows={1}
@@ -241,15 +250,28 @@ export function DetailDrawer({
                   </div>
                   {(edited || added) && (
                     <div className="flex shrink-0 flex-col items-end gap-1 pt-2">
-                      {edited && <span className="rounded-md px-2 py-0.5 text-xs font-semibold text-slate-700 ring-1 ring-slate-300 ring-inset" data-testid="edited-badge">Edited</span>}
+                      {edited && <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[13px] font-semibold text-slate-700" data-testid="edited-badge">Edited</span>}
                       {added && <span className="rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-800">Added by you</span>}
                     </div>
                   )}
                 </div>
                 <div className="border-y border-slate-200 py-4">
                   <div className="text-sm font-medium text-slate-600">Gesamtpreis (GP)</div>
-                  <div className="num display mt-1 text-[32px] leading-tight text-slate-900">{p.up == null ? 'Not priced yet' : money(total)}</div>
-                  <div className="num mt-1 text-sm text-slate-600">{qty(p.qty)} {p.unit} × {p.up == null ? 'no unit price' : money(p.up)}</div>
+                  {projected != null ? (
+                    <>
+                      {/* not money yet: slate, with a dashed underline like the pending EP in the ledger */}
+                      <div className="num display mt-1 text-[32px] leading-tight text-slate-500"><span className="underline decoration-slate-400 decoration-dashed decoration-2 underline-offset-[6px]">{money(projected)}</span></div>
+                      <div className="num mt-1.5 flex items-center gap-1.5 text-sm text-slate-600">
+                        <Icon name="schedule" size={16} className="text-slate-500" />
+                        <span>{qty(p.qty)} {p.unit} × {money(pendingPrice!)} suggested, not in the list total</span>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="num display mt-1 text-[32px] leading-tight text-slate-900">{p.up == null ? <span className="text-slate-500">Not priced</span> : money(total)}</div>
+                      <div className="num mt-1 text-sm text-slate-600">{qty(p.qty)} {p.unit} × {p.up == null ? 'no unit price' : money(p.up)}</div>
+                    </>
+                  )}
                   {changed && delta !== 0 && (
                     <div className="num mt-1 text-sm font-medium text-slate-800">{delta > 0 ? '+' : ''}{money(delta)} vs. imported</div>
                   )}
@@ -257,13 +279,19 @@ export function DetailDrawer({
                     <div className="num mt-3 flex flex-wrap items-center gap-x-1.5 text-sm text-slate-600">
                       {share != null && <span>{sharePct(share)} of list</span>}
                       {share != null && headroom != null && <span aria-hidden>·</span>}
-                      {headroom != null && st && (
+                      {headroom != null && st && projected != null && (
+                        headroom - projected >= 0
+                          ? <span>{money(headroom - projected)} left in the list cap after confirming</span>
+                          : <span className="font-semibold text-slate-900">{money(projected - headroom)} over the list cap after confirming</span>
+                      )}
+                      {headroom != null && st && projected == null && (
                         headroom >= 0
                           ? <span className={st.tone === 'ok' ? '' : 'font-semibold text-slate-900'}>{money(headroom)} left in the list cap</span>
                           : <span className="font-semibold text-slate-900">{money(-headroom)} over the list cap</span>
                       )}
                     </div>
                   )}
+                  {suggestion && <div className="mt-4">{suggestion}</div>}
                 </div>
                 <div className="space-y-2">
                   <div className="grid grid-cols-2 gap-3">
@@ -339,7 +367,7 @@ export function DetailDrawer({
                           aria-invalid={errOn('up') || undefined}
                           className={`${fieldCls} num h-11 pr-8 pl-3 text-right`}
                           defaultValue={upStr(p.up)}
-                          placeholder="Not priced"
+                          placeholder="—"
                           onBlur={(e) => {
                             const t = e.target.value.trim()
                             if (t === '') { if (p.up !== null) { onUp(null); didSave() } return }
@@ -379,7 +407,7 @@ export function DetailDrawer({
                     }}
                     aria-labelledby={`${uid}-cat ${uid}-cat-btn`}
                     title={crumbTitle}
-                    className="flex min-h-11 w-full items-center gap-3 rounded-md bg-slate-100 px-3.5 py-2 text-left text-sm text-slate-900 ring-1 ring-slate-400 ring-inset transition-colors hover:bg-slate-200/70"
+                    className="flex min-h-11 w-full items-center gap-3 rounded-md bg-slate-100 px-3.5 py-2 text-left text-sm text-slate-900 ring-1 ring-transparent ring-inset transition-[background-color,box-shadow] hover:bg-slate-200/70 hover:ring-slate-400"
                   >
                     <span className="min-w-0 flex-1">
                       <span className="line-clamp-2">{leaf?.oz ? <span className="num text-slate-600">{leaf.oz} </span> : null}{leafLabel}</span>
@@ -426,7 +454,7 @@ export function DetailDrawer({
                       onClick={() => { if (!window.getSelection()?.toString()) setEditLongId(p.id) }}
                     >
                       {p.long?.trim() ? (
-                        <div className="space-y-3 text-[15px] leading-relaxed text-pretty text-slate-800">
+                        <div lang="de" className="space-y-3 text-[15px] leading-relaxed text-pretty text-slate-800">
                           {reflow(p.long).map((para, i) => <p key={i}>{para}</p>)}
                         </div>
                       ) : (

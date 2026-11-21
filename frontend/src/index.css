@@ -61,6 +61,8 @@
 
   --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  /* the sidebar and the content beside it move on one curve, so the edge between them never drifts */
+  --ease-glide: cubic-bezier(0.32, 0.72, 0, 1);
 
   --animate-pulse-dot: pulse-dot 1.8s ease-in-out infinite;
   @keyframes pulse-dot {
@@ -184,10 +186,6 @@
   .num { font-family: var(--font-sans); font-variant-numeric: tabular-nums lining-nums; letter-spacing: -0.01em; }
   /* the poster's wide, heavy grotesk: page titles and hero figures only */
   .display { font-family: var(--font-heading); font-variation-settings: 'wdth' 125; font-weight: 800; letter-spacing: -0.02em; }
-  /* phones: section titles wrap, so they drop the wide cut for the normal width */
-  @media (width < 40rem) {
-    .ledger tr[data-group] th.display { font-variation-settings: normal; font-weight: 600; letter-spacing: normal; }
-  }
 }
 
 /* touch: every control is at least 44px */
@@ -236,6 +234,6 @@ h1, h2, h3 { text-wrap: balance; }
   .ledger td[data-a="hide"] { display: none; }
   .ledger:not([data-selecting]) tr:not([data-group]) { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "title total" "qty menu"; }
   .ledger:not([data-selecting]) td[data-a="cb"] { display: none; }
-  .ledger tr[data-group] { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: none; padding: 1.25rem 0.5rem 0.5rem; }
+  .ledger tr[data-group] { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: none; padding: 0.25rem 0.5rem; }
   .ledger tr[data-group] > * { display: block; padding: 0; }
 }
