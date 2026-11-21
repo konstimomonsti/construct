@@ -87,42 +87,6 @@ export function IconButton({
 }
 
 /* ------------------------------------------------------------------ */
-/* Budget meter (pill track with inline % label)                       */
-/* ------------------------------------------------------------------ */
-
-export const toneBar: Record<string, string> = {
-  ok: 'bg-jib',
-  caution: 'bg-amber-500',
-  warn: 'bg-orange-500',
-  over: 'bg-rose-600',
-  brand: 'bg-brand-600',
-  none: 'bg-slate-300',
-}
-
-/** slim progress track; the value is always printed next to it as text by the caller */
-export function Meter({ value, tone, height = 'h-1.5', className, label }: { value: number; tone: string; height?: string; className?: string; label?: string }) {
-  const w = Math.max(0, Math.min(100, value))
-  return (
-    <div
-      role="progressbar"
-      aria-valuemin={0}
-      aria-valuemax={100}
-      aria-valuenow={Math.round(w)}
-      aria-valuetext={`${Math.round(value)}%`}
-      aria-label={label ?? 'Budget used'}
-      className={clsx('relative flex-1 overflow-hidden rounded-[2px] bg-slate-300 ring-1 ring-slate-500/70 ring-inset', height, className)}
-    >
-      <motion.div
-        className={clsx('h-full rounded-[2px]', toneBar[tone] ?? toneBar.brand)}
-        initial={false}
-        animate={{ width: value > 0 ? `${Math.max(w, 1.5)}%` : 0 }}
-        transition={{ type: 'spring', stiffness: 260, damping: 32 }}
-      />
-    </div>
-  )
-}
-
-/* ------------------------------------------------------------------ */
 /* Popover menu (keyboard accessible)                                  */
 /* ------------------------------------------------------------------ */
 

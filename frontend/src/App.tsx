@@ -4,7 +4,7 @@ import { MotionConfig } from 'motion/react'
 import { Shell } from './components/Shell'
 import { GridSkeleton, Page, Skeleton } from './components/Page'
 const AllProjects = lazy(() => import('./pages/AllProjects').then((m) => ({ default: m.AllProjects })))
-const ActiveBudgets = lazy(() => import('./pages/ActiveBudgets').then((m) => ({ default: m.ActiveBudgets })))
+const PricedLists = lazy(() => import('./pages/PricedLists').then((m) => ({ default: m.PricedLists })))
 const Archived = lazy(() => import('./pages/Collections').then((m) => ({ default: m.Archived })))
 const FolderPage = lazy(() => import('./pages/FolderPage').then((m) => ({ default: m.FolderPage })))
 const ListPage = lazy(() => import('./pages/ListPage').then((m) => ({ default: m.ListPage })))
@@ -62,7 +62,7 @@ export default function App() {
             />
             {base ? (
               <>
-                <Route path="/active" element={<ActiveBudgets />} />
+                <Route path="/active" element={<PricedLists />} />
                 <Route path="/archived" element={<Archived />} />
                 <Route path="/trash" element={<Navigate to="/" replace />} />
                 <Route path="/folder/:folderId" element={<FolderPage />} />

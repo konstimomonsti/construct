@@ -12,7 +12,6 @@ export type DialogState =
   | { kind: 'folder-target'; action: 'move-document'; docId: string }
   | { kind: 'link-document'; doc: DocMeta }
   | { kind: 'blank-list'; folderId: string }
-  | { kind: 'edit-cap'; target: 'folder' | 'list'; id: string }
   | { kind: 'confirm'; title: string; body: string; confirmLabel: string; danger?: boolean; run: () => void }
   | null
 

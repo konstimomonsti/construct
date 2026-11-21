@@ -2,7 +2,7 @@ import { useEffect, useId, useRef, useState, useSyncExternalStore } from 'react'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import { Button, Icon, Menu, useInertRoot } from './ui'
-import { LOCALE, amount, budgetStatus, money, nbHyphen, parseNumber, qty } from '../lib/format'
+import { LOCALE, amount, money, nbHyphen, parseNumber, qty } from '../lib/format'
 import { positionTotal } from '../lib/money'
 import type { CategoryRef, Position } from '../lib/types'
 
@@ -43,12 +43,11 @@ function Labeled({ label, children, className }: { label: string; children: Reac
 }
 
 export function DetailDrawer({
-  p, catalogue, suggestion, findings, focusField, onClose, edited, added, onPatch, onCode, onQty, onUp, onReset, onMoveCategory, onRemove, onPrev, onNext, position, listTotal, cap, imported, pendingPrice,
+  p, catalogue, suggestion, findings, focusField, onClose, edited, added, onPatch, onCode, onQty, onUp, onReset, onMoveCategory, onRemove, onPrev, onNext, position, listTotal, imported, pendingPrice,
 }: {
   onRemove?: () => void
-  /** live list total and cap, so a price change shows its effect on the budget */
+  /** live list total for the position’s share of the estimate */
   listTotal?: number
-  cap?: number | null
   p: Position | null
   catalogue?: React.ReactNode
   /** a catalogue price waiting for confirmation, shown right under the GP */
@@ -144,11 +143,9 @@ export function DetailDrawer({
   }, [p?.id, onClose, onNext, onPrev]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const upStr = (v: number | null) => (v == null ? '' : amount(v))
-  const st = listTotal != null && cap ? budgetStatus(listTotal, cap) : null
 
   const total = p ? positionTotal(p) : 0
   const share = p && p.up != null && listTotal ? (total / listTotal) * 100 : null
-  const headroom = listTotal != null && cap ? cap - listTotal : null
   // a suggestion waits: the GP shows what confirming it would add, set apart from confirmed money
   const projected = p && p.up == null && pendingPrice != null ? Math.round(p.qty * pendingPrice * 100) / 100 : null
   const changed = !!p && !!imported && (imported.qty !== p.qty || imported.up !== p.up)
@@ -288,20 +285,9 @@ export function DetailDrawer({
                   {changed && delta !== 0 && (
                     <div className="num mt-1 text-sm font-medium text-slate-800">{delta > 0 ? '+' : ''}{money(delta)} vs. imported</div>
                   )}
-                  {(share != null || headroom != null) && (
+                  {share != null && (
                     <div className="num mt-3 flex flex-wrap items-center gap-x-1.5 text-sm text-slate-600">
-                      {share != null && <span>{sharePct(share)} of list</span>}
-                      {share != null && headroom != null && <span aria-hidden>·</span>}
-                      {headroom != null && st && projected != null && (
-                        headroom - projected >= 0
-                          ? <span>{money(headroom - projected)} left in the list cap after confirming</span>
-                          : <span className="font-semibold text-slate-900">{money(projected - headroom)} over the list cap after confirming</span>
-                      )}
-                      {headroom != null && st && projected == null && (
-                        headroom >= 0
-                          ? <span className={st.tone === 'ok' ? '' : 'font-semibold text-slate-900'}>{money(headroom)} left in the list cap</span>
-                          : <span className="font-semibold text-slate-900">{money(-headroom)} over the list cap</span>
-                      )}
+                      <span>{sharePct(share)} of list</span>
                     </div>
                   )}
                   {suggestion && <div className="mt-4">{suggestion}</div>}

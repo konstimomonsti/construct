@@ -109,7 +109,7 @@ export function SubcontractorsTab({ listId, doc, resolved, packages, demoIds, de
               <p className="text-sm text-slate-600">
                 <span className="num">{plural(pkg.positionIds.length, 'position', 'positions')}</span>
                 {pkg.dueDate && <> · due <span className="num">{shortDate(pkg.dueDate)}</span></>}
-                {pkg.budget.total > 0 && <> · Budget <span className="num">{money(pkg.budget.total)}</span>, internal</>}
+                {pkg.budget.total > 0 && <> · Expected cost <span className="num">{money(pkg.budget.total)}</span>, internal</>}
               </p>
             </header>
             <div role="row" className={clsx('hidden gap-x-4 px-4 py-2 text-xs font-semibold tracking-wide text-slate-600 uppercase md:grid', COLS)}>
@@ -229,7 +229,7 @@ function Row({ pkg, offer, who, chosen, onView, names, onEdit, onChoose, onDecli
         {offer.amount != null ? (
           <p className="flex flex-wrap items-baseline gap-x-2">
             <span className="num font-semibold text-slate-900">{money(offer.amount)}</span>
-            {delta != null && <span className={clsx('num text-[13px]', delta > 0 ? 'font-medium text-amber-800' : 'text-slate-600')}>{delta > 0 ? '+' : delta < 0 ? '−' : ''}{int(Math.round(Math.abs(delta)))} % vs budget</span>}
+            {delta != null && <span className={clsx('num text-[13px]', delta > 0 ? 'font-medium text-amber-800' : 'text-slate-600')}>{delta > 0 ? '+' : delta < 0 ? '−' : ''}{int(Math.round(Math.abs(delta)))} % vs estimate</span>}
           </p>
         ) : <p className="text-slate-500">No amount yet</p>}
         {offer.note && <p className="mt-0.5 text-slate-700">{offer.note}</p>}
