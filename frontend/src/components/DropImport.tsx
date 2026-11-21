@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { Icon } from './ui'
-import { importFiles } from '../lib/import'
+import { importFiles, type ImportResult } from '../lib/import'
 
 /** window-level drag & drop import into a folder; returns whether a file drag is active */
-export function useDropImport(folderId: string, enabled = true): boolean {
+export function useDropImport(folderId: string, enabled = true, onDone?: (result: ImportResult) => void): boolean {
   const [dragging, setDragging] = useState(false)
   useEffect(() => {
     if (!enabled) return
@@ -31,7 +31,7 @@ export function useDropImport(folderId: string, enabled = true): boolean {
       depth = 0
       setDragging(false)
       const files = [...(e.dataTransfer?.files ?? [])]
-      if (files.length) void importFiles(files, folderId)
+      if (files.length) void importFiles(files, folderId).then(onDone)
     }
     window.addEventListener('dragenter', enter)
     window.addEventListener('dragover', over)
@@ -43,7 +43,7 @@ export function useDropImport(folderId: string, enabled = true): boolean {
       window.removeEventListener('dragleave', leave)
       window.removeEventListener('drop', drop)
     }
-  }, [folderId, enabled])
+  }, [folderId, enabled, onDone])
   return dragging
 }
 

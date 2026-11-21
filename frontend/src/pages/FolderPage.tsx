@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useCallback, useState } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 import { Button, Icon, Menu } from '../components/ui'
 import { Dock } from '../components/Dock'
 import { EmptyFolder } from '../components/EmptyFolder'
@@ -8,13 +8,14 @@ import { ListGrid, listLabel } from '../components/ListCard'
 import { FolderGrid } from '../components/FolderCard'
 import { Chips, EmptyState, PageFrame, PageHeader, PillLink, RowMenu, Section, SortMenu, Summary, ToolButton, heroStatus } from '../components/Kit'
 import { budgetStatus, int, money, moneyWhole, needsAttention, plural } from '../lib/format'
-import { pickAndImport } from '../lib/import'
+import { pickAndImport, type ImportResult } from '../lib/import'
 import { counts, folderDescription, folderPath, SORT_LABEL, useModel, useStore, type SortKey } from '../lib/store'
 import { useUi } from '../lib/ui-store'
 import { useActions } from '../lib/actions'
 
 export function FolderPage() {
   const { folderId = '' } = useParams()
+  const navigate = useNavigate()
   const { folders } = useModel()
   const sort = useStore((s) => s.sort)
   const setSort = useStore((s) => s.setSort)
@@ -24,7 +25,13 @@ export function FolderPage() {
   const [selectMode, setSelectMode] = useState(false)
   const [sel, setSel] = useState<Set<string>>(new Set())
   const f = folders.find((x) => x.id === folderId)
-  const dragging = useDropImport(folderId, !!f && !f.trashedAt)
+  const afterImport = useCallback((result: ImportResult) => {
+    if (!result.openListId || window.location.pathname !== `/folder/${folderId}`) return
+    useStore.getState().openTab(result.openListId)
+    navigate(`/list/${result.openListId}`)
+  }, [folderId, navigate])
+  const dragging = useDropImport(folderId, !!f && !f.trashedAt, afterImport)
+  const importFromPicker = () => pickAndImport(folderId, afterImport)
   const subfolders = folders.filter((item) => item.parentId === folderId && !item.trashedAt)
   const ancestors = folderPath(folders, folderId).slice(0, -1)
   const allLists = f?.listMetas ?? []
@@ -51,7 +58,7 @@ export function FolderPage() {
   if (empty && !f.trashedAt) {
     return (
       <>
-        <EmptyFolder folder={f} ancestors={ancestors} dragging={dragging} />
+        <EmptyFolder folder={f} ancestors={ancestors} dragging={dragging} onImport={importFromPicker} />
         <DropOverlay show={dragging} name={f.name} />
       </>
     )
@@ -125,7 +132,7 @@ export function FolderPage() {
         subtitle={[folderDescription(f), f.positions ? plural(f.positions, 'position', 'positions') : ''].filter(Boolean).join(' · ') || undefined}
         aside={
           <div className="flex items-center gap-2">
-            <Button variant="primary" icon="upload" onClick={() => pickAndImport(f.id)} aria-label="Import files" className="max-sm:w-10 max-sm:px-0">
+            <Button variant="primary" icon="upload" onClick={importFromPicker} aria-label="Import files" className="max-sm:w-10 max-sm:px-0">
               <span className="max-sm:hidden">Import files</span>
             </Button>
             <Button icon="add" onClick={() => openDialog({ kind: 'blank-list', folderId: f.id })} aria-label="New list" className="max-sm:w-10 max-sm:px-0"><span className="max-sm:hidden">New list</span></Button>
