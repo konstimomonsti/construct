@@ -246,8 +246,10 @@ def read_quantity(body):
     cells = re.split(r"[ \t]{2,}", match["tail"].strip()) if match["tail"].strip() else []
     unit = match["unit"]
     if re.fullmatch(r"\.{3,}", unit):
-        # "N  ....." has a quantity but no unit: the dots are the empty price cells.
-        cells = [unit, *cells]
+        # With both price cells present, the dots occupy the unit column. Otherwise
+        # they may be the first price placeholder on a line that has no unit at all.
+        if len(cells) < 2:
+            cells = [unit, *cells]
         unit = None
     values =[german_decimal(re.sub(r"^(?:EP|GP)\s*", "", cell, flags=re.I)) for cell in cells]
     price_only = bool(_PRICE_ONLY.search(match["tail"]))

@@ -260,6 +260,6 @@ Records a decision. Request: `{"run_id": "…", "finding_key": "<finding id>", "
 
 ### `POST /api/workspace/parse?filename=<name>`
 
-Preview an uploaded tender PDF or legacy Excel `.xls` workbook. Send the original bytes as the request body, with the same 128 MiB maximum as the workspace file route. PDF extraction uses Poppler. `POPPLER_BIN` can identify the folder with the Poppler tools.
+Preview an uploaded tender PDF, Word `.docx` document, or legacy Excel `.xls` workbook. Send the original bytes as the request body, with the same 128 MiB maximum as the workspace file route. PDF extraction uses Poppler. `POPPLER_BIN` can identify the folder with the Poppler tools.
 
-The response includes `title`, `currency`, editable `positions`, the section `tree`, and `warnings`. Each position has a source-derived ID, position number (`oz`), description, quantity, unit, and the available unit price. Multiple spreadsheet sheets with readable positions get their own sections. A PDF with no identifiable positions can still be attached as a source document. The preview does not save the file or create a list. Use the workspace file and state routes to persist the import.
+The response includes `title`, `currency`, editable `positions`, the section `tree`, and `warnings`. Each position has a source-derived ID, position number (`oz`), description, quantity, unit, and the available unit price. Multiple spreadsheet sheets with readable positions get their own sections. A PDF or Word file with no identifiable positions can still be attached as a source document. The preview does not save the file or create a list. Use the workspace file and state routes to persist the import.

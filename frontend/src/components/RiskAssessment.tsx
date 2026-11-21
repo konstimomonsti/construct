@@ -39,6 +39,8 @@ function FindingEvidence({ finding }: { finding: Finding }) {
   const extracted = Object.entries(finding.evidence?.extracted ?? {})
   const locator = finding.source_locator
   const source = locator?.page ? `Source page ${locator.page}`
+    : locator?.table && locator.row ? `Table ${locator.table} · Row ${locator.row}`
+    : locator?.paragraph ? `Source paragraph ${locator.paragraph}`
     : locator?.row ? (locator.sheet ? `${locator.sheet} · Row ${locator.row}` : `Source row ${locator.row}`)
     : locator?.record ? `Source record ${locator.record}`
     : locator?.source_id ? `Source item ${locator.source_id}` : null

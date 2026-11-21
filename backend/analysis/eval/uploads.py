@@ -21,9 +21,11 @@ from analysis.runner import analyze
 from . import harness, labels
 import workspace
 import workspace_analysis
+from workspace_parse import read_document
 
 
 GAEB_SUFFIXES = {".x83", ".d83", ".x84", ".d84", ".x86", ".d86"}
+DOCUMENT_SUFFIXES = {".pdf", ".docx"}
 TABLE_SUFFIXES = {".csv", ".tsv", ".xlsx", ".json"}
 
 
@@ -48,12 +50,19 @@ def assess(connection, path, document, layers):
     if path.suffix.lower() in GAEB_SUFFIXES:
         if not report["used_source"]:
             raise RuntimeError(f"{path.name}: original GAEB file was not assessed")
-        canonical = workspace_analysis._original_gaeb(editable, adapter.from_file(path), payload["original_refs"]).with_hash()
+        canonical = workspace_analysis._original_tender(editable, adapter.from_file(path), payload["original_refs"]).with_hash()
+    if path.suffix.lower() in DOCUMENT_SUFFIXES:
+        if not report["used_source"]:
+            raise RuntimeError(f"{path.name}: original document was not assessed")
+        source = read_document(path.name, path.read_bytes()).snapshots[0]
+        canonical = workspace_analysis._original_tender(editable, source, payload["original_refs"]).with_hash()
     result = AnalysisResult.model_validate({key: report[key] for key in AnalysisResult.model_fields if key in report})
     if result.input_hash != canonical.input_hash or labels.layers_that_ran(result, layers) != layers:
         raise RuntimeError(f"{path.name}: assessment used a different input or missed a requested layer")
-    if layers == [1, 2] and result.findings != analyze(canonical, layers).findings:
-        raise RuntimeError(f"{path.name}: stored upload findings disagree with its analysis input")
+    if layers == [1, 2]:
+        expected = analyze(canonical, layers).model_dump(mode="json")
+        if report["findings"] != expected["findings"]:
+            raise RuntimeError(f"{path.name}: stored upload findings disagree with its analysis input")
 
     row_ids = {position["id"] for position in document["positions"]}
     matched = sum(line.id in row_ids for line in canonical.lines)
@@ -106,7 +115,7 @@ def main():
             connection.execute("INSERT INTO workspace_sync (workspace) VALUES (%s)", (workspace.WORKSPACE,))
             for entry in map(json.loads, sys.stdin):
                 path = Path(entry["path"]).resolve()
-                if path.suffix.lower() not in GAEB_SUFFIXES | TABLE_SUFFIXES:
+                if path.suffix.lower() not in GAEB_SUFFIXES | DOCUMENT_SUFFIXES | TABLE_SUFFIXES:
                     raise ValueError(f"{path.name}: unsupported fixture format")
                 reports[path] = assess(connection, path, entry["document"], layers)
     if not reports:

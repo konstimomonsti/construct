@@ -53,11 +53,11 @@ function parseListJson(text: string, kind: 'json' | 'pdf' | 'docx' | 'xlsx', for
   }
 }
 
-async function parseTenderDocument(file: File, kind: 'pdf' | 'xlsx'): Promise<ParsedList | undefined> {
+async function parseTenderDocument(file: File, kind: 'pdf' | 'docx' | 'xlsx'): Promise<ParsedList | undefined> {
   const response = await fetch(`/api/workspace/parse?filename=${encodeURIComponent(file.name)}`, {
     method: 'POST', body: file,
   }).catch((error: unknown) => {
-    if (kind === 'pdf') return null // Preserve document attachment in offline workspaces.
+    if (kind !== 'xlsx') return null // Preserve document attachment in offline workspaces.
     throw error
   })
   if (!response) return undefined
@@ -65,9 +65,9 @@ async function parseTenderDocument(file: File, kind: 'pdf' | 'xlsx'): Promise<Pa
     const error = await response.json().catch(() => null)
     throw new Error(typeof error?.error === 'string' ? error.error : 'The tender could not be read.')
   }
-  const parsed = parseListJson(await response.text(), kind, kind === 'pdf' ? 'PDF' : 'Excel', false)
+  const parsed = parseListJson(await response.text(), kind, kind === 'pdf' ? 'PDF' : kind === 'docx' ? 'Word' : 'Excel', false)
   if (!parsed.positions.length) {
-    if (kind === 'pdf') return undefined // Keep ordinary PDFs attachable as supporting documents.
+    if (kind !== 'xlsx') return undefined // Keep ordinary documents attachable as supporting files.
     throw new Error(parsed.warnings?.[0] ?? 'The workbook contains no readable tender positions.')
   }
   return parsed
@@ -91,7 +91,7 @@ export async function parseListFile(file: File): Promise<ParsedList | undefined>
     const { readPdfPayload, readWordPayload } = await import('./import-documents')
     const payload = ext === 'pdf' ? await readPdfPayload(file) : await readWordPayload(file)
     return payload ? parseListJson(payload, ext, ext === 'pdf' ? 'PDF' : 'Word')
-      : ext === 'pdf' ? parseTenderDocument(file, 'pdf') : undefined
+      : parseTenderDocument(file, ext)
   }
   throw new Error('Unsupported file type.')
 }

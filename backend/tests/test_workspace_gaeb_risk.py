@@ -89,7 +89,7 @@ def test_original_upload_uses_references_to_map_duplicate_position_codes():
     source.lines[1].code = source.lines[0].code
     payload = uploaded_input(source, "synthetic.X83", "83")
     parsed, _ = workspace_analysis.prepare({**payload, "layers": [1]})
-    snapshot = workspace_analysis._original_gaeb(parsed, source, payload["original_refs"])
+    snapshot = workspace_analysis._original_tender(parsed, source, payload["original_refs"])
     assert [line.id for line in snapshot.lines] == ["p1", "p2"]
     assert [line.source_locator["source_id"] for line in snapshot.lines] == ["I1", "I2"]
     assert any(f.rule_id == "L1.CODE.DUPLICATE" for f in analyze(snapshot, [1]).findings)

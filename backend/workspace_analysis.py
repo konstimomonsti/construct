@@ -50,7 +50,7 @@ def _source(connection, workspace, list_id, file_id, filename):
         return None
     content, name = bytes(row["content"]), row["name"]
     kind = detect_format(name, content)
-    if kind in {"pdf", "xls"}:
+    if kind in {"pdf", "xls", "docx"}:
         snapshots, _ = read_document(name, content)
         # The preview and upload use the same content-derived IDs. Combine sheets for position
         # evidence without replacing the editable list's section hierarchy.
@@ -83,7 +83,7 @@ def _attach_source(snapshot, source, original_codes):
     for line, match in pairs:
         line.gaeb_flags = match.gaeb_flags
         line.source_locator = match.source_locator
-        if match.source_locator and source.project.source_document.format in {"xls", "pdf"}:
+        if match.source_locator and source.project.source_document.format in {"xls", "pdf", "docx"}:
             # The editable table needs numeric placeholders. Analysis keeps missing source fields missing.
             if match.quantity is None and line.quantity == 0:
                 line.quantity = None
@@ -97,7 +97,7 @@ def _attach_source(snapshot, source, original_codes):
         if (match.source_amounts and line.source_amounts and line.quantity == match.quantity
                 and line.source_amounts.unit_price == match.source_amounts.unit_price and line.unit == match.unit):
             line.source_amounts.line_amount = match.source_amounts.line_amount
-        elif (source.project.source_document.format in {"xls", "pdf"} and match.source_amounts
+        elif (source.project.source_document.format in {"xls", "pdf", "docx"} and match.source_amounts
                 and line.quantity == match.quantity and line.unit == match.unit
                 and (line.price.unit_price if line.price else None) == match.source_amounts.unit_price):
             line.source_amounts = match.source_amounts
@@ -111,7 +111,7 @@ def _unique_keys(objects, key_of):
     return {key: ids[0] for key, ids in by_key.items() if len(ids) == 1}
 
 
-def _original_gaeb(uploaded, source, original_refs):
+def _original_tender(uploaded, source, original_refs):
     """Analyze the complete tender and retain workspace IDs where a match is unambiguous."""
     def source_ref(line):
         return (line.source_locator.get("source_id") or line.source_locator.get("sequence", "")).strip()
@@ -120,7 +120,9 @@ def _original_gaeb(uploaded, source, original_refs):
     upload_codes = _unique_keys(uploaded.lines, lambda line: _code(line.code) if line.code else None)
     file_refs = _unique_keys(source.lines, source_ref)
     file_codes = _unique_keys(source.lines, lambda line: _code(line.code) if line.code else None)
-    line_ids = {file_refs[key]: upload_refs[key] for key in file_refs.keys() & upload_refs.keys()}
+    line_ids = {key: key for key in source.line_by_id().keys() & uploaded.line_by_id().keys()}
+    line_ids.update({file_refs[key]: upload_refs[key] for key in file_refs.keys() & upload_refs.keys()
+                     if file_refs[key] not in line_ids and upload_refs[key] not in line_ids})
     matched_upload_ids = set(line_ids.values())
     for key in file_codes.keys() & upload_codes.keys():
         source_id, upload_id = file_codes[key], upload_codes[key]
@@ -178,14 +180,16 @@ def run(payload, connection=None, workspace=None, list_id=None, file_id=None, fi
             source = None
             source_notice = "The original tender file could not be checked. Findings are based on the editable list."
         if source and source.lines:
-            if original_upload and source.project.source_document.format in {"gaeb_xml", "gaeb_1990"}:
-                snapshot = _original_gaeb(snapshot, source, payload.get("original_refs", {}))
+            kind = source.project.source_document.format
+            native_preview = kind in {"pdf", "docx"} and source.line_by_id().keys() & snapshot.line_by_id().keys()
+            if original_upload and (native_preview or kind in {"gaeb_xml", "gaeb_1990"}):
+                snapshot = _original_tender(snapshot, source, payload.get("original_refs", {}))
                 used_source = True
             else:
                 original_codes = payload.get("original_codes")
                 if isinstance(original_codes, dict):
                     used_source = _attach_source(snapshot, source, original_codes)
-                if used_source and source.project.source_document.format in {"xls", "pdf"}:
+                if used_source and source.project.source_document.format in {"xls", "pdf", "docx"}:
                     snapshot.import_warnings = source.import_warnings
             snapshot = snapshot.with_hash()
     evidence_files = add_to_snapshot(connection, workspace, list_id, snapshot) if connection is not None and list_id else []
@@ -358,7 +362,7 @@ def assess_next(connection):
         workspace, list_id, document = job["workspace"], job["list_id"], job["value"]
         try:
             with connection.transaction():
-                filename = document.get("fileName") if document["source"]["kind"] in {"gaeb-xml", "gaeb90", "pdf", "xlsx"} else None
+                filename = document.get("fileName") if document["source"]["kind"] in {"gaeb-xml", "gaeb90", "pdf", "docx", "xlsx"} else None
                 report = run(_uploaded_input(document), connection, workspace, list_id, filename=filename, original_upload=True)
         except psycopg.OperationalError:
             raise

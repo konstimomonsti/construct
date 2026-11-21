@@ -1,9 +1,10 @@
-"""Preview tender PDFs and legacy Excel workbooks as editable workspace lists."""
+"""Preview tender PDFs, Word documents and legacy Excel workbooks as editable workspace lists."""
 
 from hashlib import sha256
 from pathlib import PurePath
 from subprocess import TimeoutExpired
 from typing import NamedTuple
+from zipfile import BadZipFile
 
 from xlrd.biffh import XLRDError
 
@@ -22,18 +23,22 @@ def read_document(filename: str, content: bytes) -> ParsedDocument:
     name = PurePath(filename.replace("\\", "/")).name
     suffix = PurePath(name).suffix.lower()
     kind = detect_format(name, content)
-    if (suffix, kind) not in {(".pdf", "pdf"), (".xls", "xls")}:
-        raise ValueError("Choose a tender PDF or a legacy .xls workbook.")
+    if (suffix, kind) not in {(".pdf", "pdf"), (".xls", "xls"), (".docx", "docx")}:
+        raise ValueError("Choose a tender PDF or Word document, or a legacy .xls workbook.")
     if kind == "pdf" and not content.lstrip().startswith(b"%PDF-"):
         raise ValueError("The file is not a valid PDF.")
     try:
         result = parse_document(kind, content)
+    except BadZipFile as exc:
+        raise ValueError("The file is not a readable Word document.") from exc
     except XLRDError as exc:
         raise ValueError("The file is not a readable Excel 97–2003 workbook.") from exc
     except TimeoutExpired as exc:
         raise ValueError("PDF extraction timed out. Try a smaller document.") from exc
     except OSError as exc:
-        raise ValueError("PDF extraction is temporarily unavailable.") from exc
+        raise ValueError("Document extraction is temporarily unavailable.") from exc
+    if kind == "docx" and any(issue["code"] == "missing_word_body" for issue in result.issues):
+        raise ValueError("The Word document body could not be read.")
     source = SourceDocument(id=sha256(content).hexdigest(), filename=name, format=kind)
     sheets = sorted({r.payload["boq_index"] for r in result.records
                      if r.kind == "boq_header" and r.payload.get("boq_index") is not None})

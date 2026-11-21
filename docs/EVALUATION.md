@@ -125,3 +125,24 @@ frontend/node_modules/.bin/tsx frontend/tests/risk-upload-fixtures.ts "$fixture_
 ```
 
 The same PostgreSQL replay also ran Layers 1 through 3 on JSON uploads converted from the clean precast X83, the missing height and colour variant, and the ambiguous rebar variant. Local Qwen 2.5 7B caught both labelled defects with guidance and the unchanged control produced zero findings. The run used one request at a time, four rows per batch, a 65-second request timeout, and a 210-second per-upload deadline. To reproduce with equivalent workspace JSON fixtures and their label sidecars, use the picker bridge above and pass `--local-layer3` to `analysis.eval.uploads`. The option uses Ollama on localhost. This targeted run covers those two precast ambiguities.
+
+## Ordinary PDF and Word workspace upload replay
+
+The workspace picker sends documents without embedded workspace data through the preview endpoint. Text-based tender PDFs and Word documents with recognized item tables or numbered position paragraphs produce editable rows. The upload worker checks the original file and retains the source position IDs, written rates and amounts, and page, table row, or paragraph references. Documents without identifiable positions can still be attached. Image-only PDFs require OCR before this path can extract their items.
+
+The labelled replay used six ordinary PDF files and six ordinary Word files without embedded workspace payloads. Layers 1 and 2 caught all ten planted defects with guidance. The two clean controls produced zero findings. The defects cover a blank quantity, a blank unit, an explicit zero, a wrong written line amount, and a missing edge-insulation position. The PDF with an omitted measurement line also raised an extraction review note. The amount test links the written €85.00 and calculated €50.00 to the affected row or page.
+
+The repository Word sample linked 40 of 40 candidate positions, and the repository screed PDF linked 38 of 38 positions. Their 45 and 38 findings are preliminary review candidates. The files do not contain independent per-finding labels.
+
+Use the disposable replay database described above and a running local backend with Poppler installed. Set `WORKSPACE_PARSE_ORIGIN` to the loopback backend address.
+
+```sh
+export PYTHONPATH=backend:backend/importer
+fixture_dir=$(mktemp -d)
+python -m analysis.eval.documents "$fixture_dir"
+WORKSPACE_PARSE_ORIGIN=http://127.0.0.1:8080 \
+  frontend/node_modules/.bin/tsx frontend/tests/risk-upload-fixtures.ts \
+  "$fixture_dir"/*.pdf "$fixture_dir"/*.docx \
+  data/tenders/LV_18_Estrich.pdf data/tenders/LV-Positionen.docx \
+  | python -m analysis.eval.uploads
+```

@@ -221,3 +221,17 @@ test('Excel imports every readable visible sheet and preserves distinct workshee
   assert.equal(parsed.positions[1].sourceCells?.quantity, '')
   assert.equal(parsed.positions[0].sourceCells?.amount, '25')
 })
+
+test('ordinary Word files use the tender preview and keep its source position IDs', async (context) => {
+  const content = await sample('LV-Positionen.docx')
+  context.mock.method(globalThis, 'fetch', async (url: string) => {
+    assert.equal(url, '/api/workspace/parse?filename=LV-Positionen.docx')
+    return Response.json({
+      title: 'Word tender', positions: [{ id: 'source-word-position', oz: '01.0010', short: 'Position', qty: 0, unit: '' }],
+    })
+  })
+  const result = await parseListFile(asFile('LV-Positionen.docx', content))
+  assert.equal(result?.source?.kind, 'docx')
+  assert.equal(result?.positions[0].id, 'source-word-position')
+  assert.equal(result?.positions[0].sourceCells, undefined)
+})
