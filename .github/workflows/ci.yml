@@ -90,8 +90,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r backend/requirements.txt -r backend/importer/requirements.txt pytest python-docx==1.2.0 reportlab==4.5.1
-          test -f /usr/share/fonts/truetype/dejavu/DejaVuSans.ttf \
-            || (sudo apt-get update -qq && sudo apt-get install -y -qq fonts-dejavu-core)
+          sudo apt-get install -y poppler-utils fonts-dejavu-core
       - name: Start backend as the runtime role
         env:
           PGUSER: construction_app
