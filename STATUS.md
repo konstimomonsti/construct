@@ -22,6 +22,7 @@ The lead merges PRs and resolves conflicts in this file. Contracts are in [CLAUD
 | 13 | **PRIORITY:** [Subcontractor requests: pick positions + subcontractors, budget, export + email draft](tasks/13-subcontractor-requests.md) | `feat/task-13` | merged | [PR #29](https://github.com/konstimomonsti/construct/pull/29) merged, lead-reviewed. 20 tests pass incl. budget-leak checks; .eml drafts verified (encoded subject, base64 attachment, X-Unsent). |
 | 11 | [Unusual-quantity rules and layer 2 ratio checks](tasks/11-quantity-rules-and-ratios.md) | `feat/task-11` | queued | |
 | 12 | [Reference prices from past offers and a what-if view](tasks/12-reference-prices-what-if.md) | `feat/task-12` | queued | Opus; P0 = references + price rules |
+| 16 | [Supplier requests, communication log, AI categorization](tasks/16-supplier-crm.md) | `feat/supplier-crm` | in progress | Grouped quote-request emails, Requests page with response stats and reminders. Backend 8 and frontend 7 new tests pass |
 
 Suggested merge order: 01 → 03 → 02 → 05 → 04 → 06. Each PR must pass CI (Python tests, frontend lint/build).
 

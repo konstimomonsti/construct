@@ -15,6 +15,7 @@ from tender_import.store import original
 
 import analysis_api
 import catalogues
+import crm
 import mvp
 import workspace
 import workspace_analysis
@@ -342,6 +343,9 @@ class BrowserHandler(BaseHTTPRequestHandler):
         if request.path.startswith("/api/catalogues/"):
             self.catalogue_request(request, write=False)
             return
+        if request.path.startswith("/api/crm/"):
+            self.crm_request(request, write=False)
+            return
         if request.path not in {"/api/tables", "/api/rows", "/api/record"}:
             if request.path.startswith(("/api/", "/admin/")) or not self.frontend(request.path):
                 self.json(HTTPStatus.NOT_FOUND, {"error": "Page not found"})
@@ -386,6 +390,9 @@ class BrowserHandler(BaseHTTPRequestHandler):
         if request.path.startswith("/api/catalogues/"):
             self.catalogue_request(request, write=True)
             return
+        if request.path.startswith("/api/crm/"):
+            self.crm_request(request, write=True)
+            return
         self.mvp_request(request, write=True)
 
     def catalogue_request(self, request, write):
@@ -423,6 +430,42 @@ class BrowserHandler(BaseHTTPRequestHandler):
         except psycopg.Error as error:
             self.log_error("Catalogue request failed (%s)", type(error).__name__)
             self.json(HTTPStatus.SERVICE_UNAVAILABLE, {"error": "The catalogue is temporarily unavailable."})
+        except (BrokenPipeError, ConnectionResetError):
+            pass
+
+    def crm_request(self, request, write):
+        """Supplier relationships: sourcing and categories for a bill, contact log, reminders, overview."""
+        path = request.path.removeprefix("/api/crm/")
+        if path not in (crm.WRITES if write else crm.READS):
+            self.json(HTTPStatus.NOT_FOUND, {"error": "Action not found"})
+            return
+        try:
+            payload, params = {}, {}
+            if write:
+                length = int(self.headers.get("Content-Length", 0))
+                if not 0 < length <= 2 * 1024 * 1024:
+                    self.json(HTTPStatus.REQUEST_ENTITY_TOO_LARGE, {"error": "The request is empty or too large."})
+                    return
+                payload = json.loads(self.rfile.read(length))
+                if not isinstance(payload, dict):
+                    raise ValueError("Invalid request body.")
+            else:
+                params = {key: values[-1] for key, values in parse_qs(request.query, max_num_fields=6).items()}
+            with psycopg.connect("", autocommit=True, row_factory=dict_row, connect_timeout=3,
+                                 options="-c statement_timeout=10000") as connection:
+                if write:
+                    result = crm.write(connection, workspace.WORKSPACE, path, payload, self.remote_user())
+                else:
+                    connection.read_only = True
+                    result = crm.read(connection, path, params)
+            self.json(HTTPStatus.OK, result)
+        except (ValueError, TypeError) as error:
+            self.json(HTTPStatus.BAD_REQUEST, {"error": str(error)})
+        except LookupError as error:
+            self.json(HTTPStatus.NOT_FOUND, {"error": str(error)})
+        except psycopg.Error as error:
+            self.log_error("Supplier log request failed (%s)", type(error).__name__)
+            self.json(HTTPStatus.SERVICE_UNAVAILABLE, {"error": "The supplier log is temporarily unavailable."})
         except (BrokenPipeError, ConnectionResetError):
             pass
 
