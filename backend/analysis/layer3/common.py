@@ -49,6 +49,7 @@ class Session:
     started: float = field(default_factory=time.monotonic)
     calls: int = 0
     cache_hits: int = 0
+    planned: int = 0
     consecutive_failures: int = 0
     unavailable: str | None = None
     skipped: Counter = field(default_factory=Counter)  # rule_id -> batches not sent
@@ -67,6 +68,7 @@ class Session:
         return self.audit_provider if audit and self.audit_provider is not None else self.provider
 
     def ask(self, rule_id: str, request: LLMRequest, *, audit: bool = False) -> dict[str, Any] | None:
+        self.planned += 1
         provider = self._provider(audit)
         key = request.cache_key(provider.model_id)
         cached = self.cache.get(key)
@@ -80,6 +82,7 @@ class Session:
     def ask_many(self, rule_id: str, requests: list[LLMRequest], *,
                  audit: bool = False) -> list[dict[str, Any] | None]:
         """Like `ask` for independent batches; answers come back in the order of `requests`."""
+        self.planned += len(requests)
         provider = self._provider(audit)
         results: list[dict[str, Any] | None] = [None] * len(requests)
         pending: list[tuple[int, LLMRequest, str]] = []
@@ -137,16 +140,23 @@ class Session:
     def report(self) -> None:
         """Called once after the layer ran: say what was not checked, so a partial run is visible."""
         skipped = sum(self.skipped.values())
+        omitted = self.skipped + self.late
+        checked = self.planned - sum(omitted.values())
+        coverage = f"layer 3 coverage: {checked}/{self.planned} batches"
+        if omitted:
+            coverage += "; skipped: " + ", ".join(f"{rule_id}×{count}" for rule_id, count in sorted(omitted.items()))
         if self.unavailable:
             line = f"layer 3: provider {self.provider.model_id} unavailable: {self.unavailable}"
             if skipped:
                 line += f"; {skipped} batch(es) not checked"
             self.errors.append(line)
+            self.errors.append(coverage)
             return
         for rule_id, count in sorted(self.skipped.items()):
             self.errors.append(f"{rule_id}: {count} batch(es) not checked (call budget of {self.max_calls} reached)")
         for rule_id, count in sorted(self.late.items()):
             self.errors.append(f"{rule_id}: {count} batch(es) not checked (time budget of {self.deadline:g} s reached)")
+        self.errors.append(coverage)
 
 
 _SESSION: ContextVar[Session | None] = ContextVar("layer3_session", default=None)
@@ -218,3 +228,20 @@ def batches(entries: list[tuple[Any, int]], max_chars: int, max_lines: int) -> I
         size += item_size
     if batch:
         yield batch
+
+
+def packed_sections(chunks: list[tuple[Any, list[Line]]], sizes: dict[str, int],
+                    max_chars: int, max_lines: int) -> Iterator[list[tuple[Any, list[Line]]]]:
+    """Pack pre-split section chunks without crossing either request limit."""
+    group: list[tuple[Any, list[Line]]] = []
+    chars = line_count = 0
+    for section_id, lines in chunks:
+        chunk_chars = sum(sizes[line.id] for line in lines)
+        if group and (chars + chunk_chars > max_chars or line_count + len(lines) > max_lines):
+            yield group
+            group, chars, line_count = [], 0, 0
+        group.append((section_id, lines))
+        chars += chunk_chars
+        line_count += len(lines)
+    if group:
+        yield group

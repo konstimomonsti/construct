@@ -1,12 +1,14 @@
 """Ported archive/risk-report-ui question cases, adapted to the fixed v0.2 shape."""
 
 import re
+from pathlib import Path
 
 import pytest
 
-from analysis import questions as q
+from analysis import adapter, questions as q
 from analysis.contracts import AnalysisInput, Finding, Line, Project, Section, Target
 from analysis.layer2.schema import load_rules
+from analysis.runner import analyze
 
 
 def make_input(phase="83", codes=("01.0010", "01.0020", "02.0010")):
@@ -89,7 +91,7 @@ def test_layer2_missing_and_shortfall_keep_archived_names_quantities_and_trigger
                        evidence={"reason": "quantity_shortfall", "quantity_unit": "St", "trigger_quantity": "12",
                                  "dependency_quantity": "10", "trigger_items": [{"code": "01.0010"}]})
     [question] = q.build_questions(make_input(), [shortage])
-    assert "WC-Sitze nur mit 10 St enthalten, bei 12 St" in question.text_de
+    assert "WC-Sitze sind nur 10 St enthalten, bei 12 St" in question.text_de
     uncertain = gap.model_copy(update={"evidence": {"reason": "quantity_not_assessable"}})
     assert q.build_questions(make_input(), [uncertain]) == []
 
@@ -131,6 +133,30 @@ def test_layer2_catalogue_retains_german_dependency_names():
     missing = [dependency.key for rule in load_rules() for dependency in rule.dependencies
                if dependency.key not in q.DEPENDENCY_DE]
     assert not missing
+
+
+def test_grouped_dependency_question_has_one_position_prefix():
+    findings = [finding("L2.FLOOR.SCREED_NEEDS_EDGE_INSULATION", f"l{i}", layer=2, severity="warning",
+                        evidence={"reason": "missing"}) for i in range(2)]
+    [question] = q.build_questions(make_input(), findings)
+    assert question.text_de.startswith("Zu Pos. 01.0010, 01.0020: Es ist keine Position")
+    assert question.text_de.count("Zu Pos.") == 1
+
+
+def test_explicit_question_without_colon_rebuilds_one_prefix():
+    [question] = q.build_questions(make_input(), [
+        finding("CUSTOM", evidence={"bieterfrage_de": "Zu Pos. 01.0010 ist die Ausführung unklar."})])
+    assert question.text_de == "Zu Pos. 01.0010 ist die Ausführung unklar."
+    assert question.text_de.count("Zu Pos.") == 1
+
+
+def test_demo_hall_and_precast_questions_never_duplicate_position_prefix():
+    root = Path(__file__).resolve().parents[3]
+    for source in (root / "data/demo/building_hall_planted.X83",
+                   Path(__file__).parent / "fixtures/lv11_precast.json"):
+        analysis_input = adapter.from_json(source) if source.suffix == ".json" else adapter.from_file(source)
+        report = analyze(analysis_input, layers=(1, 2))
+        assert all(item.text_de.count("Zu Pos.") <= 1 for item in report.questions)
 
 
 def test_high_value_signals_generate_formal_german_questions_without_findings():
