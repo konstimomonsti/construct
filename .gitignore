@@ -30,3 +30,6 @@ dist/
 
 # Layer 3 LLM answer cache (may contain tender text)
 .cache/
+
+# Reviewer decisions and notes from the web UI (contain tender text)
+webapp/var/

@@ -75,6 +75,83 @@
     main { padding: 12px 16px 40px; } .detail-grid { grid-template-columns: 1fr; }
     .hide-sm { display: none; }
   }
+  /* ---- risk report ---- */
+  :root { --ok: #1b7a3e; --ok-bg: #e6f4ea; --off: #6b7280; --off-bg: #eef0f3; }
+  .tabs { overflow-x: auto; white-space: nowrap; }
+  .tab { flex: none; }
+  .tab .badge { background: var(--info-bg); color: var(--info); margin-left: 4px; }
+  .badges { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .pill { display: inline-block; padding: 1px 9px; border-radius: 10px; font-size: 12px; font-weight: 600; background: var(--off-bg); color: var(--off); }
+  .pill.good { background: var(--ok-bg); color: var(--ok); }
+  .pill.warn { background: var(--warn-bg); color: var(--warn); }
+  .pill.bad { background: var(--error-bg); color: var(--error); }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; margin-bottom: 14px; }
+  .tile { border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; background: #fff; }
+  .tile.link { cursor: pointer; }
+  .tile small { display: block; color: var(--muted); font-size: 12px; }
+  .tile b { display: block; font-size: 24px; line-height: 1.2; }
+  .tile .sub { color: var(--muted); font-size: 12px; }
+  .tile.high b { color: var(--error); } .tile.medium b { color: var(--warn); } .tile.low b { color: var(--ok); }
+  .banner { border: 1px solid #e8c98a; background: var(--warn-bg); color: #6b4300; border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; }
+  .banner.err { border-color: #e7a8a3; background: var(--error-bg); color: #8c1d18; }
+  h3 { font-size: 14px; margin: 18px 0 8px; }
+  .risk { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; background: #fff; break-inside: avoid; }
+  .risk-head { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+  .risk-head .txt { flex: 1 1 220px; min-width: 0; overflow-wrap: anywhere; }
+  .risk-meta { color: var(--muted); font-size: 12.5px; white-space: nowrap; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 2px; }
+  .chip { font-size: 12px; border-radius: 10px; padding: 1px 9px; border: 1px solid transparent; cursor: pointer; background: none; color: inherit; }
+  .chip.error { color: var(--error); background: var(--error-bg); } .chip.warning { color: var(--warn); background: var(--warn-bg); }
+  .chip.info { color: var(--info); background: var(--info-bg); }
+  .chip.accepted { border-color: var(--ok); } .chip.accepted::before { content: "✓ "; }
+  .risk-actions { margin-top: 6px; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  button.mini { padding: 2px 9px; font-size: 12.5px; border-radius: 5px; background: #fff; color: var(--text); border-color: var(--line); }
+  button.mini.ok { color: var(--ok); border-color: #a9d3b8; } button.mini.no { color: var(--error); border-color: #e3b1ad; }
+  .st { display: inline-block; font-size: 12px; font-weight: 600; padding: 1px 8px; border-radius: 10px; background: var(--off-bg); color: var(--off); white-space: nowrap; }
+  .st.accepted { background: var(--ok-bg); color: var(--ok); } .st.rejected { background: var(--off-bg); color: var(--off); }
+  .st.open { background: #fff; border: 1px solid var(--line); }
+  tr.dismissed td { opacity: .55; }
+  td.act { white-space: nowrap; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .q { padding: 10px 0; border-bottom: 1px solid var(--line); display: flex; gap: 10px; break-inside: avoid; }
+  .q .n { font-weight: 700; min-width: 2em; }
+  .q .why { color: var(--muted); font-size: 12px; margin-top: 2px; }
+  .qsec { font-weight: 700; margin: 14px 0 0; }
+  dialog { border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; width: min(440px, 92vw); }
+  dialog::backdrop { background: rgba(20, 28, 45, .35); }
+  dialog h4 { margin: 0 0 10px; font-size: 15px; }
+  dialog label { display: block; margin-top: 10px; font-size: 12px; color: var(--muted); }
+  dialog select, dialog textarea { width: 100%; font: inherit; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; }
+  dialog .row { justify-content: flex-end; margin-top: 14px; }
+  #toast { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); background: #1d2330; color: #fff; padding: 8px 16px; border-radius: 8px; z-index: 20; max-width: 92vw; }
+  #toast.err { background: var(--error); }
+  #printExtra, .print-only { display: none; }
+  @media (max-width: 760px) {
+    .two { grid-template-columns: 1fr; }
+    .lbl { display: none; }
+    header { padding: 10px 16px; }
+    th, td { padding: 6px 5px; }
+    .tile b { font-size: 20px; }
+  }
+  @media print {
+    @page { margin: 14mm 12mm; }
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    body { background: #fff; font-size: 10.5pt; }
+    header, main > section.panel:first-child, .tabs, .no-print, button:not(.chip), select, input, dialog, #toast, #tab-findings, #tab-questions, #tab-lines,
+    main { max-width: none; padding: 0; }
+    .panel { border: none; padding: 0; margin: 0 0 8px; }
+    #tab-summary { display: block !important; }
+    #printExtra, .print-only { display: block; }
+    .print-section { break-before: page; }
+    .print-section h2 { font-size: 14pt; }
+    .print-only.title { font-size: 16pt; font-weight: 700; margin-bottom: 4px; }
+    tr, .risk, .tile, .q { break-inside: avoid; }
+    thead { display: table-header-group; }
+    th { position: static; }
+    .two { grid-template-columns: 1fr; }
+    pre { max-height: none; }
+    tr.detail { display: none; }
+  }
 </style>
 </head>
 <body>
@@ -112,40 +189,54 @@
 
   <section id="report" class="hidden">
     <div class="panel">
+      <div class="print-only title">Construct · BoQ risk report</div>
       <div class="row" style="justify-content:space-between">
-        <h2 id="docTitle" style="margin:0"></h2>
-        <div class="row">
+        <div>
+          <h2 id="docTitle" style="margin:0"></h2>
+          <div class="badges" id="badges" style="margin-top:6px"></div>
+        </div>
+        <div class="row no-print">
           <select id="boqPick" class="hidden"></select>
+          <button id="print" class="secondary" data-action="print">Print / Save PDF</button>
+          <button id="toQuestions" class="secondary" data-action="tab" data-tab="questions">Bidder questions</button>
           <button id="download" class="secondary">Download JSON</button>
         </div>
       </div>
       <div class="meta" id="meta" style="margin-top:12px"></div>
-      <div class="cards" id="cards"></div>
       <div class="notes" id="notes"></div>
     </div>
 
     <div class="panel">
-      <div class="tabs">
-        <button class="tab active" data-tab="findings">Findings</button>
-        <button class="tab" data-tab="lines">Positions</button>
+      <div class="tabs" role="tablist">
+        <button class="tab active" data-action="tab" data-tab="summary">Summary</button>
+        <button class="tab" data-action="tab" data-tab="findings">Findings <span class="badge" id="tabFindings"></span></button>
+        <button class="tab" data-action="tab" data-tab="questions">Bidder questions <span class="badge" id="tabQuestions"></span></button>
+        <button class="tab" data-action="tab" data-tab="lines">Positions</button>
       </div>
 
-      <div id="tab-findings">
-        <div class="row" style="margin-bottom:10px">
+      <div id="tab-summary"></div>
+
+      <div id="tab-findings" class="hidden">
+        <div class="cards" id="cards" style="margin-top:0"></div>
+        <div class="row" style="margin:10px 0">
+          <select id="fStatus" title="Review status"><option value="open">Open</option><option value="dismissed">Dismissed</option><option value="all">All</option></select>
           <select id="fSev"><option value="">All severities</option><option value="error">Errors</option><option value="warning">Warnings</option><option value="info">Info</option></select>
           <select id="fLayer"><option value="">All layers</option></select>
           <select id="fRule"><option value="">All rules</option></select>
           <input id="fText" type="search" placeholder="Search text or OZ…" class="grow">
           <span id="lineFilter" class="hidden"></span>
+          <button id="bulk" class="secondary hidden" data-action="bulk"></button>
           <span id="fCount" class="muted"></span>
         </div>
         <div style="overflow-x:auto">
           <table>
-            <thead><tr><th>Severity</th><th>OZ</th><th>Position</th><th>Finding</th><th class="hide-sm">Rule</th></tr></thead>
+            <thead><tr><th>Status</th><th>Severity</th><th>OZ</th><th>Position</th><th>Finding</th><th class="hide-sm">Rule</th><th></th></tr></thead>
             <tbody id="findings"></tbody>
           </table>
         </div>
       </div>
+
+      <div id="tab-questions" class="hidden"></div>
 
       <div id="tab-lines" class="hidden">
         <div class="row" style="margin-bottom:10px">
@@ -161,7 +252,19 @@
         </div>
       </div>
     </div>
+    <div id="printExtra"></div>
   </section>
+  <dialog id="reasonDlg">
+    <form method="dialog" id="reasonForm">
+      <h4 id="reasonTitle"></h4>
+      <label for="reasonSel">Reason</label>
+      <select id="reasonSel"></select>
+      <label for="reasonNote">Note (optional, stays on this computer)</label>
+      <textarea id="reasonNote" rows="3" maxlength="2000"></textarea>
+      <div class="row"><button type="button" class="secondary" id="reasonCancel">Cancel</button><button type="submit" id="reasonOk">Confirm</button></div>
+    </form>
+  </dialog>
+  <div id="toast" class="hidden"></div>
 </main>
 
 <script>
@@ -234,6 +337,22 @@ $("run").addEventListener("click", async () => {
 });
 
 // ---------------------------------------------------------------- report
+const PAGE = 200;               // findings / positions rows rendered at once
+const STATUS_LABEL = { open: "Open", accepted: "Accepted", rejected: "Dismissed" };
+const REASONS = {
+  accepted: [["confirmed", "Confirmed: a real issue"], ["ask_client", "Will ask the client (bidder question)"],
+             ["price_in", "Will price in a risk allowance"], ["other", "Other"]],
+  rejected: [["false_alarm", "False alarm: not an error"], ["covered_elsewhere", "Covered elsewhere (other package, preamble)"],
+             ["known_accepted", "Known and accepted"], ["not_relevant", "Not relevant for our bid"], ["other", "Other"]],
+};
+const REASON_LABEL = Object.fromEntries(Object.values(REASONS).flat());
+let tab = "summary";
+let fShown = PAGE, lShown = PAGE;
+let showAllRisks = false;
+let questions = null;           // GET /api/questions result for the current BoQ
+let questionsTimer = null;
+let summaryDirty = true, linesDirty = true;
+
 function showResponse() {
   const pick = $("boqPick");
   pick.classList.toggle("hidden", response.boqs.length < 2);
@@ -246,24 +365,35 @@ function showResponse() {
 }
 $("boqPick").addEventListener("change", (e) => showBoq(+e.target.value));
 
+function indexFindings() {
+  findingsByLine = {};
+  for (const f of boq.result.findings) {
+    if (f.status === "rejected") continue;
+    const ids = new Set([f.target.line_id, ...(f.related_line_ids || [])].filter(Boolean));
+    ids.forEach((id) => (findingsByLine[id] ||= []).push(f));
+  }
+}
+
 function showBoq(index) {
   boq = response.boqs[index];
   const input = boq.input, result = boq.result;
   lineById = Object.fromEntries(input.lines.map((l) => [l.id, l]));
   sectionById = Object.fromEntries(input.sections.map((s) => [s.id, s]));
-  findingsByLine = {};
-  for (const f of result.findings) {
-    const ids = new Set([f.target.line_id, ...(f.related_line_ids || [])].filter(Boolean));
-    ids.forEach((id) => (findingsByLine[id] ||= []).push(f));
-  }
-  filterLine = null; openFinding = null;
+  findingById = Object.fromEntries(result.findings.map((f) => [f.id, f]));
+  indexFindings();
+  filterLine = null; openFinding = null; fShown = lShown = PAGE; showAllRisks = false; questions = null;
 
   $("docTitle").textContent = response.filename;
   const phase = { "83": "Tender (83)", "84": "Bid (84)", "86": "Award (86)" }[input.project.gaeb_phase] || input.project.gaeb_phase;
   const priced = input.lines.filter((l) => l.source_amounts && (l.source_amounts.unit_price != null || l.source_amounts.line_amount != null)).length;
+  $("badges").innerHTML = [
+    phase ? `<span class="pill">${esc(phase)}</span>` : "",
+    boq.risk ? (boq.risk.priced ? `<span class="pill good">Priced</span>` : `<span class="pill warn">Not priced</span>`) : "",
+    response.needs_review ? `<span class="pill warn">Extracted: check against the original</span>` : "",
+  ].join("");
   const meta = [
-    ["Format", response.format_label + (response.needs_review ? " · extracted, check against the original" : "")],
-    ["Project", input.project.name], ["BoQ", input.bom.title], ["GAEB phase", phase],
+    ["Format", response.format_label],
+    ["Project", input.project.name], ["BoQ", input.bom.title],
     ["Positions", input.lines.length], ["Sections", input.sections.length],
     ["Positions with prices", priced],
     ["Stated net total", input.bom.stated_net_total != null ? fmtMoney(input.bom.stated_net_total, input.project.currency) : null],
@@ -271,17 +401,12 @@ function showBoq(index) {
   ].filter(([, v]) => v !== null && v !== undefined && v !== "");
   $("meta").innerHTML = meta.map(([k, v]) => `<div><span>${esc(k)}</span>${esc(v)}</div>`).join("");
 
-  const sev = result.summary.by_severity;
-  $("cards").innerHTML = ["error", "warning", "info"].map((s) =>
-    `<div class="card ${s}" data-sev="${s}"><b>${sev[s] || 0}</b>${SEV_LABEL[s]}${s === "info" ? "" : "s"}</div>`).join("") +
-    `<div class="card" data-sev=""><b>${result.summary.total}</b>All findings</div>`;
-  document.querySelectorAll(".card").forEach((c) => c.addEventListener("click", () => {
-    $("fSev").value = c.dataset.sev; switchTab("findings"); renderFindings();
-  }));
-
   const notes = [];
   if (result.errors.length) notes.push(`<details open><summary><b>Analysis notes (${result.errors.length})</b></summary><ul>${result.errors.map((e) => `<li>${esc(e)}</li>`).join("")}</ul></details>`);
   if (input.import_warnings.length) notes.push(`<details><summary>Import warnings (${input.import_warnings.length})</summary><ul>${input.import_warnings.map((w) => `<li><span class="code">${esc(w.code)}</span> ${esc(w.message)}</li>`).join("")}</ul></details>`);
+  if (boq.orphaned_decisions?.length) notes.push(`<details><summary>${boq.orphaned_decisions.length} saved decision(s) match no current finding</summary>
+    <p class="muted">They were made with other layers or an older rule set. They are kept and apply again when the finding returns.</p>
+    <ul>${boq.orphaned_decisions.map((d) => `<li>${esc(STATUS_LABEL[d.status] || d.status)} · <span class="code">${esc(d.line_code || "")}</span> ${esc(d.title || d.rule_id || d.finding_id)}${d.reason ? " · " + esc(REASON_LABEL[d.reason] || d.reason) : ""}</li>`).join("")}</ul></details>`);
   if (!input.lines.length) notes.push(`<p class="sev error">No positions could be extracted from this file. A scanned PDF needs OCR; otherwise try the GAEB export.</p>`);
   $("notes").innerHTML = notes.join("");
 
@@ -289,11 +414,91 @@ function showBoq(index) {
   $("fLayer").innerHTML = `<option value="">All layers</option>` + layers.map((l) => `<option value="${l}">Layer ${l}</option>`).join("");
   const rules = Object.entries(result.summary.by_rule).sort((a, b) => b[1] - a[1]);
   $("fRule").innerHTML = `<option value="">All rules</option>` + rules.map(([r, n]) => `<option value="${esc(r)}">${esc(r)} (${n})</option>`).join("");
-  $("fSev").value = ""; $("fText").value = ""; $("lText").value = ""; $("lOnly").checked = false;
-  switchTab("findings");
-  renderFindings();
-  renderLines();
+  $("fStatus").value = "open"; $("fSev").value = ""; $("fText").value = ""; $("lText").value = ""; $("lOnly").checked = false;
+  summaryDirty = linesDirty = true;
+  switchTab("summary");
+  loadQuestions();
 }
+
+// ---------------------------------------------------------------- tabs
+function switchTab(name) {
+  tab = name;
+  document.querySelectorAll(".tab").forEach((t) => t.classList.toggle("active", t.dataset.tab === name));
+  for (const t of ["summary", "findings", "questions", "lines"]) $("tab-" + t).classList.toggle("hidden", t !== name);
+  if (name === "summary" && summaryDirty) renderSummary();
+  if (name === "findings") renderFindings();
+  if (name === "questions") renderQuestions();
+  if (name === "lines" && linesDirty) renderLines();
+  refreshBadges();
+}
+
+function refreshBadges() {
+  const active = boq.result.findings.filter((f) => f.status !== "rejected").length;
+  $("tabFindings").textContent = active;
+  $("tabQuestions").textContent = questions && questions.applicable ? questions.questions.length : "";
+  $("tabQuestions").classList.toggle("hidden", !(questions && questions.applicable));
+}
+
+// ---------------------------------------------------------------- summary
+const RULE_SHORT = (r) => r.replace(/^L\d\./, "");
+function money(v) { return v == null ? "" : fmtMoney(v, boq.input.project.currency || "EUR"); }
+
+function renderSummary() {
+  summaryDirty = false;
+  const risk = boq.risk, el = $("tab-summary");
+  if (!risk) { el.innerHTML = `<div class="banner err">The risk score could not be calculated for this BoQ (see the server log). Findings and bidder questions still work.</div>`; return; }
+  const c = risk.counts, nOpen = c.open.error + c.open.warning;
+  const lines = risk.lines;
+  const tiles = `<div class="tiles">
+    <div class="tile ${risk.level}"><small>Risk score</small><b>${risk.score}<span class="muted" style="font-size:13px"> / 100</span></b><span class="sub">${esc(risk.level)} · ${esc(risk.model)}</span></div>
+    <div class="tile"><small>Money at stake</small><b>${risk.priced ? esc(money(risk.money_at_stake)) : "Not priced"}</b>
+      <span class="sub">${risk.priced ? `${(risk.share_at_stake * 100).toFixed(1)} % of ${esc(money(risk.net_total))}` : "ranked by likelihood only"}</span></div>
+    <div class="tile link" data-action="goto-findings" data-sev="error"><small>Open errors / warnings</small><b>${c.open.error} / ${c.open.warning}</b><span class="sub">${c.open.info} info</span></div>
+    <div class="tile"><small>Change-order signals</small><b>${c.change_order_signals}</b><span class="sub">${c.change_order_signals ? "see the list below" : "none found"}</span></div>
+    <div class="tile"><small>Reviewed</small><b>${c.reviewed} <span class="muted" style="font-size:13px">of ${c.findings}</span></b><span class="sub">${c.accepted} accepted · ${c.dismissed} dismissed</span></div>
+  </div>`;
+  const banner = risk.priced ? (risk.positions_estimated ? `<p class="muted" style="margin-top:-4px">${risk.positions_estimated} of the ranked positions have no price in the file; their amount is estimated with the median position of this BoQ.</p>` : "") :
+    `<div class="banner"><b>This BoQ has no prices.</b> Risks are ranked by how likely a problem is (from the severity of the findings), not by money, so there is no amount at stake. Prices appear here once the file or a price source provides them.</div>`;
+
+  const shown = showAllRisks ? lines : lines.slice(0, 10);
+  const top = lines.length ? shown.map(riskCard).join("") +
+    (lines.length > 10 ? `<button class="secondary no-print" data-action="more-risks">${showAllRisks ? "Show top 10 only" : `Show the next ${lines.length - 10}`}</button>` : "")
+    : `<p class="empty">No open risks. Every finding is dismissed, or none was found.</p>`;
+
+  const secRows = risk.by_section.map((s) => `<tr><td class="code">${esc(s.code || "—")}</td><td>${esc(truncate(s.title || "", 60))}</td>
+      <td class="num">${s.findings}</td><td class="num">${s.errors}</td><td class="num">${s.warnings}</td>
+      <td class="num">${risk.priced ? esc(money(s.ev)) : Math.round(s.p_max * 100) + " %"}</td></tr>`).join("");
+  const catRows = risk.by_category.map((k) => `<tr><td>${esc(k.category)}</td><td class="num">${k.findings}</td><td class="num">${k.errors}</td><td class="num">${k.warnings}</td><td class="num">${k.info}</td></tr>`).join("");
+  const sigRows = risk.signals.map((s) => `<tr class="item" data-action="open-finding" data-id="${esc(s.finding_id)}"><td class="code">${esc(s.code || "—")}</td>
+      <td>${esc(truncate(s.short_text || "", 70))}</td><td><b>${esc(s.title)}</b><div class="rule">${esc(s.rule_id)}</div></td>
+      <td class="num">${s.amount != null ? esc(money(s.amount)) : ""}</td></tr>`).join("");
+
+  el.innerHTML = tiles + banner +
+    `<h3>Top risks${lines.length ? ` <span class="muted">(${shown.length} of ${risk.positions_at_risk} positions)</span>` : ""}</h3>${top}
+    <div class="two">
+      <div><h3>By section</h3>${risk.by_section.length ? `<div style="overflow-x:auto"><table><thead><tr><th>OZ</th><th>Section</th><th class="num">Findings</th><th class="num">Err.</th><th class="num">Warn.</th><th class="num">${risk.priced ? "At stake" : "Max. likelihood"}</th></tr></thead><tbody>${secRows}</tbody></table></div>` : `<p class="muted">Nothing to show.</p>`}</div>
+      <div><h3>By category</h3>${risk.by_category.length ? `<div style="overflow-x:auto"><table><thead><tr><th>Category</th><th class="num">Findings</th><th class="num">Err.</th><th class="num">Warn.</th><th class="num">Info</th></tr></thead><tbody>${catRows}</tbody></table></div>` : `<p class="muted">Nothing to show.</p>`}</div>
+    </div>
+    <h3>Change-order signals</h3>
+    ${risk.signals.length ? `<p class="muted">Positions where the client can later change scope or quantity, so extra payment (Nachtrag) is likely. Click a row for the finding.</p><div style="overflow-x:auto"><table><thead><tr><th>OZ</th><th>Position</th><th>Signal</th><th class="num">Amount</th></tr></thead><tbody>${sigRows}</tbody></table></div>`
+      : `<p class="muted">None found. Signals come from provisional (Bedarf) items, placeholder quantities and, once they exist, the risk rules for daywork, client-decides and similar wording.</p>`}`;
+}
+
+function riskCard(r) {
+  const open = r.reasons.filter((x) => x.status === "open").map((x) => x.finding_id);
+  const chips = r.reasons.map((x) => `<button class="chip ${x.severity} ${x.status === "accepted" ? "accepted" : ""}" data-action="open-finding" data-id="${esc(x.finding_id)}" title="${esc(x.title)} (${esc(x.rule_id)})">${esc(truncate(x.title, 42))}</button>`).join("");
+  return `<div class="risk" data-line="${esc(r.line_id)}">
+    <div class="risk-head"><span class="code">${esc(r.code || "—")}</span><span class="txt">${esc(truncate(r.short_text || "(no short text)", 120))}</span>
+      <span class="risk-meta">${r.amount != null ? esc(money(r.amount)) + (r.amount_estimated ? " (est.)" : "") + " · " : ""}likelihood ${Math.round(r.p * 100)} %${r.ev != null ? " · at stake " + esc(money(r.ev)) : ""}</span>
+      <span class="sev ${r.level === "high" ? "error" : r.level === "medium" ? "warning" : "info"}">${esc(r.level)}</span></div>
+    <div class="chips">${chips}</div>
+    <div class="risk-actions no-print">${open.length ? `<button class="mini ok" data-action="line-accept" data-ids="${esc(open.join(","))}">✓ Accept${open.length > 1 ? " all" : ""}</button>
+      <button class="mini no" data-action="line-dismiss" data-ids="${esc(open.join(","))}">✕ Dismiss${open.length > 1 ? " all" : ""}</button>` : `<span class="muted">All findings on this position are reviewed.</span>`}
+      <button class="mini" data-action="show-line" data-id="${esc(r.line_id)}">Open in Findings</button></div></div>`;
+}
+
+// ---------------------------------------------------------------- findings
+let findingById = {};
 
 function lineLabel(f) {
   const line = lineById[f.target.line_id];
@@ -303,49 +508,80 @@ function lineLabel(f) {
   return { code: "—", text: f.scope === "bom" ? "Whole BoQ" : "" };
 }
 
-function renderFindings() {
-  const sev = $("fSev").value, layer = $("fLayer").value, rule = $("fRule").value;
+function matches(f) {
+  const status = $("fStatus").value, sev = $("fSev").value, layer = $("fLayer").value, rule = $("fRule").value;
+  if (status === "open" ? f.status === "rejected" : status === "dismissed" ? f.status !== "rejected" : false) return false;
+  if (sev && f.severity !== sev) return false;
+  if (layer && String(f.layer) !== layer) return false;
+  if (rule && f.rule_id !== rule) return false;
+  if (filterLine && f.target.line_id !== filterLine && !(f.related_line_ids || []).includes(filterLine)) return false;
   const q = $("fText").value.trim().toLowerCase();
-  document.querySelectorAll(".card").forEach((c) => c.classList.toggle("active", c.dataset.sev === sev));
+  if (q) {
+    const l = lineLabel(f);
+    if (!`${f.title} ${f.message} ${f.rule_id} ${l.code} ${l.text}`.toLowerCase().includes(q)) return false;
+  }
+  return true;
+}
+
+function renderCards() {
+  const sev = { error: 0, warning: 0, info: 0 };
+  for (const f of boq.result.findings) if (f.status !== "rejected") sev[f.severity]++;
+  const total = sev.error + sev.warning + sev.info, cur = $("fSev").value;
+  $("cards").innerHTML = ["error", "warning", "info"].map((s) =>
+    `<div class="card ${s} ${cur === s ? "active" : ""}" data-action="card" data-sev="${s}"><b>${sev[s]}</b>${SEV_LABEL[s]}${s === "info" ? "" : "s"}</div>`).join("") +
+    `<div class="card ${cur === "" ? "active" : ""}" data-action="card" data-sev=""><b>${total}</b>All active</div>`;
+}
+
+function renderFindings() {
+  renderCards();
   const lf = $("lineFilter");
   if (filterLine) {
     const l = lineById[filterLine];
-    lf.innerHTML = `Position <span class="code">${esc(l?.code || "?")}</span> <button class="secondary" id="clearLine">✕ clear</button>`;
+    lf.innerHTML = `Position <span class="code">${esc(l?.code || "?")}</span> <button class="secondary" data-action="clear-line">✕ clear</button>`;
     lf.classList.remove("hidden");
-    $("clearLine").onclick = () => { filterLine = null; renderFindings(); };
   } else lf.classList.add("hidden");
 
-  const rows = boq.result.findings.filter((f) => {
-    if (sev && f.severity !== sev) return false;
-    if (layer && String(f.layer) !== layer) return false;
-    if (rule && f.rule_id !== rule) return false;
-    if (filterLine && f.target.line_id !== filterLine && !(f.related_line_ids || []).includes(filterLine)) return false;
-    if (q) {
-      const l = lineLabel(f);
-      const hay = `${f.title} ${f.message} ${f.rule_id} ${l.code} ${l.text}`.toLowerCase();
-      if (!hay.includes(q)) return false;
-    }
-    return true;
-  });
-  $("fCount").textContent = `${rows.length} of ${boq.result.findings.length}`;
+  const all = boq.result.findings, rows = all.filter(matches);
+  $("fCount").textContent = `${Math.min(fShown, rows.length)} of ${rows.length} shown (${all.length} total)`;
+  updateBulkButton(rows);
   if (!rows.length) {
-    $("findings").innerHTML = `<tr><td colspan="5" class="empty">${boq.result.findings.length ? "No findings match the filters." : "No findings. Nothing to flag in this BoQ with the selected layers."}</td></tr>`;
+    $("findings").innerHTML = `<tr><td colspan="7" class="empty">${all.length ? "No findings match the filters." : "No findings. Nothing to flag in this BoQ with the selected layers."}</td></tr>`;
     return;
   }
-  $("findings").innerHTML = rows.map((f) => {
-    const l = lineLabel(f);
-    const main = `<tr class="item" data-id="${esc(f.id)}">
-      <td><span class="sev ${f.severity}">${SEV_LABEL[f.severity]}</span></td>
-      <td class="code">${esc(l.code)}</td>
-      <td>${esc(truncate(l.text, 90))}</td>
-      <td><b>${esc(f.title)}</b><div class="muted">${esc(truncate(f.message, 160))}</div></td>
-      <td class="rule hide-sm">${esc(f.rule_id)}<br>layer ${f.layer}${f.origin === "llm" ? " · LLM" : ""}</td></tr>`;
-    return main + (openFinding === f.id ? detailRow(f) : "");
-  }).join("");
-  document.querySelectorAll("#findings tr.item").forEach((tr) => tr.addEventListener("click", () => {
-    openFinding = openFinding === tr.dataset.id ? null : tr.dataset.id;
-    renderFindings();
-  }));
+  const slice = rows.slice(0, fShown);
+  $("findings").innerHTML = slice.map(rowHtml).join("") +
+    (rows.length > fShown ? `<tr class="more"><td colspan="7" class="empty"><button class="secondary" data-action="more">Show ${Math.min(PAGE, rows.length - fShown)} more (${rows.length - fShown} left)</button></td></tr>` : "");
+}
+
+function updateBulkButton(rows) {
+  const rule = $("fRule").value, b = $("bulk");
+  if (!rule) { b.classList.add("hidden"); return; }
+  const dismissed = $("fStatus").value === "dismissed";
+  const n = dismissed ? rows.length : rows.filter((f) => f.status === "open").length;
+  b.classList.toggle("hidden", !n);
+  b.dataset.mode = dismissed ? "restore" : "dismiss";
+  b.textContent = dismissed ? `Restore all ${n} of this rule` : `Dismiss all ${n} open of this rule`;
+}
+
+function actionButtons(f) {
+  const id = esc(f.id);
+  if (f.status === "rejected") return `<button class="mini" data-action="reopen" data-id="${id}" title="Back to open" aria-label="Undo">↺<span class="lbl"> Undo</span></button>`;
+  return (f.status === "open" ? `<button class="mini ok" data-action="accept" data-id="${id}" title="Accept: a real issue" aria-label="Accept">✓<span class="lbl"> Accept</span></button> ` : "") +
+    `<button class="mini no" data-action="dismiss" data-id="${id}" title="Dismiss with a reason" aria-label="Dismiss">✕<span class="lbl"> Dismiss</span></button>` +
+    (f.status === "accepted" ? ` <button class="mini" data-action="reopen" data-id="${id}" title="Back to open" aria-label="Undo">↺</button>` : "");
+}
+
+function rowHtml(f) {
+  const l = lineLabel(f);
+  const main = `<tr class="item ${f.status === "rejected" ? "dismissed" : ""}" data-action="toggle" data-id="${esc(f.id)}">
+    <td><span class="st ${f.status}">${STATUS_LABEL[f.status] || f.status}</span></td>
+    <td><span class="sev ${f.severity}">${SEV_LABEL[f.severity]}</span></td>
+    <td class="code">${esc(l.code)}</td>
+    <td>${esc(truncate(l.text, 90))}</td>
+    <td><b>${esc(f.title)}</b><div class="muted">${esc(truncate(f.message, 160))}</div></td>
+    <td class="rule hide-sm">${esc(f.rule_id)}<br>layer ${f.layer}${f.origin === "llm" ? " · LLM" : ""}</td>
+    <td class="act">${actionButtons(f)}</td></tr>`;
+  return main + (openFinding === f.id ? detailRow(f) : "");
 }
 
 function detailRow(f) {
@@ -357,34 +593,156 @@ function detailRow(f) {
     fix = `<div class="fix"><b>${esc(sf.rationale)}</b><div class="muted">confidence ${Math.round(sf.confidence * 100)}%</div>
       <pre>${esc(JSON.stringify(sf.operations, null, 2))}</pre></div>`;
   }
+  const d = boq.decisions[f.id];
+  const decision = d ? `<h4 style="margin-top:10px">Decision</h4><p>${esc(STATUS_LABEL[d.status])}${d.reason ? " · " + esc(REASON_LABEL[d.reason] || d.reason) : ""}
+      <span class="muted"> · ${esc((d.decided_at || "").replace("T", " ").replace(/\+00:00$/, " UTC"))}</span>${d.note ? `<br>${esc(d.note)}` : ""}</p>` : "";
   const lineInfo = line ? `<p><span class="code">${esc(line.code || "")}</span> ${esc(line.short_text || "")}<br>
       <span class="muted">Qty</span> ${esc(line.quantity_raw ?? line.quantity ?? "—")} ${esc(line.unit_raw || "")}
       ${line.source_amounts?.unit_price != null ? ` · <span class="muted">Unit price</span> ${esc(line.source_amounts.unit_price)}` : ""}
       ${line.source_amounts?.line_amount != null ? ` · <span class="muted">Amount</span> ${esc(line.source_amounts.line_amount)}` : ""}</p>
       ${line.long_text ? `<pre>${esc(line.long_text)}</pre>` : `<p class="muted">No long text.</p>`}` : `<p class="muted">Not tied to a single position.</p>`;
-  return `<tr class="detail"><td colspan="5"><div class="detail-grid">
-    <div><h4>What was found</h4><p>${esc(f.message)}</p>
-      <h4>Proposed fix</h4>${fix}
+  return `<tr class="detail" data-detail="${esc(f.id)}"><td colspan="7"><div class="detail-grid">
+    <div><h4>What was found</h4><p>${esc(f.message)}</p>${decision}
+      <h4 style="margin-top:10px">Proposed fix</h4>${fix}
       ${Object.keys(f.evidence || {}).length ? `<h4 style="margin-top:10px">Evidence</h4><pre>${esc(JSON.stringify(f.evidence, null, 2))}</pre>` : ""}</div>
     <div><h4>Position</h4>${lineInfo}
       ${related.length ? `<h4 style="margin-top:10px">Related positions</h4><ul>${related.map((r) => `<li><span class="code">${esc(r.code || "")}</span> ${esc(r.short_text || "")}</li>`).join("")}</ul>` : ""}
     </div></div></td></tr>`;
 }
 
+// Re-render only the rows whose decision changed (the table can hold thousands of rows).
+function updateRows(ids) {
+  if (tab !== "findings") return;
+  const tbody = $("findings");
+  let removed = false;
+  for (const id of ids) {
+    const row = tbody.querySelector(`tr.item[data-id="${CSS.escape(id)}"]`);
+    if (!row) continue;
+    const f = findingById[id];
+    const detail = tbody.querySelector(`tr.detail[data-detail="${CSS.escape(id)}"]`);
+    if (matches(f)) row.insertAdjacentHTML("beforebegin", rowHtml(f));
+    else removed = true;
+    row.remove(); detail?.remove();
+  }
+  renderCards();
+  const rows = boq.result.findings.filter(matches);
+  $("fCount").textContent = `${Math.min(fShown, rows.length)} of ${rows.length} shown (${boq.result.findings.length} total)`;
+  updateBulkButton(rows);
+  if (removed && !tbody.querySelector("tr.item")) renderFindings();
+}
+
+// ---------------------------------------------------------------- decisions
+function askReason(status, what) {
+  return new Promise((resolve) => {
+    const dlg = $("reasonDlg");
+    $("reasonTitle").textContent = `${status === "accepted" ? "Accept" : "Dismiss"} ${what}`;
+    $("reasonSel").innerHTML = REASONS[status].map(([v, t]) => `<option value="${v}">${esc(t)}</option>`).join("");
+    $("reasonNote").value = "";
+    $("reasonOk").textContent = status === "accepted" ? "Accept" : "Dismiss";
+    let done = false;
+    const finish = (value) => { if (done) return; done = true; dlg.close(); resolve(value); };
+    $("reasonForm").onsubmit = (e) => { e.preventDefault(); finish({ reason: $("reasonSel").value, note: $("reasonNote").value.trim() || null }); };
+    $("reasonCancel").onclick = () => finish(null);
+    dlg.oncancel = () => finish(null);
+    dlg.showModal();
+    $("reasonSel").focus();
+  });
+}
+
+async function api(method, url, body) {
+  const res = await fetch(url, { method, headers: body ? { "Content-Type": "application/json" } : undefined, body: body ? JSON.stringify(body) : undefined });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(typeof data.detail === "string" ? data.detail : `Request failed (${res.status})`);
+  return data;
+}
+
+// One decision, several ids or a whole rule. Returns after the server saved and re-scored.
+async function decide(ids, status, extra = {}, ruleId = null) {
+  try {
+    const key = encodeURIComponent(boq.doc_key);
+    let data, changed;
+    if (!ruleId && ids.length === 1) {
+      data = await api("PUT", `/api/decisions/${key}/${encodeURIComponent(ids[0])}`, { status, ...extra });
+      changed = { [ids[0]]: data.decision };
+    } else {
+      data = await api("POST", `/api/decisions/${key}/bulk`, ruleId ? { status, rule_id: ruleId, ...extra } : { status, finding_ids: ids, ...extra });
+      changed = data.decisions;
+    }
+    for (const [id, d] of Object.entries(changed)) {
+      const f = findingById[id];
+      if (!f) continue;
+      f.status = d ? d.status : "open";
+      if (d) boq.decisions[id] = d; else delete boq.decisions[id];
+    }
+    boq.risk = data.risk;
+    indexFindings();
+    summaryDirty = linesDirty = true;
+    updateRows(Object.keys(changed));
+    if (tab === "summary") renderSummary();
+    refreshBadges();
+    scheduleQuestions();
+    toast(`${Object.keys(changed).length} finding${Object.keys(changed).length === 1 ? "" : "s"} ${status === "open" ? "reopened" : status === "accepted" ? "accepted" : "dismissed"}.`);
+  } catch (err) {
+    toast(err.message, true);
+  }
+}
+
+async function decideWithReason(ids, status, what, ruleId = null) {
+  const answer = await askReason(status, what);
+  if (answer) await decide(ids, status, answer, ruleId);
+}
+
+// ---------------------------------------------------------------- bidder questions
+function scheduleQuestions() { clearTimeout(questionsTimer); questionsTimer = setTimeout(loadQuestions, 250); }
+
+async function loadQuestions() {
+  const key = boq.doc_key;
+  try {
+    const data = await api("GET", `/api/questions/${encodeURIComponent(key)}`);
+    if (boq.doc_key !== key) return;
+    questions = data;
+  } catch (err) { questions = { applicable: false, questions: [], note: err.message, error: true }; }
+  refreshBadges();
+  if (tab === "questions") renderQuestions();
+}
+
+function questionsHtml(list, withActions) {
+  let section, n = 0, html = "";
+  for (const q of list) {
+    if (q.section !== section) { section = q.section; html += `<div class="qsec">${esc(section || "General")}</div>`; }
+    n++;
+    html += `<div class="q"><span class="n">${n}.</span><div>${esc(q.text)}<div class="why">${esc(RULE_SHORT(q.rule_id))} · ${q.finding_ids.length} finding${q.finding_ids.length === 1 ? "" : "s"}${withActions ? ` · <a href="#" data-action="open-finding" data-id="${esc(q.finding_ids[0])}">show finding</a>` : ""}</div></div></div>`;
+  }
+  return html;
+}
+
+function renderQuestions() {
+  const el = $("tab-questions");
+  if (!questions) { el.innerHTML = `<p class="muted">Loading…</p>`; return; }
+  if (!questions.applicable) { el.innerHTML = `<div class="banner ${questions.error ? "err" : ""}">${esc(questions.note || "No bidder questions for this file.")}</div>`; return; }
+  const list = questions.questions;
+  el.innerHTML = `<div class="row no-print" style="margin-bottom:8px"><span class="muted grow">${list.length} question${list.length === 1 ? "" : "s"} from the open and accepted findings. Dismissed findings are left out. The text is generated from fixed templates; nothing is sent anywhere.</span>
+      <button class="secondary" data-action="copy-questions" ${list.length ? "" : "disabled"}>Copy all</button>
+      <button data-action="docx" ${list.length ? "" : "disabled"}>Download .docx</button></div>` +
+    (list.length ? questionsHtml(list, true) : `<p class="empty">No bidder questions. Nothing in the open findings needs a clarification from the client.</p>`);
+}
+
+// ---------------------------------------------------------------- positions
 function renderLines() {
+  linesDirty = false;
   const q = $("lText").value.trim().toLowerCase(), only = $("lOnly").checked;
   const rows = boq.input.lines.filter((l) => {
     if (only && !findingsByLine[l.id]) return false;
     if (q && !`${l.code} ${l.short_text} ${l.long_text}`.toLowerCase().includes(q)) return false;
     return true;
   });
-  $("lCount").textContent = `${rows.length} of ${boq.input.lines.length}`;
+  $("lCount").textContent = `${Math.min(lShown, rows.length)} of ${rows.length} shown (${boq.input.lines.length} total)`;
   if (!rows.length) { $("lines").innerHTML = `<tr><td colspan="7" class="empty">No positions.</td></tr>`; return; }
-  $("lines").innerHTML = rows.map((l) => {
+  $("lines").innerHTML = rows.slice(0, lShown).map((l) => {
     const fs = findingsByLine[l.id] || [];
     const worst = fs.reduce((w, f) => (SEV_ORDER[f.severity] < SEV_ORDER[w] ? f.severity : w), "info");
     const sa = l.source_amounts || {};
-    return `<tr class="item" data-id="${esc(l.id)}">
+    return `<tr class="item" data-action="line-row" data-id="${esc(l.id)}">
       <td class="code">${esc(l.code || "—")}</td>
       <td>${esc(truncate(l.short_text || "(no short text)", 110))}</td>
       <td class="num">${esc(l.quantity_raw ?? l.quantity ?? "")}</td>
@@ -392,25 +750,74 @@ function renderLines() {
       <td class="num">${esc(sa.unit_price ?? "")}</td>
       <td class="num">${esc(sa.line_amount ?? "")}</td>
       <td>${fs.length ? `<span class="sev ${worst}">${fs.length}</span>` : ""}</td></tr>`;
-  }).join("");
-  document.querySelectorAll("#lines tr.item").forEach((tr) => tr.addEventListener("click", () => {
-    if (!findingsByLine[tr.dataset.id]) return;
-    filterLine = tr.dataset.id;
-    $("fSev").value = ""; $("fLayer").value = ""; $("fRule").value = ""; $("fText").value = "";
-    switchTab("findings"); renderFindings();
-  }));
+  }).join("") + (rows.length > lShown ? `<tr class="more"><td colspan="7" class="empty"><button class="secondary" data-action="more-lines">Show ${Math.min(PAGE, rows.length - lShown)} more (${rows.length - lShown} left)</button></td></tr>` : "");
 }
 
-function switchTab(name) {
-  document.querySelectorAll(".tab").forEach((t) => t.classList.toggle("active", t.dataset.tab === name));
-  $("tab-findings").classList.toggle("hidden", name !== "findings");
-  $("tab-lines").classList.toggle("hidden", name !== "lines");
+// ---------------------------------------------------------------- one delegated click listener
+function showFinding(id) {
+  const f = findingById[id];
+  if (!f) return;
+  filterLine = null;
+  $("fStatus").value = f.status === "rejected" ? "dismissed" : "open";
+  $("fSev").value = ""; $("fLayer").value = ""; $("fRule").value = ""; $("fText").value = "";
+  openFinding = id;
+  const rows = boq.result.findings.filter(matches);
+  fShown = Math.max(PAGE, rows.findIndex((r) => r.id === id) + 1);
+  switchTab("findings");
+  $("findings").querySelector(`tr.item[data-id="${CSS.escape(id)}"]`)?.scrollIntoView({ block: "center" });
 }
-document.querySelectorAll(".tab").forEach((t) => t.addEventListener("click", () => switchTab(t.dataset.tab)));
-["fSev", "fLayer", "fRule"].forEach((id) => $(id).addEventListener("change", renderFindings));
-$("fText").addEventListener("input", renderFindings);
-$("lText").addEventListener("input", renderLines);
-$("lOnly").addEventListener("change", renderLines);
+
+document.addEventListener("click", async (e) => {
+  const el = e.target.closest("[data-action]");
+  if (!el) return;
+  const action = el.dataset.action, id = el.dataset.id;
+  const ids = el.dataset.ids ? el.dataset.ids.split(",") : [id];
+  if (action !== "toggle" && el.tagName === "A") e.preventDefault();
+  switch (action) {
+    case "tab": switchTab(el.dataset.tab); break;
+    case "print": window.print(); break;
+    case "docx": location.href = `/api/questions/${encodeURIComponent(boq.doc_key)}.docx`; break;
+    case "copy-questions":
+      try { await navigator.clipboard.writeText(questions.questions.map((q, i) => `${i + 1}. ${q.text}`).join("\n\n")); toast("Questions copied."); }
+      catch { toast("Copy failed. Select the text instead.", true); }
+      break;
+    case "toggle":
+      if (e.target.closest("button, a")) break;
+      openFinding = openFinding === id ? null : id;
+      { const f = findingById[id], row = $("findings").querySelector(`tr.item[data-id="${CSS.escape(id)}"]`);
+        row.nextElementSibling?.matches("tr.detail") && row.nextElementSibling.remove();
+        row.insertAdjacentHTML("afterend", openFinding === id ? detailRow(f) : ""); }
+      break;
+    case "accept": await decideWithReason([id], "accepted", "this finding"); break;
+    case "dismiss": await decideWithReason([id], "rejected", "this finding"); break;
+    case "reopen": await decide([id], "open"); break;
+    case "line-accept": await decideWithReason(ids, "accepted", ids.length > 1 ? `${ids.length} findings on this position` : "this finding"); break;
+    case "line-dismiss": await decideWithReason(ids, "rejected", ids.length > 1 ? `${ids.length} findings on this position` : "this finding"); break;
+    case "bulk": {
+      const rule = $("fRule").value;
+      if (el.dataset.mode === "restore") await decide(boq.result.findings.filter(matches).map((f) => f.id), "open");
+      else await decideWithReason([], "rejected", `all open findings of ${rule}`, rule);
+      break;
+    }
+    case "card": $("fSev").value = el.dataset.sev; fShown = PAGE; renderFindings(); break;
+    case "goto-findings": $("fStatus").value = "open"; $("fSev").value = ""; fShown = PAGE; switchTab("findings"); break;
+    case "more": fShown += PAGE; renderFindings(); break;
+    case "more-lines": lShown += PAGE; renderLines(); break;
+    case "more-risks": showAllRisks = !showAllRisks; renderSummary(); break;
+    case "open-finding": showFinding(id); break;
+    case "show-line": filterLine = id; $("fStatus").value = "open"; $("fSev").value = ""; $("fLayer").value = ""; $("fRule").value = ""; $("fText").value = ""; fShown = PAGE; switchTab("findings"); break;
+    case "clear-line": filterLine = null; fShown = PAGE; renderFindings(); break;
+    case "line-row":
+      if (!findingsByLine[id]) break;
+      filterLine = id; $("fStatus").value = "open"; $("fSev").value = ""; $("fLayer").value = ""; $("fRule").value = ""; $("fText").value = "";
+      fShown = PAGE; switchTab("findings");
+      break;
+  }
+});
+["fStatus", "fSev", "fLayer", "fRule"].forEach((id) => $(id).addEventListener("change", () => { fShown = PAGE; renderFindings(); }));
+$("fText").addEventListener("input", () => { fShown = PAGE; renderFindings(); });
+$("lText").addEventListener("input", () => { lShown = PAGE; renderLines(); });
+$("lOnly").addEventListener("change", () => { lShown = PAGE; renderLines(); });
 
 $("download").addEventListener("click", () => {
   const blob = new Blob([JSON.stringify(response, null, 2)], { type: "application/json" });
@@ -421,7 +828,52 @@ $("download").addEventListener("click", () => {
   URL.revokeObjectURL(a.href);
 });
 
+// ---------------------------------------------------------------- print
+// The screen shows one tab at a time. For print, add the findings (grouped by section, one section
+// per page) and the bidder questions after the Summary.
+function topSectionOf(f) {
+  let id = (lineById[f.target.line_id] || {}).section_id || f.target.section_id;
+  const seen = new Set();
+  while (sectionById[id]?.parent_id && !seen.has(id)) { seen.add(id); id = sectionById[id].parent_id; }
+  return id || null;
+}
+
+window.addEventListener("beforeprint", () => {
+  if (!boq) return;
+  if (summaryDirty) renderSummary();   // printing from another tab: the Summary may be stale
+  const LIMIT = 600;
+  const live = boq.result.findings.filter((f) => f.status !== "rejected")
+    .sort((a, b) => SEV_ORDER[a.severity] - SEV_ORDER[b.severity]);
+  const groups = new Map();
+  for (const f of live.slice(0, LIMIT)) {
+    const key = topSectionOf(f);
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(f);
+  }
+  const ordered = [...groups.entries()].sort((a, b) => (sectionById[a[0]]?.sort_order ?? -1) - (sectionById[b[0]]?.sort_order ?? -1));
+  let html = "";
+  for (const [sid, list] of ordered) {
+    const s = sectionById[sid];
+    html += `<div class="print-section"><h2>Findings · ${esc(s ? `${s.code || ""} ${s.title || ""}`.trim() : "Whole BoQ / outside sections")}</h2>
+      <table><thead><tr><th>Status</th><th>Severity</th><th>OZ</th><th>Finding</th></tr></thead><tbody>${list.map((f) => `<tr>
+        <td>${STATUS_LABEL[f.status]}</td><td><span class="sev ${f.severity}">${SEV_LABEL[f.severity]}</span></td>
+        <td class="code">${esc(lineLabel(f).code)}</td><td><b>${esc(f.title)}</b><div class="muted">${esc(truncate(f.message, 220))}</div></td></tr>`).join("")}</tbody></table></div>`;
+  }
+  if (live.length > LIMIT) html += `<p class="muted">Showing the ${LIMIT} most severe of ${live.length} findings. The JSON download has all of them.</p>`;
+  if (questions?.applicable && questions.questions.length)
+    html += `<div class="print-section"><h2>Bidder questions</h2>${questionsHtml(questions.questions, false)}</div>`;
+  $("printExtra").innerHTML = html;
+});
+window.addEventListener("afterprint", () => { $("printExtra").innerHTML = ""; });
+
 // ---------------------------------------------------------------- formatting
+let toastTimer = null;
+function toast(msg, isError = false) {
+  const t = $("toast");
+  t.textContent = msg; t.className = isError ? "err" : "";
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.add("hidden"), isError ? 6000 : 2500);
+}
 function fmtSize(n) { return n > 1048576 ? (n / 1048576).toFixed(1) + " MB" : Math.max(1, Math.round(n / 1024)) + " KB"; }
 function truncate(s, n) { s = String(s ?? ""); return s.length > n ? s.slice(0, n - 1) + "…" : s; }
 function fmtMoney(v, cur) {

@@ -12,16 +12,31 @@ Created in [T3 Code](https://t3.codes).
 
 The database uses PostgreSQL 18 and Docker Compose locally and on a VPS. The [schema dashboard](schema-dashboard.html) shows the application and document-intake tables. The SQL migrations create the schema and its integrity checks.
 
-## Web UI: upload a BoQ and get a report
+## Web UI: upload a BoQ and get a risk report
 
-A basic web page for testing the analysis on real documents. It needs no database: the file is parsed in memory, layers 1 and 2 run, and the findings are shown. Nothing is stored.
+A web page for checking a BoQ and reviewing the result. It needs no database and no Docker: the file is parsed in memory, the layers run, and the report is built from the findings. Analyses stay in a memory cache (the last 8). The only thing written to disk is your decisions on findings.
 
 ```sh
 python -m pip install -r webapp/requirements.txt
 python -m webapp            # http://127.0.0.1:8000
 ```
 
-PDF files also need the Poppler tools (`pdftotext`) on the `PATH`. Upload a GAEB XML (X8x), GAEB 90 (D8x), PDF or Word file, or pick one of the files in `Data/`. The report shows counts by severity and the findings, which you can filter by severity, layer, rule or text. Click a finding to see the message, evidence, proposed fix and the position's full text. The Positions tab lists what was extracted from the file. Use Download JSON to save the full result. Layer 3 is off by default. When it's on, its model is set with the layer 3 environment variables. If the model can't be reached, the report says so and layers 1 and 2 still run.
+PDF files also need the Poppler tools (`pdftotext`) on the `PATH`. On Windows, start the app from PowerShell, which finds the MiKTeX Poppler. Git Bash finds an old xpdf `pdftotext` that cannot read the column layout. Upload a GAEB XML (X8x), GAEB 90 (D8x), PDF or Word file, or pick one of the files in `Data/`. Layer 3 is off by default. When it's on, its model is set with the layer 3 environment variables. If the model can't be reached, the report says so and layers 1 and 2 still run.
+
+The report has four tabs and a header with **Print / Save PDF**, **Bidder questions** and **Download JSON**.
+
+- **Summary** (the default): tiles for the risk score, money at stake (or "Not priced"), open errors and warnings, change-order signals and how many findings you reviewed. Below are the top 10 risk positions with reason chips (click a chip to open that finding) and Accept/Dismiss buttons, the risks by section and by category, and a list of change-order signals. A banner explains that a tender without prices is ranked by likelihood only.
+- **Findings**: filter by status (Open, Dismissed, All), severity, layer, rule and text; click a row for the message, evidence, proposed fix and the position's full text. **Accept** means "this is a real issue" and keeps the finding in the score. **Dismiss** takes it out of the score and the bidder questions. Both ask for a reason and an optional note, and **Undo** restores the finding. "Open" shows every finding that isn't dismissed. Pick a rule to dismiss all its open findings at once. Nothing is ever applied to the BoQ: the proposed fixes stay proposals.
+- **Bidder questions**: German questions for the client, generated from the open and accepted findings with fixed templates keyed by rule id (`analysis/questions.py`). Nothing is sent to a model or a service. Findings of one rule in one section become one question. Price, arithmetic and import findings produce no question, and only tenders (GAEB phase 83, or a PDF or Word file) get questions. **Download .docx** needs `python-docx`, which is in `webapp/requirements.txt`.
+- **Positions**: what was extracted from the file.
+
+**Decisions** are saved in `webapp/var/decisions/{sha256}.json`, one file per uploaded document, written atomically. The folder is git-ignored because notes can contain tender text. Set `CONSTRUCT_DECISIONS_DIR` to store them elsewhere. Finding ids depend on the file's hash, so analysing the same file again shows your earlier decisions. A decision with no matching finding (for example you selected other layers) is kept and listed as "saved decisions match no current finding". The store sits behind the `DecisionStore` interface in `webapp/decisions.py`, so a PostgreSQL store can replace it later.
+
+**Risk score.** The Summary uses `webapp/risk_fallback.py`, a temporary model: the likelihood of a position grows with the severity of its open findings, and the money at stake is the position's amount times that likelihood and an impact factor. A BoQ with prices is ranked by money, one without by likelihood. The real model (`analysis/risk/assess()`, see `docs/IMPLEMENTATION_PLAN.md` section 3) replaces it through `RISK_MODEL` in `webapp/app.py`.
+
+**Print.** Print / Save PDF uses the browser's print dialog. The printout holds the Summary, the findings that aren't dismissed (one section per page) and the bidder questions. Controls are hidden.
+
+API: `GET /api/samples`, `GET /api/samples/analyze`, `POST /api/analyze`, `PUT /api/decisions/{doc_key}/{finding_id}`, `POST /api/decisions/{doc_key}/bulk`, `GET /api/questions/{doc_key}` and `GET /api/questions/{doc_key}.docx`. A `doc_key` is `{sha256}:{boq index}` and comes with every BoQ in the analysis response.
 
 ## Run the database
 
