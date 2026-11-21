@@ -18,13 +18,27 @@ For example, an estimator can open a concrete package, review a warning about mi
 
 ## Risk assessment
 
-| Check | What it looks for |
-| --- | --- |
-| Position and pricing checks | Missing quantities or units, inconsistent values, arithmetic issues, and pricing anomalies |
-| Construction dependencies | Work that may be missing or under-specified, such as formwork for in-situ concrete or primer for flooring |
-| Optional AI review | Contradictions in descriptions and context that may confirm or qualify a dependency finding |
+Every uploaded list is checked in three layers before anyone prices it:
 
-The first two layers run without an AI provider. Findings give the reviewer evidence and suggested next steps. Reviewers decide which edits to make. See the [analysis architecture](docs/ANALYSIS_LAYERS.md) and [AI provider setup](docs/OPERATIONS.md#enable-layer-3).
+| Layer | What it looks for |
+| --- | --- |
+| 1. Position rules | Missing or negative quantities, unit and arithmetic errors, duplicates, DIN 1045-2 concrete grades and exposure classes, precast layer sums, and placeholders or conflicting values in the text |
+| 2. Construction dependencies | Work that is missing or under-specified, such as formwork for in-situ concrete, edge insulation for screed, or shop drawings for precast elements |
+| 3. AI review (Claude) | Contradictions between short and long text, scope gaps across positions, underspecified items, and implausible quantities |
+
+Layers 1 and 2 are deterministic and run without an AI provider. From the findings BillBuild builds:
+
+- **A risk score** (0–100) with the top risks, risk by section and category, change-order (*Nachtrag*) signals and, for priced tenders, the money at stake.
+- **Clarification questions** (*Bieterfragen*) in formal German, grouped across positions, ready to send to the client.
+- **An Excel risk matrix** and a printable report.
+
+A reviewer accepts or dismisses every finding with a reason, and the score updates as they go. BillBuild never changes the list on its own.
+
+On planted-error tests (244 mutated tenders), layers 1 and 2 catch every planted error outside three known gaps (reworded duplicates, typos, open "nach Aufwand" quantities), with no false alarms on 46 clean controls. See the [analysis architecture](docs/ANALYSIS_LAYERS.md), [risk score](docs/RISK.md), [evaluation](docs/EVALUATION.md) and [AI provider setup](docs/OPERATIONS.md#enable-layer-3).
+
+### Subcontractor requests
+
+From the Export menu, pick positions and subcontractors, set an internal budget, and export a price-free request (X83, Excel or PDF) with a ready email draft (`.eml`) per subcontractor. The budget never leaves BillBuild.
 
 ## File formats
 
