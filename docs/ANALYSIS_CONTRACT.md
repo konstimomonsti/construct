@@ -335,6 +335,11 @@ expected (info), while in a bid or award (84/86) they're a defect (warning).
 | `L1.DIN.EXPOSURE_STRENGTH` | error | one unambiguous concrete grade below the supplied DIN 1045-2 exposure minimum; no inferred pairing of multiple grades | - |
 | `L1.DIN.UNKNOWN_GRADE` | warning | stated C/LC grade absent from the screening rank table; this does not assert the grade is invalid | - |
 | `L1.DIN.NOTE` | info | one LP-concrete note per line/exposure XF2 or XF4, and an alkali-guideline note for WA | - |
+| `L1.DIN.WATERPROOFING_MISSING` | warning | ground-contact precast or plinth without a water-impact class or waterproofing specification | - |
+| `L1.DIN.FIRE_RATING_CONFLICT` | error | conflicting short/long fire ratings or a fire wall without a rating | - |
+| `L1.DIN.VOB_DEDUCTION_VIOLATION` | warning | explicit opening deduction limit at or below the DIN 18331 screening threshold | - |
+| `L1.DIN.REBAR_UNKNOWN_GRADE` | warning | stated reinforcement grade outside the supported DIN 488 designations | - |
+| `L1.DIN.TOLERANCE_UNSPECIFIED` | info | enhanced accuracy without a specified DIN tolerance table line or class | - |
 | `L1.PRECAST.LAYER_SUM` | error | sandwich facing + insulation + structural shell differs from total by more than 0.1 cm; all four unambiguous values required | - |
 | `L1.UNIT.TRADE_MISMATCH` | warning | item-type unit table for sandwich/FT-Sockel, rebar, opening surcharges, embedded parts and shop drawings | - |
 | `L1.TEXT.SPEC_PLACEHOLDER` | warning | product/value redactions (FIRMA, KENNZEICHEN, PRODUKT, TYP, NUMMER), XXX, dashed or dotted specification values; excludes identified bidder fields and personal/address redactions | - |
