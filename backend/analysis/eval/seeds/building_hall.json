@@ -1,0 +1,1529 @@
+{
+  "project": {
+    "name": "Schulungshalle mit Bürotrakt (synthetischer Seed)",
+    "currency": "EUR",
+    "gaeb_phase": "83"
+  },
+  "bom": {
+    "title": "Rohbau und Ausbau Schulungshalle",
+    "stated_net_total": 520142.90
+  },
+  "sections": [
+    {
+      "id": "S00",
+      "parent_id": null,
+      "code": "00",
+      "code_parts": [
+        "00"
+      ],
+      "title": "Baustelle",
+      "sort_order": 0,
+      "stated_total": 30512.00
+    },
+    {
+      "id": "S00.01",
+      "parent_id": "S00",
+      "code": "00.01",
+      "code_parts": [
+        "00",
+        "01"
+      ],
+      "title": "Baustelleneinrichtung und Gerüst",
+      "sort_order": 1,
+      "stated_total": 25000.00
+    },
+    {
+      "id": "S00.02",
+      "parent_id": "S00",
+      "code": "00.02",
+      "code_parts": [
+        "00",
+        "02"
+      ],
+      "title": "Entsorgung und Reinigung",
+      "sort_order": 2,
+      "stated_total": 5512.00
+    },
+    {
+      "id": "S01",
+      "parent_id": null,
+      "code": "01",
+      "code_parts": [
+        "01"
+      ],
+      "title": "Erd- und Betonarbeiten",
+      "sort_order": 3,
+      "stated_total": 299656.00
+    },
+    {
+      "id": "S01.01",
+      "parent_id": "S01",
+      "code": "01.01",
+      "code_parts": [
+        "01",
+        "01"
+      ],
+      "title": "Erdarbeiten",
+      "sort_order": 4,
+      "stated_total": 65668.00
+    },
+    {
+      "id": "S01.02",
+      "parent_id": "S01",
+      "code": "01.02",
+      "code_parts": [
+        "01",
+        "02"
+      ],
+      "title": "Gründung und Bodenplatte",
+      "sort_order": 5,
+      "stated_total": 92748.00
+    },
+    {
+      "id": "S01.03",
+      "parent_id": "S01",
+      "code": "01.03",
+      "code_parts": [
+        "01",
+        "03"
+      ],
+      "title": "Aufgehende Bauteile",
+      "sort_order": 6,
+      "stated_total": 48392.00
+    },
+    {
+      "id": "S01.04",
+      "parent_id": "S01",
+      "code": "01.04",
+      "code_parts": [
+        "01",
+        "04"
+      ],
+      "title": "Schalung und Bewehrung",
+      "sort_order": 7,
+      "stated_total": 92848.00
+    },
+    {
+      "id": "S02",
+      "parent_id": null,
+      "code": "02",
+      "code_parts": [
+        "02"
+      ],
+      "title": "Estricharbeiten",
+      "sort_order": 8,
+      "stated_total": 36866.00
+    },
+    {
+      "id": "S02.01",
+      "parent_id": "S02",
+      "code": "02.01",
+      "code_parts": [
+        "02",
+        "01"
+      ],
+      "title": "Untergrund und Dämmung",
+      "sort_order": 9,
+      "stated_total": 4380.00
+    },
+    {
+      "id": "S02.02",
+      "parent_id": "S02",
+      "code": "02.02",
+      "code_parts": [
+        "02",
+        "02"
+      ],
+      "title": "Estrich",
+      "sort_order": 10,
+      "stated_total": 11730.00
+    },
+    {
+      "id": "S02.03",
+      "parent_id": "S02",
+      "code": "02.03",
+      "code_parts": [
+        "02",
+        "03"
+      ],
+      "title": "Beläge und Sockel",
+      "sort_order": 11,
+      "stated_total": 20756.00
+    },
+    {
+      "id": "S03",
+      "parent_id": null,
+      "code": "03",
+      "code_parts": [
+        "03"
+      ],
+      "title": "Trockenbauarbeiten",
+      "sort_order": 12,
+      "stated_total": 34609.40
+    },
+    {
+      "id": "S03.01",
+      "parent_id": "S03",
+      "code": "03.01",
+      "code_parts": [
+        "03",
+        "01"
+      ],
+      "title": "Wände",
+      "sort_order": 13,
+      "stated_total": 27642.00
+    },
+    {
+      "id": "S03.02",
+      "parent_id": "S03",
+      "code": "03.02",
+      "code_parts": [
+        "03",
+        "02"
+      ],
+      "title": "Dämmung, Spachtelung und Zubehör",
+      "sort_order": 14,
+      "stated_total": 6967.40
+    },
+    {
+      "id": "S04",
+      "parent_id": null,
+      "code": "04",
+      "code_parts": [
+        "04"
+      ],
+      "title": "Malerarbeiten",
+      "sort_order": 15,
+      "stated_total": 32594.50
+    },
+    {
+      "id": "S04.01",
+      "parent_id": "S04",
+      "code": "04.01",
+      "code_parts": [
+        "04",
+        "01"
+      ],
+      "title": "Vorbereitung",
+      "sort_order": 16,
+      "stated_total": 6483.50
+    },
+    {
+      "id": "S04.02",
+      "parent_id": "S04",
+      "code": "04.02",
+      "code_parts": [
+        "04",
+        "02"
+      ],
+      "title": "Anstriche und Beschichtung",
+      "sort_order": 17,
+      "stated_total": 26111.00
+    },
+    {
+      "id": "S05",
+      "parent_id": null,
+      "code": "05",
+      "code_parts": [
+        "05"
+      ],
+      "title": "Dachabdichtung",
+      "sort_order": 18,
+      "stated_total": 85905.00
+    },
+    {
+      "id": "S05.01",
+      "parent_id": "S05",
+      "code": "05.01",
+      "code_parts": [
+        "05",
+        "01"
+      ],
+      "title": "Dachaufbau",
+      "sort_order": 19,
+      "stated_total": 74160.00
+    },
+    {
+      "id": "S05.02",
+      "parent_id": "S05",
+      "code": "05.02",
+      "code_parts": [
+        "05",
+        "02"
+      ],
+      "title": "Details und Entwässerung",
+      "sort_order": 20,
+      "stated_total": 11745.00
+    }
+  ],
+  "lines": [
+    {
+      "id": "L00.01.0010",
+      "code": "00.01.0010",
+      "code_parts": [
+        "00",
+        "01",
+        "0010"
+      ],
+      "section_id": "S00.01",
+      "sort_order": 0,
+      "short_text": "Baustelleneinrichtung einrichten, vorhalten und räumen",
+      "long_text": "Baustelleneinrichtung für alle Leistungen des Bauvorhabens einrichten, während der Bauzeit vorhalten und nach Abschluss räumen, einschließlich Bauzaun und Containeranlage. Abrechnung pauschal.",
+      "quantity": 1,
+      "unit": "psch",
+      "pricing_basis": "lump_sum",
+      "gaeb_flags": {
+        "LumpSumItem": "Yes"
+      },
+      "source_amounts": {
+        "unit_price": 18500.00,
+        "line_amount": 18500.00
+      }
+    },
+    {
+      "id": "L00.01.0020",
+      "code": "00.01.0020",
+      "code_parts": [
+        "00",
+        "01",
+        "0020"
+      ],
+      "section_id": "S00.01",
+      "sort_order": 1,
+      "short_text": "Fahrbares Arbeitsgerüst, Arbeitshöhe bis 4 m, vorhalten",
+      "long_text": "Fahrbare Arbeitsgerüste für die Innenausbauarbeiten stellen, umsetzen und vorhalten, Standsicherheit nach Herstellerangabe nachweisen.",
+      "quantity": 16,
+      "unit": "Wo",
+      "pricing_basis": "unit_rate",
+      "gaeb_flags": {},
+      "source_amounts": {
+        "unit_price": 120.00,
+        "line_amount": 1920.00
+      }
+    },
+    {
+      "id": "L00.01.0030",
+      "code": "00.01.0030",
+      "code_parts": [
+        "00",
+        "01",
+        "0030"
+      ],
+      "section_id": "S00.01",
+      "sort_order": 2,
+      "short_text": "Baustrom und Bauwasser bereitstellen",
+      "long_text": "Anschlussstellen für Baustrom und Bauwasser herstellen, Verbrauch trägt der Auftragnehmer. Abrechnung pauschal.",
+      "quantity": 1,
+      "unit": "psch",
+      "pricing_basis": "lump_sum",
+      "gaeb_flags": {
+        "LumpSumItem": "Yes"
+      },
+      "source_amounts": {
+        "unit_price": 4200.00,
+        "line_amount": 4200.00
+      }
+    },
+    {
+      "id": "L00.01.0040",
+      "code": "00.01.0040",
+      "code_parts": [
+        "00",
+        "01",
+        "0040"
+      ],
+      "section_id": "S00.01",
+      "sort_order": 3,
+      "short_text": "Bauschild nach Vorgabe des Bauherrn",
+      "long_text": "Bauschild liefern, aufstellen und nach Bauende wieder abbauen. Abrechnung nach Stück.",
+      "quantity": 1,
+      "unit": "St",
+      "pricing_basis": "unit_rate",
+      "gaeb_flags": {},
+      "source_amounts": {
+        "unit_price": 380.00,
+        "line_amount": 380.00
+      }
+    },
+    {
+      "id": "L00.02.0010",
+      "code": "00.02.0010",
+      "code_parts": [
+        "00",
+        "02",
+        "0010"
+      ],
+      "section_id": "S00.02",
+      "sort_order": 4,
+      "short_text": "Bauschutt und Verpackungsabfälle entsorgen",
+      "long_text": "Anfallende Baustellenabfälle sortenrein trennen, laden, abfahren und ordnungsgemäß entsorgen, Nachweise vorlegen. Abrechnung nach t.",
+      "quantity": 22,
+      "unit": "t",
+      "pricing_basis": "unit_rate",
+      "gaeb_flags": {},
+      "source_amounts": {
+        "unit_price": 96.00,
+        "line_amount": 2112.00
+      }
+    },
+    {
+      "id": "L00.02.0020",
+      "code": "00.02.0020",
+      "code_parts": [
+        "00",
+        "02",
+        "0020"
+      ],
+      "section_id": "S00.02",
+      "sort_order": 5,
+      "short_text": "Bauendreinigung",
+      "long_text": "Gebäude und Außenflächen besenrein und gebrauchsfertig übergeben, Verglasungen und Bodenflächen feucht reinigen. Abrechnung pauschal.",
+      "quantity": 1,
+      "unit": "psch",
+      "pricing_basis": "lump_sum",
+      "gaeb_flags": {
+        "LumpSumItem": "Yes"
+      },
+      "source_amounts": {
+        "unit_price": 3400.00,
+        "line_amount": 3400.00
+      }
+    },
+    {
+      "id": "L01.01.0010",
+      "code": "01.01.0010",
+      "code_parts": [
+        "01",
+        "01",
+        "0010"
+      ],
+      "section_id": "S01.01",
+      "sort_order": 6,
+      "short_text": "Oberboden abtragen und seitlich lagern",
+      "long_text": "Oberboden im Bereich des Baufeldes bis 30 cm Tiefe abtragen und auf dem Grundstück zur Wiederverwendung lagern. Abrechnung nach m2.",
+      "quantity": 1150,
+      "unit": "m2",
+      "pricing_basis": "unit_rate",
+      "gaeb_flags": {},
+      "source_amounts": {
+        "unit_price": 3.80,
+        "line_amount": 4370.00
+      }
+    },
+    {
+      "id": "L01.01.0020",
+      "code": "01.01.0020",
+      "code_parts": [
+        "01",
+        "01",
+        "0020"
+      ],
+      "section_id": "S01.01",
+      "sort_order": 7,
+      "short_text": "Baugrubenaushub, Bodenklasse 3 bis 5",
+      "long_text": "Baugrube und Fundamentgräben lösen, laden und seitlich lagern, Böschungen nach DIN 4124 herstellen. Abrechnung nach m3.",
+      "quantity": 1480,
+      "unit": "m3",
+      "pricing_basis": "unit_rate",
+      "gaeb_flags": {},
+      "source_amounts": {
+        "unit_price": 9.60,
+        "line_amount": 14208.00
+      }
+    },
+    {
+      "id": "L01.01.0030",
+      "code": "01.01.0030",
+      "code_parts": [
+        "01",
+        "01",
+        "0030"
+      ],
+      "section_id": "S01.01",
+      "sort_order": 8,
+      "short_text": "Planum herstellen und verdichten",
+      "long_text": "Planum profilgerecht abziehen und mit schwerem Gerät verdichten, Höhentoleranz 2 cm. Abrechnung nach m2.",
+      "quantity": 900,
+      "unit": "m2",
+      "pricing_basis": "unit_rate",
+      "gaeb_flags": {},
+      "source_amounts": {
+        "unit_price": 1.80,
+        "line_amount": 1620.00
+      }
+    },
+    {
+      "id": "L01.01.0040",
+      "code": "01.01.0040",
+      "code_parts": [
+        "01",
+        "01",
+        "0040"
+      ],
+      "section_id": "S01.01",
+      "sort_order": 9,
+      "short_text": "Tragschicht aus Schotter 0/45, d = 30 cm",
+      "long_text": "Schottertragschicht auf dem Planum liefern, einbauen und verdichten, Ev2 mindestens 100 MN/m2. Abrechnung nach m2.",
+      "quantity": 900,
+      "unit": "m2",
+      "pricing_basis": "unit_rate",
+      "gaeb_flags": {},
+      "source_amounts": {
+        "unit_price": 21.50,
+        "line_amount": 19350.00
+      }
+    },
+    {
+      "id": "L01.01.0050",
+      "code": "01.01.0050",
+      "code_parts": [
+        "01",
+        "01",
+        "0050"
+      ],
+      "section_id": "S01.01",
+      "sort_order": 10,
+      "short_text": "Arbeitsraum mit Kies verfüllen und verdichten",
+      "long_text": "Arbeitsraum lagenweise mit Kies verfüllen und verdichten, Material aus Lieferung. Abrechnung nach m3.",
+      "quantity": 320,
+      "unit": "m3",
+      "pricing_basis": "unit_rate",
+      "gaeb_flags": {},
+      "source_amounts": {
+        "unit_price": 28.00,
+        "line_amount": 8960.00
+      }
+    },
+    {
+      "id": "L01.01.0060",
+      "code": "01.01.0060",
+      "code_parts": [
+        "01",
+        "01",
+        "0060"
+      ],
+      "section_id": "S01.01",
+      "sort_order": 11,
+      "short_text": "Überschüssigen Aushub abfahren und deponieren",
+      "long_text": "Nicht wiederverwendbaren Bodenaushub laden, abfahren und auf zugelassener Deponie entsorgen, Wiegescheine vorlegen. Abrechnung nach m3.",
+      "quantity": 780,
+      "unit": "m3",
+      "pricing_basis": "unit_rate",
+      "gaeb_flags": {},
+      "source_amounts": {
+        "unit_price": 22.00,
+        "line_amount": 17160.00
+      }
+    },
+    {
+      "id": "L01.02.0010",
+      "code": "01.02.0010",
+      "code_parts": [
+        "01",
+        "02",
+        "0010"
+      ],
+      "section_id": "S01.02",
+      "sort_order": 12,
+      "short_text": "Sauberkeitsschicht aus Beton C8/10, d = 10 cm",
+      "long_text": "Sauberkeitsschicht auf dem verdichteten Planum herstellen, abgezogen und eben. Abrechnung nach m2.",
+      "quantity": 900,
+      "unit": "m2",
+      "pricing_basis": "unit_rate",
+      "gaeb_flags": {},
+      "source_amounts": {
+        "unit_price": 13.80,
+        "line_amount": 12420.00
+      }
+    },
+    {
+      "id": "L01.02.0020",
+      "code": "01.02.0020",
+      "code_parts": [
+        "01",
+        "02",
+        "0020"
+      ],
+      "section_id": "S01.02",
+      "sort_order": 13,
+      "short_text": "Streifenfundamente aus Stahlbeton C25/30, XC2",
+      "long_text": "Streifenfundamente herstellen, Beton C25/30 liefern, einbauen, verdichten und nachbehandeln. Abrechnung nach m3.",
+      "quantity": 68,
+      "unit": "m3",
+      "pricing_basis": "unit_rate",
+      "gaeb_flags": {},
+      "source_amounts": {
+        "unit_price": 214.00,
+        "line_amount": 14552.00
+      }
+    },
+    {
+      "id": "L01.02.0030",
+      "code": "01.02.0030",
+      "code_parts": [
+        "01",
+        "02",
+        "0030"
+      ],
+      "section_id": "S01.02",
+      "sort_order": 14,
+      "short_text": "Bodenplatte aus Stahlbeton C30/37, d = 30 cm",
+      "long_text": "Bodenplatte als WU-Konstruktion herstellen, Beton C30/37 liefern, einbauen, verdichten, abziehen und nachbehandeln. Abrechnung nach m3.",
+      "quantity": 264,
+      "unit": "m3",
+      "pricing_basis": "unit_rate",
+      "gaeb_flags": {},
+      "source_amounts": {
+        "unit_price": 238.00,
+        "line_amount": 62832.00
+      }
+    },
+    {
+      "id": "L01.02.0040",
+      "code": "01.02.0040",
+      "code_parts": [
+        "01",
+        "02",
+        "0040"
+      ],
+      "section_id": "S01.02",
+      "sort_order": 15,
+      "short_text": "Betonoberfläche der Hallenfläche mit Flügelglätter abziehen",
+      "long_text": "Frische Betonoberfläche maschinell glätten und für die spätere Beschichtung vorbereiten. Abrechnung nach m2.",
+      "quantity": 640,
+      "unit": "m2",
+      "pricing_basis": "unit_rate",
+      "gaeb_flags": {},
+      "source_amounts": {
+        "unit_price": 4.60,
+        "line_amount": 2944.00
+      }
+    },
+    {
+      "id": "L01.03.0010",
+      "code": "01.03.0010",
+      "code_parts": [
+        "01",
+        "03",
+        "0010"
+      ],
+      "section_id": "S01.03",
+      "sort_order": 16,
+      "short_text": "Stützen aus Stahlbeton C30/37, 40 x 40 cm",
+      "long_text": "Stützen herstellen, Beton C30/37 liefern, einbauen, verdichten und nachbehandeln. Abrechnung nach m3.",
+      "quantity": 24,
+      "unit": "m3",
+      "pricing_basis": "unit_rate",
+      "gaeb_flags": {},
+      "source_amounts": {
+        "unit_price": 395.00,
+        "line_amount": 9480.00
+      }
+    },
+    {
+      "id": "L01.03.0020",
+      "code": "01.03.0020",
+      "code_parts": [
+        "01",
+        "03",
+        "0020"
+      ],
+      "section_id": "S01.03",
+      "sort_order": 17,
+      "short_text": "Wände aus Stahlbeton C25/30, d = 25 cm",
+      "long_text": "Wände herstellen, Beton C25/30 liefern, einbauen, verdichten und nachbehandeln. Abrechnung nach m3.",
+      "quantity": 52,
+      "unit": "m3",
+      "pricing_basis": "unit_rate",
+      "gaeb_flags": {},
+      "source_amounts": {
+        "unit_price": 318.00,
+        "line_amount": 16536.00
+      }
+    },
+    {
+      "id": "L01.03.0030",
+      "code": "01.03.0030",
+      "code_parts": [
+        "01",
+        "03",
+        "0030"
+      ],
+      "section_id": "S01.03",
+      "sort_order": 18,
+      "short_text": "Decke über Erdgeschoss aus Stahlbeton C30/37, d = 24 cm",
+      "long_text": "Flachdecke herstellen, Beton C30/37 liefern, einbauen, verdichten und nachbehandeln. Abrechnung nach m3.",
+      "quantity": 58,
+      "unit": "m3",
+      "pricing_basis": "unit_rate",
+      "gaeb_flags": {},
+      "source_amounts": {
+        "unit_price": 292.00,
+        "line_amount": 16936.00
+      }
+    },
+    {
+      "id": "L01.03.0040",
+      "code": "01.03.0040",
+      "code_parts": [
+        "01",
+        "03",
+        "0040"
+      ],
+      "section_id": "S01.03",
+      "sort_order": 19,
+      "short_text": "Attika aus Stahlbeton C25/30, d = 20 cm",
+      "long_text": "Umlaufende Attika herstellen, Beton C25/30 liefern, einbauen, verdichten und nachbehandeln. Abrechnung nach m3.",
+      "quantity": 16,
+      "unit": "m3",
+      "pricing_basis": "unit_rate",
+      "gaeb_flags": {},
+      "source_amounts": {
+        "unit_price": 340.00,
+        "line_amount": 5440.00
+      }
+    },
+    {
+      "id": "L01.04.0010",
+      "code": "01.04.0010",
+      "code_parts": [
+        "01",
+        "04",
+        "0010"
+      ],
+      "section_id": "S01.04",
+      "sort_order": 20,
+      "short_text": "Schalung für Wände, Stützen und Decken, Sichtbetonklasse SB2",
+      "long_text": "Schalung liefern, vorhalten, herstellen und nach Erhärtung des Betons entfernen. Abrechnung nach m2.",
+      "quantity": 820,
+      "unit": "m2",
+      "pricing_basis": "unit_rate",
+      "gaeb_flags": {},
+      "source_amounts": {
+        "unit_price": 43.00,
+        "line_amount": 35260.00
+      }
+    },
+    {
+      "id": "L01.04.0020",
+      "code": "01.04.0020",
+      "code_parts": [
+        "01",
+        "04",
+        "0020"
+      ],
+      "section_id": "S01.04",
+      "sort_order": 21,
+      "short_text": "Betonstahl BSt 500 S, geschnitten, gebogen und verlegt",
+      "long_text": "Betonstahl liefern, schneiden, biegen und nach Plan verlegen, einschließlich Abstandhalter. Abrechnung nach t.",
+      "quantity": 41,
+      "unit": "t",
+      "pricing_basis": "unit_rate",
+      "gaeb_flags": {},
+      "source_amounts": {
+        "unit_price": 1380.00,
+        "line_amount": 56580.00
+      }
+    },
+    {
+      "id": "L01.04.0030",
+      "code": "01.04.0030",
+      "code_parts": [
+        "01",
+        "04",
+        "0030"
+      ],
+      "section_id": "S01.04",
+      "sort_order": 22,
+      "short_text": "Aussparungen und Einbauteile in Betonbauteilen",
+      "long_text": "Aussparungen, Hülsen und Ankerschienen nach Plan setzen und sichern. Abrechnung nach Stück.",
+      "quantity": 36,
+      "unit": "St",
+      "pricing_basis": "unit_rate",
+      "gaeb_flags": {},
+      "source_amounts": {
+        "unit_price": 28.00,
+        "line_amount": 1008.00
+      }
+    },
+    {
+      "id": "L02.01.0010",
+      "code": "02.01.0010",
+      "code_parts": [
+        "02",
+        "01",
+        "0010"
+      ],
+      "section_id": "S02.01",
+      "sort_order": 23,
+      "short_text": "Untergrundvorbereitung mit Tiefgrund",
+      "long_text": "Betonuntergrund schleifen, reinigen und mit Tiefgrund haftfest vorbereiten, Verbrauch nach Herstellerangabe. Abrechnung nach m2.",
+      "quantity": 150,
+      "unit": "m2",
+      "pricing_basis": "unit_rate",
+      "gaeb_flags": {},
+      "source_amounts": {
+        "unit_price": 3.40,
+        "line_amount": 510.00
+      }
+    },
+    {
+      "id": "L02.01.0020",
+      "code": "02.01.0020",
+      "code_parts": [
+        "02",
+        "01",
+        "0020"
+      ],
+      "section_id": "S02.01",
+      "sort_order": 24,
+      "short_text": "Randdämmstreifen, PE-Schaum, h = 100 mm, d = 8 mm",
+      "long_text": "Randdämmstreifen an allen aufgehenden Bauteilen und Durchdringungen setzen, Folienlasche überstehend. Abrechnung nach m.",
+      "quantity": 190,
+      "unit": "m",
+      "pricing_basis": "unit_rate",
+      "gaeb_flags": {},
+      "source_amounts": {
+        "unit_price": 2.10,
+        "line_amount": 399.00
+      }
+    },
+    {
+      "id": "L02.01.0030",
+      "code": "02.01.0030",
+      "code_parts": [
+        "02",
+        "01",
+        "0030"
+      ],
+      "section_id": "S02.01",
+      "sort_order": 25,
+      "short_text": "Trittschalldämmung, Polystyrol-Hartschaum TSD 30-2, d = 30 mm",
+      "long_text": "Platten dicht gestoßen und versetzt verlegen, Durchdringungen sauber anpassen. Abrechnung nach m2.",
+      "quantity": 390,
+      "unit": "m2",
+      "pricing_basis": "unit_rate",
+      "gaeb_flags": {},
+      "source_amounts": {
+        "unit_price": 8.90,
+        "line_amount": 3471.00
+      }
+    },
+    {
+      "id": "L02.02.0010",
+      "code": "02.02.0010",
+      "code_parts": [
+        "02",
+        "02",
+        "0010"
+      ],
+      "section_id": "S02.02",
+      "sort_order": 26,
+      "short_text": "Zementestrich CT-C25-F4, schwimmend, d = 65 mm",
+      "long_text": "Estrich liefern, einbauen, verdichten, abziehen und nachbehandeln, Oberfläche für Belagarbeiten geeignet. Abrechnung nach m2.",
+      "quantity": 240,
+      "unit": "m2",
+      "pricing_basis": "unit_rate",
+      "gaeb_flags": {},
+      "source_amounts": {
+        "unit_price": 31.50,
+        "line_amount": 7560.00
+      }
+    },
+    {
+      "id": "L02.02.0020",
+      "code": "02.02.0020",
+      "code_parts": [
+        "02",
+        "02",
+        "0020"
+      ],
+      "section_id": "S02.02",
+      "sort_order": 27,
+      "short_text": "Zementestrich CT-C30-F5 im Verbund, d = 45 mm",
+      "long_text": "Verbundestrich auf vorbereitetem Betonuntergrund einbauen, abziehen und glätten. Abrechnung nach m2.",
+      "quantity": 150,
+      "unit": "m2",
+      "pricing_basis": "unit_rate",
+      "gaeb_flags": {},
+      "source_amounts": {
+        "unit_price": 27.80,
+        "line_amount": 4170.00
+      }
+    },
+    {
+      "id": "L02.03.0010",
+      "code": "02.03.0010",
+      "code_parts": [
+        "02",
+        "03",
+        "0010"
+      ],
+      "section_id": "S02.03",
+      "sort_order": 28,
+      "short_text": "Kautschukboden, d = 3 mm, Noppenstruktur",
+      "long_text": "Kautschukbelag verlegen und verkleben, Nähte verschweißen, Farbe nach Bemusterung. Abrechnung nach m2.",
+      "quantity": 390,
+      "unit": "m2",
+      "pricing_basis": "unit_rate",
+      "gaeb_flags": {},
+      "source_amounts": {
+        "unit_price": 46.00,
+        "line_amount": 17940.00
+      }
+    },
+    {
+      "id": "L02.03.0020",
+      "code": "02.03.0020",
+      "code_parts": [
+        "02",
+        "03",
+        "0020"
+      ],
+      "section_id": "S02.03",
+      "sort_order": 29,
+      "short_text": "Sockelleiste, Aluminium, H = 60 mm",
+      "long_text": "Sockelleisten liefern und befestigen, Ecken und Stöße sauber ausbilden. Abrechnung nach m.",
+      "quantity": 210,
+      "unit": "m",
+      "pricing_basis": "unit_rate",
+      "gaeb_flags": {},
+      "source_amounts": {
+        "unit_price": 7.80,
+        "line_amount": 1638.00
+      }
+    },
+    {
+      "id": "L02.03.0030",
+      "code": "02.03.0030",
+      "code_parts": [
+        "02",
+        "03",
+        "0030"
+      ],
+      "section_id": "S02.03",
+      "sort_order": 30,
+      "short_text": "Dehnungsfugenprofil, Aluminium, Höhe 65 mm",
+      "long_text": "Bewegungsfugenprofil in Estrich und Belag nach Fugenplan einbauen. Abrechnung nach m.",
+      "quantity": 38,
+      "unit": "m",
+      "pricing_basis": "unit_rate",
+      "gaeb_flags": {},
+      "source_amounts": {
+        "unit_price": 24.00,
+        "line_amount": 912.00
+      }
+    },
+    {
+      "id": "L02.03.0040",
+      "code": "02.03.0040",
+      "code_parts": [
+        "02",
+        "03",
+        "0040"
+      ],
+      "section_id": "S02.03",
+      "sort_order": 31,
+      "short_text": "Übergangsprofil, Edelstahl, Breite 30 mm",
+      "long_text": "Übergangsprofil an Belagwechseln und Türschwellen befestigen. Abrechnung nach m.",
+      "quantity": 14,
+      "unit": "m",
+      "pricing_basis": "unit_rate",
+      "gaeb_flags": {},
+      "source_amounts": {
+        "unit_price": 19.00,
+        "line_amount": 266.00
+      }
+    },
+    {
+      "id": "L03.01.0010",
+      "code": "03.01.0010",
+      "code_parts": [
+        "03",
+        "01",
+        "0010"
+      ],
+      "section_id": "S03.01",
+      "sort_order": 32,
+      "short_text": "Metallständerwand, d = 100 mm, 2 x GKB 12,5 mm, F30",
+      "long_text": "Ständerwerk aus CW-Profilen, beidseitig zweilagig beplankt, Anschlüsse an Boden, Decke und Wände. Abrechnung nach m2.",
+      "quantity": 420,
+      "unit": "m2",
+      "pricing_basis": "unit_rate",
+      "gaeb_flags": {},
+      "source_amounts": {
+        "unit_price": 54.50,
+        "line_amount": 22890.00
+      }
+    },
+    {
+      "id": "L03.01.0020",
+      "code": "03.01.0020",
+      "code_parts": [
+        "03",
+        "01",
+        "0020"
+      ],
+      "section_id": "S03.01",
+      "sort_order": 33,
+      "short_text": "Vorsatzschale GKF, d = 62,5 mm",
+      "long_text": "Vorsatzschale freistehend mit CD-Profilen, einlagig beplankt. Abrechnung nach m2.",
+      "quantity": 60,
+      "unit": "m2",
+      "pricing_basis": "unit_rate",
+      "gaeb_flags": {},
+      "source_amounts": {
+        "unit_price": 41.00,
+        "line_amount": 2460.00
+      }
+    },
+    {
+      "id": "L03.01.0030",
+      "code": "03.01.0030",
+      "code_parts": [
+        "03",
+        "01",
+        "0030"
+      ],
+      "section_id": "S03.01",
+      "sort_order": 34,
+      "short_text": "Stahlumfassungszarge für Wanddicke 100 mm",
+      "long_text": "Zarge einbauen, hinterfüllen und ausrichten. Abrechnung nach Stück.",
+      "quantity": 9,
+      "unit": "St",
+      "pricing_basis": "unit_rate",
+      "gaeb_flags": {},
+      "source_amounts": {
+        "unit_price": 168.00,
+        "line_amount": 1512.00
+      }
+    },
+    {
+      "id": "L03.01.0040",
+      "code": "03.01.0040",
+      "code_parts": [
+        "03",
+        "01",
+        "0040"
+      ],
+      "section_id": "S03.01",
+      "sort_order": 35,
+      "short_text": "Anschluss Ständerwand an Bestandsdecke gleitend",
+      "long_text": "Gleitender Deckenanschluss mit Profil und Trennstreifen. Abrechnung nach m.",
+      "quantity": 120,
+      "unit": "m",
+      "pricing_basis": "unit_rate",
+      "gaeb_flags": {},
+      "source_amounts": {
+        "unit_price": 6.50,
+        "line_amount": 780.00
+      }
+    },
+    {
+      "id": "L03.02.0010",
+      "code": "03.02.0010",
+      "code_parts": [
+        "03",
+        "02",
+        "0010"
+      ],
+      "section_id": "S03.02",
+      "sort_order": 36,
+      "short_text": "Mineralwolle-Einlage, d = 60 mm, nichtbrennbar",
+      "long_text": "Hohlraum der Ständerwände vollflächig ausfüllen, Stöße dicht stoßen. Abrechnung nach m2.",
+      "quantity": 480,
+      "unit": "m2",
+      "pricing_basis": "unit_rate",
+      "gaeb_flags": {},
+      "source_amounts": {
+        "unit_price": 6.40,
+        "line_amount": 3072.00
+      }
+    },
+    {
+      "id": "L03.02.0020",
+      "code": "03.02.0020",
+      "code_parts": [
+        "03",
+        "02",
+        "0020"
+      ],
+      "section_id": "S03.02",
+      "sort_order": 37,
+      "short_text": "Spachtelung der Plattenstöße, Qualitätsstufe Q2",
+      "long_text": "Plattenstöße und Schraubenköpfe verspachteln und schleifen. Abrechnung nach m2.",
+      "quantity": 480,
+      "unit": "m2",
+      "pricing_basis": "unit_rate",
+      "gaeb_flags": {},
+      "source_amounts": {
+        "unit_price": 4.20,
+        "line_amount": 2016.00
+      }
+    },
+    {
+      "id": "L03.02.0030",
+      "code": "03.02.0030",
+      "code_parts": [
+        "03",
+        "02",
+        "0030"
+      ],
+      "section_id": "S03.02",
+      "sort_order": 38,
+      "short_text": "Eckschutzschiene, verzinkt, einbauen",
+      "long_text": "Eckschutzschienen an Außenecken einbauen und einbetten. Abrechnung nach m.",
+      "quantity": 64,
+      "unit": "m",
+      "pricing_basis": "unit_rate",
+      "gaeb_flags": {},
+      "source_amounts": {
+        "unit_price": 5.60,
+        "line_amount": 358.40
+      }
+    },
+    {
+      "id": "L03.02.0040",
+      "code": "03.02.0040",
+      "code_parts": [
+        "03",
+        "02",
+        "0040"
+      ],
+      "section_id": "S03.02",
+      "sort_order": 39,
+      "short_text": "Revisionsklappe, 30 x 30 cm, Trockenbau",
+      "long_text": "Revisionsklappe in Wand oder Decke einbauen, bündig mit der Plattenfläche. Abrechnung nach Stück.",
+      "quantity": 8,
+      "unit": "St",
+      "pricing_basis": "unit_rate",
+      "gaeb_flags": {},
+      "source_amounts": {
+        "unit_price": 72.00,
+        "line_amount": 576.00
+      }
+    },
+    {
+      "id": "L03.02.0050",
+      "code": "03.02.0050",
+      "code_parts": [
+        "03",
+        "02",
+        "0050"
+      ],
+      "section_id": "S03.02",
+      "sort_order": 40,
+      "short_text": "Aussteifungsprofile für Wandkonsolen",
+      "long_text": "Zusätzliche Aussteifungsprofile im Ständerwerk für Konsolen einbauen. Abrechnung nach Stück.",
+      "quantity": 14,
+      "unit": "St",
+      "pricing_basis": "unit_rate",
+      "gaeb_flags": {},
+      "source_amounts": {
+        "unit_price": 18.50,
+        "line_amount": 259.00
+      }
+    },
+    {
+      "id": "L03.02.0060",
+      "code": "03.02.0060",
+      "code_parts": [
+        "03",
+        "02",
+        "0060"
+      ],
+      "section_id": "S03.02",
+      "sort_order": 41,
+      "short_text": "Schattenfugenprofil, Aluminium, schwarz",
+      "long_text": "Schattenfugenprofil am Wand-Decken-Anschluss einbauen und ausrichten. Abrechnung nach m.",
+      "quantity": 70,
+      "unit": "m",
+      "pricing_basis": "unit_rate",
+      "gaeb_flags": {},
+      "source_amounts": {
+        "unit_price": 9.80,
+        "line_amount": 686.00
+      }
+    },
+    {
+      "id": "L04.01.0010",
+      "code": "04.01.0010",
+      "code_parts": [
+        "04",
+        "01",
+        "0010"
+      ],
+      "section_id": "S04.01",
+      "sort_order": 42,
+      "short_text": "Abdeckarbeiten, Böden und Einbauteile schützen",
+      "long_text": "Böden und Einbauteile mit Vlies schützen, Schutz nach Arbeitsende entfernen. Abrechnung pauschal.",
+      "quantity": 1,
+      "unit": "psch",
+      "pricing_basis": "lump_sum",
+      "gaeb_flags": {
+        "LumpSumItem": "Yes"
+      },
+      "source_amounts": {
+        "unit_price": 2800.00,
+        "line_amount": 2800.00
+      }
+    },
+    {
+      "id": "L04.01.0020",
+      "code": "04.01.0020",
+      "code_parts": [
+        "04",
+        "01",
+        "0020"
+      ],
+      "section_id": "S04.01",
+      "sort_order": 43,
+      "short_text": "Tiefengrund auf saugenden Untergründen",
+      "long_text": "Tiefengrund gleichmäßig auftragen, Trocknungszeit einhalten. Abrechnung nach m2.",
+      "quantity": 1390,
+      "unit": "m2",
+      "pricing_basis": "unit_rate",
+      "gaeb_flags": {},
+      "source_amounts": {
+        "unit_price": 1.45,
+        "line_amount": 2015.50
+      }
+    },
+    {
+      "id": "L04.01.0030",
+      "code": "04.01.0030",
+      "code_parts": [
+        "04",
+        "01",
+        "0030"
+      ],
+      "section_id": "S04.01",
+      "sort_order": 44,
+      "short_text": "Kleinere Fehlstellen schleifen und ausbessern",
+      "long_text": "Risse, Löcher und Unebenheiten in Wand und Decke fachgerecht verschließen und schleifen. Abrechnung nach m2.",
+      "quantity": 1390,
+      "unit": "m2",
+      "pricing_basis": "unit_rate",
+      "gaeb_flags": {},
+      "source_amounts": {
+        "unit_price": 1.20,
+        "line_amount": 1668.00
+      }
+    },
+    {
+      "id": "L04.02.0010",
+      "code": "04.02.0010",
+      "code_parts": [
+        "04",
+        "02",
+        "0010"
+      ],
+      "section_id": "S04.02",
+      "sort_order": 45,
+      "short_text": "Wandflächen mit Dispersionsfarbe streichen, zweimal",
+      "long_text": "Wandflächen innen deckend streichen, Nassabriebklasse 2. Abrechnung nach m2.",
+      "quantity": 1150,
+      "unit": "m2",
+      "pricing_basis": "unit_rate",
+      "gaeb_flags": {},
+      "source_amounts": {
+        "unit_price": 4.90,
+        "line_amount": 5635.00
+      }
+    },
+    {
+      "id": "L04.02.0020",
+      "code": "04.02.0020",
+      "code_parts": [
+        "04",
+        "02",
+        "0020"
+      ],
+      "section_id": "S04.02",
+      "sort_order": 46,
+      "short_text": "Deckenfläche mit Silikatfarbe",
+      "long_text": "Deckenflächen innen zweimal streichen, Farbton weiß. Abrechnung nach m2.",
+      "quantity": 240,
+      "unit": "m2",
+      "pricing_basis": "unit_rate",
+      "gaeb_flags": {},
+      "source_amounts": {
+        "unit_price": 6.10,
+        "line_amount": 1464.00
+      }
+    },
+    {
+      "id": "L04.02.0030",
+      "code": "04.02.0030",
+      "code_parts": [
+        "04",
+        "02",
+        "0030"
+      ],
+      "section_id": "S04.02",
+      "sort_order": 47,
+      "short_text": "Epoxidharzbeschichtung Hallenboden, rutschhemmend R10",
+      "long_text": "Hallenfläche mit zweikomponentiger Beschichtung versiegeln, Quarzsand eingestreut. Abrechnung nach m2.",
+      "quantity": 640,
+      "unit": "m2",
+      "pricing_basis": "unit_rate",
+      "gaeb_flags": {},
+      "source_amounts": {
+        "unit_price": 28.50,
+        "line_amount": 18240.00
+      }
+    },
+    {
+      "id": "L04.02.0040",
+      "code": "04.02.0040",
+      "code_parts": [
+        "04",
+        "02",
+        "0040"
+      ],
+      "section_id": "S04.02",
+      "sort_order": 48,
+      "short_text": "Lackierarbeiten an Stahlzargen",
+      "long_text": "Stahlzargen allseitig lackieren, Farbton nach RAL. Abrechnung nach Stück.",
+      "quantity": 9,
+      "unit": "St",
+      "pricing_basis": "unit_rate",
+      "gaeb_flags": {},
+      "source_amounts": {
+        "unit_price": 48.00,
+        "line_amount": 432.00
+      }
+    },
+    {
+      "id": "L04.02.0050",
+      "code": "04.02.0050",
+      "code_parts": [
+        "04",
+        "02",
+        "0050"
+      ],
+      "section_id": "S04.02",
+      "sort_order": 49,
+      "short_text": "Farbmuster anlegen und zur Freigabe vorlegen",
+      "long_text": "Bemusterung der Farbtöne an der Wand, Freigabe durch die Bauleitung abwarten. Abrechnung nach Stück.",
+      "quantity": 4,
+      "unit": "St",
+      "pricing_basis": "unit_rate",
+      "gaeb_flags": {},
+      "source_amounts": {
+        "unit_price": 85.00,
+        "line_amount": 340.00
+      }
+    },
+    {
+      "id": "L05.01.0010",
+      "code": "05.01.0010",
+      "code_parts": [
+        "05",
+        "01",
+        "0010"
+      ],
+      "section_id": "S05.01",
+      "sort_order": 50,
+      "short_text": "Bitumenvoranstrich auf der Betondecke",
+      "long_text": "Voranstrich gleichmäßig auftragen und ablüften lassen. Abrechnung nach m2.",
+      "quantity": 900,
+      "unit": "m2",
+      "pricing_basis": "unit_rate",
+      "gaeb_flags": {},
+      "source_amounts": {
+        "unit_price": 1.60,
+        "line_amount": 1440.00
+      }
+    },
+    {
+      "id": "L05.01.0020",
+      "code": "05.01.0020",
+      "code_parts": [
+        "05",
+        "01",
+        "0020"
+      ],
+      "section_id": "S05.01",
+      "sort_order": 51,
+      "short_text": "Dampfsperre, Bitumenschweißbahn mit Aluminiumeinlage",
+      "long_text": "Dampfsperre vollflächig auf der Betondecke verlegen, Stöße verschweißen, an Aufkantungen hochziehen. Abrechnung nach m2.",
+      "quantity": 900,
+      "unit": "m2",
+      "pricing_basis": "unit_rate",
+      "gaeb_flags": {},
+      "source_amounts": {
+        "unit_price": 11.40,
+        "line_amount": 10260.00
+      }
+    },
+    {
+      "id": "L05.01.0030",
+      "code": "05.01.0030",
+      "code_parts": [
+        "05",
+        "01",
+        "0030"
+      ],
+      "section_id": "S05.01",
+      "sort_order": 52,
+      "short_text": "Wärmedämmung, PIR-Hartschaum, d = 160 mm",
+      "long_text": "Dämmplatten zweilagig mit versetzten Stößen verlegen. Abrechnung nach m2.",
+      "quantity": 900,
+      "unit": "m2",
+      "pricing_basis": "unit_rate",
+      "gaeb_flags": {},
+      "source_amounts": {
+        "unit_price": 38.00,
+        "line_amount": 34200.00
+      }
+    },
+    {
+      "id": "L05.01.0040",
+      "code": "05.01.0040",
+      "code_parts": [
+        "05",
+        "01",
+        "0040"
+      ],
+      "section_id": "S05.01",
+      "sort_order": 53,
+      "short_text": "Trennlage Glasvlies, 120 g/m2",
+      "long_text": "Trennlage lose verlegen, Überlappung 5 cm. Abrechnung nach m2.",
+      "quantity": 900,
+      "unit": "m2",
+      "pricing_basis": "unit_rate",
+      "gaeb_flags": {},
+      "source_amounts": {
+        "unit_price": 1.90,
+        "line_amount": 1710.00
+      }
+    },
+    {
+      "id": "L05.01.0050",
+      "code": "05.01.0050",
+      "code_parts": [
+        "05",
+        "01",
+        "0050"
+      ],
+      "section_id": "S05.01",
+      "sort_order": 54,
+      "short_text": "Dachabdichtung, einlagig, FPO-Dachbahn, d = 1,8 mm",
+      "long_text": "Kunststoff-Dachbahn mechanisch befestigt verlegen, Nähte heißluftverschweißen, Brandverhalten nach DIN 4102-7. Abrechnung nach m2.",
+      "quantity": 900,
+      "unit": "m2",
+      "pricing_basis": "unit_rate",
+      "gaeb_flags": {},
+      "source_amounts": {
+        "unit_price": 29.50,
+        "line_amount": 26550.00
+      }
+    },
+    {
+      "id": "L05.02.0010",
+      "code": "05.02.0010",
+      "code_parts": [
+        "05",
+        "02",
+        "0010"
+      ],
+      "section_id": "S05.02",
+      "sort_order": 55,
+      "short_text": "Attikaanschluss, hochgezogen, Höhe bis 50 cm",
+      "long_text": "Abdichtung an der Attika hochziehen und mit Klemmprofil sichern. Abrechnung nach m.",
+      "quantity": 130,
+      "unit": "m",
+      "pricing_basis": "unit_rate",
+      "gaeb_flags": {},
+      "source_amounts": {
+        "unit_price": 18.50,
+        "line_amount": 2405.00
+      }
+    },
+    {
+      "id": "L05.02.0020",
+      "code": "05.02.0020",
+      "code_parts": [
+        "05",
+        "02",
+        "0020"
+      ],
+      "section_id": "S05.02",
+      "sort_order": 56,
+      "short_text": "Dachgully mit Notüberlauf, DN 100",
+      "long_text": "Dachablauf DN 100 mit Laubfang und beheiztem Anschluss einbauen, Notüberlauf nach Fachplanung. Abrechnung nach Stück.",
+      "quantity": 8,
+      "unit": "St",
+      "pricing_basis": "unit_rate",
+      "gaeb_flags": {},
+      "source_amounts": {
+        "unit_price": 285.00,
+        "line_amount": 2280.00
+      }
+    },
+    {
+      "id": "L05.02.0030",
+      "code": "05.02.0030",
+      "code_parts": [
+        "05",
+        "02",
+        "0030"
+      ],
+      "section_id": "S05.02",
+      "sort_order": 57,
+      "short_text": "Dachrandabschlussprofil, Aluminium, eloxiert",
+      "long_text": "Randprofil befestigen und anschließen, Stöße mit Dehnungsausgleich. Abrechnung nach m.",
+      "quantity": 130,
+      "unit": "m",
+      "pricing_basis": "unit_rate",
+      "gaeb_flags": {},
+      "source_amounts": {
+        "unit_price": 31.00,
+        "line_amount": 4030.00
+      }
+    },
+    {
+      "id": "L05.02.0040",
+      "code": "05.02.0040",
+      "code_parts": [
+        "05",
+        "02",
+        "0040"
+      ],
+      "section_id": "S05.02",
+      "sort_order": 58,
+      "short_text": "Kiesstreifen am Dachrand mit Rundkies 16/32",
+      "long_text": "Kiesstreifen mit Rundkies einbauen, Breite 50 cm, Kiesfangleiste vorhalten. Abrechnung nach m.",
+      "quantity": 130,
+      "unit": "m",
+      "pricing_basis": "unit_rate",
+      "gaeb_flags": {},
+      "source_amounts": {
+        "unit_price": 12.00,
+        "line_amount": 1560.00
+      }
+    },
+    {
+      "id": "L05.02.0050",
+      "code": "05.02.0050",
+      "code_parts": [
+        "05",
+        "02",
+        "0050"
+      ],
+      "section_id": "S05.02",
+      "sort_order": 59,
+      "short_text": "Anschlagpunkte für Absturzsicherung",
+      "long_text": "Anschlagpunkte nach DIN EN 795 auf der Dachfläche montieren und anschließen. Abrechnung nach Stück.",
+      "quantity": 6,
+      "unit": "St",
+      "pricing_basis": "unit_rate",
+      "gaeb_flags": {},
+      "source_amounts": {
+        "unit_price": 245.00,
+        "line_amount": 1470.00
+      }
+    }
+  ]
+}

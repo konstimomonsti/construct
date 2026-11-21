@@ -1,0 +1,284 @@
+{
+  "schema_version": "0.1",
+  "project": {
+    "name": "Synthetisches LV 11 – Stahlbetonfertigteile",
+    "gaeb_phase": "83",
+    "currency": "EUR"
+  },
+  "bom": {
+    "title": "LV 11 – Stahlbetonfertigteile (synthetisch)",
+    "stated_net_total": null
+  },
+  "areas": [],
+  "sections": [
+    {
+      "id": "s-3",
+      "parent_id": null,
+      "code": "3",
+      "code_parts": [
+        "3"
+      ],
+      "title": "Betonarbeiten",
+      "sort_order": 0,
+      "stated_total": null,
+      "stated_total_after_discount": null,
+      "stated_lump_sum_total": null
+    },
+    {
+      "id": "s-3.2",
+      "parent_id": "s-3",
+      "code": "3.2",
+      "code_parts": [
+        "3",
+        "2"
+      ],
+      "title": "Stahlbetonfertigteile",
+      "sort_order": 1,
+      "stated_total": null,
+      "stated_total_after_discount": null,
+      "stated_lump_sum_total": null
+    }
+  ],
+  "lines": [
+    {
+      "id": "lv11-3.2.10",
+      "code": "3.2.10",
+      "code_parts": [
+        "3",
+        "2",
+        "10"
+      ],
+      "section_id": "s-3.2",
+      "sort_order": 0,
+      "short_text": "Werkstattzeichnungen",
+      "long_text": "Erstellung von Montage-, Werkstatt- und Detailplänen für die nachfolgend beschriebenen Leistungen, auf der Grundlage der vom AG an den AN übergebenen Architektenpläne.",
+      "quantity": "1.000",
+      "unit": "psch",
+      "pricing_basis": "lump_sum",
+      "total_rule": "include",
+      "alternative_for": null,
+      "gaeb_flags": {
+        "LumpSumItem": "Yes"
+      },
+      "source_amounts": null,
+      "price": null,
+      "distributions": [],
+      "tags": []
+    },
+    {
+      "id": "lv11-3.2.20",
+      "code": "3.2.20",
+      "code_parts": [
+        "3",
+        "2",
+        "20"
+      ],
+      "section_id": "s-3.2",
+      "sort_order": 1,
+      "short_text": "FS 01: FT-Sockel, Sandwichelement, C35/45",
+      "long_text": "Stahlbetonfertigteil als Sandwichelement aus Beton C35/45, Expositionsklasse XC4 und XF4. Länge 6,35m, Höhe 60 cm, Gesamtdicke 30 cm. Dicke Vorsatzschale: 7 cm; Dicke Tragschale: 15 cm; Dämmstoffdicke: 8 cm. Wärmedämmung aus extrudierten Polystyrol-Hartschaumplatten. Sichtbeton der Vorsatzschale durchgefärbt in RAL 7032. Werkseitige Herstellung einschließlich Bewehrung und Transportanker; Montage auf der Baustelle.",
+      "quantity": "1.000",
+      "unit": "St",
+      "pricing_basis": "unit_rate",
+      "total_rule": "include",
+      "alternative_for": null,
+      "gaeb_flags": {},
+      "source_amounts": null,
+      "price": null,
+      "distributions": [],
+      "tags": []
+    },
+    {
+      "id": "lv11-3.2.30",
+      "code": "3.2.30",
+      "code_parts": [
+        "3",
+        "2",
+        "30"
+      ],
+      "section_id": "s-3.2",
+      "sort_order": 2,
+      "short_text": "FS 02: FT-Sockel, Sandwichelement, C35/45",
+      "long_text": "Stahlbetonfertigteil als Sandwichelement aus Beton C35/45, Expositionsklasse XC4 und XF4. Länge 7,00m, Höhe 60 cm, Gesamtdicke 30 cm. Dicke Vorsatzschale: 7 cm; Dicke Tragschale: 15 cm; Dämmstoffdicke: 8 cm. Wärmedämmung aus extrudierten Polystyrol-Hartschaumplatten. Sichtbeton der Vorsatzschale durchgefärbt in RAL 7032. Werkseitige Herstellung einschließlich Bewehrung und Transportanker; Montage auf der Baustelle.",
+      "quantity": "1.000",
+      "unit": "St",
+      "pricing_basis": "unit_rate",
+      "total_rule": "include",
+      "alternative_for": null,
+      "gaeb_flags": {},
+      "source_amounts": null,
+      "price": null,
+      "distributions": [],
+      "tags": []
+    },
+    {
+      "id": "lv11-3.2.40",
+      "code": "3.2.40",
+      "code_parts": [
+        "3",
+        "2",
+        "40"
+      ],
+      "section_id": "s-3.2",
+      "sort_order": 3,
+      "short_text": "FS 03: FT-Sockel, Sandwichelement, C35/45",
+      "long_text": "Stahlbetonfertigteil als Sandwichelement aus Beton C35/45, Expositionsklasse XC4 und XF4. Länge 1,25m, Höhe 60 cm, Gesamtdicke 30 cm. Dicke Vorsatzschale: 7 cm; Dicke Tragschale: 15 cm; Dämmstoffdicke: 8 cm. Wärmedämmung aus extrudierten Polystyrol-Hartschaumplatten. Sichtbeton der Vorsatzschale durchgefärbt in RAL 7032. Werkseitige Herstellung einschließlich Bewehrung und Transportanker; Montage auf der Baustelle.",
+      "quantity": "1.000",
+      "unit": "St",
+      "pricing_basis": "unit_rate",
+      "total_rule": "include",
+      "alternative_for": null,
+      "gaeb_flags": {},
+      "source_amounts": null,
+      "price": null,
+      "distributions": [],
+      "tags": []
+    },
+    {
+      "id": "lv11-3.2.50",
+      "code": "3.2.50",
+      "code_parts": [
+        "3",
+        "2",
+        "50"
+      ],
+      "section_id": "s-3.2",
+      "sort_order": 4,
+      "short_text": "FS 04: FT-Sockel, Sandwichelement, C35/45",
+      "long_text": "Stahlbetonfertigteil als Sandwichelement aus Beton C35/45, Expositionsklasse XC4 und XF4. Länge 3,90m, Höhe 60 cm, Gesamtdicke 30 cm. Dicke Vorsatzschale: 7 cm; Dicke Tragschale: 15 cm; Dämmstoffdicke: 8 cm. Wärmedämmung aus extrudierten Polystyrol-Hartschaumplatten. Sichtbeton der Vorsatzschale durchgefärbt in RAL 7032. Werkseitige Herstellung einschließlich Bewehrung und Transportanker; Montage auf der Baustelle.",
+      "quantity": "1.000",
+      "unit": "St",
+      "pricing_basis": "unit_rate",
+      "total_rule": "include",
+      "alternative_for": null,
+      "gaeb_flags": {},
+      "source_amounts": null,
+      "price": null,
+      "distributions": [],
+      "tags": []
+    },
+    {
+      "id": "lv11-3.2.60",
+      "code": "3.2.60",
+      "code_parts": [
+        "3",
+        "2",
+        "60"
+      ],
+      "section_id": "s-3.2",
+      "sort_order": 5,
+      "short_text": "FS 05: FT-Sockel, Sandwichelement, C35/45",
+      "long_text": "Stahlbetonfertigteil als Sandwichelement aus Beton C35/45, Expositionsklasse XC4 und XF4. Länge 2,17m, Höhe 60 cm, Gesamtdicke 30 cm. Dicke Vorsatzschale: 7 cm; Dicke Tragschale: 15 cm; Dämmstoffdicke: 8 cm. Wärmedämmung aus extrudierten Polystyrol-Hartschaumplatten. Sichtbeton der Vorsatzschale durchgefärbt in RAL 7032. Werkseitige Herstellung einschließlich Bewehrung und Transportanker; Montage auf der Baustelle.",
+      "quantity": "1.000",
+      "unit": "St",
+      "pricing_basis": "unit_rate",
+      "total_rule": "include",
+      "alternative_for": null,
+      "gaeb_flags": {},
+      "source_amounts": null,
+      "price": null,
+      "distributions": [],
+      "tags": []
+    },
+    {
+      "id": "lv11-3.2.70",
+      "code": "3.2.70",
+      "code_parts": [
+        "3",
+        "2",
+        "70"
+      ],
+      "section_id": "s-3.2",
+      "sort_order": 6,
+      "short_text": "Betonstahl 500 S und 500 M",
+      "long_text": "Betonstahl 500 S und 500 M für die Ortbetonanschlüsse auf der Baustelle verlegen. Werkseitige Bewehrung ist in den Fertigteilpositionen enthalten.",
+      "quantity": "0.700",
+      "unit": "t",
+      "pricing_basis": "unit_rate",
+      "total_rule": "include",
+      "alternative_for": null,
+      "gaeb_flags": {},
+      "source_amounts": null,
+      "price": null,
+      "distributions": [],
+      "tags": []
+    },
+    {
+      "id": "lv11-3.2.80",
+      "code": "3.2.80",
+      "code_parts": [
+        "3",
+        "2",
+        "80"
+      ],
+      "section_id": "s-3.2",
+      "sort_order": 7,
+      "short_text": "Zulage für Aussparungen in den Fertigteilen",
+      "long_text": "Zulage für Aussparungen bis zu einer Breite von 1,10 m. Abrechnung nach St.",
+      "quantity": "1.000",
+      "unit": "St",
+      "pricing_basis": "unit_rate",
+      "total_rule": "include",
+      "alternative_for": null,
+      "gaeb_flags": {},
+      "source_amounts": null,
+      "price": null,
+      "distributions": [],
+      "tags": []
+    },
+    {
+      "id": "lv11-3.2.90",
+      "code": "3.2.90",
+      "code_parts": [
+        "3",
+        "2",
+        "90"
+      ],
+      "section_id": "s-3.2",
+      "sort_order": 8,
+      "short_text": "Einbauteil aus Edelstahl, Länge 150 mm",
+      "long_text": "Einbauteil Typ S150 aus Edelstahl liefern und werkseitig einbauen.",
+      "quantity": "15.000",
+      "unit": "St",
+      "pricing_basis": "unit_rate",
+      "total_rule": "include",
+      "alternative_for": null,
+      "gaeb_flags": {},
+      "source_amounts": null,
+      "price": null,
+      "distributions": [],
+      "tags": []
+    },
+    {
+      "id": "lv11-3.2.100",
+      "code": "3.2.100",
+      "code_parts": [
+        "3",
+        "2",
+        "100"
+      ],
+      "section_id": "s-3.2",
+      "sort_order": 9,
+      "short_text": "Dichtstoff für Plattenfugen",
+      "long_text": "Plattenfugen nach Montage mit elastischem Dichtstoff schließen.",
+      "quantity": "45",
+      "unit": "m"
+    },
+    {
+      "id": "lv11-3.2.110",
+      "code": "3.2.110",
+      "code_parts": [
+        "3",
+        "2",
+        "110"
+      ],
+      "section_id": "s-3.2",
+      "sort_order": 10,
+      "short_text": "Baustellenverkehr sichern",
+      "long_text": "Verkehrsführung entlang der Zufahrt sicherstellen.",
+      "quantity": "20",
+      "unit": "m"
+    }
+  ],
+  "import_warnings": []
+}

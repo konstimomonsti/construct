@@ -1,0 +1,1892 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<GAEB xmlns="http://www.gaeb.de/GAEB_DA_XML/DA83/3.3">
+  <GAEBInfo>
+    <Version>3.3</Version>
+    <VersDate>2021-05</VersDate>
+    <Date>2026-11-21</Date>
+    <ProgSystem>construct evaluation seed writer</ProgSystem>
+  </GAEBInfo>
+  <PrjInfo>
+    <NamePrj>BUILDING-HALL</NamePrj>
+    <LblPrj>Schulungshalle mit Bürotrakt (synthetischer Seed)</LblPrj>
+    <Cur>EUR</Cur>
+    <CurLbl>Euro</CurLbl>
+  </PrjInfo>
+  <Award>
+    <DP>83</DP>
+    <BoQ ID="BOQ1">
+      <BoQInfo>
+        <Name>BUILDING-HALL</Name>
+        <LblBoQ>Rohbau und Ausbau Schulungshalle</LblBoQ>
+        <Date>2026-11-21</Date>
+        <OutlCompl>AllTxt</OutlCompl>
+        <BoQBkdn>
+          <Type>BoQLevel</Type>
+          <Length>2</Length>
+          <Num>Yes</Num>
+        </BoQBkdn>
+        <BoQBkdn>
+          <Type>BoQLevel</Type>
+          <Length>2</Length>
+          <Num>Yes</Num>
+        </BoQBkdn>
+        <BoQBkdn>
+          <Type>Item</Type>
+          <Length>4</Length>
+          <Num>Yes</Num>
+        </BoQBkdn>
+        <Totals>
+          <Total>519191.90</Total>
+        </Totals>
+      </BoQInfo>
+      <BoQBody>
+        <BoQCtgy ID="S00" RNoPart="00">
+          <LblTx>
+            <p>
+              <span>Baustelle</span>
+            </p>
+          </LblTx>
+          <BoQBody>
+            <BoQCtgy ID="S00.01" RNoPart="01">
+              <LblTx>
+                <p>
+                  <span>Baustelleneinrichtung und Gerüst</span>
+                </p>
+              </LblTx>
+              <BoQBody>
+                <Itemlist>
+                  <Item ID="L00.01.0010" RNoPart="0010">
+                    <LumpSumItem>Yes</LumpSumItem>
+                    <Qty>1.000</Qty>
+                    <QU>psch</QU>
+                    <UP>18500.00</UP>
+                    <IT>18500.00</IT>
+                    <Description>
+                      <CompleteText>
+                        <DetailTxt>
+                          <Text>
+                            <p>
+                              <span>Baustelleneinrichtung für alle Leistungen des Bauvorhabens einrichten, während der Bauzeit vorhalten und nach Abschluss räumen, einschließlich Bauzaun und Containeranlage. Abrechnung pauschal.</span>
+                            </p>
+                          </Text>
+                        </DetailTxt>
+                        <OutlineText>
+                          <OutlTxt>
+                            <TextOutlTxt>
+                              <p>
+                                <span>Baustelleneinrichtung einrichten, vorhalten und räumen</span>
+                              </p>
+                            </TextOutlTxt>
+                          </OutlTxt>
+                        </OutlineText>
+                      </CompleteText>
+                    </Description>
+                  </Item>
+                  <Item ID="L00.01.0020" RNoPart="0020">
+                    <Qty>16.000</Qty>
+                    <QU>Wo</QU>
+                    <UP>120.00</UP>
+                    <IT>1920.00</IT>
+                    <Description>
+                      <CompleteText>
+                        <DetailTxt>
+                          <Text>
+                            <p>
+                              <span>Fahrbare Arbeitsgerüste für die Innenausbauarbeiten stellen, umsetzen und vorhalten, Standsicherheit nach Herstellerangabe nachweisen.</span>
+                            </p>
+                          </Text>
+                        </DetailTxt>
+                        <OutlineText>
+                          <OutlTxt>
+                            <TextOutlTxt>
+                              <p>
+                                <span>Fahrbares Arbeitsgerüst, Arbeitshöhe bis 4 m, vorhalten</span>
+                              </p>
+                            </TextOutlTxt>
+                          </OutlTxt>
+                        </OutlineText>
+                      </CompleteText>
+                    </Description>
+                  </Item>
+                  <Item ID="L00.01.0030" RNoPart="0030">
+                    <LumpSumItem>Yes</LumpSumItem>
+                    <Qty>1.000</Qty>
+                    <QU>psch</QU>
+                    <UP>4200.00</UP>
+                    <IT>4200.00</IT>
+                    <Description>
+                      <CompleteText>
+                        <DetailTxt>
+                          <Text>
+                            <p>
+                              <span>Anschlussstellen für Baustrom und Bauwasser herstellen, Verbrauch trägt der Auftragnehmer. Abrechnung pauschal.</span>
+                            </p>
+                          </Text>
+                        </DetailTxt>
+                        <OutlineText>
+                          <OutlTxt>
+                            <TextOutlTxt>
+                              <p>
+                                <span>Baustrom und Bauwasser bereitstellen</span>
+                              </p>
+                            </TextOutlTxt>
+                          </OutlTxt>
+                        </OutlineText>
+                      </CompleteText>
+                    </Description>
+                  </Item>
+                  <Item ID="L00.01.0040" RNoPart="0040">
+                    <Qty>1.000</Qty>
+                    <QU>St</QU>
+                    <UP>380.00</UP>
+                    <IT>380.00</IT>
+                    <Description>
+                      <CompleteText>
+                        <DetailTxt>
+                          <Text>
+                            <p>
+                              <span>Bauschild liefern, aufstellen und nach Bauende wieder abbauen. Abrechnung nach Stück.</span>
+                            </p>
+                          </Text>
+                        </DetailTxt>
+                        <OutlineText>
+                          <OutlTxt>
+                            <TextOutlTxt>
+                              <p>
+                                <span>Bauschild nach Vorgabe des Bauherrn</span>
+                              </p>
+                            </TextOutlTxt>
+                          </OutlTxt>
+                        </OutlineText>
+                      </CompleteText>
+                    </Description>
+                  </Item>
+                </Itemlist>
+              </BoQBody>
+              <Totals>
+                <Total>25000.00</Total>
+              </Totals>
+            </BoQCtgy>
+            <BoQCtgy ID="S00.02" RNoPart="02">
+              <LblTx>
+                <p>
+                  <span>Entsorgung und Reinigung</span>
+                </p>
+              </LblTx>
+              <BoQBody>
+                <Itemlist>
+                  <Item ID="L00.02.0010" RNoPart="0010">
+                    <Qty>22.000</Qty>
+                    <QU>t</QU>
+                    <UP>96.00</UP>
+                    <IT>2112.00</IT>
+                    <Description>
+                      <CompleteText>
+                        <DetailTxt>
+                          <Text>
+                            <p>
+                              <span>Anfallende Baustellenabfälle sortenrein trennen, laden, abfahren und ordnungsgemäß entsorgen, Nachweise vorlegen. Abrechnung nach t.</span>
+                            </p>
+                          </Text>
+                        </DetailTxt>
+                        <OutlineText>
+                          <OutlTxt>
+                            <TextOutlTxt>
+                              <p>
+                                <span>Bauschutt und Verpackungsabfälle entsorgen</span>
+                              </p>
+                            </TextOutlTxt>
+                          </OutlTxt>
+                        </OutlineText>
+                      </CompleteText>
+                    </Description>
+                  </Item>
+                  <Item ID="L00.02.0020" RNoPart="0020">
+                    <LumpSumItem>Yes</LumpSumItem>
+                    <Qty>1.000</Qty>
+                    <QU>psch</QU>
+                    <UP>3400.00</UP>
+                    <IT>3400.00</IT>
+                    <Description>
+                      <CompleteText>
+                        <DetailTxt>
+                          <Text>
+                            <p>
+                              <span>Gebäude und Außenflächen besenrein und gebrauchsfertig übergeben, Verglasungen und Bodenflächen feucht reinigen. Abrechnung pauschal.</span>
+                            </p>
+                          </Text>
+                        </DetailTxt>
+                        <OutlineText>
+                          <OutlTxt>
+                            <TextOutlTxt>
+                              <p>
+                                <span>Bauendreinigung</span>
+                              </p>
+                            </TextOutlTxt>
+                          </OutlTxt>
+                        </OutlineText>
+                      </CompleteText>
+                    </Description>
+                  </Item>
+                </Itemlist>
+              </BoQBody>
+              <Totals>
+                <Total>5512.00</Total>
+              </Totals>
+            </BoQCtgy>
+          </BoQBody>
+          <Totals>
+            <Total>30512.00</Total>
+          </Totals>
+        </BoQCtgy>
+        <BoQCtgy ID="S01" RNoPart="01">
+          <LblTx>
+            <p>
+              <span>Erd- und Betonarbeiten</span>
+            </p>
+          </LblTx>
+          <BoQBody>
+            <BoQCtgy ID="S01.01" RNoPart="01">
+              <LblTx>
+                <p>
+                  <span>Erdarbeiten</span>
+                </p>
+              </LblTx>
+              <BoQBody>
+                <Itemlist>
+                  <Item ID="L01.01.0010" RNoPart="0010">
+                    <Qty>1150.000</Qty>
+                    <QU>m2</QU>
+                    <UP>3.80</UP>
+                    <IT>4370.00</IT>
+                    <Description>
+                      <CompleteText>
+                        <DetailTxt>
+                          <Text>
+                            <p>
+                              <span>Oberboden im Bereich des Baufeldes bis 30 cm Tiefe abtragen und auf dem Grundstück zur Wiederverwendung lagern. Abrechnung nach m2.</span>
+                            </p>
+                          </Text>
+                        </DetailTxt>
+                        <OutlineText>
+                          <OutlTxt>
+                            <TextOutlTxt>
+                              <p>
+                                <span>Oberboden abtragen und seitlich lagern</span>
+                              </p>
+                            </TextOutlTxt>
+                          </OutlTxt>
+                        </OutlineText>
+                      </CompleteText>
+                    </Description>
+                  </Item>
+                  <Item ID="L01.01.0020" RNoPart="0020">
+                    <Qty>1480.000</Qty>
+                    <QU>m3</QU>
+                    <UP>9.60</UP>
+                    <IT>14208.00</IT>
+                    <Description>
+                      <CompleteText>
+                        <DetailTxt>
+                          <Text>
+                            <p>
+                              <span>Baugrube und Fundamentgräben lösen, laden und seitlich lagern, Böschungen nach DIN 4124 herstellen. Abrechnung nach m3.</span>
+                            </p>
+                          </Text>
+                        </DetailTxt>
+                        <OutlineText>
+                          <OutlTxt>
+                            <TextOutlTxt>
+                              <p>
+                                <span>Baugrubenaushub, Bodenklasse 3 bis 5</span>
+                              </p>
+                            </TextOutlTxt>
+                          </OutlTxt>
+                        </OutlineText>
+                      </CompleteText>
+                    </Description>
+                  </Item>
+                  <Item ID="L01.01.0030" RNoPart="0030">
+                    <Qty>900.000</Qty>
+                    <QU>m2</QU>
+                    <UP>1.80</UP>
+                    <IT>1620.00</IT>
+                    <Description>
+                      <CompleteText>
+                        <DetailTxt>
+                          <Text>
+                            <p>
+                              <span>Planum profilgerecht abziehen und mit schwerem Gerät verdichten, Höhentoleranz 2 cm. Abrechnung nach m2.</span>
+                            </p>
+                          </Text>
+                        </DetailTxt>
+                        <OutlineText>
+                          <OutlTxt>
+                            <TextOutlTxt>
+                              <p>
+                                <span>Planum herstellen und verdichten</span>
+                              </p>
+                            </TextOutlTxt>
+                          </OutlTxt>
+                        </OutlineText>
+                      </CompleteText>
+                    </Description>
+                  </Item>
+                  <Item ID="L01.01.0040" RNoPart="0040">
+                    <Qty>900.000</Qty>
+                    <QU>m2</QU>
+                    <UP>21.50</UP>
+                    <IT>19350.00</IT>
+                    <Description>
+                      <CompleteText>
+                        <DetailTxt>
+                          <Text>
+                            <p>
+                              <span>Schottertragschicht auf dem Planum liefern, einbauen und verdichten, Ev2 mindestens 100 MN/m2. Abrechnung nach m2.</span>
+                            </p>
+                          </Text>
+                        </DetailTxt>
+                        <OutlineText>
+                          <OutlTxt>
+                            <TextOutlTxt>
+                              <p>
+                                <span>Tragschicht aus Schotter 0/45, d = 30 cm</span>
+                              </p>
+                            </TextOutlTxt>
+                          </OutlTxt>
+                        </OutlineText>
+                      </CompleteText>
+                    </Description>
+                  </Item>
+                  <Item ID="L01.01.0050" RNoPart="0050">
+                    <Qty>320.000</Qty>
+                    <QU>m3</QU>
+                    <UP>28.00</UP>
+                    <IT>8960.00</IT>
+                    <Description>
+                      <CompleteText>
+                        <DetailTxt>
+                          <Text>
+                            <p>
+                              <span>Arbeitsraum lagenweise mit Kies verfüllen und verdichten, Material aus Lieferung. Abrechnung nach m3.</span>
+                            </p>
+                          </Text>
+                        </DetailTxt>
+                        <OutlineText>
+                          <OutlTxt>
+                            <TextOutlTxt>
+                              <p>
+                                <span>Arbeitsraum mit Kies verfüllen und verdichten</span>
+                              </p>
+                            </TextOutlTxt>
+                          </OutlTxt>
+                        </OutlineText>
+                      </CompleteText>
+                    </Description>
+                  </Item>
+                  <Item ID="L01.01.0060" RNoPart="0060">
+                    <Qty>780.000</Qty>
+                    <QU>m3</QU>
+                    <UP>22.00</UP>
+                    <IT>17160.00</IT>
+                    <Description>
+                      <CompleteText>
+                        <DetailTxt>
+                          <Text>
+                            <p>
+                              <span>Nicht wiederverwendbaren Bodenaushub laden, abfahren und auf zugelassener Deponie entsorgen, Wiegescheine vorlegen. Abrechnung nach m3.</span>
+                            </p>
+                          </Text>
+                        </DetailTxt>
+                        <OutlineText>
+                          <OutlTxt>
+                            <TextOutlTxt>
+                              <p>
+                                <span>Überschüssigen Aushub abfahren und deponieren</span>
+                              </p>
+                            </TextOutlTxt>
+                          </OutlTxt>
+                        </OutlineText>
+                      </CompleteText>
+                    </Description>
+                  </Item>
+                </Itemlist>
+              </BoQBody>
+              <Totals>
+                <Total>65668.00</Total>
+              </Totals>
+            </BoQCtgy>
+            <BoQCtgy ID="S01.02" RNoPart="02">
+              <LblTx>
+                <p>
+                  <span>Gründung und Bodenplatte</span>
+                </p>
+              </LblTx>
+              <BoQBody>
+                <Itemlist>
+                  <Item ID="L01.02.0010" RNoPart="0010">
+                    <Qty>900.000</Qty>
+                    <QU>m2</QU>
+                    <UP>13.80</UP>
+                    <IT>12792.60</IT>
+                    <Description>
+                      <CompleteText>
+                        <DetailTxt>
+                          <Text>
+                            <p>
+                              <span>Sauberkeitsschicht auf dem verdichteten Planum herstellen, abgezogen und eben. Abrechnung nach m2.</span>
+                            </p>
+                          </Text>
+                        </DetailTxt>
+                        <OutlineText>
+                          <OutlTxt>
+                            <TextOutlTxt>
+                              <p>
+                                <span>Sauberkeitsschicht aus Beton C8/10, d = 10 cm</span>
+                              </p>
+                            </TextOutlTxt>
+                          </OutlTxt>
+                        </OutlineText>
+                      </CompleteText>
+                    </Description>
+                  </Item>
+                  <Item ID="L01.02.0020" RNoPart="0020">
+                    <Qty>68.000</Qty>
+                    <QU>m3</QU>
+                    <UP>214.00</UP>
+                    <IT>14552.00</IT>
+                    <Description>
+                      <CompleteText>
+                        <DetailTxt>
+                          <Text>
+                            <p>
+                              <span>Streifenfundamente herstellen, Beton C25/30 liefern, einbauen, verdichten und nachbehandeln. Abrechnung nach m3.</span>
+                            </p>
+                          </Text>
+                        </DetailTxt>
+                        <OutlineText>
+                          <OutlTxt>
+                            <TextOutlTxt>
+                              <p>
+                                <span>Streifenfundamente aus Stahlbeton C25/30, XC2</span>
+                              </p>
+                            </TextOutlTxt>
+                          </OutlTxt>
+                        </OutlineText>
+                      </CompleteText>
+                    </Description>
+                  </Item>
+                  <Item ID="L01.02.0030" RNoPart="0030">
+                    <Qty>264.000</Qty>
+                    <QU>m3</QU>
+                    <UP>238.00</UP>
+                    <IT>62832.00</IT>
+                    <Description>
+                      <CompleteText>
+                        <DetailTxt>
+                          <Text>
+                            <p>
+                              <span>Bodenplatte als WU-Konstruktion herstellen, Beton C30/37 liefern, einbauen, verdichten, abziehen und nachbehandeln. Abrechnung nach m3.</span>
+                            </p>
+                          </Text>
+                        </DetailTxt>
+                        <OutlineText>
+                          <OutlTxt>
+                            <TextOutlTxt>
+                              <p>
+                                <span>Bodenplatte aus Stahlbeton C30/37, d = 30 cm</span>
+                              </p>
+                            </TextOutlTxt>
+                          </OutlTxt>
+                        </OutlineText>
+                      </CompleteText>
+                    </Description>
+                  </Item>
+                  <Item ID="L01.02.0040" RNoPart="0040">
+                    <Qty>640.000</Qty>
+                    <QU>m2</QU>
+                    <UP>4.60</UP>
+                    <IT>2944.00</IT>
+                    <Description>
+                      <CompleteText>
+                        <DetailTxt>
+                          <Text>
+                            <p>
+                              <span>Frische Betonoberfläche maschinell glätten und für die spätere Beschichtung vorbereiten. Abrechnung nach m2.</span>
+                            </p>
+                          </Text>
+                        </DetailTxt>
+                        <OutlineText>
+                          <OutlTxt>
+                            <TextOutlTxt>
+                              <p>
+                                <span>Betonoberfläche der Hallenfläche mit Flügelglätter abziehen</span>
+                              </p>
+                            </TextOutlTxt>
+                          </OutlTxt>
+                        </OutlineText>
+                      </CompleteText>
+                    </Description>
+                  </Item>
+                </Itemlist>
+              </BoQBody>
+              <Totals>
+                <Total>92748.00</Total>
+              </Totals>
+            </BoQCtgy>
+            <BoQCtgy ID="S01.03" RNoPart="03">
+              <LblTx>
+                <p>
+                  <span>Aufgehende Bauteile</span>
+                </p>
+              </LblTx>
+              <BoQBody>
+                <Itemlist>
+                  <Item ID="L01.03.0010" RNoPart="0010">
+                    <Qty>24.000</Qty>
+                    <QU>m3</QU>
+                    <UP>395.00</UP>
+                    <IT>9480.00</IT>
+                    <Description>
+                      <CompleteText>
+                        <DetailTxt>
+                          <Text>
+                            <p>
+                              <span>Stützen herstellen, Beton C30/37 liefern, einbauen, verdichten und nachbehandeln. Abrechnung nach m3.</span>
+                            </p>
+                          </Text>
+                        </DetailTxt>
+                        <OutlineText>
+                          <OutlTxt>
+                            <TextOutlTxt>
+                              <p>
+                                <span>Stützen aus Stahlbeton C30/37, 40 x 40 cm</span>
+                              </p>
+                            </TextOutlTxt>
+                          </OutlTxt>
+                        </OutlineText>
+                      </CompleteText>
+                    </Description>
+                  </Item>
+                  <Item ID="L01.03.0020" RNoPart="0020">
+                    <Qty>52.000</Qty>
+                    <QU>m3</QU>
+                    <UP>318.00</UP>
+                    <IT>16536.00</IT>
+                    <Description>
+                      <CompleteText>
+                        <DetailTxt>
+                          <Text>
+                            <p>
+                              <span>Wände herstellen, Beton C25/30 liefern, einbauen, verdichten und nachbehandeln. Abrechnung nach m3.</span>
+                            </p>
+                          </Text>
+                        </DetailTxt>
+                        <OutlineText>
+                          <OutlTxt>
+                            <TextOutlTxt>
+                              <p>
+                                <span>Wände aus Stahlbeton C25/30, d = 25 cm</span>
+                              </p>
+                            </TextOutlTxt>
+                          </OutlTxt>
+                        </OutlineText>
+                      </CompleteText>
+                    </Description>
+                  </Item>
+                  <Item ID="L01.03.0030" RNoPart="0030">
+                    <Qty>58.000</Qty>
+                    <QU>m3</QU>
+                    <UP>292.00</UP>
+                    <IT>16936.00</IT>
+                    <Description>
+                      <CompleteText>
+                        <DetailTxt>
+                          <Text>
+                            <p>
+                              <span>Flachdecke herstellen, Beton C30/37 liefern, einbauen, verdichten und nachbehandeln. Abrechnung nach m3.</span>
+                            </p>
+                          </Text>
+                        </DetailTxt>
+                        <OutlineText>
+                          <OutlTxt>
+                            <TextOutlTxt>
+                              <p>
+                                <span>Decke über Erdgeschoss aus Stahlbeton C30/37, d = 24 cm</span>
+                              </p>
+                            </TextOutlTxt>
+                          </OutlTxt>
+                        </OutlineText>
+                      </CompleteText>
+                    </Description>
+                  </Item>
+                  <Item ID="L01.03.0040" RNoPart="0040">
+                    <Qty>16.000</Qty>
+                    <QU>m3</QU>
+                    <UP>340.00</UP>
+                    <IT>5440.00</IT>
+                    <Description>
+                      <CompleteText>
+                        <DetailTxt>
+                          <Text>
+                            <p>
+                              <span>Umlaufende Attika herstellen, Beton C25/30 liefern, einbauen, verdichten und nachbehandeln. Abrechnung nach m3.</span>
+                            </p>
+                          </Text>
+                        </DetailTxt>
+                        <OutlineText>
+                          <OutlTxt>
+                            <TextOutlTxt>
+                              <p>
+                                <span>Attika aus Stahlbeton C25/30, d = 20 cm</span>
+                              </p>
+                            </TextOutlTxt>
+                          </OutlTxt>
+                        </OutlineText>
+                      </CompleteText>
+                    </Description>
+                  </Item>
+                </Itemlist>
+              </BoQBody>
+              <Totals>
+                <Total>48392.00</Total>
+              </Totals>
+            </BoQCtgy>
+            <BoQCtgy ID="S01.04" RNoPart="04">
+              <LblTx>
+                <p>
+                  <span>Schalung und Bewehrung</span>
+                </p>
+              </LblTx>
+              <BoQBody>
+                <Itemlist>
+                  <Item ID="L01.04.0010" RNoPart="0010">
+                    <Qty>820.000</Qty>
+                    <QU>m2</QU>
+                    <UP>43.00</UP>
+                    <IT>35260.00</IT>
+                    <Description>
+                      <CompleteText>
+                        <DetailTxt>
+                          <Text>
+                            <p>
+                              <span>Schalung liefern, vorhalten, herstellen und nach Erhärtung des Betons entfernen. Abrechnung nach m2.</span>
+                            </p>
+                          </Text>
+                        </DetailTxt>
+                        <OutlineText>
+                          <OutlTxt>
+                            <TextOutlTxt>
+                              <p>
+                                <span>Schalung für Wände, Stützen und Decken, Sichtbetonklasse SB2</span>
+                              </p>
+                            </TextOutlTxt>
+                          </OutlTxt>
+                        </OutlineText>
+                      </CompleteText>
+                    </Description>
+                  </Item>
+                  <Item ID="L01.04.0020" RNoPart="0020">
+                    <Qty>41.000</Qty>
+                    <QU>t</QU>
+                    <UP>1380.00</UP>
+                    <IT>56580.00</IT>
+                    <Description>
+                      <CompleteText>
+                        <DetailTxt>
+                          <Text>
+                            <p>
+                              <span>Betonstahl liefern, schneiden, biegen und nach Plan verlegen, einschließlich Abstandhalter. Abrechnung nach t.</span>
+                            </p>
+                          </Text>
+                        </DetailTxt>
+                        <OutlineText>
+                          <OutlTxt>
+                            <TextOutlTxt>
+                              <p>
+                                <span>Betonstahl BSt 500 S, geschnitten, gebogen und verlegt</span>
+                              </p>
+                            </TextOutlTxt>
+                          </OutlTxt>
+                        </OutlineText>
+                      </CompleteText>
+                    </Description>
+                  </Item>
+                  <Item ID="L01.04.0030" RNoPart="0030">
+                    <Qty>36.000</Qty>
+                    <QU>St</QU>
+                    <UP>28.00</UP>
+                    <IT>1008.00</IT>
+                    <Description>
+                      <CompleteText>
+                        <DetailTxt>
+                          <Text>
+                            <p>
+                              <span>Aussparungen, Hülsen und Ankerschienen nach Plan setzen und sichern. Abrechnung nach Stück.</span>
+                            </p>
+                          </Text>
+                        </DetailTxt>
+                        <OutlineText>
+                          <OutlTxt>
+                            <TextOutlTxt>
+                              <p>
+                                <span>Aussparungen und Einbauteile in Betonbauteilen</span>
+                              </p>
+                            </TextOutlTxt>
+                          </OutlTxt>
+                        </OutlineText>
+                      </CompleteText>
+                    </Description>
+                  </Item>
+                  <Item ID="L01.04.0035" RNoPart="0035">
+                    <Qty>36.000</Qty>
+                    <QU>St</QU>
+                    <UP>28.00</UP>
+                    <IT>1008.00</IT>
+                    <Description>
+                      <CompleteText>
+                        <DetailTxt>
+                          <Text>
+                            <p>
+                              <span>Aussparungen, Hülsen und Ankerschienen nach Plan setzen und sichern. Abrechnung nach Stück.</span>
+                            </p>
+                          </Text>
+                        </DetailTxt>
+                        <OutlineText>
+                          <OutlTxt>
+                            <TextOutlTxt>
+                              <p>
+                                <span>Aussparungen und Einbauteile in Betonbauteilen</span>
+                              </p>
+                            </TextOutlTxt>
+                          </OutlTxt>
+                        </OutlineText>
+                      </CompleteText>
+                    </Description>
+                  </Item>
+                </Itemlist>
+              </BoQBody>
+              <Totals>
+                <Total>93856.00</Total>
+              </Totals>
+            </BoQCtgy>
+          </BoQBody>
+          <Totals>
+            <Total>300664.00</Total>
+          </Totals>
+        </BoQCtgy>
+        <BoQCtgy ID="S02" RNoPart="02">
+          <LblTx>
+            <p>
+              <span>Estricharbeiten</span>
+            </p>
+          </LblTx>
+          <BoQBody>
+            <BoQCtgy ID="S02.01" RNoPart="01">
+              <LblTx>
+                <p>
+                  <span>Untergrund und Dämmung</span>
+                </p>
+              </LblTx>
+              <BoQBody>
+                <Itemlist>
+                  <Item ID="L02.01.0010" RNoPart="0010">
+                    <Qty>150.000</Qty>
+                    <QU>m2</QU>
+                    <UP>3.40</UP>
+                    <IT>510.00</IT>
+                    <Description>
+                      <CompleteText>
+                        <DetailTxt>
+                          <Text>
+                            <p>
+                              <span>Betonuntergrund schleifen, reinigen und mit Tiefgrund haftfest vorbereiten, Verbrauch nach Herstellerangabe. Abrechnung nach m2.</span>
+                            </p>
+                          </Text>
+                        </DetailTxt>
+                        <OutlineText>
+                          <OutlTxt>
+                            <TextOutlTxt>
+                              <p>
+                                <span>Untergrundvorbereitung mit Tiefgrund</span>
+                              </p>
+                            </TextOutlTxt>
+                          </OutlTxt>
+                        </OutlineText>
+                      </CompleteText>
+                    </Description>
+                  </Item>
+                  <Item ID="L02.01.0030" RNoPart="0030">
+                    <Qty>390.000</Qty>
+                    <QU>m2</QU>
+                    <UP>8.90</UP>
+                    <IT>3471.00</IT>
+                    <Description>
+                      <CompleteText>
+                        <DetailTxt>
+                          <Text>
+                            <p>
+                              <span>Platten dicht gestoßen und versetzt verlegen, Durchdringungen sauber anpassen. Abrechnung nach m2.</span>
+                            </p>
+                          </Text>
+                        </DetailTxt>
+                        <OutlineText>
+                          <OutlTxt>
+                            <TextOutlTxt>
+                              <p>
+                                <span>Trittschalldämmung, Polystyrol-Hartschaum TSD 30-2, d = 30 mm</span>
+                              </p>
+                            </TextOutlTxt>
+                          </OutlTxt>
+                        </OutlineText>
+                      </CompleteText>
+                    </Description>
+                  </Item>
+                </Itemlist>
+              </BoQBody>
+              <Totals>
+                <Total>3981.00</Total>
+              </Totals>
+            </BoQCtgy>
+            <BoQCtgy ID="S02.02" RNoPart="02">
+              <LblTx>
+                <p>
+                  <span>Estrich</span>
+                </p>
+              </LblTx>
+              <BoQBody>
+                <Itemlist>
+                  <Item ID="L02.02.0010" RNoPart="0010">
+                    <Qty>240.000</Qty>
+                    <QU>m2</QU>
+                    <UP>31.50</UP>
+                    <IT>7560.00</IT>
+                    <Description>
+                      <CompleteText>
+                        <DetailTxt>
+                          <Text>
+                            <p>
+                              <span>Estrich liefern, einbauen, verdichten, abziehen und nachbehandeln, Oberfläche für Belagarbeiten geeignet. Abrechnung nach m2.</span>
+                            </p>
+                          </Text>
+                        </DetailTxt>
+                        <OutlineText>
+                          <OutlTxt>
+                            <TextOutlTxt>
+                              <p>
+                                <span>Zementestrich CT-C25-F4, schwimmend, d = 65 mm</span>
+                              </p>
+                            </TextOutlTxt>
+                          </OutlTxt>
+                        </OutlineText>
+                      </CompleteText>
+                    </Description>
+                  </Item>
+                  <Item ID="L02.02.0020" RNoPart="0020">
+                    <Qty>150.000</Qty>
+                    <QU>m2</QU>
+                    <UP>27.80</UP>
+                    <IT>4170.00</IT>
+                    <Description>
+                      <CompleteText>
+                        <DetailTxt>
+                          <Text>
+                            <p>
+                              <span>Verbundestrich auf vorbereitetem Betonuntergrund einbauen, abziehen und glätten. Abrechnung nach m2.</span>
+                            </p>
+                          </Text>
+                        </DetailTxt>
+                        <OutlineText>
+                          <OutlTxt>
+                            <TextOutlTxt>
+                              <p>
+                                <span>Zementestrich CT-C30-F5 im Verbund, d = 45 mm</span>
+                              </p>
+                            </TextOutlTxt>
+                          </OutlTxt>
+                        </OutlineText>
+                      </CompleteText>
+                    </Description>
+                  </Item>
+                </Itemlist>
+              </BoQBody>
+              <Totals>
+                <Total>11730.00</Total>
+              </Totals>
+            </BoQCtgy>
+            <BoQCtgy ID="S02.03" RNoPart="03">
+              <LblTx>
+                <p>
+                  <span>Beläge und Sockel</span>
+                </p>
+              </LblTx>
+              <BoQBody>
+                <Itemlist>
+                  <Item ID="L02.03.0010" RNoPart="0010">
+                    <Qty>390.000</Qty>
+                    <QU>m2</QU>
+                    <UP>46.00</UP>
+                    <IT>17940.00</IT>
+                    <Description>
+                      <CompleteText>
+                        <DetailTxt>
+                          <Text>
+                            <p>
+                              <span>Kautschukbelag verlegen und verkleben, Nähte verschweißen, Farbe nach Bemusterung. Abrechnung nach m2.</span>
+                            </p>
+                          </Text>
+                        </DetailTxt>
+                        <OutlineText>
+                          <OutlTxt>
+                            <TextOutlTxt>
+                              <p>
+                                <span>Kautschukboden, d = 3 mm, Noppenstruktur</span>
+                              </p>
+                            </TextOutlTxt>
+                          </OutlTxt>
+                        </OutlineText>
+                      </CompleteText>
+                    </Description>
+                  </Item>
+                  <Item ID="L02.03.0020" RNoPart="0020">
+                    <Qty>210.000</Qty>
+                    <QU>m</QU>
+                    <UP>7.80</UP>
+                    <IT>1638.00</IT>
+                    <Description>
+                      <CompleteText>
+                        <DetailTxt>
+                          <Text>
+                            <p>
+                              <span>Sockelleisten liefern und befestigen, Ecken und Stöße sauber ausbilden. Abrechnung nach m.</span>
+                            </p>
+                          </Text>
+                        </DetailTxt>
+                        <OutlineText>
+                          <OutlTxt>
+                            <TextOutlTxt>
+                              <p>
+                                <span>Sockelleiste, Aluminium, H = 60 mm</span>
+                              </p>
+                            </TextOutlTxt>
+                          </OutlTxt>
+                        </OutlineText>
+                      </CompleteText>
+                    </Description>
+                  </Item>
+                  <Item ID="L02.03.0030" RNoPart="0030">
+                    <Qty>38.000</Qty>
+                    <QU>m</QU>
+                    <UP>24.00</UP>
+                    <IT>912.00</IT>
+                    <Description>
+                      <CompleteText>
+                        <DetailTxt>
+                          <Text>
+                            <p>
+                              <span>Bewegungsfugenprofil in Estrich und Belag nach Fugenplan einbauen. Abrechnung nach m.</span>
+                            </p>
+                          </Text>
+                        </DetailTxt>
+                        <OutlineText>
+                          <OutlTxt>
+                            <TextOutlTxt>
+                              <p>
+                                <span>Dehnungsfugenprofil, Aluminium, Höhe 65 mm</span>
+                              </p>
+                            </TextOutlTxt>
+                          </OutlTxt>
+                        </OutlineText>
+                      </CompleteText>
+                    </Description>
+                  </Item>
+                  <Item ID="L02.03.0040" RNoPart="0040">
+                    <Qty>14.000</Qty>
+                    <QU>m</QU>
+                    <UP>19.00</UP>
+                    <IT>266.00</IT>
+                    <Description>
+                      <CompleteText>
+                        <DetailTxt>
+                          <Text>
+                            <p>
+                              <span>Übergangsprofil an Belagwechseln und Türschwellen befestigen. Abrechnung nach m.</span>
+                            </p>
+                          </Text>
+                        </DetailTxt>
+                        <OutlineText>
+                          <OutlTxt>
+                            <TextOutlTxt>
+                              <p>
+                                <span>Übergangsprofil, Edelstahl, Breite 30 mm</span>
+                              </p>
+                            </TextOutlTxt>
+                          </OutlTxt>
+                        </OutlineText>
+                      </CompleteText>
+                    </Description>
+                  </Item>
+                </Itemlist>
+              </BoQBody>
+              <Totals>
+                <Total>20756.00</Total>
+              </Totals>
+            </BoQCtgy>
+          </BoQBody>
+          <Totals>
+            <Total>36467.00</Total>
+          </Totals>
+        </BoQCtgy>
+        <BoQCtgy ID="S03" RNoPart="03">
+          <LblTx>
+            <p>
+              <span>Trockenbauarbeiten</span>
+            </p>
+          </LblTx>
+          <BoQBody>
+            <BoQCtgy ID="S03.01" RNoPart="01">
+              <LblTx>
+                <p>
+                  <span>Wände</span>
+                </p>
+              </LblTx>
+              <BoQBody>
+                <Itemlist>
+                  <Item ID="L03.01.0010" RNoPart="0010">
+                    <Qty>420.000</Qty>
+                    <QU>m2</QU>
+                    <UP>54.50</UP>
+                    <IT>22890.00</IT>
+                    <Description>
+                      <CompleteText>
+                        <DetailTxt>
+                          <Text>
+                            <p>
+                              <span>Ständerwerk aus CW-Profilen, beidseitig zweilagig beplankt, Anschlüsse an Boden, Decke und Wände. Abrechnung nach m2.</span>
+                            </p>
+                          </Text>
+                        </DetailTxt>
+                        <OutlineText>
+                          <OutlTxt>
+                            <TextOutlTxt>
+                              <p>
+                                <span>Metallständerwand, d = 100 mm, 2 x GKB 12,5 mm, F30</span>
+                              </p>
+                            </TextOutlTxt>
+                          </OutlTxt>
+                        </OutlineText>
+                      </CompleteText>
+                    </Description>
+                  </Item>
+                  <Item ID="L03.01.0020" RNoPart="0020">
+                    <Qty>60.000</Qty>
+                    <QU>m2</QU>
+                    <UP>41.00</UP>
+                    <IT>2460.00</IT>
+                    <Description>
+                      <CompleteText>
+                        <DetailTxt>
+                          <Text>
+                            <p>
+                              <span>Vorsatzschale freistehend mit CD-Profilen, einlagig beplankt. Abrechnung nach m2.</span>
+                            </p>
+                          </Text>
+                        </DetailTxt>
+                        <OutlineText>
+                          <OutlTxt>
+                            <TextOutlTxt>
+                              <p>
+                                <span>Vorsatzschale GKF, d = 62,5 mm</span>
+                              </p>
+                            </TextOutlTxt>
+                          </OutlTxt>
+                        </OutlineText>
+                      </CompleteText>
+                    </Description>
+                  </Item>
+                  <Item ID="L03.01.0030" RNoPart="0030">
+                    <Qty>9.000</Qty>
+                    <QU>St</QU>
+                    <UP>168.00</UP>
+                    <IT>1512.00</IT>
+                    <Description>
+                      <CompleteText>
+                        <DetailTxt>
+                          <Text>
+                            <p>
+                              <span>Zarge einbauen, hinterfüllen und ausrichten. Abrechnung nach Stück.</span>
+                            </p>
+                          </Text>
+                        </DetailTxt>
+                        <OutlineText>
+                          <OutlTxt>
+                            <TextOutlTxt>
+                              <p>
+                                <span>Stahlumfassungszarge für Wanddicke 100 mm</span>
+                              </p>
+                            </TextOutlTxt>
+                          </OutlTxt>
+                        </OutlineText>
+                      </CompleteText>
+                    </Description>
+                  </Item>
+                  <Item ID="L03.01.0040" RNoPart="0040">
+                    <Qty>120.000</Qty>
+                    <QU>m</QU>
+                    <UP>6.50</UP>
+                    <IT>780.00</IT>
+                    <Description>
+                      <CompleteText>
+                        <DetailTxt>
+                          <Text>
+                            <p>
+                              <span>Gleitender Deckenanschluss mit Profil und Trennstreifen. Abrechnung nach m.</span>
+                            </p>
+                          </Text>
+                        </DetailTxt>
+                        <OutlineText>
+                          <OutlTxt>
+                            <TextOutlTxt>
+                              <p>
+                                <span>Anschluss Ständerwand an Bestandsdecke gleitend</span>
+                              </p>
+                            </TextOutlTxt>
+                          </OutlTxt>
+                        </OutlineText>
+                      </CompleteText>
+                    </Description>
+                  </Item>
+                </Itemlist>
+              </BoQBody>
+              <Totals>
+                <Total>27642.00</Total>
+              </Totals>
+            </BoQCtgy>
+            <BoQCtgy ID="S03.02" RNoPart="02">
+              <LblTx>
+                <p>
+                  <span>Dämmung, Spachtelung und Zubehör</span>
+                </p>
+              </LblTx>
+              <BoQBody>
+                <Itemlist>
+                  <Item ID="L03.02.0010" RNoPart="0010">
+                    <Qty>480.000</Qty>
+                    <QU>m2</QU>
+                    <UP>6.40</UP>
+                    <IT>3072.00</IT>
+                    <Description>
+                      <CompleteText>
+                        <DetailTxt>
+                          <Text>
+                            <p>
+                              <span>Hohlraum der Ständerwände vollflächig ausfüllen, Stöße dicht stoßen. Abrechnung nach m2.</span>
+                            </p>
+                          </Text>
+                        </DetailTxt>
+                        <OutlineText>
+                          <OutlTxt>
+                            <TextOutlTxt>
+                              <p>
+                                <span>Mineralwolle-Einlage, d = 60 mm, nichtbrennbar</span>
+                              </p>
+                            </TextOutlTxt>
+                          </OutlTxt>
+                        </OutlineText>
+                      </CompleteText>
+                    </Description>
+                  </Item>
+                  <Item ID="L03.02.0020" RNoPart="0020">
+                    <Qty>480.000</Qty>
+                    <QU>m2</QU>
+                    <UP>4.20</UP>
+                    <IT>2016.00</IT>
+                    <Description>
+                      <CompleteText>
+                        <DetailTxt>
+                          <Text>
+                            <p>
+                              <span>Plattenstöße und Schraubenköpfe verspachteln und schleifen. Abrechnung nach m2.</span>
+                            </p>
+                          </Text>
+                        </DetailTxt>
+                        <OutlineText>
+                          <OutlTxt>
+                            <TextOutlTxt>
+                              <p>
+                                <span>Spachtelung der Plattenstöße, Qualitätsstufe Q2</span>
+                              </p>
+                            </TextOutlTxt>
+                          </OutlTxt>
+                        </OutlineText>
+                      </CompleteText>
+                    </Description>
+                  </Item>
+                  <Item ID="L03.02.0030" RNoPart="0030">
+                    <Qty>64.000</Qty>
+                    <QU>m</QU>
+                    <UP>5.60</UP>
+                    <IT>358.40</IT>
+                    <Description>
+                      <CompleteText>
+                        <DetailTxt>
+                          <Text>
+                            <p>
+                              <span>Eckschutzschienen an Außenecken einbauen und einbetten. Abrechnung nach m.</span>
+                            </p>
+                          </Text>
+                        </DetailTxt>
+                        <OutlineText>
+                          <OutlTxt>
+                            <TextOutlTxt>
+                              <p>
+                                <span>Eckschutzschiene, verzinkt, einbauen</span>
+                              </p>
+                            </TextOutlTxt>
+                          </OutlTxt>
+                        </OutlineText>
+                      </CompleteText>
+                    </Description>
+                  </Item>
+                  <Item ID="L03.02.0040" RNoPart="0040">
+                    <Qty>8.000</Qty>
+                    <QU>St</QU>
+                    <UP>72.00</UP>
+                    <IT>576.00</IT>
+                    <Description>
+                      <CompleteText>
+                        <DetailTxt>
+                          <Text>
+                            <p>
+                              <span>Revisionsklappe in Wand oder Decke einbauen, bündig mit der Plattenfläche. Abrechnung nach Stück.</span>
+                            </p>
+                          </Text>
+                        </DetailTxt>
+                        <OutlineText>
+                          <OutlTxt>
+                            <TextOutlTxt>
+                              <p>
+                                <span>Revisionsklappe, 30 x 30 cm, Trockenbau</span>
+                              </p>
+                            </TextOutlTxt>
+                          </OutlTxt>
+                        </OutlineText>
+                      </CompleteText>
+                    </Description>
+                  </Item>
+                  <Item ID="L03.02.0050" RNoPart="0050">
+                    <Qty>14.000</Qty>
+                    <QU>St</QU>
+                    <UP>18.50</UP>
+                    <IT>259.00</IT>
+                    <Description>
+                      <CompleteText>
+                        <DetailTxt>
+                          <Text>
+                            <p>
+                              <span>Zusätzliche Aussteifungsprofile im Ständerwerk für Konsolen einbauen. Abrechnung nach Stück.</span>
+                            </p>
+                          </Text>
+                        </DetailTxt>
+                        <OutlineText>
+                          <OutlTxt>
+                            <TextOutlTxt>
+                              <p>
+                                <span>Aussteifungsprofile für Wandkonsolen</span>
+                              </p>
+                            </TextOutlTxt>
+                          </OutlTxt>
+                        </OutlineText>
+                      </CompleteText>
+                    </Description>
+                  </Item>
+                  <Item ID="L03.02.0060" RNoPart="0060">
+                    <Qty>70.000</Qty>
+                    <QU>m</QU>
+                    <UP>9.80</UP>
+                    <IT>686.00</IT>
+                    <Description>
+                      <CompleteText>
+                        <DetailTxt>
+                          <Text>
+                            <p>
+                              <span>Schattenfugenprofil am Wand-Decken-Anschluss einbauen und ausrichten. Abrechnung nach m.</span>
+                            </p>
+                          </Text>
+                        </DetailTxt>
+                        <OutlineText>
+                          <OutlTxt>
+                            <TextOutlTxt>
+                              <p>
+                                <span>Schattenfugenprofil, Aluminium, schwarz</span>
+                              </p>
+                            </TextOutlTxt>
+                          </OutlTxt>
+                        </OutlineText>
+                      </CompleteText>
+                    </Description>
+                  </Item>
+                </Itemlist>
+              </BoQBody>
+              <Totals>
+                <Total>6967.40</Total>
+              </Totals>
+            </BoQCtgy>
+          </BoQBody>
+          <Totals>
+            <Total>34609.40</Total>
+          </Totals>
+        </BoQCtgy>
+        <BoQCtgy ID="S04" RNoPart="04">
+          <LblTx>
+            <p>
+              <span>Malerarbeiten</span>
+            </p>
+          </LblTx>
+          <BoQBody>
+            <BoQCtgy ID="S04.01" RNoPart="01">
+              <LblTx>
+                <p>
+                  <span>Vorbereitung</span>
+                </p>
+              </LblTx>
+              <BoQBody>
+                <Itemlist>
+                  <Item ID="L04.01.0010" RNoPart="0010">
+                    <LumpSumItem>Yes</LumpSumItem>
+                    <Qty>1.000</Qty>
+                    <QU>psch</QU>
+                    <UP>2800.00</UP>
+                    <IT>2800.00</IT>
+                    <Description>
+                      <CompleteText>
+                        <DetailTxt>
+                          <Text>
+                            <p>
+                              <span>Böden und Einbauteile mit Vlies schützen, Schutz nach Arbeitsende entfernen. Abrechnung pauschal.</span>
+                            </p>
+                          </Text>
+                        </DetailTxt>
+                        <OutlineText>
+                          <OutlTxt>
+                            <TextOutlTxt>
+                              <p>
+                                <span>Abdeckarbeiten, Böden und Einbauteile schützen</span>
+                              </p>
+                            </TextOutlTxt>
+                          </OutlTxt>
+                        </OutlineText>
+                      </CompleteText>
+                    </Description>
+                  </Item>
+                  <Item ID="L04.01.0020" RNoPart="0020">
+                    <Qty>1390.000</Qty>
+                    <QU>m2</QU>
+                    <UP>1.45</UP>
+                    <IT>2015.50</IT>
+                    <Description>
+                      <CompleteText>
+                        <DetailTxt>
+                          <Text>
+                            <p>
+                              <span>Tiefengrund gleichmäßig auftragen, Trocknungszeit einhalten. Abrechnung nach m2.</span>
+                            </p>
+                          </Text>
+                        </DetailTxt>
+                        <OutlineText>
+                          <OutlTxt>
+                            <TextOutlTxt>
+                              <p>
+                                <span>Tiefengrund auf saugenden Untergründen</span>
+                              </p>
+                            </TextOutlTxt>
+                          </OutlTxt>
+                        </OutlineText>
+                      </CompleteText>
+                    </Description>
+                  </Item>
+                  <Item ID="L04.01.0030" RNoPart="0030">
+                    <Qty>1390.000</Qty>
+                    <QU>m2</QU>
+                    <UP>1.20</UP>
+                    <IT>1668.00</IT>
+                    <Description>
+                      <CompleteText>
+                        <DetailTxt>
+                          <Text>
+                            <p>
+                              <span>Risse, Löcher und Unebenheiten in Wand und Decke fachgerecht verschließen und schleifen. Abrechnung nach m2.</span>
+                            </p>
+                          </Text>
+                        </DetailTxt>
+                        <OutlineText>
+                          <OutlTxt>
+                            <TextOutlTxt>
+                              <p>
+                                <span>Kleinere Fehlstellen schleifen und ausbessern</span>
+                              </p>
+                            </TextOutlTxt>
+                          </OutlTxt>
+                        </OutlineText>
+                      </CompleteText>
+                    </Description>
+                  </Item>
+                </Itemlist>
+              </BoQBody>
+              <Totals>
+                <Total>6483.50</Total>
+              </Totals>
+            </BoQCtgy>
+            <BoQCtgy ID="S04.02" RNoPart="02">
+              <LblTx>
+                <p>
+                  <span>Anstriche und Beschichtung</span>
+                </p>
+              </LblTx>
+              <BoQBody>
+                <Itemlist>
+                  <Item ID="L04.02.0010" RNoPart="0010">
+                    <Qty>1150.000</Qty>
+                    <QU>m2</QU>
+                    <UP>4.90</UP>
+                    <IT>5635.00</IT>
+                    <Description>
+                      <CompleteText>
+                        <DetailTxt>
+                          <Text>
+                            <p>
+                              <span>Wandflächen innen deckend streichen, Nassabriebklasse 2. Abrechnung nach m2.</span>
+                            </p>
+                          </Text>
+                        </DetailTxt>
+                        <OutlineText>
+                          <OutlTxt>
+                            <TextOutlTxt>
+                              <p>
+                                <span>Wandflächen mit Dispersionsfarbe streichen, zweimal</span>
+                              </p>
+                            </TextOutlTxt>
+                          </OutlTxt>
+                        </OutlineText>
+                      </CompleteText>
+                    </Description>
+                  </Item>
+                  <Item ID="L04.02.0020" RNoPart="0020">
+                    <Qty>240.000</Qty>
+                    <QU>m2</QU>
+                    <UP>6.10</UP>
+                    <IT>1464.00</IT>
+                    <Description>
+                      <CompleteText>
+                        <DetailTxt>
+                          <Text>
+                            <p>
+                              <span>Deckenflächen innen zweimal streichen, Farbton weiß. Abrechnung nach m2.</span>
+                            </p>
+                          </Text>
+                        </DetailTxt>
+                        <OutlineText>
+                          <OutlTxt>
+                            <TextOutlTxt>
+                              <p>
+                                <span>Deckenfläche mit Silikatfarbe</span>
+                              </p>
+                            </TextOutlTxt>
+                          </OutlTxt>
+                        </OutlineText>
+                      </CompleteText>
+                    </Description>
+                  </Item>
+                  <Item ID="L04.02.0030" RNoPart="0030">
+                    <Qty>640.000</Qty>
+                    <QU>m2</QU>
+                    <UP>28.50</UP>
+                    <IT>18240.00</IT>
+                    <Description>
+                      <CompleteText>
+                        <DetailTxt>
+                          <Text>
+                            <p>
+                              <span>Hallenfläche mit zweikomponentiger Beschichtung versiegeln, Quarzsand eingestreut. Abrechnung nach m2.</span>
+                            </p>
+                          </Text>
+                        </DetailTxt>
+                        <OutlineText>
+                          <OutlTxt>
+                            <TextOutlTxt>
+                              <p>
+                                <span>Epoxidharzbeschichtung Hallenboden, rutschhemmend R10</span>
+                              </p>
+                            </TextOutlTxt>
+                          </OutlTxt>
+                        </OutlineText>
+                      </CompleteText>
+                    </Description>
+                  </Item>
+                  <Item ID="L04.02.0040" RNoPart="0040">
+                    <Qty>9.000</Qty>
+                    <QU>St</QU>
+                    <UP>48.00</UP>
+                    <IT>432.00</IT>
+                    <Description>
+                      <CompleteText>
+                        <DetailTxt>
+                          <Text>
+                            <p>
+                              <span>Stahlzargen allseitig lackieren, Farbton nach RAL. Abrechnung nach Stück.</span>
+                            </p>
+                          </Text>
+                        </DetailTxt>
+                        <OutlineText>
+                          <OutlTxt>
+                            <TextOutlTxt>
+                              <p>
+                                <span>Lackierarbeiten an Stahlzargen</span>
+                              </p>
+                            </TextOutlTxt>
+                          </OutlTxt>
+                        </OutlineText>
+                      </CompleteText>
+                    </Description>
+                  </Item>
+                  <Item ID="L04.02.0050" RNoPart="0050">
+                    <Qty>4.000</Qty>
+                    <QU>St</QU>
+                    <UP>85.00</UP>
+                    <IT>340.00</IT>
+                    <Description>
+                      <CompleteText>
+                        <DetailTxt>
+                          <Text>
+                            <p>
+                              <span>Bemusterung der Farbtöne an der Wand, Freigabe durch die Bauleitung abwarten. Abrechnung nach Stück.</span>
+                            </p>
+                          </Text>
+                        </DetailTxt>
+                        <OutlineText>
+                          <OutlTxt>
+                            <TextOutlTxt>
+                              <p>
+                                <span>Farbmuster anlegen und zur Freigabe vorlegen</span>
+                              </p>
+                            </TextOutlTxt>
+                          </OutlTxt>
+                        </OutlineText>
+                      </CompleteText>
+                    </Description>
+                  </Item>
+                </Itemlist>
+              </BoQBody>
+              <Totals>
+                <Total>26111.00</Total>
+              </Totals>
+            </BoQCtgy>
+          </BoQBody>
+          <Totals>
+            <Total>32594.50</Total>
+          </Totals>
+        </BoQCtgy>
+        <BoQCtgy ID="S05" RNoPart="05">
+          <LblTx>
+            <p>
+              <span>Dachabdichtung</span>
+            </p>
+          </LblTx>
+          <BoQBody>
+            <BoQCtgy ID="S05.01" RNoPart="01">
+              <LblTx>
+                <p>
+                  <span>Dachaufbau</span>
+                </p>
+              </LblTx>
+              <BoQBody>
+                <Itemlist>
+                  <Item ID="L05.01.0010" RNoPart="0010">
+                    <Qty>900.000</Qty>
+                    <QU>m2</QU>
+                    <UP>1.60</UP>
+                    <IT>1440.00</IT>
+                    <Description>
+                      <CompleteText>
+                        <DetailTxt>
+                          <Text>
+                            <p>
+                              <span>Voranstrich gleichmäßig auftragen und ablüften lassen. Abrechnung nach m2.</span>
+                            </p>
+                          </Text>
+                        </DetailTxt>
+                        <OutlineText>
+                          <OutlTxt>
+                            <TextOutlTxt>
+                              <p>
+                                <span>Bitumenvoranstrich auf der Betondecke</span>
+                              </p>
+                            </TextOutlTxt>
+                          </OutlTxt>
+                        </OutlineText>
+                      </CompleteText>
+                    </Description>
+                  </Item>
+                  <Item ID="L05.01.0020" RNoPart="0020">
+                    <Qty>900.000</Qty>
+                    <QU>m2</QU>
+                    <UP>11.40</UP>
+                    <IT>10260.00</IT>
+                    <Description>
+                      <CompleteText>
+                        <DetailTxt>
+                          <Text>
+                            <p>
+                              <span>Dampfsperre vollflächig auf der Betondecke verlegen, Stöße verschweißen, an Aufkantungen hochziehen. Abrechnung nach m2.</span>
+                            </p>
+                          </Text>
+                        </DetailTxt>
+                        <OutlineText>
+                          <OutlTxt>
+                            <TextOutlTxt>
+                              <p>
+                                <span>Dampfsperre, Bitumenschweißbahn mit Aluminiumeinlage</span>
+                              </p>
+                            </TextOutlTxt>
+                          </OutlTxt>
+                        </OutlineText>
+                      </CompleteText>
+                    </Description>
+                  </Item>
+                  <Item ID="L05.01.0030" RNoPart="0030">
+                    <Qty>900.000</Qty>
+                    <QU>m2</QU>
+                    <UP>38.00</UP>
+                    <IT>34200.00</IT>
+                    <Description>
+                      <CompleteText>
+                        <DetailTxt>
+                          <Text>
+                            <p>
+                              <span>Dämmplatten zweilagig mit versetzten Stößen verlegen. Abrechnung nach m2.</span>
+                            </p>
+                          </Text>
+                        </DetailTxt>
+                        <OutlineText>
+                          <OutlTxt>
+                            <TextOutlTxt>
+                              <p>
+                                <span>Wärmedämmung, PIR-Hartschaum, d = 160 mm</span>
+                              </p>
+                            </TextOutlTxt>
+                          </OutlTxt>
+                        </OutlineText>
+                      </CompleteText>
+                    </Description>
+                  </Item>
+                  <Item ID="L05.01.0040" RNoPart="0040">
+                    <Qty>900.000</Qty>
+                    <QU>m2</QU>
+                    <UP>1.90</UP>
+                    <IT>1710.00</IT>
+                    <Description>
+                      <CompleteText>
+                        <DetailTxt>
+                          <Text>
+                            <p>
+                              <span>Trennlage lose verlegen, Überlappung 5 cm. Abrechnung nach m2.</span>
+                            </p>
+                          </Text>
+                        </DetailTxt>
+                        <OutlineText>
+                          <OutlTxt>
+                            <TextOutlTxt>
+                              <p>
+                                <span>Trennlage Glasvlies, 120 g/m2</span>
+                              </p>
+                            </TextOutlTxt>
+                          </OutlTxt>
+                        </OutlineText>
+                      </CompleteText>
+                    </Description>
+                  </Item>
+                  <Item ID="L05.01.0050" RNoPart="0050">
+                    <Qty>900.000</Qty>
+                    <QU>m2</QU>
+                    <UP>29.50</UP>
+                    <IT>26550.00</IT>
+                    <Description>
+                      <CompleteText>
+                        <DetailTxt>
+                          <Text>
+                            <p>
+                              <span>Kunststoff-Dachbahn mechanisch befestigt verlegen, Nähte heißluftverschweißen, Brandverhalten nach DIN 4102-7. Abrechnung nach m2.</span>
+                            </p>
+                          </Text>
+                        </DetailTxt>
+                        <OutlineText>
+                          <OutlTxt>
+                            <TextOutlTxt>
+                              <p>
+                                <span>Dachabdichtung, einlagig, FPO-Dachbahn, d = 1,8 mm</span>
+                              </p>
+                            </TextOutlTxt>
+                          </OutlTxt>
+                        </OutlineText>
+                      </CompleteText>
+                    </Description>
+                  </Item>
+                </Itemlist>
+              </BoQBody>
+              <Totals>
+                <Total>74160.00</Total>
+              </Totals>
+            </BoQCtgy>
+            <BoQCtgy ID="S05.02" RNoPart="02">
+              <LblTx>
+                <p>
+                  <span>Details und Entwässerung</span>
+                </p>
+              </LblTx>
+              <BoQBody>
+                <Itemlist>
+                  <Item ID="L05.02.0010" RNoPart="0010">
+                    <Qty>130.000</Qty>
+                    <QU>m</QU>
+                    <UP>18.50</UP>
+                    <IT>2405.00</IT>
+                    <Description>
+                      <CompleteText>
+                        <DetailTxt>
+                          <Text>
+                            <p>
+                              <span>Abdichtung an der Attika hochziehen und mit Klemmprofil sichern. Abrechnung nach m.</span>
+                            </p>
+                          </Text>
+                        </DetailTxt>
+                        <OutlineText>
+                          <OutlTxt>
+                            <TextOutlTxt>
+                              <p>
+                                <span>Attikaanschluss, hochgezogen, Höhe bis 50 cm</span>
+                              </p>
+                            </TextOutlTxt>
+                          </OutlTxt>
+                        </OutlineText>
+                      </CompleteText>
+                    </Description>
+                  </Item>
+                  <Item ID="L05.02.0020" RNoPart="0020">
+                    <Qty>8.000</Qty>
+                    <QU>St</QU>
+                    <UP>285.00</UP>
+                    <IT>2280.00</IT>
+                    <Description>
+                      <CompleteText>
+                        <DetailTxt>
+                          <Text>
+                            <p>
+                              <span>Dachablauf DN 100 mit Laubfang und beheiztem Anschluss einbauen, Notüberlauf nach Fachplanung. Abrechnung nach Stück.</span>
+                            </p>
+                          </Text>
+                        </DetailTxt>
+                        <OutlineText>
+                          <OutlTxt>
+                            <TextOutlTxt>
+                              <p>
+                                <span>Dachgully mit Notüberlauf, DN 100</span>
+                              </p>
+                            </TextOutlTxt>
+                          </OutlTxt>
+                        </OutlineText>
+                      </CompleteText>
+                    </Description>
+                  </Item>
+                  <Item ID="L05.02.0030" RNoPart="0030">
+                    <Qty>130.000</Qty>
+                    <QU>m</QU>
+                    <UP>31.00</UP>
+                    <IT>4030.00</IT>
+                    <Description>
+                      <CompleteText>
+                        <DetailTxt>
+                          <Text>
+                            <p>
+                              <span>Randprofil befestigen und anschließen, Stöße mit Dehnungsausgleich. Abrechnung nach m.</span>
+                            </p>
+                          </Text>
+                        </DetailTxt>
+                        <OutlineText>
+                          <OutlTxt>
+                            <TextOutlTxt>
+                              <p>
+                                <span>Dachrandabschlussprofil, Aluminium, eloxiert</span>
+                              </p>
+                            </TextOutlTxt>
+                          </OutlTxt>
+                        </OutlineText>
+                      </CompleteText>
+                    </Description>
+                  </Item>
+                  <Item ID="L05.02.0040" RNoPart="0040">
+                    <Qty>0.000</Qty>
+                    <QU>m</QU>
+                    <UP>12.00</UP>
+                    <IT>0.00</IT>
+                    <Description>
+                      <CompleteText>
+                        <DetailTxt>
+                          <Text>
+                            <p>
+                              <span>Kiesstreifen mit Rundkies einbauen, Breite 50 cm, Kiesfangleiste vorhalten. Abrechnung nach m.</span>
+                            </p>
+                          </Text>
+                        </DetailTxt>
+                        <OutlineText>
+                          <OutlTxt>
+                            <TextOutlTxt>
+                              <p>
+                                <span>Kiesstreifen am Dachrand mit Rundkies 16/32</span>
+                              </p>
+                            </TextOutlTxt>
+                          </OutlTxt>
+                        </OutlineText>
+                      </CompleteText>
+                    </Description>
+                  </Item>
+                  <Item ID="L05.02.0050" RNoPart="0050">
+                    <Qty>6.000</Qty>
+                    <QU>St</QU>
+                    <UP>245.00</UP>
+                    <IT>1470.00</IT>
+                    <Description>
+                      <CompleteText>
+                        <DetailTxt>
+                          <Text>
+                            <p>
+                              <span>Anschlagpunkte nach DIN EN 795 auf der Dachfläche montieren und anschließen. Abrechnung nach Stück.</span>
+                            </p>
+                          </Text>
+                        </DetailTxt>
+                        <OutlineText>
+                          <OutlTxt>
+                            <TextOutlTxt>
+                              <p>
+                                <span>Anschlagpunkte für Absturzsicherung</span>
+                              </p>
+                            </TextOutlTxt>
+                          </OutlTxt>
+                        </OutlineText>
+                      </CompleteText>
+                    </Description>
+                  </Item>
+                </Itemlist>
+              </BoQBody>
+              <Totals>
+                <Total>10185.00</Total>
+              </Totals>
+            </BoQCtgy>
+          </BoQBody>
+          <Totals>
+            <Total>84345.00</Total>
+          </Totals>
+        </BoQCtgy>
+      </BoQBody>
+    </BoQ>
+  </Award>
+</GAEB>
