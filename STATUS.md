@@ -11,7 +11,7 @@ The lead merges PRs and resolves conflicts in this file. Contracts are in [CLAUD
 | 02 | [Layer 3 on Claude: precast extraction, scope audit, live demo](tasks/02-layer3-claude-checks.md) | `feat/task-02` | todo | |
 | 03 | [Risk score, change-order signals, Bieterfragen (contract v0.2)](tasks/03-risk-score-bieterfragen.md) | `feat/task-03` | todo | |
 | 04 | [Risk report UI, reviewer decisions, exports](tasks/04-risk-report-ui.md) | `feat/task-04` | todo | Uses a fixture until 03 lands |
-| 05 | [Planted-error evaluation and demo files](tasks/05-planted-error-evaluation.md) | `feat/task-05` | PR open | Building hall 76/76 supported cases, 46 clean controls. Precast has one catch, five misses pending Task 01 and two Layer 3 cases pending Task 02. |
+| 05 | [Planted-error evaluation and demo files](tasks/05-planted-error-evaluation.md) | `feat/task-05` | merged | PR #9 integrated with task 01 by the lead. Building hall 81 caught / 8 known gaps, precast 6/6 deterministic caught, 2 layer 3 cases not run until 02 merges; 0 false alarms on 46 controls. |
 | 06 | [Upload real tender PDFs and .xls (queued)](tasks/06-real-pdf-excel-upload.md) | `feat/task-06` | queued | First worker to finish takes it |
 
 Suggested merge order: 01 → 03 → 02 → 05 → 04 → 06. Each PR must pass CI (Python tests, frontend lint/build).
