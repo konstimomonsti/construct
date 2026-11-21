@@ -78,9 +78,9 @@ export function FindingFilter({ rows, reviewed, value, onChange }: {
   })
   const sortedTypes = [...types].sort(([, a], [, b]) => a.title.localeCompare(b.title))
   const items: (MenuItem | 'sep')[] = [
-    option('all', 'All rows'),
-    option('flagged', 'Flagged rows', flagged),
-    option('reviewed', 'Reviewed rows', reviewedRows),
+    option('all', 'All positions'),
+    option('flagged', 'Flagged positions', flagged),
+    option('reviewed', 'Reviewed positions', reviewedRows),
     'sep',
     ...SEVERITIES.filter((severity) => severities.get(severity)).map((severity) => option(severity, RISK_UI[severity].plural, severities.get(severity), RISK_UI[severity].icon)),
     ...(sortedTypes.length ? ['sep' as const, ...sortedTypes.map(([id, type]) => option(`rule:${id}`, type.title, type.count))] : []),
@@ -93,13 +93,17 @@ export function FindingFilter({ rows, reviewed, value, onChange }: {
 
   return (
     <Menu
-      label="Filter rows by finding"
+      label="Filter positions by upload check"
       width="w-72"
       items={items}
       trigger={(p) => (
         <ToolButton {...p} icon="flag" active={!!current}>
-          <span className="max-w-[16ch] truncate">{current ?? 'Findings'}</span>
-          {!current && flagged > 0 && <span className="num rounded bg-amber-50 px-1.5 text-[13px] font-semibold text-amber-900 ring-1 ring-amber-500/50 ring-inset">{flagged}</span>}
+          <span className="max-w-[16ch] truncate">{current ?? 'Upload check'}</span>
+          {!current && flagged > 0 && (
+            <span className="num rounded bg-amber-50 px-1.5 text-[13px] font-semibold text-amber-900 ring-1 ring-amber-500/50 ring-inset">
+              {flagged}<span className="sr-only"> flagged {flagged === 1 ? 'position' : 'positions'}</span>
+            </span>
+          )}
         </ToolButton>
       )}
     />

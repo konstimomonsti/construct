@@ -225,8 +225,10 @@ export function InfoTip({ text }: { text: string }) {
  * The pill always shows the worst state (a project near its cap makes the whole page "1 near cap").
  */
 export function Summary({
-  label, amount, total, cap, actions, meta, capLabel = 'cap', compact, status, bar, extra, hideLeft, note, hint, onEditCap,
+  label, amount, total, cap, actions, meta, capLabel = 'cap', compact, status, bar, extra, hideLeft, note, hint, onEditCap, onStatus,
 }: {
+  /** makes the flagged-children text a link, e.g. to the Needs attention filter */
+  onStatus?: () => void
   /** how the figure is measured, shown on demand behind an info button */
   hint?: string
   /** one muted line under the status line, e.g. which caps the figure is measured against */
@@ -291,9 +293,9 @@ export function Summary({
           <div className="mt-2 flex flex-wrap items-center justify-between gap-x-6 gap-y-2 text-sm text-slate-600">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
               <StatusTag tone={st.tone} word={st.word} hint />
-              {status && <span className="font-medium text-slate-800">{status.word}</span>}
+              {status && (onStatus ? <MetaLink onClick={onStatus}>{status.word}</MetaLink> : <span className="font-medium text-slate-800">{status.word}</span>)}
               {hint && <InfoTip text={hint} />}
-              {note && <span className="max-sm:hidden">{note}</span>}
+              {note && <span>{note}</span>}
             </div>
             {meta && <div>{meta}</div>}
           </div>
@@ -599,20 +601,20 @@ export function EmptyState({ icon, title, text, children, hint, className, activ
     <div
       className={clsx(
         'flex flex-col items-center rounded-lg px-5 text-center transition-colors',
-        compact ? 'py-10' : 'py-12 sm:py-16',
+        compact ? 'py-8' : 'py-10 sm:py-12',
         active === undefined ? 'border border-slate-300' : active ? 'border-2 border-dashed border-brand-600 bg-brand-50' : 'border-2 border-dashed border-slate-300',
         className,
       )}
     >
       {icon && (
-        <span className={clsx('flex items-center justify-center rounded-lg bg-brand-50 text-brand-700', compact ? 'mb-3 size-12' : 'mb-5 size-16')}>
-          <Icon name={icon} size={compact ? 24 : 30} />
+        <span className={clsx('flex items-center justify-center rounded-lg bg-brand-50 text-brand-700', compact ? 'mb-3 size-12' : 'mb-4 size-14')}>
+          <Icon name={icon} size={compact ? 24 : 28} />
         </span>
       )}
       <h2 className={clsx('font-heading font-bold tracking-tight text-balance text-slate-900', compact ? 'text-lg' : 'text-xl sm:text-2xl')}>{title}</h2>
       {text && <p className="mt-2 max-w-[52ch] text-[15px] leading-relaxed text-balance text-slate-600">{text}</p>}
-      {children && <div className="mt-7 flex w-full flex-col items-stretch justify-center gap-2 sm:w-auto sm:flex-row sm:flex-wrap">{children}</div>}
-      {hint && <p className="mt-6 max-w-md text-sm leading-relaxed text-pretty text-slate-500">{hint}</p>}
+      {children && <div className="mt-5 flex w-full flex-col items-stretch justify-center gap-2 sm:w-auto sm:flex-row sm:flex-wrap">{children}</div>}
+      {hint && <p className="mt-5 max-w-md text-sm leading-relaxed text-pretty text-slate-500">{hint}</p>}
     </div>
   )
 }

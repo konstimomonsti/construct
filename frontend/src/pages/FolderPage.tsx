@@ -6,7 +6,7 @@ import { EmptyFolder } from '../components/EmptyFolder'
 import { DropOverlay, useDropImport } from '../components/DropImport'
 import { ListGrid } from '../components/ListCard'
 import { FolderGrid } from '../components/FolderCard'
-import { Chips, EmptyState, PageFrame, PageHeader, PillLink, RowMenu, Section, SortMenu, Summary, ToolButton, heroStatus } from '../components/Kit'
+import { Chips, EmptyState, MetaLink, PageFrame, PageHeader, PillLink, RowMenu, Section, SortMenu, Summary, ToolButton, heroStatus } from '../components/Kit'
 import { budgetStatus, int, money, moneyWhole, needsAttention, plural } from '../lib/format'
 import { pickAndImport } from '../lib/import'
 import { counts, folderDescription, folderPath, SORT_LABEL, useModel, useStore, type SortKey } from '../lib/store'
@@ -66,8 +66,9 @@ export function FolderPage() {
   // list caps are set independently; say when they promise more than the project cap allows
   const listCaps = allLists.filter(counts).reduce((x, l) => x + (l.cap || 0), 0)
   const capNote = f.cap > 0 && listCaps > f.cap ? (
-    <span>
-      List caps add up to {moneyWhole(listCaps)}, {moneyWhole(listCaps - f.cap)} over the project cap.
+    <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1">
+      List caps add up to {moneyWhole(listCaps)}, {moneyWhole(listCaps - f.cap)} more than the project cap.
+      <MetaLink onClick={() => openDialog({ kind: 'edit-cap', target: 'folder', id: f.id })}>Edit cap</MetaLink>
     </span>
   ) : undefined
   const toggle = (id: string) =>

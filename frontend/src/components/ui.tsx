@@ -108,7 +108,7 @@ export function Meter({ value, tone, height = 'h-1.5', className, label }: { val
       aria-valuenow={Math.round(w)}
       aria-valuetext={`${Math.round(value)}%`}
       aria-label={label ?? 'Budget used'}
-      className={clsx('relative flex-1 overflow-hidden rounded-[2px] bg-slate-400/60', height, className)}
+      className={clsx('relative flex-1 overflow-hidden rounded-[2px] bg-slate-300 ring-1 ring-slate-500/70 ring-inset', height, className)}
     >
       <motion.div
         className={clsx('h-full rounded-[2px]', toneBar[tone] ?? toneBar.brand)}

@@ -41,10 +41,10 @@ export function Trash() {
     <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg px-3 py-3 sm:flex-nowrap sm:px-4">
       <Avatar icon={icon} tone="slate" />
       <div className="min-w-0 flex-1">
-        <div className="truncate text-[15px] font-semibold text-slate-900">{title}</div>
+        <div className="line-clamp-2 text-[15px] font-semibold break-words text-slate-900 sm:truncate">{title}</div>
         <div className="truncate text-sm text-slate-600">{sub}{when ? ` · deleted ${relativeDate(when)}` : ''}</div>
       </div>
-      <div className="flex w-full shrink-0 gap-2 pl-15 sm:w-auto sm:pl-0">
+      <div className="flex w-full shrink-0 gap-2 *:flex-1 sm:w-auto sm:*:flex-none">
         <Button icon="restore_from_trash" onClick={onRestore} aria-label={`Restore ${title}`}>Restore</Button>
         <Button variant="ghost" className="text-rose-700 hover:bg-rose-50 hover:text-rose-800" onClick={onPurge} aria-label={`Delete ${title} forever`}>Delete forever</Button>
       </div>

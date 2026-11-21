@@ -173,7 +173,7 @@ const Row = memo(function Row({ listId, p, showCategory, selected, flash, edited
       {/* desktop GP sits under the "GP (€)" header; cards have no header, so they carry the € */}
       <td data-a="total" className={clsx('num w-32 px-2 py-1 text-right text-sm whitespace-nowrap lg:[@media(hover:hover)]:transition-[padding] lg:[@media(hover:hover)]:group-focus-within:pr-12 lg:[@media(hover:hover)]:group-hover:pr-12 lg:[@media(hover:hover)]:group-has-[[aria-expanded=true]]:pr-12', p.up == null || zero ? 'text-slate-500' : 'font-medium text-slate-900')}>
         <span className="inline-flex h-9 items-center justify-end">
-          {p.up == null ? 'Not priced' : zero ? <span aria-label="0 €, quantity 0">—</span> : <>{amount(total)}<span className="lg:hidden">&nbsp;€</span></>}
+          {p.up == null ? 'Not priced' : zero ? <>{amount(0)}<span className="lg:hidden">&nbsp;€</span></> : <>{amount(total)}<span className="lg:hidden">&nbsp;€</span></>}
         </span>
       </td>
       <td data-a="menu" className="w-11 py-1 pr-1 text-right lg:[@media(hover:hover)]:absolute lg:[@media(hover:hover)]:top-1/2 lg:[@media(hover:hover)]:right-0 lg:[@media(hover:hover)]:w-auto lg:[@media(hover:hover)]:-translate-y-1/2 lg:[@media(hover:hover)]:p-0">

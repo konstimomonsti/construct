@@ -44,7 +44,8 @@ interface Result {
 }
 type Option =
   | { kind: 'result'; key: string; r: Result }
-  | { kind: 'more'; key: string; group: Group; next: number }
+  /** `next` more rows to show; `total` is set when expanding still stops at POS_MAX short of all matches */
+  | { kind: 'more'; key: string; group: Group; next: number; total?: number }
 interface GroupView {
   group: Group
   count: number
@@ -142,12 +143,24 @@ export function CommandPalette() {
   }
 
   const close = () => setOpen(false)
-  // focus returns to whatever opened the palette (a button, or the page for ⌘K)
+  // focus returns to whatever had it before the palette opened (a button, a field, or the page for ⌘K). The opener is
+  // read in the store's own listener, which runs before React renders the palette and its autofocused input.
   useEffect(() => {
-    if (!open) return
-    const opener = document.activeElement as HTMLElement | null
-    return () => { requestAnimationFrame(() => { if (opener?.isConnected && !document.querySelector('[role=dialog]')) opener.focus() }) }
-  }, [open])
+    let opener: HTMLElement | null = null
+    return useUi.subscribe((s, prev) => {
+      if (s.palette && !prev.palette) {
+        opener = document.activeElement instanceof HTMLElement && document.activeElement !== document.body ? document.activeElement : null
+      } else if (!s.palette && prev.palette) {
+        const target = opener
+        opener = null
+        // two frames: the app behind is no longer inert, and a dialog a command opened has mounted (it keeps focus);
+        // the palette itself may still be fading out, so it doesn't count
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          if (target?.isConnected && !document.querySelector('[role=dialog]:not([data-palette])')) target.focus({ preventScroll: true })
+        }))
+      }
+    })
+  }, [])
 
   const results = useMemo<Result[]>(() => {
     const t = q.trim().toLowerCase()
@@ -253,7 +266,7 @@ export function CommandPalette() {
       shown.forEach((r) => push({ kind: 'result', key: r.key, r }))
       if (rs.length > limit) {
         // collapsed: offer the next batch; expanded and capped: explain the rest in a note row
-        if (!open) push({ kind: 'more', key: `more-${g}`, group: g, next: Math.min(rs.length, max) - limit })
+        if (!open) push({ kind: 'more', key: `more-${g}`, group: g, next: Math.min(rs.length, max) - limit, total: rs.length > max ? rs.length : undefined })
         else view.capped = limit
       }
       return view
@@ -324,6 +337,7 @@ export function CommandPalette() {
             role="dialog"
             aria-modal="true"
             aria-label="Search"
+            data-palette
             initial={{ opacity: 0, y: -8, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -4, transition: { duration: 0.1 } }}
@@ -344,7 +358,7 @@ export function CommandPalette() {
                 aria-activedescendant={options[active] ? `pal-${active}` : undefined}
                 aria-label="Search projects, lists and positions, or run a command"
                 placeholder="Search, or type a command"
-                className="h-16 flex-1 bg-transparent text-base text-slate-900 outline-none placeholder:text-slate-500"
+                className="h-16 min-w-0 flex-1 bg-transparent text-base text-slate-900 outline-none placeholder:text-slate-500"
               />
               {loading && <Icon name="progress_activity" size={18} className="animate-spin text-slate-500" />}
               {/* the same chip as the footer's key hints; an invisible pad keeps the 44px hit area */}
@@ -390,7 +404,13 @@ export function CommandPalette() {
                               className={clsx(rowCls, 'py-2 text-sm font-medium text-brand-700')}
                             >
                               <span className="flex w-10 shrink-0 justify-center"><Icon name="expand_more" size={20} /></span>
-                              {`Show ${int(o.next)} more ${NOUN[o.group][o.next === 1 ? 0 : 1]}`}
+                              {o.total ? (
+                                // capped: say how many will show out of how many match, and how to reach the rest
+                                <span className="min-w-0">
+                                  <span className="block">{`Show first ${int(o.next + CAP)} of ${int(o.total)} ${NOUN[o.group][1]}`}</span>
+                                  <span className="block text-xs font-normal text-slate-600">Type more to narrow the search and see the rest</span>
+                                </span>
+                              ) : `Show ${int(o.next)} more ${NOUN[o.group][o.next === 1 ? 0 : 1]}`}
                             </button>
                           )
                         }
@@ -418,14 +438,23 @@ export function CommandPalette() {
                                 {r.oz && r.sub && <span aria-hidden> · </span>}
                                 {r.sub}
                               </span>
+                              {/* phones: the figures go under the title instead of squeezing it */}
+                              {r.right ? (
+                                <span className="num mt-0.5 block truncate text-sm sm:hidden">
+                                  <span className="font-semibold text-slate-900">{r.right}</span>
+                                  {r.rightSub && <span className="text-slate-600"> · {r.rightSub}</span>}
+                                </span>
+                              ) : r.group !== 'Actions' && !g.nonePriced && (
+                                <span className="mt-0.5 block text-sm text-slate-600 sm:hidden">Not priced</span>
+                              )}
                             </span>
                             {r.right ? (
-                              <span className="flex shrink-0 flex-col items-end">
+                              <span className="flex shrink-0 flex-col items-end max-sm:hidden">
                                 <span className="num text-sm font-semibold text-slate-900">{r.right}</span>
                                 {r.rightSub && <span className="num text-xs text-slate-600">{r.rightSub}</span>}
                               </span>
                             ) : r.group !== 'Actions' && !g.nonePriced && (
-                              <span className="shrink-0 text-sm text-slate-600">Not priced</span>
+                              <span className="shrink-0 text-sm text-slate-600 max-sm:hidden">Not priced</span>
                             )}
                           </button>
                         )

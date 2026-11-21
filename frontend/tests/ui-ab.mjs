@@ -119,7 +119,8 @@ await step('palette', async () => {
   await page.keyboard.press('Escape')
 })
 
-// phone shots run in their own fresh context so earlier steps can't leak state into them
+// phone shots run in their own fresh context so earlier steps can't leak state into them (MOBILE=1 to include them)
+if (process.env.MOBILE) {
 const mctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, reducedMotion: 'reduce' })
 if (process.env.THEME === 'dark') await mctx.addInitScript(() => { try { localStorage.setItem('billbuild-theme', 'dark') } catch {} })
 {
@@ -145,6 +146,7 @@ await step('mobile list', async () => {
   await shot('12-mobile-list')
 })
 
+}
 }
 
 await step('empty folder', async () => {

@@ -95,7 +95,11 @@ export function CatalogueDetails({ result, position, onApply }: {
   return (
     <section aria-labelledby="drawer-catalogue-h" className="space-y-1.5 text-sm leading-relaxed text-slate-700">
       <h3 id="drawer-catalogue-h" className="text-[15px] font-semibold text-slate-900">Catalogue research</h3>
-      <p className="font-medium text-slate-800">{labels[result.state]}</p>
+      <p>
+        <span className="font-medium text-slate-800">{labels[result.state]}.</span>
+        {result.state === 'needs_description' && ' The imported row has no description to search for.'}
+        {result.state === 'no_evidence' && ' The web search found no source with a relevant title.'}
+      </p>
       {result.recovered?.source && <p>Missing description recovered from the companion offer PDF.</p>}
       {result.product && <p><strong>{result.product.name}</strong> · {result.product.category}</p>}
       {suggestion && <>
@@ -109,8 +113,6 @@ export function CatalogueDetails({ result, position, onApply }: {
           {applied ? 'Suggestion applied' : 'Apply to long description'}
         </Button>
       </>}
-      {result.state === 'needs_description' && <p>The imported row has no description to search for.</p>}
-      {result.state === 'no_evidence' && <p>The web search did not find a source with a relevant title.</p>}
     </section>
   )
 }

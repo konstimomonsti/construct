@@ -463,11 +463,10 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   const detailIdx = detailId ? rows.findIndex((r) => r.id === detailId) : -1
   const detailCatalogue = detail && report?.positions[detail.id]
   const detailFindings = detail ? findingsByRow.get(detail.id) : undefined
+  const detailOpen = detailFindings?.filter((finding) => !settled.has(finding.id)).length ?? 0
   // several findings often carry the same advice; say it once under the heading instead of under each
-  const sharedRationale = useMemo(() => {
-    const notes = detailFindings?.map((finding) => finding.suggested_fix?.rationale ?? '') ?? []
-    return notes.length > 1 && notes[0] && notes.every((note) => note === notes[0]) ? notes[0] : ''
-  }, [detailFindings])
+  const rationales = detailFindings?.map((finding) => finding.suggested_fix?.rationale ?? '') ?? []
+  const sharedRationale = rationales.length > 1 && rationales[0] && rationales.every((note) => note === rationales[0]) ? rationales[0] : ''
 
   // screen readers hear the outcome, since the button they pressed changes its own label
   const [reviewNote, setReviewNote] = useState('')
@@ -478,13 +477,16 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
     if (!reopened) next.add(findingId)
     store.patchList(doc.id, { reviewedFindings: [...next] })
     setReviewNote(`${title}: ${reopened ? 'reopened' : 'marked reviewed'}`)
+    // after a review, carry on with the next open finding in the drawer
+    if (!reopened) requestAnimationFrame(() => document.querySelector<HTMLElement>('[data-review="open"]')?.focus())
   }
 
   // opening a row from its finding badge focuses the field the finding is about
   const openRow = (position: Position, fromFinding?: boolean) => {
     const findings = fromFinding ? findingsByRow.get(position.id)?.filter((finding) => !reviewed.has(finding.id)) : undefined
     const relevant = findings?.find((finding) => matchesFindingFilter(findingFilter, [finding], reviewed)) ?? findings?.[0]
-    openDetail(position.id, relevant?.target.field)
+    // from a finding badge the cursor lands on the findings heading, which names the field to check
+    openDetail(position.id, relevant ? 'findings' : undefined)
   }
 
   const removeSelected = () => {
@@ -627,7 +629,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
             {zeroQty > 0 && (
               <span className="inline-flex items-center gap-x-1.5">
                 <span aria-hidden className="max-sm:hidden">·</span>
-                <MetaLink onClick={() => only('zero')} pressed={onlyZero}><span className="num">{int(zeroQty)}</span> with quantity 0</MetaLink>
+                <MetaLink onClick={() => only('zero')} pressed={onlyZero}><span className="num">{int(zeroQty)}</span> zero quantity</MetaLink>
               </span>
             )}
             {editedCount > 0 && (
@@ -791,7 +793,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
       {(listWide.length > 0 || uploadReport?.source_notice || !!uploadReport?.errors.length) && (
         <section aria-labelledby="list-findings-h" className="mt-8">
           <h2 id="list-findings-h" className="font-heading text-base font-bold text-slate-900">
-            Findings for the whole list{listWide.length > 0 && <span className="num ml-2 font-sans text-sm font-medium text-slate-600">{int(listWide.length)}</span>}
+            Upload check for the whole list{listWide.length > 0 && <span className="num ml-2 font-sans text-sm font-medium text-slate-600">{int(listWide.length)}</span>}
           </h2>
           {(uploadReport?.source_notice || !!uploadReport?.errors.length) && (
             <p className="mt-1 text-sm text-amber-900">{uploadReport?.source_notice || 'Some checks could not finish during the upload.'}</p>
@@ -844,8 +846,19 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
         ) : undefined}
         findings={detailFindings?.length ? (
           <section aria-labelledby="drawer-findings-h">
-            <h3 id="drawer-findings-h" className="text-[15px] font-semibold text-slate-900">Findings from the upload check</h3>
-            {sharedRationale && <p className="mt-1 text-sm leading-relaxed text-pretty text-slate-600">{sharedRationale}</p>}
+            <h3 id="drawer-findings-h" tabIndex={-1} data-risk-field="findings" className="rounded text-[15px] font-semibold text-slate-900">
+              Upload check
+              <span className="num ml-2 text-sm font-medium text-slate-600">{detailOpen ? `${int(detailOpen)} open` : 'All reviewed'}</span>
+            </h3>
+            {sharedRationale && (
+              <details className="group/why mt-1 text-sm text-slate-600">
+                <summary className="inline-flex min-h-8 cursor-pointer list-none items-center gap-1 rounded font-medium text-slate-700 hover:text-slate-900 [&::-webkit-details-marker]:hidden">
+                  <Icon name="chevron_right" size={18} className="transition-transform group-open/why:rotate-90" />
+                  Why these were flagged
+                </summary>
+                <p className="mt-1 mb-2 max-w-[60ch] leading-relaxed text-pretty">{sharedRationale}</p>
+              </details>
+            )}
             <ul className="mt-3 space-y-5">
               {detailFindings.map((finding) => {
                 const done = reviewed.has(finding.id)
@@ -853,6 +866,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
                   <li key={finding.id} className="space-y-3">
                     <FindingText finding={finding} reviewed={done} changed={changedFindings.has(finding.id)} hideRationale={!!sharedRationale} />
                     <Button className="ml-[15px]" icon={done ? 'undo' : 'check'} onClick={() => toggleReviewed(finding.id, finding.title)}
+                      data-review={done ? 'done' : 'open'}
                       aria-label={`${done ? 'Reopen' : 'Mark reviewed'}: ${finding.title}`}>
                       {done ? 'Reopen' : 'Mark reviewed'}
                     </Button>

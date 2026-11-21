@@ -389,7 +389,20 @@ export function DetailDrawer({
                   </button>
                 </div>
                 <div className="space-y-1.5">
-                  <span id={`${uid}-long`} className="block text-[13px] font-semibold text-slate-600">Langtext</span>
+                  <div className="flex min-h-8 items-center justify-between gap-2">
+                    <span id={`${uid}-long`} className="block text-[13px] font-semibold text-slate-600">Langtext</span>
+                    {!editLong && (
+                      <button
+                        type="button"
+                        data-risk-field="long_text"
+                        onClick={() => setEditLongId(p.id)}
+                        className="-mr-2 inline-flex h-8 items-center gap-1 rounded-md px-2 text-[13px] font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900"
+                      >
+                        <Icon name="edit" size={16} />
+                        {p.long?.trim() ? 'Edit' : 'Add'}<span className="sr-only"> Langtext</span>
+                      </button>
+                    )}
+                  </div>
                   {editLong ? (
                     <textarea
                       aria-labelledby={`${uid}-long`}
@@ -409,7 +422,7 @@ export function DetailDrawer({
                   ) : (
                     /* click-to-edit like Kurztext: the text itself opens the editor, the pencil button gives keyboard access */
                     <div
-                      className="group relative -mx-2 cursor-text rounded-lg border border-transparent py-1 pr-10 pl-2 transition-colors hover:border-slate-400"
+                      className="group relative -mx-2 cursor-text rounded-lg border border-transparent px-2 py-1 transition-colors hover:border-slate-400"
                       onClick={() => { if (!window.getSelection()?.toString()) setEditLongId(p.id) }}
                     >
                       {p.long?.trim() ? (
@@ -419,16 +432,6 @@ export function DetailDrawer({
                       ) : (
                         <p className="text-sm leading-relaxed text-slate-600 italic">No long text. Click to add.</p>
                       )}
-                      <button
-                        type="button"
-                        data-risk-field="long_text"
-                        aria-label={p.long?.trim() ? 'Edit Langtext' : 'Add Langtext'}
-                        title={p.long?.trim() ? 'Edit Langtext' : 'Add Langtext'}
-                        onClick={(e) => { e.stopPropagation(); setEditLongId(p.id) }}
-                        className={`absolute top-0.5 right-0.5 flex size-8 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-900 focus-visible:opacity-100 ${pencilCls}`}
-                      >
-                        <Icon name="edit" size={16} />
-                      </button>
                     </div>
                   )}
                 </div>
