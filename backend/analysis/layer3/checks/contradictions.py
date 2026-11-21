@@ -6,6 +6,7 @@ import re
 
 from ...contracts import Line
 from ...layer1.common import review_fix, source_detail
+from ...layer1.concrete_scope import different_components
 from ...layer1.textvalues import MEASURE, centimetres
 from ...registry import rule
 from .. import prompts
@@ -17,6 +18,7 @@ RULE_ID = "L3.TEXT.SHORT_LONG_CONTRADICTION"
 L1_VALUE_CONFLICT = "L1.TEXT.VALUE_CONFLICT"  # layer 1 already reported a conflict on the line: don't repeat
 _DIMENSION_PROPERTY = re.compile(r"\b(?:thickness|dimension[s]?|height|length|width|depth|dicke|höhe|länge|breite|tiefe)\b", re.I)
 _LENGTH = re.compile(MEASURE, re.I)
+_CONCRETE_GRADE_PROPERTY = re.compile(r"\b(?:concrete (?:grade|class|strength)|(?:Beton)?Festigkeitsklasse|Betonklasse)\b", re.I)
 
 
 # Short texts worth checking carry a value: a number (DN 150, 12,5 mm, C25/30) or a material.
@@ -86,6 +88,10 @@ def _finding(ctx, session, line: Line, item: ContradictionItem):
         return None
     short_value, long_value = normalize(item.short_quote), normalize(item.long_quote)
     if short_value == long_value or short_value in long_value:
+        return None
+    if _CONCRETE_GRADE_PROPERTY.search(item.property) and different_components(
+        line.short_text, line.long_text, item.short_quote, item.long_quote,
+    ):
         return None
     if _DIMENSION_PROPERTY.search(item.property):
         brief = {centimetres(match[1], match[2]) for match in _LENGTH.finditer(short_value)}

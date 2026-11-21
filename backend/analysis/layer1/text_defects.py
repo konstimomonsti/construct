@@ -4,7 +4,8 @@ import re
 
 from ..registry import rule
 from .common import BIDDER_INPUT, OR_EQUIVALENT, excerpt, label, review_fix, source_detail, text_of
-from .textvalues import DIMENSIONS, GRADE, MEASURE, NUMBER, centimetres, values
+from .concrete_scope import by_component, mentions
+from .textvalues import DIMENSIONS, GRADE, MEASURE, NUMBER, centimetres, grades, values
 
 # Product/value redactions, not anonymized people or addresses.
 PLACEHOLDER = re.compile(r"\[(?:FIRMA|KENNZEICHEN|PRODUKT|TYP|NUMMER)_\d+\]|\bXXX\b|:\s*[-–—]{2,}|"
@@ -138,15 +139,83 @@ def unclear_dimension(ctx):
                           "bieterfrage_de": f"Zu Pos. {line.code}: Bitte bestätigen Sie die maßgebenden Abmessungen für die unklaren Angaben ({', '.join(matches)})."})
 
 
+def _concrete_conflicts(ctx, line, detail):
+    short = line.short_text or ""
+    brief, full = mentions(short), mentions(detail)
+    if not brief or not full:
+        return
+    left, right = by_component(brief), by_component(full)
+    findings = False
+
+    def finding(a, b, discriminator, message, question, guidance, *, severity="warning", **scope):
+        return ctx.finding(
+            line=line, field="long_text", discriminator=discriminator, severity=severity, message=message,
+            evidence={"family": "concrete", "short_values": sorted({item.grade for item in a}),
+                      "long_values": sorted({item.grade for item in b}),
+                      "short_quote": " / ".join(dict.fromkeys(item.quote for item in a)),
+                      "long_quote": " / ".join(dict.fromkeys(item.quote for item in b)),
+                      "bieterfrage_de": f"Zu Pos. {line.code}: {question}", **scope},
+            suggested_fix=review_fix(guidance),
+        )
+
+    for component in sorted(left.keys() & right.keys()):
+        a, b = left[component], right[component]
+        if {item.grade for item in a}.isdisjoint(item.grade for item in b):
+            findings = True
+            yield finding(
+                a, b, f"concrete:{component}",
+                f"{label(line)} states different concrete grades for {component.title()}: "
+                f"{', '.join(sorted({item.grade for item in a}))} and {', '.join(sorted({item.grade for item in b}))}.",
+                f"Bitte bestätigen Sie die Betonfestigkeitsklasse für {component.title()} und gleichen Sie Kurz- und Langtext ab.",
+                f"Confirm the specified grade for {component.title()} in the drawings or tender clarification "
+                "and update both descriptions to that value.",
+                component=component,
+            )
+    if findings:
+        return
+    if all(item.components for item in brief + full):
+        for left_component, right_component in (("fundament", "bettung"), ("bettung", "fundament")):
+            if left_component in left and right_component in right and (
+                left_component not in right and right_component not in left
+                and {item.grade for item in left[left_component]}.isdisjoint(item.grade for item in right[right_component])
+            ):
+                a, b = left[left_component], right[right_component]
+                yield finding(
+                    a, b, "concrete:scope",
+                    f"{label(line)} assigns different grades to {left_component.title()} and {right_component.title()}. "
+                    "Confirm whether the two labels refer to the same concrete.",
+                    "Bitte bestätigen Sie, ob Fundament und Bettung dasselbe Bauteil bezeichnen, "
+                    "und geben Sie die maßgebende Betonfestigkeitsklasse je Bauteil an.",
+                    "Check the detail drawings for the relationship between foundation and bedding. "
+                    "If they are one component, align both grades to the confirmed specification. "
+                    "If they are separate, label the grade for each component.",
+                    severity="info", short_components=[left_component], long_components=[right_component],
+                )
+                break
+        return
+    core = grades(INCLUDED_CLAUSE.sub(" ", detail))
+    if core and {item.grade for item in brief}.isdisjoint(core):
+        yield finding(
+            brief, [item for item in full if item.grade in core], "concrete",
+            f"{label(line)} states different concrete grades in the short and long text.",
+            "Bitte bestätigen Sie die maßgebende Betonfestigkeitsklasse und das zugehörige Bauteil.",
+            "Confirm the specified grade and the component it applies to, then align the two descriptions.",
+        )
+
+
 @rule("L1.TEXT.VALUE_CONFLICT", layer=1, category="text", severity="warning",
       title="Short and long text disagree", description="Disjoint values in concrete, fire, IP, board, labelled dimensions and directly attributed item heights or board thicknesses. DN differences are informational.")
 def value_conflict(ctx):
     source_format = ctx.input.project.source_document.format
     for line in ctx.input.lines:
+        detail = source_detail(line, source_format)
+        yield from _concrete_conflicts(ctx, line, detail or "")
         # Values inside "einschließlich …" clauses belong to an included component (a blinding layer, an edge
         # strip), not to the item the short text names.
         short, long = values(line.short_text or ""), values(INCLUDED_CLAUSE.sub(" ", line.long_text or ""))
         for family in short:
+            if family == "concrete":
+                continue
             if short[family] and long[family] and short[family].isdisjoint(long[family]):
                 yield ctx.finding(line=line, field="long_text", discriminator=family,
                     severity="info" if family == "DN" else "warning",
@@ -154,7 +223,6 @@ def value_conflict(ctx):
                     evidence={"family": family, "short_values": sorted(short[family]), "long_values": sorted(long[family]),
                               "bieterfrage_de": f"Zu Pos. {line.code}: Kurz- und Langtext enthalten unterschiedliche Angaben ({FAMILY_DE[family]}: {', '.join(sorted(short[family]))} / {', '.join(sorted(long[family]))}). Bitte bestätigen Sie die maßgebende Ausführung."})
 
-        detail = source_detail(line, source_format)
         for family, specification, heading_match, detail_match in attributed_dimensions(line.short_text, detail):
             heading_cm = centimetres(heading_match["number"], heading_match["unit"])
             detail_cm = centimetres(detail_match["number"], detail_match["unit"])

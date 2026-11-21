@@ -194,19 +194,7 @@ def generate_dimensions(out):
         trade = "Trockenbau" if board else "Baustellensicherung"
         title = f"Leistungsverzeichnis {trade}"
         item = Item("01.0010", short, 10, "m²" if board else "m", detail=detail)
-        pdf_file(out / f"{name}.pdf", [item], title)
-        word_file(out / f"{name}.docx", [item], title)
-        (out / f"{name}.json").write_text(json.dumps({
-            "title": title, "positions": [{"id": "height-item", "oz": item.code, "short": short, "long": detail,
-                                           "qty": item.quantity, "unit": item.unit}],
-        }, ensure_ascii=False), encoding="utf-8")
-        gaeb_writer.write_file({
-            "bom": {"title": title},
-            "sections": [{"id": "height-section", "code_parts": ["01"], "title": title}],
-            "lines": [{"id": "height-item", "section_id": "height-section", "code_parts": ["01", "0010"],
-                       "short_text": short, "long_text": detail, "quantity": item.quantity, "unit": item.unit}],
-        }, out / f"{name}.X83")
-        locators = {"pdf": {"page": 1}, "docx": {"table": 1, "row": 2}, "json": {"row": 1}, "X83": {"source_id": "height-item"}}
+        locators = _write_text_case(out, name, title, item, "height")
         for ext, locator in locators.items():
             label = {"control": not conflict, "layers": [1], "expect": []}
             if conflict:
@@ -215,6 +203,48 @@ def generate_dimensions(out):
                 })
             baseline = "board-clean" if board else "height-clean"
             write_fixture_labels(out / f"{name}.{ext}", f"{baseline}.{ext}", label)
+
+
+def _write_text_case(out, name, title, item, prefix):
+    identifier = f"{prefix}-item"
+    section_id = f"{prefix}-section"
+    pdf_file(out / f"{name}.pdf", [item], title)
+    word_file(out / f"{name}.docx", [item], title)
+    (out / f"{name}.json").write_text(json.dumps({
+        "title": title, "positions": [{"id": identifier, "oz": item.code, "short": item.short, "long": item.detail,
+                                       "qty": item.quantity, "unit": item.unit}],
+    }, ensure_ascii=False), encoding="utf-8")
+    gaeb_writer.write_file({
+        "bom": {"title": title},
+        "sections": [{"id": section_id, "code_parts": ["01"], "title": title}],
+        "lines": [{"id": identifier, "section_id": section_id, "code_parts": ["01", "0010"],
+                   "short_text": item.short, "long_text": item.detail, "quantity": item.quantity, "unit": item.unit}],
+    }, out / f"{name}.X83")
+    return {"pdf": {"page": 1}, "docx": {"table": 1, "row": 2}, "json": {"row": 1}, "X83": {"source_id": identifier}}
+
+
+def generate_grade_scope(out):
+    """Test concrete grade conflicts, legitimate component differences and unclear attribution."""
+    out.mkdir(parents=True, exist_ok=True)
+    short = "Betonbord Fundament C20/25"
+    examples = (
+        ("grade-clean", short, "Rückenstütze aus Beton C25/30.", None),
+        ("grade-foundation", short, "Fundament aus Beton C25/30.", "warning"),
+        ("grade-overlap", f"{short}. Rückenstütze C25/30.",
+         "Fundament aus Beton C25/30. Rückenstütze aus Beton C25/30.", "warning"),
+        ("grade-scope-review", short, "Bettung: 20 cm Normalbeton C25/30.", "info"),
+        ("grade-alternative", short, "Fundament aus Beton C25/30 oder C20/25.", None),
+    )
+    for name, heading, detail, severity in examples:
+        item = Item("01.0010", heading, 10, "m", detail=detail)
+        for ext, locator in _write_text_case(out, name, "Leistungsverzeichnis Betonborde", item, "grade").items():
+            label = {"control": severity is None, "layers": [1], "expect": []}
+            if severity:
+                label.update(expect=["L1.TEXT.VALUE_CONFLICT"], match="line", target={
+                    "line_codes": [item.code], "severity": severity, "source_locator": locator,
+                })
+            write_fixture_labels(out / f"{name}.{ext}", f"grade-clean.{ext}", label)
+
 
 def generate_dotted(out):
     """Render non-consecutive short position codes, including a planted amount."""
@@ -242,7 +272,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("out", type=Path)
     suites = {"tabular": generate, "precast": generate_precast, "gutter": generate_gutter,
-              "dimensions": generate_dimensions, "dotted": generate_dotted}
+              "dimensions": generate_dimensions, "dotted": generate_dotted, "grade-scope": generate_grade_scope}
     parser.add_argument("--suite", choices=suites, default="tabular")
     args = parser.parse_args()
     suites[args.suite](args.out)

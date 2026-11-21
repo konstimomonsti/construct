@@ -70,7 +70,7 @@ candidates for independent review.
 
 The [real-file labels](../backend/analysis/eval/labels/real_findings.csv) cover 18 warning and error groups in the seven repository X83, D83 and D86 files. The preliminary review found one confirmed source error, five false-alarm groups, three importer consequences, and nine groups requiring more evidence. The counts cover existing findings only, and some files are versions of the same tender.
 
-In the 501-24-01 tender, two disposal surcharges refer to separate preceding root-stock positions. The local replay recognizes the two scopes. Removing the description that identifies the second base position restores the duplicate warning, with guidance to verify the work against the takeoff before editing. The verdict counts above describe the original review. In StBALV23040, the malformed `TEL00009` key on record 3721 accounts for €982.20 missing from two nested subtotals. The finding links to that record and directs the reviewer to confirm the intended position number and section. Four false-alarm groups flagged anonymized supplier tokens. The local rerun clears those groups in their X83, D83 and D86 export variants using the example or contact context. Masked technical identifiers still produce findings. Two text conflict groups compare the `C20/25` foundation and backing in the short description with the `C25/30` bedding in the long description. The project documents must establish which components share a grade.
+In the 501-24-01 tender, two disposal surcharges refer to separate preceding root-stock positions. The local replay recognizes the two scopes. Removing the description that identifies the second base position restores the duplicate warning, with guidance to verify the work against the takeoff before editing. The verdict counts above describe the original review. In StBALV23040, the malformed `TEL00009` key on record 3721 accounts for €982.20 missing from two nested subtotals. The finding links to that record and directs the reviewer to confirm the intended position number and section. Four false-alarm groups flagged anonymized supplier tokens. The local rerun clears those groups in their X83, D83 and D86 export variants using the example or contact context. Masked technical identifiers still produce findings. Two text conflict groups contain six positions where the short description states `C20/25` for the foundation and back support and the detail states `C25/30` for the bedding. The replay now issues an informational clarification at each original position, cites both phrases, and asks whether the foundation and bedding refer to the same component. The project documents still need to resolve that question.
 
 To prepare another group-level review:
 
@@ -79,6 +79,24 @@ python -m analysis.eval label-template 'data/tenders/StBALV23040.D86'
 ```
 
 Use `true_error`, `false_alarm`, `importer_artefact`, or `unsure`. A wildcard finding ID applies a verdict to a whole file-and-rule group. Verify the affected records before replacing an unsure verdict. Independently labelled project cases are still needed for production accuracy and clause-level DIN claims.
+
+## Concrete grade attribution replay
+
+Layer 1 compares concrete grades for explicitly named components. An identical grade on a second component can no longer conceal a conflict on the first. The finding quotes the heading and detail, names the affected component, and asks the reviewer to confirm the governing grade before aligning the two descriptions. Layer 3 checks the source component names when its model cites two grades. Wording that leaves a grade's component uncertain still calls for review.
+
+The `grade-scope` suite covers same-component conflicts, separate components, an explicitly acceptable grade alternative, and the unresolved foundation and bedding relationship. In the workspace replay, PDF, Word, JSON, and GAEB X83 caught eight warnings and four informational clarifications, each with guidance. All eight controls produced zero findings. A six-file replay using local Qwen 2.5 7B through all three layers kept both planted X83 and PDF conflicts and produced zero findings on its four controls. The two repository GAEB files linked all 497 positions through the upload worker.
+
+Generate and replay with the local server and disposable database used by the other upload suites.
+
+```sh
+export PYTHONPATH=backend:backend/importer
+fixture_dir=$(mktemp -d)
+python -m analysis.eval.documents "$fixture_dir" --suite grade-scope
+WORKSPACE_PARSE_ORIGIN=http://127.0.0.1:8080 \
+  frontend/node_modules/.bin/tsx frontend/tests/risk-upload-fixtures.ts \
+  "$fixture_dir"/*.pdf "$fixture_dir"/*.docx "$fixture_dir"/*.json "$fixture_dir"/*.X83 \
+  | python -m analysis.eval.uploads
+```
 
 ## Product declarations and published DIN scope
 

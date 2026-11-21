@@ -74,6 +74,54 @@ def test_value_conflicts(short, long, family, severity):
     assert finding.evidence["family"] == family and finding.severity == severity
     assert selected("VALUE_CONFLICT", short, long + " " + short) == []
 
+def test_concrete_compares_the_same_component_when_global_grade_sets_overlap():
+    short = "Fundament C20/25. Rückenstütze C25/30."
+    detail = "Fundament aus Beton C25/30. Rückenstütze aus Beton C25/30."
+    finding, = selected("VALUE_CONFLICT", short, detail)
+    assert finding.severity == "warning"
+    assert finding.evidence["component"] == "fundament"
+    assert finding.evidence["short_quote"] == "Fundament C20/25"
+    assert finding.evidence["long_quote"] == "Fundament aus Beton C25/30"
+    assert not finding.suggested_fix.operations
+    assert "Fundament" in finding.suggested_fix.rationale
+
+
+def test_concrete_separate_components_and_equivalent_alternatives_stay_clear():
+    short = "Fundament aus Beton C20/25."
+    assert not selected("VALUE_CONFLICT", short, "Rückenstütze aus Beton C25/30.")
+    assert not selected("VALUE_CONFLICT", short, "Fundament C25/30 (LP) oder C20/25.")
+    assert not selected("VALUE_CONFLICT", short, "C 20 / 25 für das Fundament.")
+
+
+def test_concrete_foundation_and_bedding_ask_about_scope_before_selecting_grade():
+    short = "Betonbord mit Fundament Rückenstütze C20/25."
+    detail = "Bettung: 20 cm Normalbeton C25/30 (LP). Rückenkeil: 10 cm."
+    finding, = selected("VALUE_CONFLICT", short, detail)
+    assert finding.severity == "info"
+    assert finding.evidence["short_components"] == ["fundament"]
+    assert finding.evidence["long_components"] == ["bettung"]
+    assert finding.evidence["short_quote"] == "Fundament Rückenstütze C20/25"
+    assert finding.evidence["long_quote"] == "Bettung: 20 cm Normalbeton C25/30"
+    assert "dasselbe Bauteil" in finding.evidence["bieterfrage_de"]
+    assert not finding.suggested_fix.operations
+
+
+def test_concrete_single_shared_grade_specification_can_cover_two_components():
+    short = "Fundament und Rückenstütze C20/25."
+    detail = "C25/30 für das Fundament. Rückenstütze C20/25."
+    finding, = selected("VALUE_CONFLICT", short, detail)
+    assert finding.evidence["component"] == "fundament"
+    assert finding.evidence["long_quote"] == "C25/30 für das Fundament"
+
+def test_concrete_relational_phrase_keeps_uncertain_attribution():
+    finding, = selected(
+        "VALUE_CONFLICT", "Fundament unter der Bodenplatte aus Beton C20/25.",
+        "Rückenstütze aus Beton C25/30.",
+    )
+    assert "component" not in finding.evidence
+    assert finding.evidence["short_quote"] == "C20/25"
+
+
 
 def test_normalized_values_and_unlabelled_numbers():
     assert selected("VALUE_CONFLICT", "C 35 / 45 d=30cm l=1m", "C35/45 Dicke: 300mm Länge: 100 cm") == []

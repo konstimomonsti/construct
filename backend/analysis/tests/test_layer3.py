@@ -142,6 +142,21 @@ def test_hallucinated_contradictions_are_dropped(bad):
     assert by_rule(findings, CONTRA) == []
     assert complete_coverage(errors)
 
+@pytest.mark.parametrize(("detail", "reported"), [
+    ("Rückenstütze aus Beton C25/30.", False),
+    ("Fundament aus Beton C25/30.", True),
+    ("Ausführung aus Beton C25/30.", True),
+])
+def test_concrete_grade_model_quotes_must_refer_to_compatible_components(detail, reported):
+    answer = {"findings": [{
+        "line_ref": "#1", "property": "concrete grade", "short_quote": "C20/25",
+        "long_quote": "C25/30", "message": "The grades differ.", "confidence": 0.95,
+    }]}
+    analysis_input = from_data({"lines": [line("a", "Betonbord Fundament C20/25", detail)]})
+    findings, errors = run3(analysis_input, FakeProvider([answer]))
+    assert bool(by_rule(findings, CONTRA)) is reported
+    assert complete_coverage(errors)
+
 
 def test_invalid_items_dropped_but_valid_ones_kept():
     answer = {"findings": [
