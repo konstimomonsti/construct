@@ -19,6 +19,7 @@ import mvp
 import workspace
 import workspace_analysis
 import workspace_catalogue
+import workspace_parse
 from exports import export
 
 
@@ -477,7 +478,7 @@ class BrowserHandler(BaseHTTPRequestHandler):
     def workspace_request(self, request, write):
         """Shared workspace sync: GET/POST state, GET/POST file, POST file-delete."""
         path = request.path.removeprefix("/api/workspace/")
-        operations = {"state", "file", "file-delete", "catalogue", "analysis"} if write else {"state", "file", "catalogue", "analysis"}
+        operations = {"state", "file", "file-delete", "catalogue", "analysis", "parse"} if write else {"state", "file", "catalogue", "analysis"}
         if path not in operations:
             self.json(HTTPStatus.NOT_FOUND, {"error": "Action not found"})
             return
@@ -485,12 +486,18 @@ class BrowserHandler(BaseHTTPRequestHandler):
             params = {key: value[-1] for key, value in parse_qs(request.query, max_num_fields=4).items()}
             content = None
             if write:
-                limit = {"file": MAX_FILE_BYTES, "catalogue": 1024, "analysis": 16 * 1024 * 1024}.get(path, workspace.MAX_STATE_BYTES)
+                limit = {"file": MAX_FILE_BYTES, "parse": MAX_FILE_BYTES, "catalogue": 1024, "analysis": 16 * 1024 * 1024}.get(path, workspace.MAX_STATE_BYTES)
                 length = int(self.headers.get("Content-Length", 0))
                 if not 0 < length <= limit:
                     self.json(HTTPStatus.REQUEST_ENTITY_TOO_LARGE, {"error": "The request is empty or too large."})
                     return
                 content = self.rfile.read(length)
+            if path == "parse":
+                filename = params.get("filename")
+                if not filename:
+                    raise ValueError("Supply the tender filename.")
+                self.json(HTTPStatus.OK, workspace_parse.preview(filename, content))
+                return
             since = int(params["since"]) if "since" in params else None
             payload = {}
             if write and path != "file":

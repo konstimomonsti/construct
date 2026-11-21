@@ -7,7 +7,7 @@ import { selectModel, useStore } from './store'
 import { removeDocuments, saveDocument } from './documents'
 import { toast } from '../components/ui'
 
-export const ACCEPT = '.x80,.x81,.x82,.x83,.x84,.x85,.x86,.x87,.x88,.x89,.d80,.d81,.d82,.d83,.d84,.d85,.d86,.d87,.d88,.d89,.csv,.tsv,.xlsx,.json,.docx,.pdf'
+export const ACCEPT = '.x80,.x81,.x82,.x83,.x84,.x85,.x86,.x87,.x88,.x89,.d80,.d81,.d82,.d83,.d84,.d85,.d86,.d87,.d88,.d89,.csv,.tsv,.xls,.xlsx,.json,.docx,.pdf'
 
 const uid = () => crypto.randomUUID()
 const fileStem = (name: string) => name.replace(/\.[^.]+$/, '')
@@ -89,6 +89,7 @@ export async function importFiles(files: File[], folderId: string, activeListId?
   const { parseListFile } = await import('./parse-list-file')
   const res: ImportResult = { lists: [], positions: 0, docs: 0, failed: [] }
   const documents: File[] = []
+  const importErrors: string[] = []
   const offerFiles = new Set([
     ...files.map((file) => file.name),
     ...selectModel(useStore.getState()).lists
@@ -110,11 +111,13 @@ export async function importFiles(files: File[], folderId: string, activeListId?
       }
       const list = makeListDoc(folderId, parsed.title || fileStem(name), name, parsed.positions, parsed)
       await addFile(f, list.id, true, list)
+      if (parsed.warnings?.length) toast(`${name}: ${parsed.warnings[0]}`)
       res.lists.push(list.id)
       res.positions += list.positions.length
     } catch (err) {
       console.warn(`import failed: ${name}`, err)
       res.failed.push(name)
+      if (err instanceof Error) importErrors.push(`${name}: ${err.message}`)
     }
   }
 
@@ -145,7 +148,7 @@ export async function importFiles(files: File[], folderId: string, activeListId?
   if (res.lists.length) parts.push(`${res.lists.length} ${res.lists.length === 1 ? 'list' : 'lists'} (${res.positions.toLocaleString('de-DE')} positions)`)
   if (res.docs) parts.push(`${res.docs} ${res.docs === 1 ? 'document' : 'documents'}`)
   if (parts.length) toast(`Imported ${parts.join(' + ')}`)
-  if (res.failed.length) toast(`Could not read: ${res.failed.join(', ')}`, 'error')
+  if (res.failed.length) toast(importErrors[0] ?? `Could not read: ${res.failed.join(', ')}`, 'error')
   return res
 }
 

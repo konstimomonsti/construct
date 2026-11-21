@@ -5,11 +5,13 @@ from zipfile import ZipFile
 from .common import PARSER_VERSION, Result, checked_entries, detect_format, read_member, zip_metadata
 from .legacy import gaeb_1990
 from .pdf import pdf
-from .store import find_import, save_result, store_upload, summarize
+from .spreadsheet import excel
 from .structured import docx, gaeb_xml
 
 
 def ingest(connection, project_id, name, content, *, legacy_encoding=None, depth=0):
+    from .store import find_import, save_result, store_upload, summarize
+
     document_format = detect_format(name, content)
     parser_version = PARSER_VERSION
     if legacy_encoding is not None and document_format in {"gaeb_1990", "zip"}:
@@ -40,13 +42,15 @@ def ingest(connection, project_id, name, content, *, legacy_encoding=None, depth
     return summary
 
 
-def parse_document(document_format, data, legacy_encoding):
+def parse_document(document_format, data, legacy_encoding=None):
     if document_format == "gaeb_xml":
         return gaeb_xml(data)
     if document_format == "gaeb_1990":
         return gaeb_1990(data, encoding_override=legacy_encoding)
     if document_format == "pdf":
         return pdf(data)
+    if document_format in {"xls", "xlsx", "csv"}:
+        return excel(data, document_format)
     if document_format == "docx":
         return docx(data)
     raise ValueError(f"Unsupported file type or nesting limit: {document_format}")

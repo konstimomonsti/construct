@@ -12,7 +12,7 @@ The lead merges PRs and resolves conflicts in this file. Contracts are in [CLAUD
 | 03 | [Risk score, change-order signals, Bieterfragen (contract v0.2)](tasks/03-risk-score-bieterfragen.md) | `feat/task-03` | PR open | [PR #12](https://github.com/konstimomonsti/construct/pull/12); 315 passed, 3 skipped; CLI acceptance verified. |
 | 04 | [Risk report UI, reviewer decisions, exports](tasks/04-risk-report-ui.md) | `feat/task-04` | todo | Uses a fixture until 03 lands |
 | 05 | [Planted-error evaluation and demo files](tasks/05-planted-error-evaluation.md) | `feat/task-05` | PR open | Task 01 replay: building hall 80/80 and precast 6/6 supported cases per format. All 46 controls clean. Nine known gaps and two Layer 3 cases per format remain. |
-| 06 | [Upload real tender PDFs and .xls (queued)](tasks/06-real-pdf-excel-upload.md) | `feat/task-06` | queued | First worker to finish takes it |
+| 06 | [Upload real tender PDFs and .xls (queued)](tasks/06-real-pdf-excel-upload.md) | `feat/task-06` | in progress | Real PDF and legacy Excel preview, source-backed assessment, and parser regression coverage. |
 
 Suggested merge order: 01 → 03 → 02 → 05 → 04 → 06. Each PR must pass CI (Python tests, frontend lint/build).
 
