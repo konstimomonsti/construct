@@ -40,6 +40,11 @@ export type ChangeOrderSignal = {
   id: string; kind: string; line_id: string | null; line_code: string | null
   title: string; message: string; points: number; finding_ids: string[]
 }
+export type ReviewItem = Finding | ChangeOrderSignal
+
+export const findingCategory = (category: string) => category === 'din'
+  ? 'DIN 1045-2' : category.charAt(0).toUpperCase() + category.slice(1).replaceAll('_', ' ')
+
 export type TopRisk = {
   line_id: string; line_code: string; short_text: string; points: number
   amount: string | null; reasons: string[]; item_ids: string[]
@@ -122,6 +127,7 @@ export function indexFindings(findings: Finding[], positions: Position[]) {
   const byRow = new Map<string, Finding[]>()
   const listWide: Finding[] = []
   const bySection = new Map<string, string[]>()
+  const positionIds = new Set(positions.map((position) => position.id))
   for (const position of positions) {
     for (const part of position.path ?? []) {
       const members = bySection.get(part.oz)
@@ -130,8 +136,8 @@ export function indexFindings(findings: Finding[], positions: Position[]) {
     }
   }
   for (const finding of findings) {
-    const ids = new Set(finding.related_line_ids)
-    if (finding.target.line_id) ids.add(finding.target.line_id)
+    const ids = new Set(finding.related_line_ids.filter((id) => positionIds.has(id)))
+    if (finding.target.line_id && positionIds.has(finding.target.line_id)) ids.add(finding.target.line_id)
     if (!ids.size && finding.target.section_id) {
       for (const id of bySection.get(finding.target.section_id) ?? []) ids.add(id)
     }
@@ -145,12 +151,15 @@ export function indexFindings(findings: Finding[], positions: Position[]) {
   return { byRow, listWide }
 }
 
-export function matchesFindingFilter(filter: string, findings: Finding[], reviewed: Set<string>) {
+export function matchesFindingFilter(filter: string, findings: ReviewItem[], reviewed: Set<string>) {
   if (filter === 'all') return true
   if (filter === 'reviewed') return findings.some((finding) => reviewed.has(finding.id))
-  return findings.some((finding) => !reviewed.has(finding.id) && (
-    filter === 'flagged' || filter === finding.severity || filter === `rule:${finding.rule_id}`
-  ))
+  return findings.some((item) => {
+    if (reviewed.has(item.id)) return false
+    if (filter === 'flagged') return true
+    if (!('severity' in item)) return filter === 'change-orders'
+    return filter === item.severity || filter === `rule:${item.rule_id}` || filter === `category:${item.category}`
+  })
 }
 
 export function useUploadAssessment(id: string | null): Assessment | null {

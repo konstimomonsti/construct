@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { applyDecision, decisionsOf, rescore } from '../src/lib/risk-assessment'
+import { applyDecision, decisionsOf, indexFindings, matchesFindingFilter, rescore } from '../src/lib/risk-assessment'
 import { riskReport } from './fixtures/risk-report'
 
 test('rescore drops points of decided items and keeps the §5.4 formula', () => {
@@ -65,4 +65,25 @@ test('the fixture report has a risk object usable with rescore and well-formed q
   assert.ok(risk)
   assert.ok(Object.keys(risk!.points).length > 0)
   assert.ok(questions!.every((q) => q.text_de.startsWith('Zu Pos.')))
+})
+
+
+test('the list filters change-order signals and reviewed items independently of finding severity', () => {
+  const signal = riskReport.risk!.change_order_signals[0]
+  const finding = riskReport.findings[0]
+  const unreviewed = new Set<string>()
+  assert.ok(matchesFindingFilter('change-orders', [signal], unreviewed))
+  assert.ok(matchesFindingFilter('flagged', [signal], unreviewed))
+  assert.ok(!matchesFindingFilter(finding.severity, [signal], unreviewed))
+  assert.ok(matchesFindingFilter(`category:${finding.category}`, [finding], unreviewed))
+  const reviewed = new Set([signal.id])
+  assert.ok(matchesFindingFilter('reviewed', [signal], reviewed))
+  assert.ok(!matchesFindingFilter('change-orders', [signal], reviewed))
+})
+
+test('findings on removed positions remain reviewable with the whole list', () => {
+  const finding = riskReport.findings.find((finding) => finding.target.line_id)!
+  const indexed = indexFindings([finding], [])
+  assert.deepEqual(indexed.listWide, [finding])
+  assert.equal(indexed.byRow.size, 0)
 })
