@@ -96,7 +96,7 @@ Use prompt caching for the shared system prompt.
   precision/recall per (rule, OZ) on 4 task 02 cases (LV_11 + complete precast section + site connection steel
   section + general quantities/texts). Offline with the FakeProvider it reports precision 1.0, which only
   shows that the harness works, not how good the model is.
-- **Tests:** `python -m pytest -q backend/analysis/tests`: 222 passed, 3 skipped (the live test skips without a key).
+- **Tests:** `python -m pytest -q backend/analysis/tests` (after merging main with task 01): 291 passed, 3 skipped (the live test skips without a key).
   `backend/tests` has 3 failures on Windows that also happen on `main` (Linux font path, JS MIME type).
 
 ### Blockers / requests
@@ -105,6 +105,6 @@ Use prompt caching for the shared system prompt.
 - Please register the `integration` pytest marker in `backend/pyproject.toml`
   (`markers = ["integration: needs ANTHROPIC_API_KEY"]`). The file is outside this task's allowlist, so pytest
   currently warns `PytestUnknownMarkWarning`.
-- `L3.TEXT.UNDERSPECIFIED` and `L3.QTY.IMPLAUSIBLE` have no layer 1 signal from task 01 yet; once 01 merges,
-  its `L1.TEXT.SPEC_ATTRIBUTE_MISSING` / `UNCLEAR_DIMENSION` / `SPEC_PLACEHOLDER` / `REFERENCE_UNRESOLVED`
-  findings also make a line a candidate (rule IDs are matched as strings).
+- Task 01 is merged: its `L1.TEXT.SPEC_ATTRIBUTE_MISSING` / `UNCLEAR_DIMENSION` / `SPEC_PLACEHOLDER` /
+  `REFERENCE_UNRESOLVED` findings make a line an `L3.TEXT.UNDERSPECIFIED` candidate, and `L1.TEXT.VALUE_CONFLICT`
+  lines are skipped by the contradiction check (rule IDs matched as strings).
