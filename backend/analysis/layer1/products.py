@@ -10,6 +10,7 @@ from ..contracts import ProductProperty, ProductRequirement
 from ..registry import rule
 from .common import BIDDER_INPUT, OR_EQUIVALENT, review_fix, source_detail, text_of
 from .fire_doors import parse_fire_class, written_fire_class
+from .fire_installation import match_installation
 from .standards import MATERIAL, material_family, supported_pipe_scopes
 
 
@@ -385,23 +386,28 @@ def _compare_property(line, requirement, source_format, declarations):
 def _compare_fire_property(line, requirement, source_format, declarations, *, written):
     offers = _offers(line, source_format)
     if len(offers) != 1:
-        return None, [], None, "insufficient_evidence", "offered_variant_unresolved"
+        return None, [], None, "insufficient_evidence", "offered_variant_unresolved", None
     key, offer = next(iter(offers.items()))
     items = declarations.get(key, [])
+    installation = match_installation(line.short_text, source_detail(line, source_format), items, _FIRE_PROPERTY)
+    if installation.reason:
+        outcome = "conflict" if installation.reason == "fire_wall_below_minimum" else "insufficient_evidence"
+        return offer, installation.declarations, None, outcome, installation.reason, installation.evidence
+    items = installation.declarations
     expected = parse_fire_class(requirement.required.value, requirement.required.unit)
     classes = {parse_fire_class(prop.value, prop.unit) for item in items
                if (prop := item.properties.get(_FIRE_PROPERTY))}
     if len(classes) != 1 or None in classes or expected is None:
-        return offer, items, None, "insufficient_evidence", "fire_class_unverified"
+        return offer, items, None, "insufficient_evidence", "fire_class_unverified", installation.evidence
     actual = next(iter(classes))
     observed = actual.label()
     if (actual.family, actual.qualifiers) != (expected.family, expected.qualifiers):
-        return offer, items, observed, "insufficient_evidence", "fire_class_basis_unverified"
+        return offer, items, observed, "insufficient_evidence", "fire_class_basis_unverified", installation.evidence
     if written and requirement.comparison == "equal" and actual.minutes > expected.minutes:
-        return offer, items, observed, "insufficient_evidence", "higher_fire_class_needs_confirmation"
+        return offer, items, observed, "insufficient_evidence", "higher_fire_class_needs_confirmation", installation.evidence
     matches = {"equal": actual.minutes == expected.minutes, "at_least": actual.minutes >= expected.minutes,
                "at_most": actual.minutes <= expected.minutes}[requirement.comparison]
-    return offer, items, observed, "satisfied" if matches else "conflict", None
+    return offer, items, observed, "satisfied" if matches else "conflict", None, installation.evidence
 
 
 @rule("L1.PRODUCT.DECLARED_PROPERTY", layer=1, category="product", severity="warning",
@@ -426,13 +432,14 @@ def declared_properties(ctx):
     for requirement, codes, matches in positions:
         line = matches[0] if len(matches) == 1 else None
         reason, candidates = None, []
+        installation = None
         source = written.get((line.id, requirement.property_name)) if line else None
         is_written = source is not None and source.requirement is requirement
         if line:
             if (line.id, requirement.property_name) in conflicts:
                 continue
             if requirement.property_name == _FIRE_PROPERTY:
-                offer, items, actual, outcome, reason = _compare_fire_property(
+                offer, items, actual, outcome, reason, installation = _compare_fire_property(
                     line, requirement, source_format, declarations, written=is_written,
                 )
             else:
@@ -448,7 +455,25 @@ def declared_properties(ctx):
         unit = requirement.required.unit or ""
         expected = f"{requirement.required.value} {unit}".strip()
         operator = {"equal": "requires", "at_least": "requires at least", "at_most": "allows at most"}[requirement.comparison]
-        if name == _FIRE_PROPERTY and outcome == "conflict":
+        if reason == "fire_wall_below_minimum":
+            minimum = min(installation["declared_minimum_thicknesses_mm"])
+            wall = installation["wall_thickness_mm"]
+            message = f"Position {position} specifies a wall of {wall.normalize():f} mm. The lowest supplied minimum " \
+                      f"for {offer.label()} on this supporting construction is {minimum.normalize():f} mm."
+            action = "Confirm the specified wall and request a doorset declaration covering that construction and " \
+                     "thickness. Ask the design owner to resolve any change to the wall."
+        elif reason in {"fire_wall_scope_unverified", "fire_wall_thickness_unverified"}:
+            if reason == "fire_wall_scope_unverified":
+                quoted = "; ".join(installation["support_quotes"])
+                message = f"Position {position}: the offered doorset declaration does not establish a matching wall construction."
+            else:
+                quoted = "; ".join(installation["thickness_quotes"])
+                message = f"Position {position}: the offered doorset declaration and tender do not establish a thickness match."
+            if quoted:
+                message += f" Tender: {quoted}."
+            action = "Confirm the supporting wall and exact thickness, then attach the declaration that covers " \
+                     "that configuration and the offered manufacturer and SKU."
+        elif name == _FIRE_PROPERTY and outcome == "conflict":
             message = f"Position {position} {operator} {expected}. The declaration for {offer.label()} states {actual}."
             action = "Request a declaration for the offered door assembly that meets the cited fire-resistance class " \
                      "or select and substantiate a variant that meets it."
@@ -491,6 +516,7 @@ def declared_properties(ctx):
                       "position_candidates": [{"line_code": candidate.code, "locator": candidate.source_locator}
                                               for candidate in example_candidates],
                       "declarations": [item.model_dump(mode="json") for item in items],
+                      **({"installation": installation} if installation else {}),
                       **(offer.evidence() if offer else {})},
             message=message, suggested_fix=review_fix(action),
             severity="warning" if outcome == "conflict" else "info",

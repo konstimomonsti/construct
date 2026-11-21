@@ -581,6 +581,53 @@ def generate_fire_door_products(out):
             write_fixture_labels(out / f"{name}.{ext}", f"{baseline}.{ext}", label)
 
 
+def generate_fire_door_installation(out):
+    """Replay declarations scoped to the supporting wall and its minimum thickness."""
+    out.mkdir(parents=True, exist_ok=True)
+    manufacturer = "Synthetic Doors"
+    declarations = []
+    for sku, rating, support, minimum in (
+        ("W-100", "EI2 60-C5 Sa", "Trockenbauwand", "12.5"),
+        ("W-101", "EI2 60-C5 Sa", "Stahlbetonwand", "10"),
+        ("W-102", "EI2 60-C5 Sa", None, None),
+        ("W-103", "EI2 30-C5 Sa", "Trockenbauwand", "12.5"),
+        ("W-103", "EI2 60-C5 Sa", "Stahlbetonwand", "10"),
+    ):
+        properties = {"fire_resistance_class": {"value": rating}}
+        if support:
+            properties["fire_door_supporting_construction"] = {"value": support}
+            properties["fire_door_min_wall_thickness"] = {"value": minimum, "unit": "cm"}
+        declarations.append({"manufacturer": manufacturer, "product_code": sku,
+                             "document": f"Synthetic declaration {sku}", "revision": "A",
+                             "locator": f"page 2, {support or 'classification table'}", "properties": properties})
+    package = {"schema": "billbuild.product-evidence.v1", "declarations": declarations}
+    (out / "product-evidence.json").write_text(json.dumps(package, indent=2), encoding="utf-8")
+    heading = "Brandschutztür aus Stahl, 1000 × 2125 mm, RAL 9010"
+    for name, sku, support, thickness, severity, reason in (
+        ("door-wall-fit", "W-100", "Trockenbauwand", "125 mm", None, None),
+        ("door-wall-concrete-fit", "W-101", "Stahlbetonwand", "125 mm", None, None),
+        ("door-wall-thin", "W-100", "Trockenbauwand", "100 mm", "warning", "fire_wall_below_minimum"),
+        ("door-wall-approximate", "W-100", "Trockenbauwand", "ca. 125 mm", "info", "fire_wall_thickness_unverified"),
+        ("door-wall-other-support", "W-101", "Trockenbauwand", "125 mm", "info", "fire_wall_scope_unverified"),
+        ("door-wall-unknown-support", "W-102", "Trockenbauwand", "125 mm", "info", "fire_wall_scope_unverified"),
+        ("door-wall-lower-class", "W-103", "Trockenbauwand", "125 mm", "warning", None),
+    ):
+        detail = (f"Feuerwiderstand: EI2 60-C5 Sa.\nWandmaterial: {support}.\nWanddicke: {thickness}.\n"
+                  "Inkl. Türschließer, Profilzylinder und Drückergarnitur.\n"
+                  f"Angebotenes Fabrikat: Hersteller: {manufacturer}; SKU: {sku}")
+        item = Item("01.0010", heading, 1, "St", detail=detail)
+        locators = _write_text_case(out, name, "Leistungsverzeichnis Türen", item, "door-wall")
+        locators.update(_write_offer_tables(out, name, item, "Türen"))
+        for ext, locator in locators.items():
+            label = {"control": severity is None, "layers": [1], "expect": []}
+            if severity:
+                label.update(match="line", expect=["L1.PRODUCT.DECLARED_PROPERTY"], target={
+                    "line_codes": [item.code], "severity": severity, "source_locator": locator, "reason": reason,
+                })
+            baseline = "door-wall-fit" if severity else name
+            write_fixture_labels(out / f"{name}.{ext}", f"{baseline}.{ext}", label)
+
+
 def generate_grade_scope(out):
     """Test concrete grade conflicts, legitimate component differences and unclear attribution."""
     out.mkdir(parents=True, exist_ok=True)
@@ -694,7 +741,8 @@ if __name__ == "__main__":
               "product-requirements": generate_product_requirements, "written-stiffness": generate_written_stiffness,
               "action-spelling": generate_action_spelling, "outline-duplicates": generate_outline_duplicates,
               "written-quantities": generate_written_quantities, "underspecification": generate_underspecification,
-              "fire-door-scope": generate_fire_door_scope, "fire-door-products": generate_fire_door_products}
+              "fire-door-scope": generate_fire_door_scope, "fire-door-products": generate_fire_door_products,
+              "fire-door-installation": generate_fire_door_installation}
     parser.add_argument("--suite", choices=suites, default="tabular")
     args = parser.parse_args()
     suites[args.suite](args.out)
