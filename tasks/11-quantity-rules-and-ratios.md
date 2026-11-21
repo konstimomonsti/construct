@@ -32,7 +32,10 @@ Quantity findings set `evidence.change_order = true` (CLAUDE.md §5.2), so the r
 - `docs/ANALYSIS_CONTRACT.md` (§7 rule catalogue), `docs/DEPENDENCY_VALIDATOR.md` (the `Ratio` type)
 - this task file (notes) and your row in `STATUS.md`
 
-**Not yours:** `layer1/pricing.py` (task 12), `analysis/risk/*` (task 08), `analysis/eval/*`.
+**Shared line:** task 14 changes one rationale string in `layer2/engine.py` ("enter it before applying the fix"). Merge
+`origin/main` before you start on `engine.py` and keep that wording.
+
+**Not yours:** `layer1/pricing.py` (task 12), `layer1/precast.py` (task 14), `analysis/risk/*` (task 08), `analysis/eval/*`.
 
 ## Read-only references
 
