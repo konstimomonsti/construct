@@ -46,6 +46,9 @@ await step('list', async () => {
   await page.waitForSelector('table tbody tr')
   await settle()
   await shot('03-list')
+  // sections start collapsed; open them all for the full-page shot and the drawer
+  const expand = page.getByRole('button', { name: 'Expand all' })
+  if (await expand.count()) { await expand.click(); await settle() }
   await shot('04-list-full', true)
 })
 
@@ -63,6 +66,25 @@ await step('active', async () => {
 })
 await step('archived', async () => { await page.goto(base + '/archived'); await settle(900); await shot('07-archived') })
 await step('trash', async () => { await page.goto(base + '/trash'); await settle(900); await shot('08-trash') })
+
+for (const [n, kind] of [['13', 'products'], ['14', 'suppliers'], ['15', 'subcontractors']]) {
+  await step(`catalogue ${kind}`, async () => {
+    await page.goto(base + `/catalogues/${kind}`)
+    await page.waitForSelector('main table tbody tr, main h2', { timeout: 8000 })
+    await settle(900)
+    await shot(`${n}-catalogue-${kind}`)
+  })
+}
+// opens the editor read-only: it is closed with Escape and never saved
+await step('catalogue editor', async () => {
+  await page.goto(base + '/catalogues/products')
+  await page.waitForSelector('main table tbody tr', { timeout: 8000 })
+  await page.locator('main table tbody tr').first().getByRole('button', { name: /^Edit / }).click()
+  await page.waitForSelector('[role="dialog"] form', { timeout: 8000 })
+  await settle(600)
+  await shot('16-catalogue-editor')
+  await page.keyboard.press('Escape')
+})
 
 await step('palette', async () => {
   await page.goto(base + '/')

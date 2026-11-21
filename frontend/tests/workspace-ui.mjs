@@ -106,10 +106,10 @@ try {
   await button('Fit the shower', ledger).waitFor()
   assert.equal(await meter.getAttribute('aria-valuenow'), '980')
   assert.equal(await meter.getAttribute('aria-valuemax'), cap)
-  assert.match(await budget.getByRole('listitem').filter({ hasText: 'Installation' }).innerText(), /€180\.00/)
+  assert.match(await budget.getByRole('listitem').filter({ hasText: 'Installation' }).innerText(), /180,00\s€/)
   assert.notEqual(
-    await meter.getByTitle('Bathroom · €800.00').evaluate((element) => element.style.backgroundColor),
-    await meter.getByTitle('Installation · €180.00').evaluate((element) => element.style.backgroundColor),
+    await meter.getByTitle(/^Bathroom · 800,00\s€$/).evaluate((element) => element.style.backgroundColor),
+    await meter.getByTitle(/^Installation · 180,00\s€$/).evaluate((element) => element.style.backgroundColor),
   )
   assert.equal(await page.getByText(/set budget cap|request budget expansion|share with team/i).count(), 0)
 

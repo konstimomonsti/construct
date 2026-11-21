@@ -7,6 +7,7 @@ const whole = new Intl.NumberFormat(LOCALE, { maximumFractionDigits: 0 })
 const full = new Intl.NumberFormat(LOCALE, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 const qtyFmt = new Intl.NumberFormat(LOCALE, { maximumFractionDigits: 3 })
 const intFmt = new Intl.NumberFormat(LOCALE)
+const oneDecimal = new Intl.NumberFormat(LOCALE, { minimumFractionDigits: 1, maximumFractionDigits: 1 })
 
 export const CURRENCY = '€'
 const NBSP = '\u00a0'
@@ -50,7 +51,17 @@ export function moneyCompact(v: number): string {
 
 export const qty = (v: number) => qtyFmt.format(v)
 
-export const pct = (v: number) => `${Math.round(v)}%`
+/** 1.234 */
+export const count = (v: number) => whole.format(v)
+
+/** 66 % */
+export const pct = (v: number) => `${whole.format(Math.round(v))}${NBSP}%`
+
+/** 94,3 % */
+export const pct1 = (v: number) => `${oneDecimal.format(v)}${NBSP}%`
+
+/** Plain decimal for editable inputs, without grouping: 1234,5 */
+export const inputNumber = (v: number) => String(Math.round(v * 1000) / 1000).replace('.', ',')
 
 /** next "nice" cap above value (1 / 1.5 / 2 / 2.5 / 3 / 4 / 5 / 6 / 8 steps) */
 export function niceCap(v: number): number {
@@ -92,7 +103,7 @@ export function relativeDate(iso?: string): string {
   if (diff < 60) return 'just now'
   if (diff < 3600) return `${Math.floor(diff / 60)}m ago`
   if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`
-  return d.toLocaleDateString('de-DE')
+  return d.toLocaleDateString(LOCALE)
 }
 
 /** one rule for every screen: anything at 75 % of its cap or more needs attention */

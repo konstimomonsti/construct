@@ -8,7 +8,7 @@ const ok = (name, cond, extra = '') => {
   if (!cond) failed++
   console.log(cond ? 'PASS' : 'FAIL', name, extra)
 }
-const num = (s) => Number(s.replace(/[^\d.-]/g, ''))
+const num = (s) => Number(s.replace(/[^\d,-]/g, '').replace(',', '.'))
 
 const browser = await chromium.launch()
 const ctx = await browser.newContext({ viewport: { width: 1280, height: 1024 } })
@@ -68,8 +68,8 @@ await page.waitForSelector('table tbody tr[data-pid]')
 await page.waitForTimeout(500)
 const rowsNew = await page.locator('tbody tr[data-pid]').count()
 ok('new list has the selected positions', rowsNew === want, `${rowsNew} rows`)
-const newFooter = await page.getByText(/Total €/).first().innerText()
-const newTotal = num(newFooter.match(/Total (€[\d,.]+)/)[1])
+const newFooter = await page.getByText(/Total [\d.,]+\s€/).first().innerText()
+const newTotal = num(newFooter.match(/Total ([\d.,]+\s€)/)[1])
 ok('new list shows moved item with new OZ', (await page.locator(`tbody tr:has-text("OZ: ${expectedOz}")`).count()) === 1)
 await page.screenshot({ path: 'tests/shots/34-split-result.png' })
 
@@ -80,8 +80,8 @@ await page.waitForTimeout(500)
 const srcInfo = await page.getByText(/positions ·/).first().innerText()
 const srcCount = Number(srcInfo.match(/(\d+) positions/)[1])
 ok('source list lost the positions', srcCount === doc.positions.length - want, srcInfo)
-const srcTotalText = await page.getByText(/Total €/).first().innerText()
-const srcTotal = num(srcTotalText.match(/Total (€[\d,.]+)/)[1])
+const srcTotalText = await page.getByText(/Total [\d.,]+\s€/).first().innerText()
+const srcTotal = num(srcTotalText.match(/Total ([\d.,]+\s€)/)[1])
 const sum = Math.round((srcTotal + newTotal) * 100) / 100
 ok('totals add up to the original', Math.abs(sum - origTotal) < 0.011, `${srcTotal} + ${newTotal} = ${sum} vs ${origTotal}`)
 

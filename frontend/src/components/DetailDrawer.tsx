@@ -44,7 +44,7 @@ function Labeled({ label, children, className }: { label: string; children: Reac
 }
 
 export function DetailDrawer({
-  p, catalogue, onClose, edited, added, onPatch, onQty, onUp, onReset, onMoveCategory, onRemove, onPrev, onNext, position, listTotal, cap, imported,
+  p, catalogue, findings, focusField, onClose, edited, added, onPatch, onCode, onQty, onUp, onReset, onMoveCategory, onRemove, onPrev, onNext, position, listTotal, cap, imported,
 }: {
   onRemove?: () => void
   /** live list total and cap, so a price change shows its effect on the budget */
@@ -52,10 +52,13 @@ export function DetailDrawer({
   cap?: number | null
   p: Position | null
   catalogue?: React.ReactNode
+  findings?: React.ReactNode
+  focusField?: string | null
   onClose: () => void
   edited: boolean
   added: boolean
   onPatch: (patch: Partial<Pick<Position, 'short' | 'long' | 'unit'>>) => void
+  onCode: (code: string) => boolean
   onQty: (n: number) => void
   onUp: (n: number | null) => void
   onReset: () => void
@@ -103,9 +106,14 @@ export function DetailDrawer({
   useEffect(() => {
     if (!open) return
     const prev = document.activeElement as HTMLElement | null
-    closeRef.current?.focus()
     return () => prev?.focus?.()
   }, [open])
+  // opening from a finding puts the cursor on the field it is about; otherwise on Close
+  useEffect(() => {
+    if (!p) return
+    const target = focusField ? asideRef.current?.querySelector<HTMLElement>(`[data-risk-field="${CSS.escape(focusField)}"]`) : null
+    ;(target ?? closeRef.current)?.focus()
+  }, [p?.id, focusField]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!p) return
     const onKey = (e: KeyboardEvent) => {
@@ -189,12 +197,32 @@ export function DetailDrawer({
                 {/* title line: OZ prefix · Kurztext (edits in place) · badges */}
                 <div className="flex items-start gap-1.5">
                   <h2 className="sr-only">{`${p.oz} ${p.short}`}</h2>
-                  <span aria-hidden className="num shrink-0 pt-1.5 text-base text-slate-600 tabular-nums">{p.oz}</span>
+                  <label htmlFor={`${uid}-oz`} className="sr-only">OZ</label>
+                  <input
+                    id={`${uid}-oz`}
+                    key={`oz-${p.oz}`}
+                    data-risk-field="code"
+                    maxLength={80}
+                    defaultValue={p.oz}
+                    title="Edit OZ"
+                    onBlur={(e) => {
+                      const v = e.currentTarget.value.trim()
+                      if (v === p.oz) return
+                      if (onCode(v)) didSave()
+                      else e.currentTarget.value = p.oz
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') e.currentTarget.blur()
+                      if (e.key === 'Escape') { e.stopPropagation(); e.currentTarget.value = p.oz; e.currentTarget.blur() }
+                    }}
+                    className="num mt-0.5 h-8 min-w-[3ch] shrink-0 rounded-md border border-transparent bg-transparent px-1 text-base text-slate-600 tabular-nums outline-none [field-sizing:content] hover:border-slate-400 focus:border-brand-600 focus:bg-white focus:ring-1 focus:ring-brand-600"
+                  />
                   <div className="group relative min-w-0 flex-1">
                     <label htmlFor={`${uid}-short`} className="sr-only">Kurztext</label>
                     <textarea
                       id={`${uid}-short`}
                       key={`s-${p.short}`}
+                      data-risk-field="short_text"
                       rows={1}
                       maxLength={300}
                       placeholder="(ohne Kurztext)"
@@ -219,6 +247,7 @@ export function DetailDrawer({
                     </div>
                   )}
                 </div>
+                {findings}
                 {catalogue}
                 <div className="border-y border-slate-200 py-4">
                   <div className="text-sm font-medium text-slate-600">Gesamtpreis (GP)</div>
@@ -248,6 +277,7 @@ export function DetailDrawer({
                         <input
                           id={`${uid}-qty`}
                           key={`q-${p.qty}`}
+                          data-risk-field="quantity"
                           inputMode="decimal"
                           aria-describedby={`${uid}-unit${errOn('qty') ? ` ${uid}-qty-err` : ''}`}
                           aria-invalid={errOn('qty') || undefined}
@@ -271,6 +301,7 @@ export function DetailDrawer({
                             <label htmlFor={`${uid}-unit-input`} className="sr-only">Einheit</label>
                             <input
                               id={`${uid}-unit-input`}
+                            data-risk-field="unit"
                               autoFocus
                               maxLength={12}
                               defaultValue={p.unit}
@@ -290,6 +321,7 @@ export function DetailDrawer({
                           <button
                             type="button"
                             title="Change Einheit"
+                            data-risk-field="unit"
                             aria-label={`Einheit ${p.unit || 'not set'}. Change unit`}
                             onClick={() => setEditUnitId(p.id)}
                             className="absolute top-0 right-0 bottom-0 flex min-w-11 max-w-[50%] items-center justify-end gap-0.5 rounded-r-md pr-1.5 pl-2 text-sm text-slate-700 transition-colors hover:bg-slate-200 hover:text-slate-900"
@@ -305,6 +337,7 @@ export function DetailDrawer({
                       <span className="relative block">
                         <input
                           key={`e-${p.up}`}
+                          data-risk-field="unit_price"
                           inputMode="decimal"
                           aria-invalid={errOn('up') || undefined}
                           className={`${fieldCls} num h-11 pr-8 pl-3 text-right`}
@@ -373,6 +406,7 @@ export function DetailDrawer({
                   {editLong ? (
                     <textarea
                       aria-labelledby={`${uid}-long`}
+                      data-risk-field="long_text"
                       rows={10}
                       autoFocus
                       className={`${fieldCls} resize-y px-3.5 py-2.5 leading-relaxed`}
@@ -400,6 +434,7 @@ export function DetailDrawer({
                       )}
                       <button
                         type="button"
+                        data-risk-field="long_text"
                         aria-label={p.long?.trim() ? 'Edit Langtext' : 'Add Langtext'}
                         title={p.long?.trim() ? 'Edit Langtext' : 'Add Langtext'}
                         onClick={(e) => { e.stopPropagation(); setEditLongId(p.id) }}

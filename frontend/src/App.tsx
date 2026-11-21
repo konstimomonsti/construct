@@ -1,5 +1,5 @@
 import { lazy, useEffect, useState } from 'react'
-import { BrowserRouter, Link, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, Link, Navigate, Route, Routes } from 'react-router-dom'
 import { MotionConfig } from 'motion/react'
 import { Shell } from './components/Shell'
 import { GridSkeleton, Page, Skeleton } from './components/Page'
@@ -9,6 +9,7 @@ const Archived = lazy(() => import('./pages/Collections').then((m) => ({ default
 const Trash = lazy(() => import('./pages/Trash').then((m) => ({ default: m.Trash })))
 const FolderPage = lazy(() => import('./pages/FolderPage').then((m) => ({ default: m.FolderPage })))
 const ListPage = lazy(() => import('./pages/ListPage').then((m) => ({ default: m.ListPage })))
+const CataloguePage = lazy(() => import('./pages/CataloguePage').then((m) => ({ default: m.CataloguePage })))
 import { loadLibrary } from './lib/data'
 import { useStore } from './lib/store'
 import { startSync } from './lib/sync'
@@ -48,6 +49,8 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           <Route element={<Shell />}>
+            <Route path="/catalogues" element={<Navigate to="/catalogues/products" replace />} />
+            <Route path="/catalogues/:kind" element={<CataloguePage />} />
             <Route
               path="/"
               element={error ? <Page className="p-10 text-center text-sm text-rose-600">Could not load data: {error}</Page> : base ? <AllProjects /> : <Boot />}

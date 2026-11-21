@@ -2,11 +2,15 @@ import { clsx } from 'clsx'
 import { memo, useEffect, useMemo, useRef, useState } from 'react'
 import { Icon, Menu, toast } from './ui'
 import { QtyInput, editableCls } from './QtyStepper'
-import { amount, nbHyphen, parseNumber } from '../lib/format'
+import { FindingBadge, RISK_UI } from './RiskAssessment'
+import { amount, nbHyphen, parseNumber, plural } from '../lib/format'
 import { positionTotal } from '../lib/money'
 import { useStore } from '../lib/store'
 import { leafOz, treeStats, type CatStat } from '../lib/resolve'
+import type { Severity } from '../lib/risk-assessment'
 import type { CategoryNode, Position } from '../lib/types'
+
+export type RowRisk = { severity: Severity; count: number; label?: string }
 
 /** why a section adds up to nothing, in the words the rows use */
 function zeroWhy(s: CatStat) {
@@ -88,11 +92,12 @@ interface RowProps {
   edited: boolean
   qtyEdited: boolean
   upEdited: boolean
-  onOpen: (p: Position) => void
+  risk?: RowRisk
+  onOpen: (p: Position, fromFinding?: boolean) => void
   onMove: (pid: string) => void
 }
 
-const Row = memo(function Row({ listId, p, showCategory, selected, flash, edited, qtyEdited, upEdited, onToggle, onOpen, onMove }: RowProps) {
+const Row = memo(function Row({ listId, p, showCategory, selected, flash, edited, qtyEdited, upEdited, risk, onToggle, onOpen, onMove }: RowProps) {
   const total = positionTotal(p)
   const remove = () => {
     useStore.getState().removePositions(listId, [p.id])
@@ -105,9 +110,10 @@ const Row = memo(function Row({ listId, p, showCategory, selected, flash, edited
     <tr
       data-pid={p.id}
       data-row="position"
+      data-risk={risk?.severity}
       className={clsx(
         'group transition-colors',
-        selected ? 'bg-brand-50/70' : 'hover:bg-slate-100',
+        selected ? 'bg-brand-50/70' : risk ? RISK_UI[risk.severity].row : 'hover:bg-slate-100',
         flash && 'bg-brand-50 outline-2 -outline-offset-2 outline-brand-300',
       )}
     >
@@ -132,6 +138,20 @@ const Row = memo(function Row({ listId, p, showCategory, selected, flash, edited
           <span className="sr-only">, open details</span>
         </button>
         {showCategory && <div className="mt-0.5 truncate text-[13px] text-slate-600">{p.category}</div>}
+        {risk && (
+          <button
+            type="button"
+            onClick={() => onOpen(p, true)}
+            title={risk.label}
+            aria-label={`Review ${risk.count === 1 ? 'finding' : `${risk.count} findings`} for ${p.oz}${risk.label ? `: ${risk.label}` : ''}`}
+            className="mt-1 mb-0.5 block rounded-md"
+          >
+            <FindingBadge severity={risk.severity}>
+              {RISK_UI[risk.severity].label}{risk.count > 1 ? ` · ${risk.count}` : ''}
+              {risk.label && <span className="max-w-[28ch] truncate font-normal max-sm:hidden">{risk.label}</span>}
+            </FindingBadge>
+          </button>
+        )}
       </td>
       <td data-a="qty" className="relative w-24 py-1 pr-1 pl-2 text-right">
         <span className="hidden lg:inline"><EditDot on={qtyEdited} /></span>
@@ -177,9 +197,14 @@ const Row = memo(function Row({ listId, p, showCategory, selected, flash, edited
   )
 })
 
+const EMPTY = new Set<string>()
+const SEVERITY_RANK: Record<Severity, number> = { error: 0, warning: 1, info: 2 }
+
 export function LedgerTable({
-  listId, rows, tree, showEmpty, selected, setSelected, focusId, onOpen, onMove, editedIds, qtyEdited, upEdited, sortActive, selectMode,
+  listId, rows, tree, showEmpty, selected, setSelected, focusId, onOpen, onMove, editedIds, qtyEdited, upEdited, risks, sortActive, selectMode, sectionsOpen = false,
 }: {
+  /** sections start collapsed so a long list reads as an outline; "Expand all" opens every level */
+  sectionsOpen?: boolean
   /** category tree; rows are grouped under it unless a sort is active */
   tree: CategoryNode[]
   /** show categories with no positions (only when nothing is filtered) */
@@ -192,22 +217,38 @@ export function LedgerTable({
   selected: Set<string>
   setSelected: (s: Set<string>) => void
   focusId?: string | null
-  onOpen: (p: Position) => void
+  onOpen: RowProps['onOpen']
   onMove: (pid: string) => void
+  /** positions with open risk findings, by id */
+  risks?: Map<string, RowRisk>
   editedIds: Set<string>
   qtyEdited: Set<string>
   upEdited: Set<string>
   sortActive: boolean
 }) {
   const [flash, setFlash] = useState<string | null>(null)
-  const [collapsed, setCollapsed] = useState(() => new Set<string>())
+  // sections the user toggled away from the default. A search or filter opens everything so matches
+  // are visible, and switching between filtered, unfiltered or "expand all" starts from a clean slate.
+  const defaultOpen = sectionsOpen || !showEmpty
+  const mode = `${sectionsOpen}|${showEmpty}`
+  const [flips, setFlips] = useState(() => ({ mode, set: new Set<string>() }))
+  const flipped = flips.mode === mode ? flips.set : EMPTY
+  const isOpen = (oz: string) => defaultOpen !== flipped.has(oz)
   const headCb = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (!focusId) return
     const target = rows.find((r) => r.id === focusId)
     const path = new Set(target?.path?.map((part) => part.oz))
-    setCollapsed((prev) => (prev.size ? new Set([...prev].filter((oz) => !path.has(oz))) : prev))
+    // open the sections that lead to the requested position
+    setFlips((prev) => {
+      const set = new Set(prev.mode === mode ? prev.set : EMPTY)
+      for (const oz of path) {
+        if (defaultOpen) set.delete(oz)
+        else set.add(oz)
+      }
+      return { mode, set }
+    })
     setFlash(focusId)
     const t = setTimeout(() => document.querySelector(`[data-pid="${CSS.escape(focusId)}"]`)?.scrollIntoView({ block: 'center', behavior: 'smooth' }), 60)
     const t2 = setTimeout(() => setFlash(null), 2600)
@@ -237,21 +278,34 @@ export function LedgerTable({
     const walk = (nodes: CategoryNode[], depth: number) => {
       for (const cat of nodes) {
         if (!showEmpty && !stats.has(cat.oz)) continue
-        const open = !collapsed.has(cat.oz)
+        const open = defaultOpen !== flipped.has(cat.oz)
         out.push({ cat, depth, items: open ? direct.get(cat.oz) ?? [] : [] })
         if (open) walk(cat.children, depth + 1)
       }
     }
     walk(tree, 0)
     return out
-  }, [rows, tree, sortActive, showEmpty, stats, collapsed])
+  }, [rows, tree, sortActive, showEmpty, stats, flipped, defaultOpen])
   const visible = useMemo(() => blocks.flatMap((b) => b.items), [blocks])
-  const toggleCat = (oz: string) => setCollapsed((prev) => {
-    const next = new Set(prev)
-    if (next.has(oz)) next.delete(oz)
-    else next.add(oz)
-    return next
+  const toggleCat = (oz: string) => setFlips((prev) => {
+    const set = new Set(prev.mode === mode ? prev.set : EMPTY)
+    if (set.has(oz)) set.delete(oz)
+    else set.add(oz)
+    return { mode, set }
   })
+  /** worst open finding inside a collapsed section, so flagged rows stay visible as a hint */
+  const sectionRisk = (oz: string) => {
+    if (!risks?.size) return null
+    let worst: RowRisk | null = null
+    let count = 0
+    for (const pid of stats.get(oz)?.pids ?? []) {
+      const risk = risks.get(pid)
+      if (!risk) continue
+      count++
+      if (!worst || SEVERITY_RANK[risk.severity] < SEVERITY_RANK[worst.severity]) worst = risk
+    }
+    return worst ? { severity: worst.severity, count } : null
+  }
 
   const selectedVisible = visible.reduce((n, r) => n + (selected.has(r.id) ? 1 : 0), 0)
   const all = visible.length > 0 && selectedVisible === visible.length
@@ -305,7 +359,8 @@ EP (€)
         </thead>
         {blocks.map((b) => {
           const cat = b.cat
-          const open = cat ? !collapsed.has(cat.oz) : true
+          const open = cat ? isOpen(cat.oz) : true
+          const flagged = cat && !open ? sectionRisk(cat.oz) : null
           const top = b.depth === 0
           return (
             <tbody key={cat ? `c-${cat.oz}` : 'loose'}>
@@ -322,7 +377,15 @@ EP (€)
                       <Icon name="expand_more" size={20} className={clsx('shrink-0 text-slate-500 transition-transform', !open && '-rotate-90')} />
                       <span className="shrink-0 font-mono text-[13px] font-medium text-slate-600">{cat.oz}</span>
                       <span className="truncate">{cat.label || cat.oz}</span>
+                      {!open && stats.has(cat.oz) && (
+                        <span className="num ml-1 shrink-0 font-sans text-[13px] font-normal text-slate-600">{plural(stats.get(cat.oz)!.count, 'position', 'positions')}</span>
+                      )}
                     </button>
+                    {flagged && (
+                      <span className="mt-0.5 mb-1.5 block font-sans text-sm font-normal" style={{ marginLeft: b.depth * 20 + 26 }}>
+                        <FindingBadge severity={flagged.severity}>{flagged.count === 1 ? '1 flagged position' : `${flagged.count} flagged positions`}</FindingBadge>
+                      </span>
+                    )}
                   </th>
                   <td colSpan={2} className={clsx('num px-2 pr-[3.25rem] text-right whitespace-nowrap', top ? 'display pt-6 text-base text-slate-900' : 'pt-3 text-sm font-semibold text-slate-800')}>
                     {!stats.has(cat.oz) ? (
@@ -346,6 +409,7 @@ EP (€)
                   edited={editedIds.has(p.id)}
                   qtyEdited={qtyEdited.has(p.id)}
                   upEdited={upEdited.has(p.id)}
+                  risk={risks?.get(p.id)}
                   onToggle={toggle}
                   onOpen={onOpen}
                   onMove={onMove}

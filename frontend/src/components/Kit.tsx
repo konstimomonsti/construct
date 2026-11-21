@@ -556,7 +556,6 @@ export function Chips<K extends string>({ value, options, onChange, label }: { v
   )
 }
 
-/** calm empty state, left-aligned with the page title so every page has one axis */
 /**
  * the empty panel: a dashed frame the width of the content, message centred inside it,
  * so an empty page still reads as a place where things will appear.

@@ -28,14 +28,15 @@ interface ListPatch {
   trashedAt?: string
   cap?: number | null
   folderId?: string
+  reviewedFindings?: string[]
 }
 export interface ListEdits {
   qty: Record<string, number>
   up: Record<string, number | null>
   removed: string[]
   added: Position[]
-  /** per-position text/unit overrides */
-  patch: Record<string, Partial<Pick<Position, 'short' | 'long' | 'unit'>>>
+  /** per-position text, unit, and position-number overrides */
+  patch: Record<string, Partial<Pick<Position, 'short' | 'long' | 'unit' | 'oz'>>>
   /** position id → target category OZ (renumbered by resolveList) */
   moves: Record<string, string>
   categories: { added: { oz: string; label: string; parentOz: string | null }[]; renamed: Record<string, string> }
@@ -90,7 +91,7 @@ interface State {
   setUp: (listId: string, pid: string, up: number | null) => void
   removePositions: (listId: string, pids: string[]) => void
   restorePositions: (listId: string, pids: string[]) => void
-  patchPosition: (listId: string, pid: string, p: Partial<Pick<Position, 'short' | 'long' | 'unit'>>) => void
+  patchPosition: (listId: string, pid: string, p: ListEdits['patch'][string]) => void
   /** drop every user change (qty/price/text/move) of one position */
   resetPosition: (listId: string, pid: string) => void
   movePositions: (listId: string, pids: string[], targetOz: string) => void
@@ -264,11 +265,17 @@ export const useStore = create<State>()(
         set((s) => {
           const e = norm(s.edits[listId])
           const moves = { ...e.moves }
+          const patch = { ...e.patch }
           for (const id of pids) {
             delete moves[id] // re-insert so move order == call order
             moves[id] = targetOz
+            if (patch[id]?.oz !== undefined) {
+              const { oz: _number, ...otherFields } = patch[id]
+              if (Object.keys(otherFields).length) patch[id] = otherFields
+              else delete patch[id]
+            }
           }
-          return { edits: { ...s.edits, [listId]: { ...e, moves } } }
+          return { edits: { ...s.edits, [listId]: { ...e, moves, patch } } }
         }),
       unmovePositions: (listId, pids) =>
         set((s) => {
@@ -437,9 +444,10 @@ function buildFolders(s: State, lists: ListView[], documents: ReturnType<typeof 
   const byId = new Map(lists.map((l) => [l.id, l]))
   const all = [...(s.base?.folders ?? []), ...s.userFolders]
   const originalTotals = new Map<string, number>()
-  // an earlier version (D84 next to its D86) is not counted twice in the fixed budget
+  // an earlier version (D84 next to its D86) is not counted twice in the fixed budget;
+  // imported lists set the budget of the folder they arrived in, like the sample lists do
   const superseded = new Set(lists.filter((l) => l.supersededBy).map((l) => l.id))
-  for (const list of s.base?.lists ?? []) {
+  for (const list of [...(s.base?.lists ?? []), ...s.userLists]) {
     if (superseded.has(list.id)) continue
     originalTotals.set(list.folderId, (originalTotals.get(list.folderId) ?? 0) + list.total)
   }

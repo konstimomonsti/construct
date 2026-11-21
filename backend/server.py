@@ -14,8 +14,10 @@ from tender_import.common import MAX_FILE_BYTES
 from tender_import.store import original
 
 import analysis_api
+import catalogues
 import mvp
 import workspace
+import workspace_analysis
 import workspace_catalogue
 from exports import export
 
@@ -66,6 +68,7 @@ FRIENDLY_LABELS = {
     "quote": "quote_number",
     "source_document": "filename",
     "supplier": "name",
+    "subcontractor": "name",
 }
 PREVIEW_LENGTH = 480
 RECORD_LENGTH = 48_000
@@ -336,6 +339,9 @@ class BrowserHandler(BaseHTTPRequestHandler):
         if request.path.startswith("/api/workspace/"):
             self.workspace_request(request, write=False)
             return
+        if request.path.startswith("/api/catalogues/"):
+            self.catalogue_request(request, write=False)
+            return
         if request.path not in {"/api/tables", "/api/rows", "/api/record"}:
             if request.path.startswith(("/api/", "/admin/")) or not self.frontend(request.path):
                 self.json(HTTPStatus.NOT_FOUND, {"error": "Page not found"})
@@ -377,7 +383,48 @@ class BrowserHandler(BaseHTTPRequestHandler):
         if request.path.startswith("/api/workspace/"):
             self.workspace_request(request, write=True)
             return
+        if request.path.startswith("/api/catalogues/"):
+            self.catalogue_request(request, write=True)
+            return
         self.mvp_request(request, write=True)
+
+    def catalogue_request(self, request, write):
+        kind = request.path.removeprefix("/api/catalogues/")
+        if kind not in catalogues.TABLES:
+            self.json(HTTPStatus.NOT_FOUND, {"error": "Catalogue not found."})
+            return
+        try:
+            if write:
+                length = int(self.headers.get("Content-Length", 0))
+                if not 0 < length <= (1024 * 1024 if kind == "products" else 4096):
+                    self.json(HTTPStatus.REQUEST_ENTITY_TOO_LARGE, {"error": "The request is empty or too large."})
+                    return
+                payload = json.loads(self.rfile.read(length))
+                if not isinstance(payload, dict):
+                    raise ValueError("Enter a valid catalogue record.")
+            else:
+                params = {key: values[-1] for key, values in parse_qs(request.query, max_num_fields=5).items()}
+            with psycopg.connect("", row_factory=dict_row, connect_timeout=3,
+                                 options="-c statement_timeout=10000") as connection:
+                if write:
+                    result = catalogues.write(connection, kind, payload)
+                else:
+                    connection.read_only = True
+                    result = catalogues.read(connection, kind, params)
+            self.json(HTTPStatus.OK, result)
+        except (ValueError, TypeError) as error:
+            self.json(HTTPStatus.BAD_REQUEST, {"error": str(error)})
+        except LookupError as error:
+            self.json(HTTPStatus.NOT_FOUND, {"error": str(error)})
+        except psycopg.errors.UniqueViolation:
+            error = ("This supplier already uses that ID." if kind == "products"
+                     else "A company with this name already exists in this catalogue. Check Archived as well.")
+            self.json(HTTPStatus.CONFLICT, {"error": error})
+        except psycopg.Error as error:
+            self.log_error("Catalogue request failed (%s)", type(error).__name__)
+            self.json(HTTPStatus.SERVICE_UNAVAILABLE, {"error": "The catalogue is temporarily unavailable."})
+        except (BrokenPipeError, ConnectionResetError):
+            pass
 
     def redirect(self, location):
         self.send_response(HTTPStatus.FOUND)
@@ -432,7 +479,7 @@ class BrowserHandler(BaseHTTPRequestHandler):
     def workspace_request(self, request, write):
         """Shared workspace sync: GET/POST state, GET/POST file, POST file-delete."""
         path = request.path.removeprefix("/api/workspace/")
-        operations = {"state", "file", "file-delete", "catalogue"} if write else {"state", "file", "catalogue"}
+        operations = {"state", "file", "file-delete", "catalogue", "analysis"} if write else {"state", "file", "catalogue", "analysis"}
         if path not in operations:
             self.json(HTTPStatus.NOT_FOUND, {"error": "Action not found"})
             return
@@ -440,7 +487,7 @@ class BrowserHandler(BaseHTTPRequestHandler):
             params = {key: value[-1] for key, value in parse_qs(request.query, max_num_fields=4).items()}
             content = None
             if write:
-                limit = {"file": MAX_FILE_BYTES, "catalogue": 1024}.get(path, workspace.MAX_STATE_BYTES)
+                limit = {"file": MAX_FILE_BYTES, "catalogue": 1024, "analysis": 16 * 1024 * 1024}.get(path, workspace.MAX_STATE_BYTES)
                 length = int(self.headers.get("Content-Length", 0))
                 if not 0 < length <= limit:
                     self.json(HTTPStatus.REQUEST_ENTITY_TOO_LARGE, {"error": "The request is empty or too large."})
@@ -452,6 +499,10 @@ class BrowserHandler(BaseHTTPRequestHandler):
                 payload = json.loads(content)
                 if not isinstance(payload, dict):
                     raise ValueError("Invalid request body.")
+            if path == "analysis" and (not write or "original" not in params):
+                response = workspace_analysis.run(payload) if write else workspace_analysis.options()
+                self.json(HTTPStatus.OK, response)
+                return
             with psycopg.connect("", autocommit=True, row_factory=dict_row, connect_timeout=3,
                                  options="-c statement_timeout=30000") as connection:
                 if path == "state" and write:
@@ -469,6 +520,11 @@ class BrowserHandler(BaseHTTPRequestHandler):
                     response = workspace_catalogue.status(connection, workspace.WORKSPACE,
                                                           workspace.record_id(params.get("id")), start=write,
                                                           retry=write and payload.get("retry") is True)
+                elif path == "analysis":
+                    response = workspace_analysis.run(
+                        payload, connection, workspace.WORKSPACE, workspace.record_id(params.get("id")),
+                        workspace.file_id(params["original"]),
+                    )
                 else:
                     response = workspace.delete_files(connection, payload)
             self.json(HTTPStatus.OK, response)
