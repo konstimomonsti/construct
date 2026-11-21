@@ -1,4 +1,4 @@
-import { Fragment, useState } from 'react'
+import { useState } from 'react'
 import { Button, Icon } from './ui'
 import { MetaLink } from './Kit'
 import type { Position } from '../lib/types'
@@ -97,14 +97,16 @@ export function CatalogueOverview({ report, error, retryFailed, positions, onOpe
       !report || report.state === 'queued' || report.state === 'unstarted' ? 'Matching positions to the catalogue…' :
         pending ? `Catalogue research: ${pending} positions in progress` :
           report.web_research === false ? 'Catalogue matching complete' : 'Catalogue research')
-    // once results are in, the icon names the group and the counts speak for themselves: the status row stays on one line
+    // once results are in, the row label names the group and the counts speak for themselves
     const quiet = ready && links.length > 0
     return (
-      <span className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
-        <span title={quiet ? 'Catalogue research' : undefined} className="inline-flex"><Icon name="inventory_2" size={16} className="text-slate-500" /></span>
-        <span role="status" className={quiet ? 'sr-only' : undefined}>{label}</span>
-        {links.map((l, i) => <Fragment key={i}>{(i > 0 || !quiet) && <span aria-hidden>·</span>}{l}</Fragment>)}
-        {ready && !links.length && !rows.some(({ item }) => hideMatched?.has(item.id)) && <span>· nothing found</span>}
+      <span className="flex flex-wrap items-center gap-x-1 gap-y-1">
+        <span className="inline-flex w-[5.5rem] shrink-0 items-center gap-1.5 text-[13px] font-medium text-slate-500">
+          <Icon name="inventory_2" size={16} />Catalogue
+        </span>
+        <span role="status" className={quiet ? 'sr-only' : 'px-2'}>{label}</span>
+        {links}
+        {ready && !links.length && !rows.some(({ item }) => hideMatched?.has(item.id)) && <span className="px-2">Nothing found</span>}
         {(error || report?.state === 'failed' || count('failed') > 0) &&
           <Button size="sm" onClick={() => void retryFailed()}>Retry</Button>}
       </span>
