@@ -18,6 +18,7 @@ PREVIOUS = re.compile(r"\bwie\s+(?:vor\b|vorstehend\w*|Position\s+zuletzt\b)", r
 SIZE = re.compile(rf"\b{NUMBER}\s*(?:mm|cm|m)?\s*[x×/]\s*{NUMBER}\s*(?:mm|cm|m)\b", re.I)
 SKIP_ATTRIBUTE = re.compile(r"\b(?:abbruch\w*|abbrechen|demont\w*|ausbauen|rückbau\w*|entfernen|"
                             r"zulage\w*|zul\.|messung\w*|\w*prüfung\w*|repar\w*|markieren|anbohren|dämmstoffdübel\w*)", re.I)
+INCLUDED_CLAUSE = re.compile(r"\b(?:einschlie(?:ß|ss)lich|einschl\.|inkl\.|inklusive|zuzüglich|sowie)\b[^.;\n]*", re.I)
 FAMILY_DE = {"concrete": "Betonfestigkeitsklasse", "DN": "Nennweite", "fire": "Feuerwiderstand",
              "IP": "IP-Schutzart", "board": "Plattentyp", "length": "Länge in cm", "thickness": "Dicke in cm"}
 ATTRIBUTE_DE = {"DN or size": "Nennweite bzw. Abmessung", "cable cross-section": "Kabelquerschnitt",
@@ -63,7 +64,9 @@ def unclear_dimension(ctx):
       title="Short and long text disagree", description="Disjoint values in DN, concrete, fire, IP, board, labelled length or thickness; DN is informational.")
 def value_conflict(ctx):
     for line in ctx.input.lines:
-        short, long = values(line.short_text or ""), values(line.long_text or "")
+        # Values inside "einschließlich …" clauses belong to an included component (a blinding layer, an edge
+        # strip), not to the item the short text names.
+        short, long = values(line.short_text or ""), values(INCLUDED_CLAUSE.sub(" ", line.long_text or ""))
         for family in short:
             if short[family] and long[family] and short[family].isdisjoint(long[family]):
                 yield ctx.finding(line=line, field="long_text", discriminator=family,

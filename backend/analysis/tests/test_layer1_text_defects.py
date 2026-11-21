@@ -81,3 +81,10 @@ def test_person_redactions_and_internal_component_references():
     assert selected("SPEC_PLACEHOLDER", "Kontakt [PERSON_123] in [ORT_30]") == []
     assert selected("REFERENCE_UNRESOLVED", "Belüftungsanlage", "Mit Untergestell und Luftverteilsystem wie vor beschrieben") == []
     assert selected("SPEC_PLACEHOLDER", "Hydrant", "Fabrikat Erhard oder gleichwertig Fabrikat:........") == []
+
+
+def test_values_in_included_clauses_are_not_conflicts():
+    short = "Bodenplatte aus Stahlbeton C30/37, d = 30 cm"
+    long = "Bodenplatte herstellen. Einschließlich Sauberkeitsschicht aus Beton C8/10, d = 10 cm."
+    assert not selected("VALUE_CONFLICT", short, long)
+    assert selected("VALUE_CONFLICT", short, "Bodenplatte herstellen, d = 25 cm.")
