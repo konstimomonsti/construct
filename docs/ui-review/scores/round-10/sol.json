@@ -1,0 +1,293 @@
+{
+  "member": "sol",
+  "screens": {
+    "S1": {
+      "scores": {
+        "hierarchy": 9,
+        "density": 8,
+        "typography": 9,
+        "consistency": 8,
+        "clarity": 7,
+        "interaction": 8,
+        "accessibility": 8,
+        "responsive": 8,
+        "wise": 8
+      },
+      "issues": [
+        "[Density] Tighten the gap from the hero to Projects and reduce desktop project row padding so more of the portfolio fits in the first viewport.",
+        "[Consistency] Stop repeating “Not priced” across the two right-hand lines of an unpriced row. Pair it with a position count when available, as on the training-centre row.",
+        "[Clarity] Reconcile the hero’s priced-project count with the Projects scope, including sub-projects, and distinguish empty projects from projects with unpriced lists.",
+        "[Interaction, Responsive] Keep “Import” and “Sort” visible on phones. Put secondary creation and bulk actions in a labeled menu if space is tight.",
+        "[Accessibility] Give the project budget mini-meter a boundary or fill/track pair with at least 3:1 contrast in light mode.",
+        "[Wise] Make the hero’s attention count open the Needs attention filter and move focus to the filtered project list."
+      ]
+    },
+    "S2": {
+      "scores": {
+        "hierarchy": 9,
+        "density": 9,
+        "typography": 9,
+        "consistency": 8,
+        "clarity": 8,
+        "interaction": 8,
+        "accessibility": 9,
+        "responsive": 7,
+        "wise": 8
+      },
+      "issues": [
+        "[Consistency] Use the same warning icon and semantic colour tokens for the list-cap mismatch as for other budget warnings.",
+        "[Clarity] Name the budget figure “Project cap” in the hero and explicitly say that the 100.000 € overage comes from allocated list caps.",
+        "[Interaction] Put a visible “Edit cap” action beside the list-cap warning so the resolution is discoverable without finding the dotted amount.",
+        "[Responsive, Wise] Keep the list-cap mismatch in the phone hero and let it wrap below the status badge. The shared summary currently hides it below 640px."
+      ]
+    },
+    "S3": {
+      "scores": {
+        "hierarchy": 8,
+        "density": 7,
+        "typography": 8,
+        "consistency": 8,
+        "clarity": 7,
+        "interaction": 7,
+        "accessibility": 7,
+        "responsive": 7,
+        "wise": 7
+      },
+      "issues": [
+        "[Hierarchy, Density] Put position search and one labeled “View options” menu next to the ledger, group Sort and Select inside that menu on phones, and tighten the four stacked control bands.",
+        "[Typography] Reduce the width and weight of section subtotals on phones and let the section titles wrap before the subtotal forces a narrow text column.",
+        "[Consistency] Use one shared toggle for each condition. Keep the quantity, unpriced and edited filter chips next to the other ledger filters and let the summary links set those same chips.",
+        "[Clarity] Display a priced zero-quantity position total as “0,00” under GP and label the filter “Zero quantity” so a dash cannot be mistaken for missing data.",
+        "[Interaction, Wise] Give EP cells a persistent edit affordance. Keep an invalid entry open with an inline error and return focus to the EP cell after keyboard save or cancel.",
+        "[Accessibility] Replace colour-only edit dots with a compact icon and accessible text identifying which value changed, especially in the mobile row where one dot covers both quantity and EP.",
+        "[Responsive] On narrow rows, put the section subtotal on its own line when needed and cap nested indentation so the full section label and editable quantity/EP fit at 320–390px."
+      ]
+    },
+    "S4": {
+      "scores": {
+        "hierarchy": 9,
+        "density": 8,
+        "typography": 9,
+        "consistency": 8,
+        "clarity": 8,
+        "interaction": 7,
+        "accessibility": 7,
+        "responsive": 8,
+        "wise": 8
+      },
+      "issues": [
+        "[Density] Let the read-only Langtext use the full text column. Put its edit button beside the label instead of reserving a right gutter through every paragraph.",
+        "[Consistency, Interaction] Give OZ, Kurztext and Langtext the same visible edit affordance and show which action saves without requiring the user to discover save on blur.",
+        "[Clarity] Name the drawer’s chrome in English and keep GAEB terms as aliases where they aid recognition. Use “Edit description” for Langtext and “Change category” for the breadcrumb action.",
+        "[Accessibility] Keep single-letter j/k navigation scoped to focus on the drawer navigation controls, or provide a way to turn it off. Preserve the logical focus position when a position changes.",
+        "[Responsive] Remove the mobile drag handle or make it dismiss the sheet, and cap the editable OZ width so long codes wrap or scroll without pushing Kurztext out.",
+        "[Wise] Show what changed and provide a keyboard-reachable Undo beside the saved field so repeated edits can be verified without scrolling to the footer."
+      ]
+    },
+    "S5": {
+      "scores": {
+        "hierarchy": 9,
+        "density": 8,
+        "typography": 9,
+        "consistency": 9,
+        "clarity": 7,
+        "interaction": 8,
+        "accessibility": 8,
+        "responsive": 8,
+        "wise": 8
+      },
+      "issues": [
+        "[Density] Replace the separate “Measured against each list’s own cap” line with a concise hero label and reclaim the vertical gap ahead of the budget rows.",
+        "[Clarity] Explicitly label the hero denominator “Sum of list caps” and exclude lists under archived ancestor projects, matching the archive scope used in All Projects.",
+        "[Interaction] Make the attention summary jump to the filtered budget rows and preserve the chosen sort.",
+        "[Accessibility] Give the budget mini-meter a 3:1 fill/track boundary in light mode, with the text percentage preserved.",
+        "[Responsive] Keep the cap amount readable beside each row percentage on phones. Wrap it below the amount where necessary.",
+        "[Wise] Show remaining headroom in euros on the budget row, including an “over by” amount when applicable, so the estimator can prioritize without opening each list."
+      ]
+    },
+    "S6": {
+      "scores": {
+        "hierarchy": 9,
+        "density": 8,
+        "typography": 9,
+        "consistency": 9,
+        "clarity": 9,
+        "interaction": 8,
+        "accessibility": 8,
+        "responsive": 9,
+        "wise": 8
+      },
+      "issues": [
+        "[Density, Wise] Use the shared compact empty-state spacing for Archived so the return action sits closer to the explanation.",
+        "[Interaction] Give populated archive rows a visible “Restore” action beside the project name. The current restore command is in a menu that only appears on hover or focus on desktop.",
+        "[Accessibility] After restoring an archived project, move focus to the next archive row or to the empty state’s return link when the archive becomes empty."
+      ]
+    },
+    "S7": {
+      "scores": {
+        "hierarchy": 9,
+        "density": 8,
+        "typography": 9,
+        "consistency": 8,
+        "clarity": 8,
+        "interaction": 9,
+        "accessibility": 8,
+        "responsive": 7,
+        "wise": 8
+      },
+      "issues": [
+        "[Density, Wise] Use compact empty-state spacing and reduce the gap between the explanation and the return link.",
+        "[Consistency] Use the shared row spacing and title treatment in populated Trash. Align the Restore and permanent-delete controls to the row action area.",
+        "[Clarity] Show the parent project on deleted list rows in a distinct line when needed, so the source is readable even when the row also shows a phase and deletion date.",
+        "[Accessibility] After restore or permanent deletion, focus the next available row action or the empty state’s return link.",
+        "[Responsive] Wrap the Restore and Delete forever action group below the content at narrow widths without its 60px left inset. Let long names wrap to two lines."
+      ]
+    },
+    "S8": {
+      "scores": {
+        "hierarchy": 9,
+        "density": 8,
+        "typography": 9,
+        "consistency": 9,
+        "clarity": 7,
+        "interaction": 7,
+        "accessibility": 7,
+        "responsive": 7,
+        "wise": 7
+      },
+      "issues": [
+        "[Density] Reduce result icon tiles and vertical padding on desktop so more than three title matches and the next group’s expansion affordance fit at 900px height.",
+        "[Clarity] Change “Show 47 more positions” under “Positions 106” to “Show first 50 of 106,” and show how to reach the remaining matches.",
+        "[Interaction, Wise] Replace the hard 50-position cap with keyboard-operable pagination or a virtualized list that keeps the active match in view.",
+        "[Accessibility] Capture the invoking element before opening the palette and restore it on dismissal after the panel leaves. Give the search field its own visible keyboard focus treatment when Tab cycles.",
+        "[Responsive] Give the mobile query input min-width: 0, constrain the sheet to the keyboard-adjusted viewport, and put long position prices below result titles instead of consuming the title column."
+      ]
+    },
+    "S9": {
+      "scores": {
+        "hierarchy": 9,
+        "density": 8,
+        "typography": 9,
+        "consistency": 9,
+        "clarity": 9,
+        "interaction": 8,
+        "accessibility": 9,
+        "responsive": 9,
+        "wise": 8
+      },
+      "issues": [
+        "[Density, Wise] Reduce the drop panel’s 64px vertical padding on desktop and keep the accepted file formats close to Import files.",
+        "[Interaction] Make the drop-zone icon and heading area a labeled file-picker target. Keep New list as a separate action and retain the explicit Import files button."
+      ]
+    },
+    "S10": {
+      "scores": {
+        "hierarchy": 9,
+        "density": 7,
+        "typography": 9,
+        "consistency": 8,
+        "clarity": 6,
+        "interaction": 7,
+        "accessibility": 7,
+        "responsive": 8,
+        "wise": 7
+      },
+      "issues": [
+        "[Density] Use a compact product row at desktop widths, retaining the second line for real supplier or item metadata.",
+        "[Consistency] Replace the repeated Active chip and Active section heading with a single result heading and count, aligned with the shared catalogue toolbar.",
+        "[Clarity] Include a stable discriminator on same-name, same-category rows such as the repeated “Abdeckung, PE-Folie, 0,2 mm”. Use SKU, supplier or source list and OZ when available and a stable record identifier otherwise.",
+        "[Interaction] Make edit and archive visible in the product row action area, and keep pagination controls reachable without scrolling through the entire current page.",
+        "[Accessibility] Include the discriminating metadata in the edit button’s accessible name so same-name products are distinguishable in a controls list.",
+        "[Responsive] Let item metadata wrap and reserve a full-width mobile line when the amount, price date and unit cannot fit side by side.",
+        "[Wise] Keep existing results visible while search refreshes and report the new count in place. The catalogue currently swaps the entire list out for a loading skeleton on each query change."
+      ]
+    },
+    "S11": {
+      "scores": {
+        "hierarchy": 9,
+        "density": 9,
+        "typography": 9,
+        "consistency": 8,
+        "clarity": 8,
+        "interaction": 7,
+        "accessibility": 8,
+        "responsive": 8,
+        "wise": 8
+      },
+      "issues": [
+        "[Consistency, Interaction] Make “17 products” a visibly styled link and keep a separate, visible Edit supplier action. Remove View products from the overflow once the link is available.",
+        "[Clarity] Show the supplier’s actual name in the Products filter chip on arrival from this row, replacing “One supplier”.",
+        "[Accessibility] Include useful row metadata such as missing contact details in the supplier edit control’s accessible description.",
+        "[Responsive] On narrow screens, give the product link its own labeled, full-height line with enough room to keep the company name readable.",
+        "[Wise] Keep the supplier’s filtered products linked through a named breadcrumb back to that supplier so switching between the two catalogue views keeps context."
+      ]
+    },
+    "S12": {
+      "scores": {
+        "hierarchy": 9,
+        "density": 8,
+        "typography": 9,
+        "consistency": 9,
+        "clarity": 8,
+        "interaction": 9,
+        "accessibility": 9,
+        "responsive": 9,
+        "wise": 8
+      },
+      "issues": [
+        "[Density, Wise] Use compact empty-state padding so Add subcontractor and Show archived sit closer to the heading.",
+        "[Clarity] Remove the repeated hiring explanation or use that line to name the information people need to add, such as trade and contact details."
+      ]
+    },
+    "S13": {
+      "scores": {
+        "hierarchy": 9,
+        "density": 8,
+        "typography": 9,
+        "consistency": 8,
+        "clarity": 7,
+        "interaction": 7,
+        "accessibility": 7,
+        "responsive": 7,
+        "wise": 8
+      },
+      "issues": [
+        "[Density] Collapse the optional Price field group behind “Add price” for unpriced products and show its date field only after a price is being added.",
+        "[Consistency, Clarity] Mark required fields explicitly, including Product name, Category and Description. Label the optional price state “No price set” instead of using a 0,00 placeholder that looks like a stored price.",
+        "[Interaction] Use a date control or format-assisted input that lets users enter the effective date from a numeric keyboard. Validate the actual calendar date and show errors beside it.",
+        "[Accessibility] Raise the price and unit placeholder contrast to at least 4.5:1 in light mode and associate field hints and validation errors using aria-describedby. Correct the dialog’s initial focus order so the Close button cannot steal focus from Product name.",
+        "[Responsive] Give the sheet a max height tied to the visible viewport, make only its body scroll, and keep Save and Cancel above the keyboard and safe area.",
+        "[Wise] Before saving a price change, show a one-line preview with the new amount, unit and effective date alongside the current quote."
+      ]
+    },
+    "S14": {
+      "scores": {
+        "hierarchy": 6,
+        "density": 6,
+        "typography": 8,
+        "consistency": 7,
+        "clarity": 6,
+        "interaction": 6,
+        "accessibility": 7,
+        "responsive": 6,
+        "wise": 6
+      },
+      "issues": [
+        "[Hierarchy] Put an “Upload check” summary with an actionable flagged-position count above the ledger controls. In the drawer, keep the position total and findings count visible next to the position title.",
+        "[Density] Show warning titles and one next step per finding. Collapse the repeated rationale and no-evidence research message behind expandable details.",
+        "[Typography] Set warning body and detail copy in distinct text treatments, with shorter lines and spacing that separates the action from the evidence.",
+        "[Consistency] Use “Upload check” for the same workflow in the list toolbar, position rows and drawer. Keep Catalogue research separate whenever it appears beside upload warnings.",
+        "[Clarity] Label toolbar numbers as flagged positions and drawer numbers as findings. Replace “heuristic complement” and “new BOM version” with the specific scope or quantity to verify, and remove instructions for an Accept action that the drawer does not offer.",
+        "[Interaction, Wise] Make the flagged count open the first flagged row and add next/previous finding navigation. Keep Mark reviewed in context and move focus to the next pending finding after review.",
+        "[Accessibility] When a row warning opens the drawer, focus its finding heading first and provide a labeled control to jump to the affected field. The current field focus can scroll the finding out of view.",
+        "[Responsive] Keep a compact findings count and review action within the phone sheet’s initial viewport, and put the long explanations and research details behind disclosures."
+      ]
+    }
+  },
+  "global_issues": [
+    "Keep budget scope, exceptions and cap amounts available on phones. The shared hero currently hides notes and the shared row hides the cap amount.",
+    "Give shared desktop rows a visible entry or action cue at rest, and keep visible text on consequential mobile actions.",
+    "Check contrast on themed control boundaries and muted text over their actual surfaces, especially light-mode mini-meters and editor placeholders.",
+    "Use the same scope for portfolio counts and totals across nested, archived and trashed projects, and state whether a cap is at project or list level."
+  ]
+}

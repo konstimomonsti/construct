@@ -1,0 +1,96 @@
+{
+  "member": "estimator",
+  "screens": {
+    "S1": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 8, "consistency": 8, "clarity": 7, "interaction": 8, "accessibility": 8, "responsive": 7, "wise": 8},
+      "issues": [
+        "Unpriced project rows (Ausbildungszentrum und Bürogebäude, 27 lists; Tiefbau und Verlegung) show only 'Not priced yet' in the amount column, so there is no sense of how much pricing work is left. In FolderRow, when f.total is 0, show the progress instead: '0 of 1.203 positions priced' as the meta line, with an empty BudgetMini-style bar.",
+        "The hero only covers priced projects ('Total across projects 2.939.333 €'), and nothing in it says that 2 of 6 projects aren't in that number yet. Next to '1 project near its cap', add a second link, '2 projects not priced yet', that filters the list to them (a 'Not priced' chip beside 'Needs attention').",
+        "Mobile (11): rows stack inconsistently. Fernleitung puts the amount and 'Near cap · 75% of 2.000.000 €' on two lines, while Ringschluss puts '897.305 €  60% of 1.500.000 €' on one line. Always put the amount on its own line with the status/% line under it, so the amounts align down the list.",
+        "Mobile rows drop the cap progress bar that desktop rows have. Add a slim 48px BudgetMini bar after the '% of cap' text on <640px so the budget signal can still be read at a glance.",
+        "Mobile subtitles truncate the useful part ('Projekt 2024-001 · Angebot…'). On <640px show only the project number and list count ('2 lists · 2024-001'), or allow a 2-line clamp."
+      ]
+    },
+    "S2": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 7, "consistency": 7, "clarity": 8, "interaction": 7, "accessibility": 8, "responsive": 7, "wise": 8},
+      "issues": [
+        "Money precision is mixed on one screen: the hero says '1.505.036 €' (whole euros) and the list rows say '988.913,89 €' / '516.122,50 €' (cents), so the rows don't visibly add up to the hero. Use cents everywhere on the project page, or whole euros in both hero and rows, with cents only inside the list.",
+        "The two list caps (1.500.000 € + 600.000 € = 2.100.000 €) exceed the project cap (2.000.000 €), and nothing says so. Show a quiet note under the hero ('List caps add up to 2.100.000 €, 100.000 € more than the project cap') or warn in the cap dialog.",
+        "'314 positions, all priced' is plain text. When some are unpriced, the FolderPage hero renders 'n still to price' as non-clickable bold text. Make it a link to the first list with unpriced positions, opened with the 'Not priced' filter on (as on the list page).",
+        "The Documents rows say 'Linked to Angebot AN24-0305.D84', which is the file name, while the list row above is titled 'Angebot AN24-0305'. Link with the list title as shown in Lists, and replace the bare 'PDF' subtitle with 'PDF · 2,1 MB · 12.03.24' so estimators can tell document versions apart.",
+        "'LV-Positionen nach Aufmaß-Gruppen' has no phase label, so its subtitle falls back to 'LV-Positionen.docx · 40 positions'. Give non-GAEB imports a source label instead of the file name ('Word import · 40 positions') so the column reads consistently with 'Bid · D84 · 274 positions'.",
+        "No mobile capture. The list rows share the S1 row component, so apply the same mobile stacking fix (amount on its own line, % line under it, slim bar)."
+      ]
+    },
+    "S3": {
+      "scores": {"hierarchy": 8, "density": 7, "typography": 8, "consistency": 7, "clarity": 7, "interaction": 7, "accessibility": 7, "responsive": 6, "wise": 8},
+      "issues": [
+        "The Menge column has no resting edit cue. editableCls relies on a dashed text-decoration underline, which browsers don't paint on <input> values, so '1', '200', '10' look like plain text while EP shows the dashed underline. Give QtyInput a real cue: a dashed border-bottom (border-b border-dashed border-slate-400) or a faint bg-slate-50 field fill.",
+        "Titel (category) header rows still drop the OZ ('Baustelleneinrichtung und Dokumentation', 'Nachtrag 4'). Render the leaf OZ before the label in the group <th> ('1.1  Baustelleneinrichtung und Dokumentation', '8.4  Nachtrag 4'), the same way the drawer's Kategorie card already does.",
+        "Nachtrag positions 8.3.x–8.6.x have Menge 0, a blank Einheit and GP 0,00 €, but they count as priced ('197 positions, all priced'), and the Titel subtotals read 0,00 €. Mark zero-quantity rows (muted row plus a 'Menge 0' tag or '—' in GP), count them separately in the hero ('12 with Menge 0'), and add them to the filter chips, so an estimator sees they aren't ordered rather than assuming they're priced in.",
+        "At the top of the page the sticky footer ('List total 536.991,65 € · 67% of cap · On track') repeats the hero, which is fully visible on the same screen (03). Show the footer only after the hero scrolls out of view (IntersectionObserver on the Summary).",
+        "No list-level edit summary. Edited cells get a 6px dot, but there is no count or bulk reset. Add 'n positions edited · Reset all' to the hero meta when editedIds.size > 0, and add an 'Edited (n)' filter chip next to 'Not priced'.",
+        "Mobile (12): the hero, search and filters take the whole first screen, and the first position starts near the bottom. On <640px use a compact hero (amount + bar + one meta line, actions in ⋯) and put search and Categories/Sort on one row.",
+        "Mobile (12): every row shows a checkbox even when nothing is selected. The xl:opacity-0 rule only hides it on desktop. Hide checkboxes below xl until select mode is entered (long-press or a 'Select' button), and give the space to the Kurztext.",
+        "Mobile (12): the Titel header still truncates ('Baustelleneinrichtung und Dokumenta…'). Allow 2 lines in the group header on <640px (replace 'block truncate' with line-clamp-2).",
+        "The list is titled '[ORT_024] LV24069' here, but the same list appears as 'Maschinentechnik - Anlagenbau' on Active Budgets and in tabs and search. Use one display name rule (the heading/sameAsFolder logic) everywhere a list is named."
+      ]
+    },
+    "S4": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 8, "consistency": 7, "clarity": 7, "interaction": 8, "accessibility": 8, "responsive": 8, "wise": 8},
+      "issues": [
+        "No original or imported values. When a position is edited, the only recovery is 'Undo my changes' in the footer. Under Menge and EP show 'Imported: 1 psch × 5.700,00 €' in muted text, so the estimator sees what changed against the tender before resetting.",
+        "Einheit is still a full free-text input with the same weight as Menge and EP. Units come from the LV, so render it as read-only text next to Menge (editable from the ⋯ menu or an 'Edit' link) and give the width to EP.",
+        "The Kategorie card's second line 'Baustelleneinrichtung - Montagepläne - I' reads like a truncated string. Prefix each path segment with its OZ ('1 Baustelleneinrichtung - Montagepläne - I › 1.1'), or drop the line when the parent label adds nothing.",
+        "The list-total line says '67% of cap · On track' but not the headroom. Add the remaining amount ('263.008 € left'), since that is the number an estimator watches while changing an EP.",
+        "'OZ 1.1.1' sits as a small muted line above the title. Put the OZ inline before the title in the h2 (muted, tabular), which saves a line and matches the table."
+      ]
+    },
+    "S5": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 8, "consistency": 7, "clarity": 7, "interaction": 8, "accessibility": 8, "responsive": 7, "wise": 8},
+      "issues": [
+        "Row subtitles repeat the title. 'Maschinentechnik - Anlagenbau' has the subtitle 'Maschinentechnik – Anlagenbau · Award · D86', and 'RINGSCHLUSS BRUNNENWASSER, [PERSON_132]' has 'Ringschluss Brunnenwasser · …'. When the list title equals the project name, title the row with the LV name/file stem (as the list page does: '[ORT_024] LV24069') and keep the project in the subtitle.",
+        "The hero measures against project caps (4.300.000 €), but the rows show list caps that add up to 4.400.000 €. Label the rows' caps as 'list cap', or show the project cap in the hero meta as 'of 4.300.000 € project caps (list caps 4.400.000 €)', so the two numbers don't look contradictory.",
+        "Rows don't say whether a list is complete. Add 'all priced' or 'n to price' to every row subtitle (right now it only appears when unpriced > 0), so an 'active budget' is visibly final.",
+        "No mobile capture. These rows use the same component as S1, so apply the same mobile stacking fix (amount on its own line, status and % under it, slim bar)."
+      ]
+    },
+    "S6": {
+      "scores": {"hierarchy": 9, "density": 9, "typography": 9, "consistency": 9, "clarity": 9, "interaction": 9, "accessibility": 9, "responsive": 9, "wise": 9},
+      "issues": []
+    },
+    "S7": {
+      "scores": {"hierarchy": 9, "density": 9, "typography": 9, "consistency": 9, "clarity": 8, "interaction": 9, "accessibility": 9, "responsive": 9, "wise": 9},
+      "issues": [
+        "Say that single positions removed inside a list aren't kept here. Add to the empty-state body: 'Removed positions are restored with Undo in their list.' Then nobody looks for a deleted Titel or position in Trash."
+      ]
+    },
+    "S8": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 8, "consistency": 8, "clarity": 7, "interaction": 8, "accessibility": 8, "responsive": 8, "wise": 8},
+      "issues": [
+        "Position results show only 'OZ 1.1.70 · Rohbau', with no list or project and no price. Use 'OZ 1.1.70 · Rohbau · <list name>' as the subtitle and put the EP/GP right-aligned, so Beton positions can be compared across LVs without opening each one.",
+        "Positions, the group estimators search most for terms like 'Beton', still come last, and only 1 of 8 fits above the fold. Rank groups by match quality, or show up to 3 positions before Lists when the query matches position Kurztexte.",
+        "List results show project and file name but no total or status. Add the list total right-aligned (like the amount column on rows) so you can pick the priced LV without opening it.",
+        "Footer hints '↑↓ to move' and '↵ to open' are plain glyphs while 'Esc' is a kbd chip. Render ↑, ↓ and ↵ in the same chip style.",
+        "The project 'Bachdurchlass Neppen' matches through 'Stahlbetonrohre' in its subtitle, but the subtitle isn't highlighted. Apply the same match highlight to subtitles."
+      ]
+    },
+    "S9": {
+      "scores": {"hierarchy": 9, "density": 9, "typography": 8, "consistency": 9, "clarity": 8, "interaction": 9, "accessibility": 8, "responsive": 9, "wise": 9},
+      "issues": [
+        "The formats line 'GAEB (X81–X86, D81–D86), CSV, JSON or PDF' doesn't say which format works best. Add 'GAEB keeps OZ, Titel and Langtext' (or 'best: GAEB'), so estimators upload the X83/X86 file rather than the PDF printout.",
+        "'Set a budget cap' is a bare 14px text link with a small hit area and no icon, sitting below the format note where it is easy to miss. Give it an h-10 rounded-full ghost-button hit area (with a small 'savings' icon) and place it directly under the two action buttons.",
+        "'Drop tender files or price sheets' mixes terms ('tender files', 'price sheets', 'list', 'LV'). Use one wording, e.g. 'Drop GAEB or price files anywhere on this page'."
+      ]
+    }
+  },
+  "global_issues": [
+    "Zero-quantity positions (Nachträge with Menge 0, blank Einheit, GP 0,00 €) count as priced in every 'all priced' figure. Treat Menge 0 as its own state (muted row, tag, separate count), or 'all priced' overstates completeness.",
+    "A list's display name differs between screens ('[ORT_024] LV24069' on the list page vs 'Maschinentechnik - Anlagenbau' on Active Budgets and in search). Move the heading/sameAsFolder rule into a shared listDisplayName() and use it in ListRow, tabs, the palette and breadcrumbs.",
+    "The Menge resting cue is invisible on desktop and mobile because text-decoration underlines don't render inside <input>. Switch editableCls to a dashed border-bottom or a subtle fill so Menge and EP look equally editable.",
+    "Titel group headers in the ledger omit the OZ. Show the leaf OZ everywhere a Titel is named (ledger group rows, category filter, drawer path).",
+    "Cap hierarchy isn't checked: list caps can add up to more than the project cap (Fernleitung 2,1 Mio. vs 2,0 Mio.) without warning, and Active Budgets mixes project caps in the hero with list caps in the rows. Validate and label the cap levels.",
+    "Money precision varies within one screen (whole euros in the project hero, cents in the list rows). Pick one precision per screen.",
+    "Mobile: the list hero takes the whole first screen, checkboxes always show, and Titel headers truncate. Make the hero compact on <640px and hide selection checkboxes until select mode."
+  ]
+}

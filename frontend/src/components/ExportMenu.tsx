@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Icon, Menu, toast, type MenuItem } from './ui'
+import { Button, Menu, toast, type MenuItem } from './ui'
 import { ExportDialog } from './ExportDialog'
 import { useStore } from '../lib/store'
 import { resolveList } from '../lib/resolve'
@@ -46,10 +46,9 @@ export function ExportMenu({ listId, doc, selectedIds, original }: { listId: str
         width="w-64"
         items={items}
         trigger={(p) => (
-          <button {...p} type="button" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-medium shadow-xs">
-            <Icon name="file_download" size={15} className="text-slate-500" />
-            Export
-          </button>
+          <Button {...p} icon="download" className="max-sm:w-10 max-sm:px-0">
+            <span className="max-sm:sr-only">Export{selectedIds?.length ? ` ${selectedIds.length}` : ''}</span>
+          </Button>
         )}
       />
       {dialog && <ExportDialog open onClose={() => setDialog(null)} listId={listId} doc={doc} original={original} selectedIds={selectedIds} initial={dialog} />}

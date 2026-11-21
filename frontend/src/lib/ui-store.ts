@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import type { DocMeta } from './types'
 
 export type DialogState =
-  | { kind: 'new-folder'; parent?: string }
+  | { kind: 'new-folder'; parent?: string; name?: string }
   | { kind: 'rename-folder'; id: string }
   | { kind: 'rename-list'; id: string }
   | { kind: 'doc'; doc: DocMeta }
@@ -12,6 +12,7 @@ export type DialogState =
   | { kind: 'folder-target'; action: 'move-document'; docId: string }
   | { kind: 'link-document'; doc: DocMeta }
   | { kind: 'blank-list'; folderId: string }
+  | { kind: 'edit-cap'; target: 'folder' | 'list'; id: string }
   | { kind: 'confirm'; title: string; body: string; confirmLabel: string; danger?: boolean; run: () => void }
   | null
 

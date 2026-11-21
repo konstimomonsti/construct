@@ -1,0 +1,84 @@
+{
+  "member": "fintech",
+  "screens": {
+    "S1": {
+      "scores": {"hierarchy": 8, "density": 7, "typography": 8, "consistency": 7, "clarity": 8, "interaction": 8, "accessibility": 8, "responsive": 7, "wise": 8},
+      "issues": [
+        "The hero has three supporting lines under the bar: the pill line, 'Measured against project caps. List caps are on Active Budgets.' and '4 of 13 projects priced'. The last one repeats the 'Not priced 4' chip. Delete '4 of 13 projects priced', and move the 'Measured against…' note into a tooltip (an info icon) on the 'Total across projects' label. The hero then ends at the pill line, as Wise's balance does.",
+        "The 'Site' row carries its status only as muted subtitle text ('1 list · 1 list almost at cap') with a calm teal 2% bar, but the hero counts it as '1 project almost at cap'. Render the same 'Almost at cap' StatusTag chip after the title that S5 uses for 'Estimate', and drop the plain-text phrase from the subtitle.",
+        "Mobile (11): the subtitles of rows without a chip are indented about 15px further than the title ('3 lists · Neubau…' starts at x≈160, the title at x≈145). It looks like an empty chip slot or a leading gap. Render the chip wrapper only when there is a chip, so the subtitle starts flush with the title.",
+        "Mobile hero: 'Measured against project caps. List caps are on Active Budgets.' wraps to two lines and pushes the actions below the fold. Hide the note below sm (or use the tooltip fix above).",
+        "The hero pill '1 project almost at cap · 1 near cap' is still a static badge. Make it a button that applies the 'Needs attention' chip and scrolls to the list, with a hover fill and a focus ring."
+      ]
+    },
+    "S2": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 9, "consistency": 8, "clarity": 8, "interaction": 8, "accessibility": 8, "responsive": 8, "wise": 8},
+      "issues": [
+        "'List caps add up to 2.100.000 €, 100.000 € over the project cap.' is a real warning (the caps are over-allocated) but it is set in the same slate-600 as neutral notes. Prefix it with the amber info icon, or make '100.000 € over' medium slate-900, so it reads as something to act on.",
+        "The row type labels mix GAEB phase and file source ('Bid' vs 'Word import'). Show the phase when there is one and the source only as a fallback, using one rule across S2, S5 and S8.",
+        "With only 2 lists, 'Select' on the right of 'Lists 2' still competes with the content. Hide Select below about 4 rows (selection stays reachable through the row checkbox on hover or focus).",
+        "The hero cap '2.000.000 €' is only marked editable by a dotted underline. Add a small pencil icon on hover or focus, or an 'Edit cap' item in the page's ⋯ menu, so the edit is discoverable."
+      ]
+    },
+    "S3": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 8, "consistency": 7, "clarity": 8, "interaction": 8, "accessibility": 8, "responsive": 7, "wise": 8},
+      "issues": [
+        "'Cost by section ⌄' shows a stray second underline segment under the chevron (x≈640–656, desktop and mobile), so the link looks broken. Make sure only the text span is underlined: check that the Icon or the button has no text-decoration or border-bottom, and add `no-underline` to the icon.",
+        "Mobile (12): a wrapped Kurztext line runs back under the OZ ('1.1.1 Baustelleneinrichtung und' / '-räumung' starts at x≈40). Put the OZ and title in a 2-column grid (OZ fixed width, title column wraps) so wrapped lines hang under the title.",
+        "Mobile rows still read like a form. The qty and EP fields are filled slate-50 boxes with a bottom rule at rest, and ⋯ sits alone at the end of the qty line. Under pointer:coarse, render qty/EP as plain text with a dotted underline that becomes an input on tap, and move ⋯ to the title line next to the GP.",
+        "Mobile: the first position starts at y≈1390 of 1690. Below sm, collapse Categories, Select and Sort into one 'Filter' button on the search field's row, and hide the '197 positions · 38 with quantity 0 · Cost by section' line behind the hero ⋯.",
+        "Desktop: 'Sort: Position order' sits alone at the far right, 340px from the other toolbar controls. Put it next to 'Select' (left group), or drop the label to 'Sort' with the current order as the menu's checked item, so the toolbar reads as one group."
+      ]
+    },
+    "S4": {
+      "scores": {"hierarchy": 9, "density": 8, "typography": 8, "consistency": 9, "clarity": 8, "interaction": 8, "accessibility": 8, "responsive": 8, "wise": 8},
+      "issues": [
+        "The GP card's label is the bare abbreviation 'GP' in slate-600. Label it 'Total (GP)', since this card is the drawer's hero number.",
+        "The Kategorie row's first line ('1 Baustelleneinrichtung - Montagepläne ›') is 13px slate-500 with a dangling '›' at the line end. Render the parent path as one muted line with the separator before the leaf ('1 Baustelleneinrichtung - Montagepläne › 1.1 …'), truncated from the left, and keep only the right chevron as the affordance.",
+        "Langtext runs under the sticky footer with a fade that cuts a line in half ('ausgehen, dass Gerüste…'). Give the scroll area bottom padding equal to the footer height, so the last line ends above the fade.",
+        "The disabled 'previous' chevron next to '1 of 197' is slate-300 and reads as a rendering glitch. Use slate-400 with `aria-disabled`, and give both chevrons a 40px hit area.",
+        "No mobile capture. Confirm that below sm the drawer becomes a full-height sheet with the GP card and the Menge/EP fields above the fold."
+      ]
+    },
+    "S5": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 8, "consistency": 8, "clarity": 7, "interaction": 8, "accessibility": 8, "responsive": 8, "wise": 8},
+      "issues": [
+        "The hero figure is 'Left in list caps 1.460.686,51 €', but the bar under it fills 67% for the amount used, and the pill line says '67% of 4.401.000 €'. Either make the hero 'Priced across lists 2.940.313,49 €' (and the line '1.460.686,51 € left'), as S1 does, or label the bar ('67% used'). Then the big number and the bar mean the same thing.",
+        "The hero has two muted notes ('Measured against each list's own cap.' and '2.940.313,49 € priced across 5 lists'). Keep one: move the priced total into the pill line and the 'measured against' note into a label tooltip.",
+        "The type label mixes phase and source ('JSON import', 'Word import', 'Award', 'Bid'). Show the GAEB phase, with the source only as a fallback, and use the same rule on S2 and S8.",
+        "'Almost at cap' (triangle) and 'Near cap' (circle) differ mainly by icon shape and a slight hue shift. Give 'Almost at cap' a clearly stronger treatment (orange-700 text on orange-50, matching its orange bar), so the two levels can be told apart at a glance."
+      ]
+    },
+    "S6": {
+      "scores": {"hierarchy": 9, "density": 9, "typography": 9, "consistency": 9, "clarity": 9, "interaction": 9, "accessibility": 9, "responsive": 9, "wise": 9},
+      "issues": []
+    },
+    "S7": {
+      "scores": {"hierarchy": 9, "density": 9, "typography": 9, "consistency": 9, "clarity": 9, "interaction": 9, "accessibility": 9, "responsive": 9, "wise": 9},
+      "issues": []
+    },
+    "S8": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 9, "consistency": 8, "clarity": 8, "interaction": 8, "accessibility": 8, "responsive": 9, "wise": 8},
+      "issues": [
+        "The group meta 'POSITIONS 104 · none priced' and 'LISTS 5 · none priced' adds noise to a search result. Drop '· none priced' from the group headers (show price state per row, if at all).",
+        "Every position row repeats the full project name in parentheses ('in Rohbau (Ausbildungszentrum und Bürogebäude)'), so each subtitle runs about 500px. Show only the list ('in Rohbau') and put the project in a tooltip, or show it once in a group subheading when all hits share the project.",
+        "The active row still has a 3px square brand bar at its left edge (x≈396) that ignores the row's rounded corners. Drop the bar and keep the brand-50 fill, or inset the bar inside the radius (rounded-full, 4px from the edge).",
+        "The Lists group shows 3 of 5 and fades into the footer, but has no 'Show all 5 lists' row like Positions has. Always render the 'Show N more' row for a group with hidden hits."
+      ]
+    },
+    "S9": {
+      "scores": {"hierarchy": 9, "density": 9, "typography": 9, "consistency": 8, "clarity": 9, "interaction": 9, "accessibility": 9, "responsive": 9, "wise": 9},
+      "issues": [
+        "The empty state (icon, 'Add your first list', buttons, supported-formats line) starts at x≈346, 34px right of the page title at x=312, while S6/S7 empty states align at x=312. Remove the drop zone's resting padding, or apply it only on dragover, so the empty state is flush with the title.",
+        "The toast's 'Created project \"Legal & Compliance\"' wraps onto two lines while the toast has spare width. Widen the toast to max-w-md, or truncate the name, so the message stays on one line beside 'Undo'."
+      ]
+    }
+  },
+  "global_issues": [
+    "Hero meta still stacks too many muted helper lines on S1, S2 and S5 (a pill line plus 1–2 notes). Wise shows one number, one status line and the actions. Cap it at the pill line plus at most one note, and move 'measured against…' explanations into a tooltip on the hero label.",
+    "Rolled-up status is shown three ways: a chip (S5 'Almost at cap'), plain muted subtitle text (S1 'Site · 1 list almost at cap') and a hero count. Use the StatusTag chip wherever a row is flagged, whether by its own cap or by a child list.",
+    "The type-label rule (GAEB phase vs import source) differs between rows on S2, S5 and S8. Define one rule: phase first, source as fallback.",
+    "Mobile cards (S1 subtitle indent, S3 hanging wrap and form-like inputs) are the main remaining gap to Wise's mobile calm. Fix the alignment bugs and render editable values as text at rest on touch.",
+    "Small craft defects remain that a premium money UI cannot carry: the stray underline under the 'Cost by section' chevron (S3), the square active bar on the rounded palette row (S8), and the 34px empty-state inset (S9)."
+  ]
+}

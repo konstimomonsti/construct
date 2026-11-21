@@ -1,0 +1,293 @@
+{
+  "member": "sol",
+  "screens": {
+    "S1": {
+      "scores": {
+        "hierarchy": 8,
+        "density": 8,
+        "typography": 9,
+        "consistency": 7,
+        "clarity": 7,
+        "interaction": 7,
+        "accessibility": 7,
+        "responsive": 7,
+        "wise": 7
+      },
+      "issues": [
+        "Put labeled Import files and New project actions below the mobile title and restore the dark upload glyph on the light primary button.",
+        "Merge the project count into the filter toolbar and reduce the gap above it so more rows fit on mobile.",
+        "Use the priced-position count to identify priced projects. Show separate portfolio counts for projects with priced positions, projects with lists awaiting prices, and projects with no lists.",
+        "Label project-cap versus list-cap warnings inline. The Site row should say which list is almost at cap beside the 2% project figure.",
+        "Expose the active sort on mobile as text and make the portfolio warning apply the Needs attention filter.",
+        "Restore focus to the sort trigger after choosing an order and announce the new order.",
+        "Keep the project-cap scope visible below the mobile meter and show each row’s cap alongside its percentage on phones."
+      ]
+    },
+    "S2": {
+      "scores": {
+        "hierarchy": 8,
+        "density": 8,
+        "typography": 9,
+        "consistency": 8,
+        "clarity": 8,
+        "interaction": 8,
+        "accessibility": 8,
+        "responsive": 6,
+        "wise": 7
+      },
+      "issues": [
+        "Place Import files and New list at the Lists heading to tie both actions to the collection they change.",
+        "Keep the list-cap warning visible below 640 px. Let it wrap under the meter and attach an Edit project cap or Review list caps action.",
+        "Label the two budget measures as project spend and allocated list caps so Near cap and the 100.000 € allocation overage read independently.",
+        "Give the cap editor a visible Edit cap label and a full-height focusable target on mobile.",
+        "Show the desktop list-row action trigger at rest and align it with the selector and other row menus."
+      ]
+    },
+    "S3": {
+      "scores": {
+        "hierarchy": 7,
+        "density": 6,
+        "typography": 7,
+        "consistency": 7,
+        "clarity": 7,
+        "interaction": 5,
+        "accessibility": 6,
+        "responsive": 5,
+        "wise": 6
+      },
+      "issues": [
+        "Fix the light Add position button so its label and plus glyph render on desktop and mobile. Add a visual regression check in both themes.",
+        "Put a compact search and filters toolbar directly above the table. Move Cost by section to the meter and bulk commands into a labeled menu so the first section starts higher on phones.",
+        "Use normal-width semibold Archivo for section labels and subtotals. Align desktop section OZ and Kurztext under their headers and let long mobile section names wrap across the row above totals.",
+        "Use labeled Sort, Select and Expand all controls on touch screens. Make the whole section row toggle expansion.",
+        "Expand OZ, EP and GP in header help and distinguish a priced zero-quantity position from an unpriced one in the filter and subtotal.",
+        "Give Kurztext buttons a persistent details affordance and add keyboard movement between rows and editable cells. Return focus to the initiating cell after editing or closing details.",
+        "Give ledger section toggles and inline quantity and price controls 44 px touch targets. Retain accessible column names in the responsive card layout.",
+        "Use a single-column mobile section header with metadata and subtotal on a second line. Allow long OZ, title and amount values to wrap independently at 320–390 px."
+      ]
+    },
+    "S4": {
+      "scores": {
+        "hierarchy": 9,
+        "density": 8,
+        "typography": 8,
+        "consistency": 8,
+        "clarity": 8,
+        "interaction": 7,
+        "accessibility": 8,
+        "responsive": 7,
+        "wise": 8
+      },
+      "issues": [
+        "Give the read-only Langtext view the full text width. Reserve pencil space in a section header and keep the last line clear of the scroll fade.",
+        "Apply the ledger’s tabular mono styling to the drawer OZ and keep the German long text language marked for pronunciation and hyphenation.",
+        "Give OZ, Kurztext and Langtext persistent edit affordances. Add a short autosave hint near the inputs so the blur-to-save behavior is discoverable before editing.",
+        "Split the quantity and unit into distinctly labeled controls with separate focus rings and a 44 px unit target.",
+        "Stack quantity and price on narrow phones and cap the OZ field width so long codes leave room for the title. Keep the focused field visible above the soft keyboard."
+      ]
+    },
+    "S5": {
+      "scores": {
+        "hierarchy": 8,
+        "density": 8,
+        "typography": 9,
+        "consistency": 8,
+        "clarity": 8,
+        "interaction": 8,
+        "accessibility": 8,
+        "responsive": 8,
+        "wise": 8
+      },
+      "issues": [
+        "Keep the six-list count in the subtitle or results toolbar and remove the repeat below the meter.",
+        "Align budget percentages and cap values as a stable comparison column. Show sortable headroom on rows so closest-to-cap results can be reconciled in euros.",
+        "Keep the list-cap scope visible on mobile and expose each row’s cap alongside its percentage.",
+        "Turn the headline alert into a labeled shortcut to the Needs attention results and keep the current sort visible on phones.",
+        "Give budget rows a trailing open affordance at rest. Restore keyboard focus to Sort after applying an order and announce it."
+      ]
+    },
+    "S6": {
+      "scores": {
+        "hierarchy": 9,
+        "density": 8,
+        "typography": 9,
+        "consistency": 8,
+        "clarity": 8,
+        "interaction": 8,
+        "accessibility": 9,
+        "responsive": 9,
+        "wise": 8
+      },
+      "issues": [
+        "Use a compact neutral empty state for Archived with the large icon and local heading. Reserve a full-width dashed frame for actual file-drop surfaces.",
+        "Name the path in the empty-state copy as “All Projects → project row → More actions → Archive” and state that Restore returns projects to budget totals.",
+        "Keep More actions visible on project rows so the archive route described on this screen is discoverable without hover."
+      ]
+    },
+    "S7": {
+      "scores": {
+        "hierarchy": 9,
+        "density": 8,
+        "typography": 9,
+        "consistency": 8,
+        "clarity": 8,
+        "interaction": 9,
+        "accessibility": 9,
+        "responsive": 8,
+        "wise": 8
+      },
+      "issues": [
+        "Use the compact neutral empty-state treatment with the large icon. Drop the oversized dashed frame around the read-only empty message.",
+        "Use the empty-state body to explain that items stay in Trash until restored or deleted permanently.",
+        "Let Restore and Delete forever wrap or stack on populated mobile rows so both labels stay inside 320 px."
+      ]
+    },
+    "S8": {
+      "scores": {
+        "hierarchy": 9,
+        "density": 7,
+        "typography": 8,
+        "consistency": 8,
+        "clarity": 7,
+        "interaction": 7,
+        "accessibility": 7,
+        "responsive": 7,
+        "wise": 7
+      },
+      "issues": [
+        "Use a smaller leading icon and shorter padding per result. Leave enough room for group context and show a scroll cue when later results are below the fold.",
+        "Put the name and OZ in clearly separated lines with the match highlighted at semibold weight and keep the useful project breadcrumb readable on mobile.",
+        "Keep palette-only shortcuts in the footer. Show / and j/k help in their respective list and drawer contexts.",
+        "Replace “Positions 106 · top 50 listed when expanded” with an explicit range and total. Load further matches in batches with the active row retained.",
+        "Keep focus on the combobox when clicking Show more. Capture the invoking control before autofocus and restore focus after the exit animation.",
+        "Give the mobile close control a 44 px target, set the query field to min-width zero, and move pricing under the title when a long result would truncate before its distinguishing words."
+      ]
+    },
+    "S9": {
+      "scores": {
+        "hierarchy": 9,
+        "density": 8,
+        "typography": 9,
+        "consistency": 9,
+        "clarity": 8,
+        "interaction": 9,
+        "accessibility": 9,
+        "responsive": 9,
+        "wise": 8
+      },
+      "issues": [
+        "Remove “No lists yet” from the project subtitle when the onboarding heading already communicates that state. Tighten the drop panel’s vertical padding so the two actions sit closer to the title.",
+        "Describe the two paths as importing a tender or price file and creating a blank list. Place the supported formats directly below Import files."
+      ]
+    },
+    "S10": {
+      "scores": {
+        "hierarchy": 8,
+        "density": 7,
+        "typography": 8,
+        "consistency": 8,
+        "clarity": 6,
+        "interaction": 7,
+        "accessibility": 7,
+        "responsive": 7,
+        "wise": 7
+      },
+      "issues": [
+        "Replace the second Products heading with a result range and move Previous and Next beside it as well as below the results.",
+        "Use a compact list with a shared Product / Unit price header and remove the repeated product icon tiles.",
+        "Disambiguate repeated German names with supplier, item code or originating list and OZ. Show a short description excerpt when identifiers are missing.",
+        "Show a persistent Edit affordance and give catalogue search a scoped keyboard shortcut. Keep search context and focus when paging or closing the editor.",
+        "Include a distinguishing identifier in each row’s accessible name and restore focus to the menu trigger when applying an in-place action.",
+        "Keep a labeled Add product action on phones. Let the mobile product title and identifying details wrap above the price and menu."
+      ]
+    },
+    "S11": {
+      "scores": {
+        "hierarchy": 9,
+        "density": 8,
+        "typography": 9,
+        "consistency": 8,
+        "clarity": 8,
+        "interaction": 7,
+        "accessibility": 8,
+        "responsive": 8,
+        "wise": 8
+      },
+      "issues": [
+        "Move the supplier count into a compact toolbar and remove the repeated Suppliers heading.",
+        "Make “17 products” a visible link that opens the filtered product list. Keep Edit supplier as a separate named action.",
+        "Use the supplier’s name in the filtered Products chip and expose its clear action.",
+        "Expose supplier actions at rest, restore focus to the initiating row after editing, and keep the product link and a labeled Add supplier action on mobile."
+      ]
+    },
+    "S12": {
+      "scores": {
+        "hierarchy": 9,
+        "density": 8,
+        "typography": 9,
+        "consistency": 8,
+        "clarity": 8,
+        "interaction": 8,
+        "accessibility": 9,
+        "responsive": 9,
+        "wise": 8
+      },
+      "issues": [
+        "Keep the large icon but use a compact neutral container for the empty state. Reserve the dashed treatment for upload targets.",
+        "Remove the repeated hiring explanation from the subtitle and explain what trade and contact information the user should add.",
+        "Keep the Active and Archived controls in a stable location across empty and populated states so users can switch back without looking for a relocated control."
+      ]
+    },
+    "S13": {
+      "scores": {
+        "hierarchy": 8,
+        "density": 8,
+        "typography": 8,
+        "consistency": 8,
+        "clarity": 7,
+        "interaction": 7,
+        "accessibility": 7,
+        "responsive": 7,
+        "wise": 7
+      },
+      "issues": [
+        "Show required indicators for Product name, Category and Description. Group Supplier and Item code, and put Unit beside Unit price.",
+        "Collapse the optional price inputs behind Add price for unpriced items. Use an empty placeholder that reads as unset and show the effective date only when adding a price.",
+        "Use DD.MM.YYYY with an example for the date hint and put Category and Supplier on the same label and control baseline.",
+        "Focus Product name after data loads. Keep Esc inside the supplier menu until it closes and restore focus to the supplier trigger after selection.",
+        "Apply the advertised save shortcut throughout the dialog and link validation messages to their fields.",
+        "Size the stacked mobile dialog to the dynamic viewport, keep Save above the safe area, and scroll invalid or focused fields fully into view with the keyboard open."
+      ]
+    },
+    "S14": {
+      "scores": {
+        "hierarchy": 7,
+        "density": 6,
+        "typography": 8,
+        "consistency": 7,
+        "clarity": 5,
+        "interaction": 6,
+        "accessibility": 7,
+        "responsive": 6,
+        "wise": 6
+      },
+      "issues": [
+        "Use one prominent Review 3 upload findings control at the ledger toolbar. Collapse catalogue/web research into a separate disclosure and remove the clickable zero-match chip.",
+        "Show “At import: no unit” beside “Current: m” for position 01.0001. Reflect a correction in the row badge and state that Mark reviewed acknowledges the upload finding.",
+        "Place the Unit missing card and a labeled Edit unit action next to the current unit. Keep catalogue evidence below the edit fields so it reads as a separate result.",
+        "Set finding counts in tabular figures and use a consistent severity label plus descriptive issue text in both the ledger and drawer.",
+        "Make severity, issue title and review state legible on mobile finding badges. Allow labels to wrap, give review controls 44 px touch targets, and restore focus to the next flagged row when a reviewed row leaves the filter.",
+        "Add Previous/Next finding controls and keyboard shortcuts scoped to the findings queue. Advance after review when the queue is filtered to open findings.",
+        "Move finding controls into a compact mobile review bar and stack the unit/price fields in the drawer to keep the affected control and finding text in view.",
+        "Restore the light-mode Add position label and glyph here as on the main ledger."
+      ]
+    }
+  },
+  "global_issues": [
+    "The light captures show blank yellow primary controls for mobile Import files and ledger Add position. Verify the shared Button foreground and paint path with rendered text and icons in both themes.",
+    "Standardize the mobile toolbar around visible labels for primary actions, sorting and expansion. Give small controls and menu items 44 px touch areas and return focus to the invoker after actions.",
+    "Keep budget scope, allocation warnings and row cap values on phones. Verify large German-formatted amounts and long source titles at 320–390 px without dropping decision-critical information.",
+    "Use a compact neutral frame for passive empty states and reserve dashed borders for actual drop targets.",
+    "Verify screenshot-only issues on a running build and test keyboard focus through portaled menus, dialogs and review actions in both themes."
+  ]
+}

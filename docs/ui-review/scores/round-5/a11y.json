@@ -1,0 +1,82 @@
+{
+  "member": "a11y",
+  "screens": {
+    "S1": {
+      "scores": {"hierarchy": 9, "density": 8, "typography": 8, "consistency": 8, "clarity": 8, "interaction": 8, "accessibility": 8, "responsive": 8, "wise": 8},
+      "issues": [
+        "Mobile regression (11): rows with no flag ('Ringschluss Brunnenwasser', 'Maschinentechnik') have their subtitle indented about 8px. The cause is in Kit.tsx Row: badge={<BudgetBadge/>} is always a truthy element even when BudgetBadge returns null, so the phone-only '<span className=\"shrink-0 sm:hidden\">{badge}</span>' still renders and adds the gap-2. Add 'empty:hidden' to both badge wrapper spans, or have FolderRow/ListRow/ActiveBudgets pass badge=undefined when the tone is ok.",
+        "The worst project ('Site', which has '1 list almost at cap') gets no StatusTag. The flag is only plain slate-600 subtitle text, while the hero says '1 project almost at cap' and the milder 'Fernleitung' gets the amber 'Near cap' tag. Status is hard to spot when scanning, and it isn't shown as a status. In FolderCard.tsx, base the badge on worstTone(f, counted lists): render <StatusTag small tone={worst} word={listFlag ?? st.word}/>, and drop the flag from the subtitle.",
+        "Phones hide the cap: Summary renders ' of 4.350.000 €' with max-sm:hidden (display:none), so sighted users see '68% · … left' with no reference, and screen readers lose it too. Below sm, wrap the cap onto its own line ('of 4.350.000 € cap'), or at least swap max-sm:hidden for max-sm:sr-only. Do the same for BudgetMini's ' of {cap}' on rows.",
+        "Select mode: the unselected row circle uses border-2 border-slate-400 (2.56:1), which fails WCAG 1.4.11 for a checkbox boundary. Use border-slate-500, to match .checkbox.",
+        "Hero still stacks three muted lines under the status line ('Measured against project caps…', '4 of 13 projects priced'). Merge them into one line: 'Against project caps · 4 of 13 priced' (the 4 of 13 as a MetaLink to the Not priced filter).",
+        "Row amount and row title are both 15px font-semibold slate-900 (Kit.tsx Row), so they compete. Make the amount font-medium."
+      ]
+    },
+    "S2": {
+      "scores": {"hierarchy": 9, "density": 9, "typography": 8, "consistency": 8, "clarity": 9, "interaction": 8, "accessibility": 8, "responsive": 8, "wise": 8},
+      "issues": [
+        "On phones the 'Angebot AN24-0305' row (status ok) gets the same empty-badge 8px subtitle indent as S1. Apply the Row 'empty:hidden' fix.",
+        "The cap '2.000.000 €' is the only way into the budget-cap editor from the hero. It is a text button with only a dotted slate-400 underline as its cue, and it is max-sm:hidden, so phones lose both the figure and the action. Keep it visible on all sizes, give it a pencil icon (size 14) after the figure, and use decoration-slate-500.",
+        "Two lists still get a separate 'Select' tool pill. Below 4 rows, move Select into the header ⋯ menu, so the list starts right under 'Lists 2'.",
+        "Row amount and title are both font-semibold. Set the amount to font-medium (shared Row fix)."
+      ]
+    },
+    "S3": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 8, "consistency": 8, "clarity": 8, "interaction": 8, "accessibility": 8, "responsive": 8, "wise": 8},
+      "issues": [
+        "Categories filter popover (CategoryTree mode='check'): the unchecked Box is border-slate-300 (about 1.5:1), which fails 1.4.11 and doesn't match the app's .checkbox (slate-500). Use border-slate-500, or reuse the .checkbox style. In pick mode, the radio_button_unchecked icon in text-slate-300 has the same problem: use text-slate-500.",
+        "CategoryTree: the expand chevron button is size-5 (20px) and sits next to the checkbox, which is below WCAG 2.5.8's 24px minimum. Make it size-6, with a 44px hit area under pointer:coarse. The counts (font-mono text-[10px] text-slate-500) and totals (font-mono text-[11px]) are below 12px and use monospace. Switch them to .num text-xs text-slate-600.",
+        "PricingMeter (opened by 'Cost by section'): the RAMP tones hsl(215 14% 80%) and hsl(217 70% 76%) are nearly the same as the bg-slate-300 track, and gap-px shows the track colour as the separator, so a section can blend into 'unused' space. Remove the two lightest ramp tones (or darken them below 65% lightness), and put a white track or white 1px separators (ring-1 ring-white on each segment) between segments.",
+        "Hero meta: a stray underline segment shows under the 'Cost by section' chevron (desktop and 12-mobile), separate from the text underline. Remove whatever draws it, so only the words are underlined (as in MetaLink), or underline the whole button, chevron included.",
+        "Phones: 'of 800.000 €' is display:none (max-sm:hidden), so the hero reads '67% · 263.008,35 € left' with no cap, and the cap-edit button is gone. Show the cap on its own line below sm (see S1).",
+        "Mobile card (12): a wrapped Kurztext runs back under the OZ ('1.1.1 Baustelleneinrichtung und' / '-räumung'). Make the OZ a separate grid column (grid-cols-[auto_1fr]) so the wrapped lines get a hanging indent. The card GP ('5.700,00 €') also ends about 8px right of the group totals ('53.061,00 €'), so give both the same right padding.",
+        "Hero is still label, number, bar, status, meta line and pills: six bands. Make the bar itself the 'Cost by section' toggle (keep a focusable button for keyboard users) and drop the meta link, to cut one band."
+      ]
+    },
+    "S4": {
+      "scores": {"hierarchy": 9, "density": 9, "typography": 9, "consistency": 9, "clarity": 9, "interaction": 9, "accessibility": 8, "responsive": 9, "wise": 8},
+      "issues": [
+        "The unit suffix button inside Menge is announced only as 'Einheit psch', with title='Change Einheit' as a mouse-only hint. Give it aria-label={`Einheit ${p.unit}, change`} (or 'Change Einheit, currently psch') and remove the title.",
+        "The Kategorie button is bg-slate-50 on white (about 1.04:1), with no boundary and only a chevron to show it's a control. Use bg-slate-100, as the other soft buttons do, so the control's area can be seen.",
+        "Wise: the GP card repeats '1 psch × 5.700,00 €' directly above the Menge and EP fields that show the same values. Drop that line, and keep '1,1% of list · 263.008,35 € left in cap' as the only subline."
+      ]
+    },
+    "S5": {
+      "scores": {"hierarchy": 9, "density": 8, "typography": 8, "consistency": 8, "clarity": 8, "interaction": 8, "accessibility": 8, "responsive": 8, "wise": 8},
+      "issues": [
+        "The hero bar is emerald (aggregate 67%), right above the orange 'Almost at cap' chip, so colour and text disagree. Either tone the hero meter by the chip's worst tone, or use a neutral slate-700 fill whenever the pill is an aggregate (heroStatus), so green never sits next to a warning.",
+        "On phones, the ok rows ('[ORT_024] LV24069', 'Angebot', '[PERSON_132]') get the empty-badge 8px subtitle indent. Apply the Row 'empty:hidden' fix.",
+        "Phones hide ' of {cap}' in BudgetMini and the hero (display:none, so it's lost for screen readers too). Use max-sm:sr-only at least, or show the cap in the row meta below sm.",
+        "'Select' pill on a 5-row list. Move it into the header ⋯ menu and keep Sort.",
+        "Row amount and title are both font-semibold. Set the amount to font-medium."
+      ]
+    },
+    "S6": {
+      "scores": {"hierarchy": 9, "density": 9, "typography": 9, "consistency": 9, "clarity": 9, "interaction": 9, "accessibility": 9, "responsive": 9, "wise": 9},
+      "issues": []
+    },
+    "S7": {
+      "scores": {"hierarchy": 9, "density": 9, "typography": 9, "consistency": 9, "clarity": 9, "interaction": 9, "accessibility": 9, "responsive": 9, "wise": 9},
+      "issues": []
+    },
+    "S8": {
+      "scores": {"hierarchy": 9, "density": 9, "typography": 9, "consistency": 9, "clarity": 9, "interaction": 9, "accessibility": 9, "responsive": 9, "wise": 9},
+      "issues": []
+    },
+    "S9": {
+      "scores": {"hierarchy": 9, "density": 9, "typography": 9, "consistency": 8, "clarity": 9, "interaction": 9, "accessibility": 9, "responsive": 9, "wise": 9},
+      "issues": [
+        "The empty state is indented 34px from the page title (x=346 against 312), because the drop-zone wrapper keeps 'border-2 sm:px-8' at rest. S6 and S7 sit on the title axis. Add '-mx-[22px] sm:-mx-[34px]' to the wrapper (or apply the padding and border only while dragging) so 'Add your first list' lines up with 'Legal & Compliance'."
+      ]
+    }
+  },
+  "global_issues": [
+    "Kit.tsx Row: badge={<BudgetBadge/>} is always truthy, so on phones an empty 'shrink-0 sm:hidden' span plus gap-2 indents the subtitle of every ok row (S1, S2, S5). Add 'empty:hidden' to both badge wrappers, or pass badge only when the tone isn't ok.",
+    "Responsive content loss: Summary's ' of {cap}' (and the cap-edit button) and BudgetMini's ' of {cap}' use max-sm:hidden, which removes the reference figure for phone users and screen readers. Show it on a wrapped line, or at minimum use max-sm:sr-only, and keep the cap-edit control reachable on phones.",
+    "FolderCard: a project whose list is almost at cap shows that only as plain subtitle text, while a milder project gets a coloured StatusTag. Base the row badge on worstTone(project, counted lists).",
+    "Non-text contrast leftovers (WCAG 1.4.11): the Row select-mode circle uses border-slate-400, and the CategoryTree Box and radio-unchecked use slate-300. Move all three to slate-500.",
+    "CategoryTree (Categories filter, Move to category): the 20px expand chevron is below the 24px minimum, and counts/totals use font-mono at 10–11px. Use size-6 or larger with a coarse-pointer 44px area, and .num text-xs text-slate-600.",
+    "PricingMeter: the two lightest RAMP tones (76% and 80% lightness) can't be told apart from the slate-300 track. Remove or darken them, and separate segments with white, not with the track colour.",
+    "Rows use font-semibold for both the title and the amount. Make the amount font-medium so the title leads."
+  ]
+}

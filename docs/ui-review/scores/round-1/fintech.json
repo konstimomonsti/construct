@@ -1,0 +1,120 @@
+{
+  "member": "fintech",
+  "screens": {
+    "S1": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 8, "consistency": 7, "clarity": 7, "interaction": 7, "accessibility": 7, "responsive": 5, "wise": 7},
+      "issues": [
+        "Mobile (11): the 'Fernleitung - Weinsbach' row collapses to 'F' / '2' because the 'Near cap' pill and '75% of €2,000,000' take the full row width. On <=480px, move the status pill below the subtitle (or show only the icon dot) and never let the title column drop below ~55% of the row.",
+        "Hero actions sit bottom-right next to the progress meta, so the eye goes number -> bar -> far-right buttons. Do what Wise does and put the pill actions directly under the hero number/meta, left-aligned. Keep 'New Folder' primary and 'Upload' secondary, and move 'Open all' into the hero's ⋯ menu (it is ambiguous and rarely used).",
+        "The progress bar stops at ~60% of the card width (ends at x≈884) and does not line up with anything. Either run it to the full inner width of the card, or set it to the same width as the meta row below it.",
+        "The cap math doesn't match S5: the home page shows the same €3,836,639 as '72% of €5,300,000 combined cap', while Active Budgets shows '65% of €5,900,000'. Money UI has to reconcile everywhere. Use one definition (caps of priced lists only, or all caps) and say which in the label, e.g. 'of €5.3M cap across 3 priced projects'.",
+        "Unpriced folders show a bold '€0' over 'Not priced yet'. A bold zero reads as a real balance. Replace the amount with a muted 'Not priced' label, or show '—' with '0 of 27 lists priced', so the right column only carries real money.",
+        "The 'Near cap' badge's dark-orange text on a pale-orange fill at ~12px is close to the AA limit. Darken the text to at least 4.5:1, or raise the badge to 13px semibold.",
+        "Row ⋯ buttons are ~24px with a light glyph. Make the hit area 40×40 and show a hover fill so they read as buttons.",
+        "Mobile hero: the three pills wrap to two rows with 'Open all' orphaned on the second, and the sort control is an unlabeled icon. With 'Open all' removed, two pills fit on one row. Give the sort a short label ('Cost')."
+      ]
+    },
+    "S2": {
+      "scores": {"hierarchy": 7, "density": 7, "typography": 7, "consistency": 7, "clarity": 7, "interaction": 7, "accessibility": 7, "responsive": 6, "wise": 7},
+      "issues": [
+        "There are two competing headers: the icon plus 'Ringschluss Brunnenwasser' title, then the 'Folder total' hero card. Merge them the Wise way: put the folder name small above the big number, or keep the title and drop the 'Folder total' eyebrow. Either way, cut ~60px of vertical stack so the first list row is visible higher.",
+        "The hero meta runs two lines: 'On track · 72% of €2,500,000 cap · €705,389 left', then '746 positions · 498 priced · 248 still to price'. Collapse it to one line, and turn the pricing progress into a secondary thin bar or a single '248 to price' link that filters the lists below.",
+        "Every list subtitle repeats 'RINGSCHLUSS BRUNNENWASSER, [PERSON_132]', in all caps, which is the folder you are already in. Keep the source text verbatim but show it only in the list detail. In the row, show 'D86 · 249 positions · updated 2d ago'.",
+        "The decimal policy is inconsistent: the hero shows €1,794,611 (no cents) while the rows show €897,305.45. Pick one rule, e.g. whole euros on aggregates and cents only at list/position level, and apply it on S1, S2 and S5 alike.",
+        "The dotted underline on '€2,500,000 cap' hints that it is editable but gives no other signal. Add a hover pencil and a tooltip 'Edit cap', or make it an explicit 'Edit cap' item in the ⋯ menu.",
+        "Three hero pills again ('Upload files', 'New list', 'Open all'). Move 'Open all' into the header ⋯ menu so the screen has one primary and one secondary action.",
+        "Documents rows are visually the same as list rows (same tinted circle and weight) but carry no amount. Give documents a neutral grey icon and a smaller row height so the money rows dominate.",
+        "On mobile this page will inherit the S1 truncation problems (long German subtitles, a three-button hero). Make sure the subtitle line truncates before the amount column and the hero pills fit on one row."
+      ]
+    },
+    "S3": {
+      "scores": {"hierarchy": 7, "density": 6, "typography": 7, "consistency": 6, "clarity": 7, "interaction": 6, "accessibility": 7, "responsive": 6, "wise": 7},
+      "issues": [
+        "The content container is different from every other screen: the list page starts at x=272 and runs to 1408, while S1/S2/S5–S7/S9 use 360–1320. The page jumps sideways on navigation. Use one max-width shell, and if the table needs more room, widen only the table region, not the header and hero.",
+        "The title 'Maschinentechnik - Anlagenbau' is identical to the last breadcrumb item, so it looks duplicated. When list and folder names match, show the list's file/LV identifier (LV24069.D86) as the title or as a prominent suffix, and keep the breadcrumb as the folder.",
+        "Rows are ~57px tall for a 197-position bill (04 shows a very long page). That is Wise-airy but wrong for estimators. Use ~44px rows by default, or offer a Comfortable/Compact density toggle next to the sort control.",
+        "There is a ~470px dead gap between Kurztext and Menge, and Menge (right-aligned) sits against Einheit (left-aligned). Let Kurztext take the flexible width, and group Menge+Einheit as one right-aligned '1 psch' cell so the number columns are EP and GP.",
+        "When you scroll, the list total and cap status disappear (04), and the table header does not stick. Add a slim sticky bar with column headers plus 'List total €536,991.65 · 67% of cap', the equivalent of Wise keeping the balance in view.",
+        "Pagination is buried at the very bottom: 'Showing 100 of 197 · Show 97 more'. Use virtualized rendering or infinite load and remove the control. If it stays, also show the count near the filter row.",
+        "A checkbox on every row adds a column of visual noise. Show checkboxes on row hover or after 'Select' is toggled, as S1 already does.",
+        "Hero meta '197 positions · 197 priced' is redundant when everything is priced. Show '197 positions, all priced', or hide the priced count when it equals the total.",
+        "Mobile (12): the title and meta truncate ('Anlag…', '27.0…'). Let the title wrap to two lines, and let the meta wrap or drop the date. Kurztext breaks at 'und -\\nräumung', so use hyphens:manual with no break after a hyphen-dash. The filter and sort controls take two rows; put category filter and sort in one row of compact chips."
+      ]
+    },
+    "S4": {
+      "scores": {"hierarchy": 8, "density": 7, "typography": 6, "consistency": 7, "clarity": 7, "interaction": 7, "accessibility": 7, "responsive": 6, "wise": 7},
+      "issues": [
+        "The EP input shows '5700.00' (no grouping), while the summary above shows '€5,700.00'. Format the money inputs on blur with grouping ('5,700.00'), and use the same tabular figures as the display values.",
+        "The Langtext textarea keeps the GAEB hard line breaks, producing ragged lines ('nach', 'für', 'Anlagen,'). Display it reflowed (join single newlines, keep blank-line paragraphs) and store the original verbatim. The textarea also gets cut by the footer, so it scrolls inside a scrolling drawer. Make it auto-height.",
+        "There are two ways to close: the X at the top-left and the 'Done' button, while autosave is on. Keep the X plus Esc and drop 'Done', or keep 'Done' and drop the X. Wise shows a single close affordance.",
+        "'Change' on the Kategorie card is a brighter link blue than the indigo brand. Use the brand indigo (or a secondary pill) for consistency. The category subtitle 'Baustelleneinrichtung - Montagepläne - I' looks cut off; give it a tooltip or wrap it.",
+        "Field alignment is mixed: Menge and EP are right-aligned, Einheit is left-aligned, and the € prefix sits far left of the EP value. Put the € adjacent to the value, or use a right-aligned suffix.",
+        "'OZ 1.1.1' eyebrow plus title plus a GP card on a grey fill creates three header layers. Put the OZ inline as a muted prefix chip in the title row to save a line.",
+        "There is no destructive or secondary action (delete position, duplicate). Put them in a ⋯ menu in the drawer header, next to the 1-of-197 navigation, so the drawer is complete without going back to the row menu.",
+        "Mobile: the drawer should become a full-height sheet with the three-field row (Menge/Einheit/EP) stacked as 2+1. Make sure the 1-of-197 navigation stays reachable in the sticky header."
+      ]
+    },
+    "S5": {
+      "scores": {"hierarchy": 7, "density": 8, "typography": 8, "consistency": 6, "clarity": 6, "interaction": 7, "accessibility": 7, "responsive": 6, "wise": 7},
+      "issues": [
+        "The hero copy 'Every list is within its cap' sits directly above a list showing a 'Near cap' badge at 86%. It is technically true but reads as a contradiction. Use status-led copy: '1 list near its cap · none over' with a link that applies the 'Needs attention' filter.",
+        "The combined cap here (€5,900,000, 65%) differs from S1 (€5,300,000, 72%) for the same €3,836,639 total. Reconcile the definitions, or label each one explicitly. Inconsistent money figures destroy trust.",
+        "The hero number is identical to the S1 hero, so the page adds no new focal information. Make the hero about risk: show 'Remaining headroom €2,063,361' or the count of lists needing attention as the big figure, with the total secondary.",
+        "The sort label differs on every screen: 'Highest amount' here, 'Cost (High to Low)' on S1/S2, 'Sort by amount' on S3. Use one component and one label pattern (e.g. 'Amount ↓') everywhere.",
+        "Row subtitles repeat the folder name plus the all-caps source name plus the filename ('Ringschluss Brunnenwasser · RINGSCHLUSS BRUNNENWASSER, [PERSON_132] · 249 positions'). Show 'Folder · N positions' only, with the source name on hover or in detail.",
+        "Hero card with no action leaves a lot of empty grey space at the right. Shrink the card height, or put the 'All / Needs attention' chips into the hero area so filters sit next to the status they filter.",
+        "Progress bars are 64px wide with percent text in grey. Fine on desktop, but make sure the 86% amber bar plus text has non-colour support (it has the badge, good) and that the bar has an aria-valuenow label."
+      ]
+    },
+    "S6": {
+      "scores": {"hierarchy": 8, "density": 7, "typography": 8, "consistency": 7, "clarity": 8, "interaction": 6, "accessibility": 7, "responsive": 7, "wise": 7},
+      "issues": [
+        "There is no subtitle or count line under the title, unlike S1/S5 ('6 folders · 37 lists'), so the title-to-card spacing differs from the other pages. Add '0 folders' or keep the same 40px rhythm.",
+        "The empty state is a large boxed grey card on an otherwise empty page, a box-in-page. Wise uses an unboxed centered illustration and message. Remove the card fill, or reduce it to a soft inline area without the 270px-high panel.",
+        "The empty state has no next action. Add a quiet secondary pill 'Go to All Projects'.",
+        "The inline '⋯' glyph in the sentence is hard to read at 13px. Say 'from a folder's More menu (⋯)' or render the glyph as a small inline key chip."
+      ]
+    },
+    "S7": {
+      "scores": {"hierarchy": 8, "density": 7, "typography": 8, "consistency": 7, "clarity": 7, "interaction": 6, "accessibility": 7, "responsive": 7, "wise": 7},
+      "issues": [
+        "The copy doesn't state a retention policy. Trust-sensitive UI should say what happens to deleted items: 'Items in Trash are deleted permanently after 30 days' (or 'kept until you empty Trash').",
+        "Same box-in-page empty card as S6. Drop the fill or shrink the panel, and add a 'Go to All Projects' secondary action.",
+        "The orphan word 'here.' wraps onto its own line. Widen the text measure to ~420px, or use text-wrap: balance on empty-state body copy.",
+        "There is no title subtitle or count line, which is inconsistent with the other top-level pages."
+      ]
+    },
+    "S8": {
+      "scores": {"hierarchy": 8, "density": 7, "typography": 7, "consistency": 7, "clarity": 7, "interaction": 7, "accessibility": 7, "responsive": 6, "wise": 8},
+      "issues": [
+        "'1 lists' is a pluralisation bug in the folder result subtitle. Use '1 list'.",
+        "The query 'Beton' is not highlighted in the results, so it is unclear why 'Bachdurchlass Neppen' matched (the match is in the subtitle 'Stahlbetonrohre'). Bold or tint the matched substring in both title and subtitle.",
+        "The 'Positions' section header is visible at the bottom with zero rows shown, cut off by the panel height. Cap each group at 3 to 4 results with a 'Show all N lists' row so all three groups are visible without scrolling.",
+        "List results show the filename as the subtitle, which mostly repeats the title ('Porenbetonfassade' / 'LV_04_Porenbetonfassade.pdf'). Show 'Folder · total' instead (e.g. 'Ausbildungszentrum · €0 · not priced'). Like Wise's search, a money result should show its amount.",
+        "The '3,052 positions indexed' footer is system noise. Remove it, or replace it with result counts.",
+        "Mobile: make sure the palette goes full-screen with the input at the top and the Esc chip replaced by a 'Cancel' text button."
+      ]
+    },
+    "S9": {
+      "scores": {"hierarchy": 8, "density": 7, "typography": 8, "consistency": 7, "clarity": 7, "interaction": 8, "accessibility": 7, "responsive": 7, "wise": 8},
+      "issues": [
+        "The naming drifts between 'Add your first item list', 'New list' (S2) and 'Start a blank list'. Use 'list' everywhere: 'Add your first list'.",
+        "The folder subtitle 'Awaiting initial line allocations' reads like placeholder or jargon copy. If it is a user description, fine. If it is generated, replace it with a plain '0 lists' status, consistent with the S2 meta.",
+        "The empty panel is a tall grey card (~440px) that is itself a box under a header. Reduce the padding, or drop the fill and use a dashed drop-zone border that only appears or intensifies on drag-over. That makes 'drop anywhere' tangible.",
+        "The format line 'GAEB .X81–.X86 / .D81–.D86 · CSV · JSON · PDF' is muted ~12px grey. Check that it reaches 4.5:1, or move it into a tooltip on 'Upload files'.",
+        "The toast is a heavy black bar bottom-right. Fine, but give it an 'Undo' or 'Rename' action, and match its radius to the 24px card radius used elsewhere."
+      ]
+    }
+  },
+  "global_issues": [
+    "The money figures don't reconcile: the same €3,836,639 total is shown against a €5.3M cap (72%) on All Projects and a €5.9M cap (65%) on Active Budgets. Define the combined cap once and label it, because trust is the whole point of a Wise-grade money UI.",
+    "Hero actions sit bottom-right in the hero card on every screen, detached from the number. Follow Wise: 2 pill actions directly under the number/meta, left-aligned, one primary, with everything else ('Open all', etc.) in a ⋯ menu.",
+    "Inconsistent page container: the list page (S3/S4) uses x=272–1408 while every other page uses 360–1320. Use one shell width and widen only the table.",
+    "Inconsistent decimal policy and number formatting: whole euros on aggregates, cents on list rows, and raw '5700.00' in inputs. Write one formatting rule (grouping, cents, € placement) and use it for both display and inputs.",
+    "Sort control wording differs per screen ('Cost (High to Low)', 'Highest amount', 'Sort by amount', an unlabeled icon on mobile). Use one component with one label pattern.",
+    "Row subtitles repeat context the user already has (folder name, ALL-CAPS source title, filename). Show only what is new at that level, and move the verbatim source metadata into detail views.",
+    "Mobile row layout gives the status pill and the '% of cap' text priority over the title, which collapses titles to a single letter. On narrow widths, let the title column win and move the status and percentage to a second line.",
+    "The ⋯ row menus are small, light-grey 24px targets throughout. Use 40px hit areas with a hover fill and visible focus rings.",
+    "Empty states (S6, S7, S9) use large boxed grey cards. Wise keeps empty states unboxed and quiet, with one clear next action."
+  ]
+}

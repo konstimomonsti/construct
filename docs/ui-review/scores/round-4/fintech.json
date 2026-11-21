@@ -1,0 +1,95 @@
+{
+  "member": "fintech",
+  "screens": {
+    "S1": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 8, "consistency": 8, "clarity": 8, "interaction": 8, "accessibility": 8, "responsive": 6, "wise": 8},
+      "issues": [
+        "Mobile (11): the first row's title breaks mid-word ('Fernleit / ung -…') because the 'Near cap' chip and the amount squeeze the title column. Below sm, move the status chip to the second line (in front of '75% of 2.000.000 €'), and give the title `truncate` (or `break-words` with hyphens: none) so it never splits inside a word.",
+        "Mobile hero: '1.409.686,51 € left' still sits alone on its own line under the pill. Below sm, drop 'of 4.350.000 €' from the pill line and show '68% · 1.409.686,51 € left' on one line, or put 'left' on the bar's right end.",
+        "Status roll-up: the 'Site' row shows a green '2% of 50.000 €' while its only list is 'Almost at cap' (98% of 1.000 €) on S5. A project row's status should be the worst of its own cap and its lists' caps. Show 'Almost at cap' (or '1 list at cap') on the row, and count it in the hero pill.",
+        "Hero line 3, 'Counts 4 priced projects · 4 projects not priced yet', repeats the 'Not priced 4' chip 180px below and reads as jargon. Delete the line and put 'Totals count priced projects only' in a tooltip on 'Total across projects'.",
+        "Hero pill line: '68%' is semibold, but the headroom '1.409.686,51 € left' is regular slate-600 at the same size as the cap. Set the headroom in slate-900 medium, so the actionable number outweighs the cap total.",
+        "The '1 project near cap' hero pill should be a button that applies the 'Needs attention' chip, with a hover fill and a focus ring. Right now it looks like a static badge, and the user has to find the chip 200px lower.",
+        "The amber status text in the 'Near cap' and '1 project near cap' pills is 12–13px on amber-50. Use amber-800 (or darker) for the text so it clears 4.5:1, and keep the icon in addition to the colour.",
+        "Mobile list rows spend about 60px on a ⋯ column beside the amount. Below sm, put the ⋯ in the row's long-press or swipe menu, or shrink it to a 32px icon aligned with the title baseline, so titles get one more word before they wrap."
+      ]
+    },
+    "S2": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 9, "consistency": 8, "clarity": 8, "interaction": 8, "accessibility": 8, "responsive": 7, "wise": 8},
+      "issues": [
+        "The meta line '314 positions · 1 list near its cap' repeats what the 'Near cap' pill and the row chip already say. Keep '314 positions' and drop the link (the 'Needs attention 1' chip does the filtering).",
+        "With 2 lists, the 'Sort: Highest amount', 'Select' and 'All / Needs attention 1' controls outweigh the content. Hide sort and filter chips below about 6 rows, and show Select only after a row's checkbox is hovered or focused.",
+        "The folder's hero has a 44px tinted avatar left of the title, but S1 and S3 titles have none, so the title's x-position moves between levels (374 vs 312). Either drop the avatar from the folder header or set the avatar above the title, so all page titles start at x=312.",
+        "Responsive: there is no mobile capture, and the rows use S1's mobile layout, so a long list name next to the 'Near cap' chip will break mid-word the way S1 does. Apply the S1 fix (chip moves to line 2, title truncates)."
+      ]
+    },
+    "S3": {
+      "scores": {"hierarchy": 8, "density": 7, "typography": 8, "consistency": 8, "clarity": 8, "interaction": 8, "accessibility": 8, "responsive": 6, "wise": 8},
+      "issues": [
+        "The 'Cost by section' progress bar uses 7 hues, including red and green, directly above an 'On track' pill, so a red segment reads like an overrun. Use one brand hue in tonal steps (or neutral slate steps) for the section segments, and keep red/amber/green only for cap status.",
+        "The hero is 7 rows tall (label, figure, bar, pill line, '197 positions · 38 with quantity 0', 'Cost by section', actions), so the first position starts at y≈750 on a 900px screen. Merge '197 positions · 38 with quantity 0' into the pill line, make the bar itself the 'Cost by section' toggle, and the first row moves up about 70px.",
+        "GP values sit about 2px above the Menge/EP input values on the same row (e.g. 1.1.1: GP y≈748, EP y≈750). Give the GP cell the same vertical padding and line-height as the inputs so all four numbers share one baseline.",
+        "Zero-quantity rows (Nachträge 8.x) still show a blank Einheit cell. Show a slate-400 '—' when the unit is missing, as GP already does.",
+        "Kurztext still leaves about 250px of dead space before Menge at 1440px (text ends at x≈690, Menge at x≈960). Cap the table at about 1040px, or give the space to a one-line muted Langtext preview.",
+        "Mobile (12): the hero and toolbar take the whole first screen, and the first position starts at y≈1530 of 1690. Below sm, hide the '197 positions…' line and 'Cost by section', and collapse Categories / Select / Sort into one 'Filter' button beside the search field.",
+        "Mobile rows still look like a form: qty and EP inputs show full borders at rest, and the ⋯ sits alone on the qty line. Show the input borders only on focus (keep a dotted underline at rest, as desktop does), and move ⋯ to the title line after the GP.",
+        "The ledger still switches to cards below 1280px (index.css `@media (max-width: 1279px)`, and the `xl:` classes in LedgerTable.tsx), so 1024–1279px laptops lose the table. Move the breakpoint to 1024px (`lg:`) and truncate Kurztext there."
+      ]
+    },
+    "S4": {
+      "scores": {"hierarchy": 9, "density": 8, "typography": 8, "consistency": 8, "clarity": 8, "interaction": 8, "accessibility": 8, "responsive": 8, "wise": 8},
+      "issues": [
+        "The GP card says '263.008 € left in cap' (moneyWhole, DetailDrawer.tsx:218), while the hero visible behind the drawer says '263.008,35 € left'. Use the same cents formatter as the hero.",
+        "'1,1 % of list' has a space before %, but every other screen writes '67%'. Use one percent formatter without the space (or with a narrow no-break space everywhere).",
+        "The Kategorie field is a bordered box that holds a second pill ('Change'), which is a box inside a box. Render it as a borderless slate-50 row with the path on the left and a chevron on the right, and make the whole row the button.",
+        "Menge and EP are unequal: the Menge input is about 140px with 'psch' floating between the two fields, and EP is about 270px. Put the unit inside the Menge input as a right-side suffix (as '€' now is in EP) and give both inputs equal width in a 2-column grid.",
+        "On touch, the Kurztext textarea still has no visible edit cue at rest (the border shows only on hover). Add a slate-400 pencil icon after the title under `@media (pointer: coarse)`, or a dotted underline like the ledger inputs.",
+        "No mobile capture: make sure the drawer becomes a full-height sheet below sm with the GP card and inputs above the fold, and the 1 of 197 chevrons at least 44px."
+      ]
+    },
+    "S5": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 8, "consistency": 7, "clarity": 7, "interaction": 8, "accessibility": 8, "responsive": 7, "wise": 8},
+      "issues": [
+        "Row 5's title shows '[person_132]' in lower case. The placeholder must stay verbatim ('[PERSON_132]'). Remove the lowercasing from the display-title transform, or show the LV id when the remainder is only a placeholder.",
+        "The hero figure is 'Left in list caps 1.460.686,51 €', but the bar under it fills 67% green for the amount used. Either fill the bar for the remaining 33%, or label the bar's ends ('2.940.313,49 € used · 4.401.000 € caps'), so the bar matches the number above it.",
+        "Every row repeats '· all priced', while the subtitle already says '5 priced lists'. Drop 'all priced' from the subtitles here and show only the exception ('12 not priced').",
+        "Row icons are all grey generic documents, while the same lists on S2 use the project's tinted icon (magenta for Fernleitung). Use the project tone for each list icon, so rows from the same project group visually.",
+        "The type label ('Bid', 'Award', 'Word import', 'JSON import') mixes GAEB phase and file source in one slot. Use the phase when there is one and the source only as a fallback, and use the same rule on S2 and S8.",
+        "Responsive: there is still no mobile capture, and the rows inherit S1's mobile layout, including the mid-word title break next to a status chip ('LV-Positionen nach Aufmaß-Gruppen' + 'Near cap'). Apply the S1 fix."
+      ]
+    },
+    "S6": {
+      "scores": {"hierarchy": 9, "density": 9, "typography": 9, "consistency": 9, "clarity": 9, "interaction": 9, "accessibility": 9, "responsive": 9, "wise": 9},
+      "issues": []
+    },
+    "S7": {
+      "scores": {"hierarchy": 9, "density": 9, "typography": 9, "consistency": 9, "clarity": 9, "interaction": 9, "accessibility": 9, "responsive": 9, "wise": 9},
+      "issues": []
+    },
+    "S8": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 9, "consistency": 8, "clarity": 8, "interaction": 8, "accessibility": 8, "responsive": 8, "wise": 8},
+      "issues": [
+        "'Show 50 of 104 positions' reads as a contradiction. Use 'Show 47 more positions' (to the cap of 50), and once expanded, 'Show all 104 in search results'.",
+        "The Lists group shows 3 of 5 and is clipped by the footer, with no 'Show all 5 lists' row or scroll fade. Give the scroll area a bottom fade and always render the group's 'Show all' row when results are hidden.",
+        "The active row has both a brand-50 fill and a 3px brand bar at the panel's left edge (x≈393), outside the row's rounded inset. Drop the edge bar and keep the rounded fill only, or put the bar inside the row's radius.",
+        "Position rows show 'OZ 3.1.60 · Rohbau · Ortbetonarbeiten' with no hint which segment is the list and which is the category. Write the list as 'in Rohbau', or use a list icon before it, so the same OZ in two lists can be told apart.",
+        "The palette needs a phone layout: below sm, make it a full-screen sheet with the input at the top and the ↑/↓/↵ footer hidden (there is no keyboard)."
+      ]
+    },
+    "S9": {
+      "scores": {"hierarchy": 9, "density": 8, "typography": 9, "consistency": 9, "clarity": 9, "interaction": 8, "accessibility": 9, "responsive": 9, "wise": 8},
+      "issues": [
+        "The dashed drop zone spans the full 1056px column while its content uses the left 570px, so the box is mostly empty space. Cap it at max-w-2xl, or show the dashed outline only on dragover and keep the empty state borderless at rest, as S6/S7 are.",
+        "The 'Created project \"Legal & Compliance\"' toast still has no action. Add an 'Undo' (moves it to Trash) or 'Rename' button in the toast."
+      ]
+    }
+  },
+  "global_issues": [
+    "The portfolio shows two different headroom figures one click apart: S1 '1.409.686,51 € left' (68% of 4.350.000 € project caps, '1 project near cap') and S5 '1.460.686,51 € left' (67% of 4.401.000 € list caps, '2 lists near cap'). Roll list status up into project status (a project is at least as bad as its worst list), and add a one-line tooltip on each hero label that says which caps it uses.",
+    "Money precision is now consistent on S1, S2, S3 and S5, but the drawer (S4) still prints '263.008 € left in cap' (moneyWhole). Remove moneyWhole from per-object figures so every object shows cents.",
+    "Percent formatting differs: '1,1 %' (S4) vs '67%' everywhere else. Route all percentages through one formatter.",
+    "Mobile list rows (S1, and by inheritance S2/S5) break long titles mid-word when a status chip shares the title line. Move status chips to the second line below sm.",
+    "The ledger still stacks into cards below 1280px. Use 1024px, so laptops and iPad landscape keep the table.",
+    "Multi-hue section colours in the S3 cap bar collide with the red/amber/green status language used everywhere else. Reserve those hues for status."
+  ]
+}

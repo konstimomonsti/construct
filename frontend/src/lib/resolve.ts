@@ -199,6 +199,9 @@ export interface CatStat {
   count: number
   total: number
   pids: string[]
+  /** positions with quantity 0, and positions without a unit price */
+  zero: number
+  unpriced: number
 }
 
 /** per-category aggregates (a position counts for every category on its path) */
@@ -208,8 +211,10 @@ export function treeStats(positions: Position[]): Map<string, CatStat> {
     const t = positionTotal(p)
     for (const r of p.path ?? []) {
       let s = m.get(r.oz)
-      if (!s) m.set(r.oz, (s = { count: 0, total: 0, pids: [] }))
+      if (!s) m.set(r.oz, (s = { count: 0, total: 0, pids: [], zero: 0, unpriced: 0 }))
       s.count++
+      if (p.up == null) s.unpriced++
+      else if (!p.qty) s.zero++
       s.total += t
       s.pids.push(p.id)
     }

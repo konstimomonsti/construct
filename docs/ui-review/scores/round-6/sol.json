@@ -1,0 +1,220 @@
+{
+  "member": "sol",
+  "screens": {
+    "S1": {
+      "scores": {
+        "hierarchy": 8,
+        "density": 7,
+        "typography": 9,
+        "consistency": 8,
+        "clarity": 7,
+        "interaction": 7,
+        "accessibility": 8,
+        "responsive": 7,
+        "wise": 7
+      },
+      "issues": [
+        "Put Sort and Select beside the project filters so there is one obvious row of controls for browsing.",
+        "Merge the project count, priced count and cap-scope note into one compact line below the meter.",
+        "Use the same badge slot for the Site list-level warning and the Fernleitung project-level warning, with the scope written in each badge.",
+        "Define the hero's scope in its label and use the same project population for the total and priced count. The current total includes priced sub-projects while the count starts from top-level rows.",
+        "Make the hero warning count open the Needs attention view and move focus to the filtered Projects heading.",
+        "Give aggregate warning badges their own accessible wording. The ‘1 project almost at cap’ badge currently announces the 90–100% threshold alongside 68% portfolio usage.",
+        "Keep the cap denominator visible in the mobile summary and show the current sort in the compact Sort button.",
+        "Move ‘Open all 39 lists in tabs’ into the Projects tools and offer a keyboard command to open a chosen project’s lists."
+      ]
+    },
+    "S2": {
+      "scores": {
+        "hierarchy": 8,
+        "density": 7,
+        "typography": 9,
+        "consistency": 8,
+        "clarity": 7,
+        "interaction": 7,
+        "accessibility": 7,
+        "responsive": 7,
+        "wise": 7
+      },
+      "issues": [
+        "Bring the Lists heading closer to Import files and New list so those actions read as acting on the lists below.",
+        "Align the desktop list tools and amounts to a readable list width so two rows do not span more than 1,000 pixels of mostly empty space.",
+        "Keep All Projects marked as the active section when viewing a project or sub-project.",
+        "Label the warning ‘Project near cap’ and distinguish it from the list-level ‘Near cap’ warning and the separate 100.000 € allocation overage.",
+        "Expose a labeled Edit cap action by the crane summary and an Edit list caps action beside the allocation overage.",
+        "Give the cap editor and breadcrumb links visible focus and padded target areas. The inline dotted cap amount currently has a text-height hit area.",
+        "Keep the project cap amount and its edit action at phone widths. Wrap or progressively collapse long sub-project breadcrumb chains.",
+        "Make the over-allocation note open a list-by-list cap breakdown that identifies the figures behind the 100.000 € difference."
+      ]
+    },
+    "S3": {
+      "scores": {
+        "hierarchy": 7,
+        "density": 6,
+        "typography": 8,
+        "consistency": 7,
+        "clarity": 6,
+        "interaction": 6,
+        "accessibility": 6,
+        "responsive": 6,
+        "wise": 6
+      },
+      "issues": [
+        "Group Add position and Export with the ledger tools so the list total owns the summary and the first editable row sits higher.",
+        "Cut the gap before Search positions and consolidate the hero’s zero-quantity filter with the ledger filters. Keep search and section navigation reachable while scrolling.",
+        "Separate OZ and Kurztext into distinct type treatments on mobile and label the editable amounts ‘Qty’ and ‘Unit price’ in the card.",
+        "Give quantity and EP one shared field pattern and consistent keyboard behavior. Qty is already an input while EP swaps from a button into an editor.",
+        "Rename ‘38 with quantity 0’ to ‘38 priced positions with zero quantity’ and show a priced zero-quantity line’s total as 0,00.",
+        "Give the position title a persistent details affordance. Return focus to the EP cell after Enter or Escape so keyboard edits can continue to the next cell.",
+        "Use named mobile field groups when headers are hidden and give detail, quantity and price controls at least 44 px of touch height. Mark edited totals with text as well as a colored dot.",
+        "Use responsive columns for the mobile Qty × EP controls and reduce indentation in deep sections. Widen or wrap edit fields for long units and large totals at 320 px.",
+        "Add a keyboard shortcut for position search and an efficient keyboard path through quantity and price cells, with a visible commit and undo state."
+      ]
+    },
+    "S4": {
+      "scores": {
+        "hierarchy": 8,
+        "density": 7,
+        "typography": 8,
+        "consistency": 7,
+        "clarity": 6,
+        "interaction": 6,
+        "accessibility": 7,
+        "responsive": 7,
+        "wise": 6
+      },
+      "issues": [
+        "Lead with a clean position heading and use a separate Edit short text control so the heading can orient the user before editing.",
+        "Reduce padding around the GP total and condense the pinned autosave footer to give Langtext more reading space.",
+        "Label the German trade abbreviations in context, such as ‘Total (GP)’ and ‘Unit price (EP)’, with consistent label weight and alignment.",
+        "Keep Change unit next to the quantity field, Move category by the category and Undo in one place. Remove the duplicate menu entries.",
+        "Preserve imported category names in full. The drawer currently strips the trailing ‘- I’ from the parent category shown in the ledger.",
+        "Keep invalid quantity and price values visible with an inline error so the user can correct them. Current blur handlers silently restore the previous value.",
+        "Return focus to the unit or Langtext edit trigger when its editor closes, and increase the unit-suffix button from its 32 px inner slot to a full-height target.",
+        "At narrow widths, stack quantity and unit price when they cannot display full values and collapse the undo footer into a single compact row.",
+        "Add previous and next position shortcuts outside text fields and keep a visible change summary with the imported price and current delta."
+      ]
+    },
+    "S5": {
+      "scores": {
+        "hierarchy": 8,
+        "density": 8,
+        "typography": 9,
+        "consistency": 8,
+        "clarity": 6,
+        "interaction": 7,
+        "accessibility": 8,
+        "responsive": 7,
+        "wise": 7
+      },
+      "issues": [
+        "Make Needs attention the direct follow-up from the hero by linking its warning count to the filtered list.",
+        "Combine ‘5 priced lists in 4 projects’ and ‘2.940.313,49 € priced across 5 lists’ into a single coverage line.",
+        "Label the crane ‘Cap used’ so the hook means the same thing as on All Projects and List, even though the main number here measures remaining budget.",
+        "Label the hero ‘Net remaining across capped lists’, state how many lists have no cap, and show those separately. In the all-uncapped case use ‘No list caps set’ in place of 0,00 € remaining.",
+        "Rename ‘Closest to cap’ to ‘Highest cap usage’ to match the actual sort, and give each warning row a direct Review budget action.",
+        "Expose the aggregate status as a count of affected lists and omit the single-list threshold hint on that badge.",
+        "Show the actual cap and remaining money in the mobile row on one wrapping line. The shared mini meter drops the cap below 640 px.",
+        "Show the 20 € remaining on the Estimate row so the highest-risk budget can be triaged without navigating into the ledger."
+      ]
+    },
+    "S6": {
+      "scores": {
+        "hierarchy": 9,
+        "density": 9,
+        "typography": 9,
+        "consistency": 8,
+        "clarity": 8,
+        "interaction": 6,
+        "accessibility": 9,
+        "responsive": 8,
+        "wise": 7
+      },
+      "issues": [
+        "Use archive-specific row actions and filters on the populated route. The shared project collection currently applies live budget attention filters to archived rows.",
+        "Change ‘set it aside’ to ‘hide it from All Projects and exclude it from active totals’ and name Unarchive as the way back.",
+        "Replace the selected-row ‘Move to Archive’ command with ‘Unarchive selected’ and give it the same behavior as each row’s Unarchive action.",
+        "Wrap the populated view’s batch toolbar on phones. Its selected count and Move, Open, Trash and Done controls share a fixed single row.",
+        "Give unarchive a visible primary slot in populated rows and offer Undo after either archive or unarchive."
+      ]
+    },
+    "S7": {
+      "scores": {
+        "hierarchy": 8,
+        "density": 8,
+        "typography": 9,
+        "consistency": 8,
+        "clarity": 6,
+        "interaction": 7,
+        "accessibility": 8,
+        "responsive": 7,
+        "wise": 7
+      },
+      "issues": [
+        "Include the same subdued Go to All Projects link in the captured empty state as in the current component so there is a clear continuation.",
+        "Hide the restore/delete instructions on an empty collection and put them beside the populated list.",
+        "Apply the shared collection row’s icon, title and metadata spacing to populated Trash while retaining its inline recovery actions.",
+        "Replace ‘from their More options menu’ with copy that names the actual inline Restore and Delete forever buttons on each populated row.",
+        "Offer Undo after Restore so a mistaken recovery can be reversed without finding the item again in All Projects.",
+        "After Restore or Delete forever removes a row, focus the next row’s Restore button or the empty-state heading when the last row is gone.",
+        "Drop the populated row’s 60 px action indent at phone widths and let Restore and Delete forever wrap below the title.",
+        "Exclude permanently deleted lists from the sidebar Trash counter using the same filter as the Trash view."
+      ]
+    },
+    "S8": {
+      "scores": {
+        "hierarchy": 9,
+        "density": 7,
+        "typography": 8,
+        "consistency": 7,
+        "clarity": 6,
+        "interaction": 6,
+        "accessibility": 6,
+        "responsive": 6,
+        "wise": 6
+      },
+      "issues": [
+        "Reduce the 62 px result rows and oversized icon tiles so the next result group and its expansion action stay visible together.",
+        "Separate OZ and the source breadcrumb typographically and wrap the most useful disambiguating text instead of truncating the entire subtitle.",
+        "Use the small shared surface radius and a solid scrim in place of the large panel radius, strong shadow and blurred backdrop.",
+        "Change ‘Show 47 more positions’ under 104 matches to ‘Show 50 of 104 positions’ and label pricing scope accurately. ‘None priced’ currently only describes the shown rows.",
+        "Refresh the position index after list imports, edits and Trash changes, and filter removed items before rendering results.",
+        "Restore focus to the invoking search button or prior control on close and retain a visible focus indicator on the search field and Cancel button.",
+        "At phone widths, put EP and GP on a second line below the result title and source. Size the results pane to the visible viewport when the software keyboard opens.",
+        "Expose keyboard shortcuts to jump between Projects, Lists and Positions and show the same searchable workspace actions in the palette."
+      ]
+    },
+    "S9": {
+      "scores": {
+        "hierarchy": 7,
+        "density": 8,
+        "typography": 8,
+        "consistency": 7,
+        "clarity": 7,
+        "interaction": 8,
+        "accessibility": 7,
+        "responsive": 8,
+        "wise": 7
+      },
+      "issues": [
+        "Use a compact dark project-created toast so Import files is the most prominent action after creation.",
+        "Remove the redundant ‘No lists yet’ subtitle where ‘Add your first list’ is already present.",
+        "Turn the 13 px paragraph of supported formats and GAEB fields into a ‘Supported file types’ disclosure with readable grouped text.",
+        "Align the empty-state icon, heading and actions with the project title, as Archived and Trash do. Reserve the inset and outline for active drag.",
+        "Replace ‘price files’ with ‘price sheets’ and match the blank-list action label to ‘New list’ on the populated folder.",
+        "Move the named drop prompt from the blurred full-page overlay into the highlighted empty state so the import destination and actions stay readable.",
+        "Give the success icon sufficient contrast against its toast background and keep Undo available from the keyboard after the temporary toast disappears.",
+        "Remove the extra 20 px inner inset on narrow screens so the import buttons and format copy use the same column as the header.",
+        "After creating the project, focus the empty-state heading and expose Import files, New list and Undo through keyboard-accessible controls in that flow."
+      ]
+    }
+  },
+  "global_issues": [
+    "Make cap scope and exclusions explicit at portfolio, project and list levels. Keep cap amounts visible on mobile and show remaining money wherever budgets are compared.",
+    "Use one modal stack to manage inert state and focus restoration. The search palette and drawer can overlap, and either can currently clear the root’s inert state when it closes.",
+    "Use the same compact editing cues, validation and keyboard commit behavior in the ledger and position drawer.",
+    "Show ⌘K or Ctrl+K to match the platform and use the same shortcut label in the account menu.",
+    "Apply the existing small radii and opaque dark surfaces consistently to the palette, feedback and batch actions.",
+    "Refresh the Trash screenshot after reconciling the empty state and current controls. The return link exists in source and is absent in the capture."
+  ]
+}

@@ -1,124 +1,158 @@
-import { clsx } from 'clsx'
 import { useMemo, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { Icon, Meter } from '../components/ui'
-import { EmptyNote, Page } from '../components/Page'
-import { MoreMenu } from '../components/FolderCard'
-import { useModel, type ListView } from '../lib/store'
-import { money, plural, usageTone } from '../lib/format'
+import { BudgetBadge, BudgetMini, Chips, EmptyState, PageFrame, PageHeader, Row, RowList, RowMenu, Section, SortMenu, Summary, ToolButton, budgetPhrase, heroStatus } from '../components/Kit'
+import { Dock } from '../components/Dock'
+import { toast } from '../components/ui'
+import { counts, useModel, useStore, type ListView } from '../lib/store'
+import { budgetStatus, money, needsAttention, plural } from '../lib/format'
 import { useActions } from '../lib/actions'
+import { completeness, displayTitle, listLabel, phaseLabel } from '../components/ListCard'
 
-type Key = 'title' | 'folder' | 'positions' | 'total' | 'usage'
+type Key = 'total' | 'usage' | 'title' | 'folder'
+const SORTS: Record<Key, string> = { usage: 'Closest to cap', total: 'Highest amount', title: 'Name A–Z', folder: 'Project A–Z' }
 
+/** the hero reads like every other: what is priced, against the sum of list caps, with Used and Left on the right */
 export function ActiveBudgets() {
   const { lists, folders } = useModel()
-  const navigate = useNavigate()
-  const { listMenu } = useActions()
-  const [key, setKey] = useState<Key>('total')
-  const [dir, setDir] = useState<1 | -1>(-1)
+  const { listMenu, openLists } = useActions()
+  const [key, setKey] = useState<Key>('usage')
+  const [view, setView] = useState<'all' | 'attention'>('all')
+  const [selectMode, setSelectMode] = useState(false)
+  const [sel, setSel] = useState<Set<string>>(new Set())
 
-  const folderName = useMemo(() => new Map(folders.map((f) => [f.id, f])), [folders])
-  const rows = useMemo(() => {
-    const live = lists.filter((l) => !l.trashedAt && l.total > 0 && !folderName.get(l.folderId)?.trashedAt && !folderName.get(l.folderId)?.archived)
-    const usage = (l: ListView) => (l.cap ? l.total / l.cap : 0)
-    const val = (l: ListView): number | string => {
-      switch (key) {
-        case 'title': return l.title.toLowerCase()
-        case 'folder': return (folderName.get(l.folderId)?.name ?? '').toLowerCase()
-        case 'positions': return l.positionsCount
-        case 'usage': return usage(l)
-        default: return l.total
-      }
-    }
-    return [...live].sort((a, b) => {
-      const x = val(a)
-      const y = val(b)
-      return (typeof x === 'string' ? x.localeCompare(y as string, 'de') : (x as number) - (y as number)) * dir
-    })
-  }, [lists, key, dir, folderName])
-
-  const grand = rows.reduce((s, l) => s + l.total, 0)
-
-  const th = (k: Key, label: string, right?: boolean) => (
-    <th scope="col" aria-sort={key === k ? (dir === 1 ? 'ascending' : 'descending') : 'none'} className={clsx('px-3 py-3', right && 'text-right')}>
-      <button
-        type="button"
-        onClick={() => (key === k ? setDir((d) => (d === 1 ? -1 : 1)) : (setKey(k), setDir(k === 'title' || k === 'folder' ? 1 : -1)))}
-        className={clsx('inline-flex items-center gap-1 tracking-wider uppercase transition-colors hover:text-slate-900', key === k && 'text-slate-900')}
-      >
-        {label}
-        <Icon name={key === k ? (dir === 1 ? 'arrow_upward' : 'arrow_downward') : 'unfold_more'} size={13} className={key === k ? '' : 'opacity-40'} />
-      </button>
-    </th>
+  const folderById = useMemo(() => new Map(folders.map((f) => [f.id, f])), [folders])
+  const live = useMemo(
+    () => lists.filter((l) => counts(l) && l.total > 0 && !folderById.get(l.folderId)?.trashedAt && !folderById.get(l.folderId)?.archived),
+    [lists, folderById],
   )
+  const flagged = live.filter((l) => needsAttention(l.total, l.cap)).length
+
+  const rows = useMemo(() => {
+    const usage = (l: ListView) => (l.cap ? l.total / l.cap : 0)
+    const name = (l: ListView) => folderById.get(l.folderId)?.name ?? ''
+    const r = view === 'attention' ? live.filter((l) => needsAttention(l.total, l.cap)) : [...live]
+    switch (key) {
+      case 'usage': return r.sort((a, b) => usage(b) - usage(a))
+      case 'title': return r.sort((a, b) => a.title.localeCompare(b.title, 'de'))
+      case 'folder': return r.sort((a, b) => name(a).localeCompare(name(b), 'de') || b.total - a.total)
+      default: return r.sort((a, b) => b.total - a.total)
+    }
+  }, [live, key, view, folderById])
+
+  const budget = live.reduce((b, l) => (l.cap ? { total: b.total + l.total, cap: b.cap + l.cap } : b), { total: 0, cap: 0 })
+  const total = live.reduce((x, l) => x + l.total, 0)
+  const folderCount = new Set(live.map((l) => l.folderId)).size
+  const toggle = (id: string) =>
+    setSel((s) => {
+      const n = new Set(s)
+      if (n.has(id)) n.delete(id)
+      else n.add(id)
+      return n
+    })
+  const done = () => {
+    setSelectMode(false)
+    setSel(new Set())
+  }
 
   return (
-    <Page className="mx-auto w-full max-w-7xl px-4 pt-5 pb-16 sm:px-6">
-      <div className="pb-4">
-        <nav aria-label="Breadcrumb" className="mb-1 flex items-center gap-1.5 text-xs text-slate-500">
-          <Link to="/" className="hover:text-slate-900">Home</Link>
-          <Icon name="chevron_right" size={12} />
-          <Link to="/" className="hover:text-slate-900">Workspace</Link>
-          <Icon name="chevron_right" size={12} />
-          <span className="font-medium text-slate-900">Active Budgets</span>
-        </nav>
-        <div className="flex flex-wrap items-center gap-2">
-          <h1 className="text-xl font-bold tracking-tight text-slate-900">Active Budgets</h1>
-          <span className="rounded-full border border-slate-200 bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500">{plural(rows.length, 'priced list', 'priced lists')}</span>
-          <span className="font-mono text-xs text-slate-500">Σ {money(grand)}</span>
-        </div>
-      </div>
-      {rows.length === 0 ? (
-        <EmptyNote icon="account_balance_wallet" title="No priced lists" text="Lists with unit prices (offers, GAEB X84/X86, D84/D86) show up here." />
+    <PageFrame>
+      <PageHeader
+        title="Active Budgets"
+        subtitle={live.length ? `${plural(live.length, 'priced list', 'priced lists')} in ${plural(folderCount, 'project', 'projects')}` : undefined}
+      />
+      {live.length === 0 ? (
+        <EmptyState icon="account_balance_wallet" title="No priced lists yet" text="Lists with unit prices (offers, GAEB X84/X86, D84/D86) show up here." />
       ) : (
-        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs">
-          <div className="relative overflow-x-auto">
-            <table className="w-full min-w-[820px] border-collapse text-left text-xs">
-              <thead>
-                <tr className="border-b border-slate-200 bg-slate-50/80 text-[11px] font-semibold text-slate-500">
-                  {th('title', 'List')}
-                  {th('folder', 'Folder')}
-                  {th('positions', 'Positions', true)}
-                  {th('total', 'Total', true)}
-                  {th('usage', 'Usage of cap')}
-                  <th scope="col" className="w-10 px-3 py-3"><span className="sr-only">Actions</span></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
+        <>
+          <Summary
+            label="Total of lists with a cap"
+            amount={money(budget.total)}
+            total={budget.total}
+            cap={budget.cap}
+            capLabel="in list caps"
+            status={heroStatus(budget, live.map((l) => ({ tone: budgetStatus(l.total, l.cap).tone })), ['list', 'lists'])}
+            meta={total !== budget.total ? <span className="num">{money(total)} across all {plural(live.length, 'list', 'lists')}</span> : undefined}
+            onStatus={() => { setView('attention'); requestAnimationFrame(() => document.getElementById('sec-budgets')?.focus()) }}
+          hint="Measured against each list's own cap."
+          />
+          <Section
+            title="Budgets"
+            id="sec-budgets"
+            focusable
+            count={rows.length}
+            tools={
+              <>
+                {live.length > 3 && <SortMenu value={key} options={SORTS} onChange={setKey} noun="budgets" />}
+                <ToolButton icon={selectMode ? 'close' : 'checklist'} active={selectMode} aria-pressed={selectMode} onClick={() => (selectMode ? done() : setSelectMode(true))}>
+                  {selectMode ? 'Cancel' : 'Select'}
+                </ToolButton>
+              </>
+            }
+          >
+            {((live.length > 3 && flagged > 0) || view !== 'all') && (
+              <div className="mb-3">
+                <Chips
+                  label="Filter budgets"
+                  value={view}
+                  onChange={setView}
+                  options={[
+                    { key: 'all', label: 'All' },
+                    { key: 'attention', label: 'Needs attention', count: flagged },
+                  ]}
+                />
+              </div>
+            )}
+            <p className="sr-only" aria-live="polite">{view === 'attention' ? `Showing ${plural(rows.length, 'list', 'lists')} that need attention` : ''}</p>
+            {rows.length === 0 ? (
+              <EmptyState compact icon="check_circle" title="Nothing needs attention" text="Every list is below 75% of its cap." />
+            ) : (
+              <RowList>
                 {rows.map((l) => {
-                  const pct = l.cap ? (l.total / l.cap) * 100 : 0
+                  const project = folderById.get(l.folderId)
+                  const folder = project?.name
+                  const title = displayTitle(listLabel(l, live).title, folder)
                   return (
-                    <tr
+                    <Row
                       key={l.id}
-                      tabIndex={0}
-                      onClick={() => navigate(`/list/${l.id}`)}
-                      onKeyDown={(e) => e.key === 'Enter' && e.target === e.currentTarget && navigate(`/list/${l.id}`)}
-                      className="cursor-pointer transition-colors hover:bg-slate-50/80"
-                    >
-                      <td className="px-3 py-3">
-                        <div className="flex items-center gap-3">
-                          <span className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-100 text-slate-600">
-                            <Icon name="description" size={18} />
-                          </span>
-                          <div className="min-w-0">
-                            <div className="truncate font-semibold text-slate-900">{l.title}</div>
-                            <div className="truncate font-mono text-[11px] text-slate-400">{l.fileName}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-3 py-3 text-slate-600">{folderName.get(l.folderId)?.name}</td>
-                      <td className="px-3 py-3 text-right font-mono text-slate-600">{l.positionsCount}</td>
-                      <td className="px-3 py-3 text-right font-mono font-bold text-slate-900">{money(l.total)}</td>
-                      <td className="w-56 px-3 py-3"><Meter value={pct} tone={usageTone(pct)} /></td>
-                      <td className="px-3 py-3 text-right"><MoreMenu items={listMenu(l)} label={`Options for ${l.title}`} /></td>
-                    </tr>
+                      to={`/list/${l.id}`}
+                      label={`${title}, ${folder}, ${money(l.total)}, ${budgetPhrase(l.total, l.cap)}`}
+                      icon="request_quote"
+                      tone={project?.tone ?? 'slate'}
+                      title={title}
+                      badge={<BudgetBadge total={l.total} cap={l.cap} />}
+                      subtitle={[folder, phaseLabel(l), completeness(l)].filter(Boolean).join(' · ')}
+                      amount={money(l.total)}
+                      meta={<BudgetMini total={l.total} cap={l.cap} label={`${title}: share of cap used`} />}
+                      menu={<RowMenu items={listMenu(l)} label={`Options for ${title}`} />}
+                      selectMode={selectMode}
+                      selected={sel.has(l.id)}
+                      onToggle={() => toggle(l.id)}
+                    />
                   )
                 })}
-              </tbody>
-            </table>
-          </div>
-        </div>
+              </RowList>
+            )}
+          </Section>
+          <Dock
+            open={selectMode}
+            count={sel.size}
+            noun="list"
+            onOpen={() => {
+              openLists([...sel])
+              done()
+            }}
+            onDelete={() => {
+              const ids = [...sel]
+              ids.forEach((id) => useStore.getState().patchList(id, { trashedAt: new Date().toISOString() }))
+              toast(`Moved ${plural(ids.length, 'list', 'lists')} to Trash`, 'ok', {
+                label: 'Undo',
+                run: () => ids.forEach((id) => useStore.getState().patchList(id, { trashedAt: undefined })),
+              })
+              done()
+            }}
+            onDone={done}
+          />
+        </>
       )}
-    </Page>
+    </PageFrame>
   )
 }

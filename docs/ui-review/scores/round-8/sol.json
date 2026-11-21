@@ -1,0 +1,298 @@
+{
+  "member": "sol",
+  "screens": {
+    "S1": {
+      "scores": {
+        "hierarchy": 9,
+        "density": 8,
+        "typography": 8,
+        "consistency": 8,
+        "clarity": 8,
+        "interaction": 8,
+        "accessibility": 9,
+        "responsive": 7,
+        "wise": 8
+      },
+      "issues": [
+        "[density] Move the cap-scope explanation beside the hero label and put pricing coverage on the Projects heading so the mobile summary takes fewer lines.",
+        "[typography] In project rows reserve a minimum width for the tabular amount and add an explicit gap before the cap percentage. The phone currently shows “€75%” without a gap.",
+        "[consistency] Use the shared tinted secondary treatment for New project, Sort and Select and retain the inverted treatment for the selected filter.",
+        "[clarity] Label the hero denominator “combined project caps” and link the list-cap explanation to Active Budgets. Make the numerator’s pricing scope explicit.",
+        "[interaction] Give project names an at-rest link cue and make the hero warning open the existing Needs attention filter and focus the results heading.",
+        "[responsive] Let the amount and cap metadata wrap onto separate lines below 400 px if they compete for space. Keep the exact amount visible and place the mini meter beside the cap metadata.",
+        "[wise] Separate project and list alerts in the rows so the Site row’s 2% project usage reads independently of its almost-at-cap list. Link that alert to the flagged list."
+      ]
+    },
+    "S2": {
+      "scores": {
+        "hierarchy": 9,
+        "density": 8,
+        "typography": 9,
+        "consistency": 8,
+        "clarity": 8,
+        "interaction": 7,
+        "accessibility": 8,
+        "responsive": 7,
+        "wise": 8
+      },
+      "issues": [
+        "[density] Move the 314-position count to the Lists section heading and group the list-cap reconciliation with the project cap figures.",
+        "[consistency] Put the project cap edit action in the same labeled control used for the list cap and give the Lists Select button the shared secondary fill.",
+        "[clarity] Put the labels “Project cap” and “Combined list caps” on the two values, and label the 100.000 € difference “Allocated above project cap” beside them.",
+        "[interaction] Replace the dotted cap amount with a visible pencil and “Edit cap” label, and give list titles an at-rest cue that opens the ledger.",
+        "[accessibility] Give Edit cap a 44 px touch target and keep its explicit accessible name including the current cap.",
+        "[responsive] At phone widths stack each list amount and cap metadata when they exceed row width and allow the cap reconciliation to wrap as its own line.",
+        "[wise] Link the combined-list-cap figure to the Lists section and keep each list’s cap visible there so users can reconcile the difference in place."
+      ]
+    },
+    "S3": {
+      "scores": {
+        "hierarchy": 8,
+        "density": 7,
+        "typography": 7,
+        "consistency": 7,
+        "clarity": 7,
+        "interaction": 6,
+        "accessibility": 6,
+        "responsive": 5,
+        "wise": 6
+      },
+      "issues": [
+        "[hierarchy] Give the collapsed view a simple Section and Total header. Show the full position column labels when a section opens.",
+        "[density] Reduce whitespace above each collapsed section, combine Categories and Findings under a single filter trigger, and move Select and Sort into one phone toolbar beside Expand all.",
+        "[typography] Use normal-width tabular numerals for section subtotals. On phones let the German section label wrap and put count and subtotal on the next line.",
+        "[consistency] Move “38 with quantity 0” and the upload-check filter into the ledger filter controls. Use the same pressed state and allow users to clear both from that toolbar.",
+        "[clarity] Change “38 with quantity 0” to “38 zero-quantity positions,” remove wrapping dot separators around controls, and retain the finding title and severity in the mobile row summary.",
+        "[interaction] Make the full section header toggle its contents. Keep inline editors mounted while validating, show invalid values inline, and preserve keyboard focus on commit or Escape.",
+        "[accessibility] Expand the 28 px summary controls and 24 px finding buttons to 44 px on touch. Label select-all “Select visible positions,” disable it when none are expanded, and expose named quantity, unit-price and total fields in the mobile layout.",
+        "[responsive] At 390 px give section names the full first line and allow a second line for long names. Put count, flags and subtotal below, and reflow quantity and price controls without clipping at 320 px.",
+        "[wise] Keep position search and collapse controls reachable during long scrolls. Put a counted link to whole-list findings beside the results toolbar so users can jump straight to them."
+      ]
+    },
+    "S4": {
+      "scores": {
+        "hierarchy": 8,
+        "density": 8,
+        "typography": 8,
+        "consistency": 8,
+        "clarity": 7,
+        "interaction": 7,
+        "accessibility": 7,
+        "responsive": 7,
+        "wise": 8
+      },
+      "issues": [
+        "[hierarchy] Keep Gesamtpreis immediately below the position title on flagged items. Put a one-line findings summary there and show finding details below the price inputs.",
+        "[density] Use a compact disclosure for long or multiple findings to keep quantity and unit price in the first screenful.",
+        "[typography] Set the OZ input in the same JetBrains Mono style as the ledger and use normal-width tabular figures for the formula and original price comparison.",
+        "[consistency] Match the category control to the shared secondary treatment and replace the bottom gradient with a thin scroll boundary that leaves the last text line fully visible.",
+        "[clarity] Add “Changes save when you leave a field,” replace “Check layer” with the check’s name in details, and show a persistent Reviewed label after review.",
+        "[interaction] Show a labeled edit affordance for Kurztext and Langtext in the resting state. Open the relevant finding when its ledger badge is activated and offer a “Go to field” action from that finding.",
+        "[accessibility] Give the Langtext pencil and Mark reviewed controls 44 px touch targets, and tell assistive tech when a finding changes to Reviewed with a status announcement.",
+        "[responsive] Stack Menge and Einheitspreis when the quantity and unit compound gets narrow. Constrain the OZ input width and keep an explicit Close control visible above the scrolling content.",
+        "[wise] On desktop keep the active ledger row and its key figures visible beside the drawer. Retain the j/k controls so users can compare positions while working through findings."
+      ]
+    },
+    "S5": {
+      "scores": {
+        "hierarchy": 9,
+        "density": 8,
+        "typography": 9,
+        "consistency": 8,
+        "clarity": 8,
+        "interaction": 8,
+        "accessibility": 9,
+        "responsive": 7,
+        "wise": 8
+      },
+      "issues": [
+        "[density] Show the list count once in the results heading and remove the repeated “6 lists” by the crane.",
+        "[consistency] Use the shared tinted style for unselected filters and tools. Add a stable link cue to list titles in both themes.",
+        "[clarity] Rename “Priced in capped lists” to “Total in capped lists” and label the denominator “combined list caps.” Keep uncapped amounts under a separate secondary label when present.",
+        "[interaction] Make the hero warning apply the existing Needs attention filter and move keyboard focus to the filtered Budgets heading.",
+        "[responsive] Stack spent and cap metadata when the two values outgrow the row at phone widths, keeping the exact amount and named budget status visible.",
+        "[wise] Show absolute headroom for the closest-to-cap rows with the percentage as secondary context so the sorted list supports a decision at a glance."
+      ]
+    },
+    "S6": {
+      "scores": {
+        "hierarchy": 9,
+        "density": 7,
+        "typography": 9,
+        "consistency": 8,
+        "clarity": 9,
+        "interaction": 9,
+        "accessibility": 9,
+        "responsive": 8,
+        "wise": 8
+      },
+      "issues": [
+        "[density] Reduce the empty Archive panel’s 80 px desktop vertical padding to about 32 px so its message and return link sit closer to the page title.",
+        "[consistency] Use a quiet solid surface for Archive’s static empty state and reserve the dashed outline for the import drop zone.",
+        "[responsive] Use the compact empty-state spacing on phones and keep the return link at least 44 px high.",
+        "[wise] Place the restore guidance and return link under the page title in the same compact block, without the full-width dashed frame."
+      ]
+    },
+    "S7": {
+      "scores": {
+        "hierarchy": 9,
+        "density": 7,
+        "typography": 9,
+        "consistency": 8,
+        "clarity": 8,
+        "interaction": 9,
+        "accessibility": 9,
+        "responsive": 8,
+        "wise": 8
+      },
+      "issues": [
+        "[density] Bring the Trash empty message and return link up by reducing the empty panel’s 80 px desktop padding to about 32 px.",
+        "[consistency] Give Trash the same solid low-emphasis surface as Archive and reserve the dashed outline for import.",
+        "[clarity] Replace the empty-state sentence with “Restore projects and lists from here or delete them permanently” so the page explains what users can do.",
+        "[responsive] Let Restore and Delete forever wrap in populated Trash rows at narrow widths. Remove the 60 px actions indent below 360 px and keep the empty return link at least 44 px high.",
+        "[wise] Put reassurance about restoration next to the empty title and surface the return link directly under it with compact spacing."
+      ]
+    },
+    "S8": {
+      "scores": {
+        "hierarchy": 9,
+        "density": 8,
+        "typography": 8,
+        "consistency": 9,
+        "clarity": 7,
+        "interaction": 8,
+        "accessibility": 8,
+        "responsive": 7,
+        "wise": 8
+      },
+      "issues": [
+        "[density] Replace the top-50 heading annotation and full expansion row with a single compact “Show more positions” action that includes the match count.",
+        "[typography] Give result titles more width and set OZ, category and list path on a clearly separated secondary line so matches with similar titles scan more easily.",
+        "[clarity] When there are no entity matches, show “No matches” and make “New project” a separate optional action. Move the / and j/k hints to their list and drawer surfaces.",
+        "[interaction] Keep other result groups reachable when positions expand. Add an in-place collapse action and preserve the selected result as the group height changes.",
+        "[accessibility] Base the live count on entity matches so project creation cannot suppress “No matches.” Announce the displayed count after any group expands, including groups below the cap.",
+        "[responsive] Use the dynamic viewport for the full-screen palette and put price or pricing state below the context on phones, giving titles up to two lines when the keyboard is open.",
+        "[wise] Add Products, Suppliers and Subcontractors navigation commands so the shared keyboard entry point reaches the catalogue workflow."
+      ]
+    },
+    "S9": {
+      "scores": {
+        "hierarchy": 9,
+        "density": 7,
+        "typography": 9,
+        "consistency": 8,
+        "clarity": 8,
+        "interaction": 9,
+        "accessibility": 8,
+        "responsive": 8,
+        "wise": 8
+      },
+      "issues": [
+        "[density] Reduce empty-folder padding to about 40 px on desktop and move the format list into an expandable “Supported formats” line near Import files.",
+        "[consistency] Use the shared tinted secondary treatment for New list and reduce the toast’s large elevation to a subtle shadow or border while keeping its ink surface.",
+        "[clarity] Use “tender or price files” in the main instructions and put the preserved GAEB fields in format help, with plain-English descriptions beside the original terms.",
+        "[accessibility] Expose Undo for project creation in a persistent location such as the project actions until the next action, in addition to the timed toast.",
+        "[responsive] Reduce empty-state vertical padding at phone widths and reserve space for the bottom toast so it cannot cover either stacked creation button.",
+        "[wise] Bring the import CTA and the manual alternative closer to the project title and keep the technical format details one disclosure away."
+      ]
+    },
+    "S10": {
+      "scores": {
+        "hierarchy": 8,
+        "density": 6,
+        "typography": 8,
+        "consistency": 7,
+        "clarity": 6,
+        "interaction": 7,
+        "accessibility": 7,
+        "responsive": 5,
+        "wise": 6
+      },
+      "issues": [
+        "[hierarchy] Make product name and price the primary row content and place secondary actions in a single menu beside the price.",
+        "[density] Group supplier, item code and unit as compact secondary metadata and omit absent optional values instead of showing four dashes on each row.",
+        "[typography] Use normal-weight category metadata and right-align a tabular price with currency and unit. Move price source and dates to a smaller supporting line.",
+        "[consistency] Use “Archive” with the archive icon in the row action and confirmation. Match the shared archive vocabulary and compact row controls.",
+        "[clarity] Disambiguate same-name rows with supplier code or the imported source list and OZ where available. Label missing prices “Not priced” and show the supplier’s name on the active filter chip.",
+        "[interaction] Add a priced/unpriced filter and a “/” shortcut to product search. Keep the previous rows visible while a debounced query loads.",
+        "[accessibility] Give row actions 44 px touch targets and include the product identifier in their accessible labels for duplicate names. Announce the updated result count.",
+        "[responsive] Below 768 px render wrapping rows with product name, price, unit, and menu visible without horizontal scrolling. Put supplier and category on the second line when present.",
+        "[wise] Support a fast keyboard flow from local search to opening a distinct product row, editing its price, and returning to the same row with the filter and scroll position intact."
+      ]
+    },
+    "S11": {
+      "scores": {
+        "hierarchy": 9,
+        "density": 7,
+        "typography": 9,
+        "consistency": 7,
+        "clarity": 8,
+        "interaction": 7,
+        "accessibility": 7,
+        "responsive": 5,
+        "wise": 7
+      },
+      "issues": [
+        "[density] Group contact name, email and phone in one Contact cell, with “Add contact details” when all three are missing.",
+        "[consistency] Replace the Delete icon and confirmation copy with Archive and use the shared secondary style for Edit.",
+        "[clarity] Turn the bare underlined 17 into “17 products” and carry the company name into the resulting Products filter chip.",
+        "[interaction] Offer clickable mail and telephone links when data exists, and use a visible “View products” affordance for the supplier-to-products action.",
+        "[accessibility] Make the product-count link and Archive action 44 px touch targets. Include the product count in the link’s accessible name.",
+        "[responsive] Use stacked supplier rows below 768 px and put company, View products and the action menu on screen without sideways scrolling. Put contact details below the name.",
+        "[wise] Give Suppliers a local search shortcut and let the product drill-down return to the same supplier and search state."
+      ]
+    },
+    "S12": {
+      "scores": {
+        "hierarchy": 6,
+        "density": 7,
+        "typography": 9,
+        "consistency": 7,
+        "clarity": 8,
+        "interaction": 7,
+        "accessibility": 8,
+        "responsive": 7,
+        "wise": 7
+      },
+      "issues": [
+        "[hierarchy] On the unfiltered empty Active view keep Add subcontractor inside the empty state as the sole primary CTA. Show the header CTA once entries exist.",
+        "[density] Hide search when the current catalogue has no entries and use compact padding on the empty panel. Keep an Archived route available when it has records.",
+        "[consistency] Use the same quiet solid empty panel as Archive and Trash. Keep the dashed frame for file import.",
+        "[clarity] Replace the repeated subtitle and empty copy with one sentence about keeping each company’s trade and contact information together.",
+        "[interaction] After Clear search, return focus to the search input. In the Archived empty view, offer “View active subcontractors” and focus the results heading after the switch.",
+        "[accessibility] Remove the duplicate same-name Add button from the tab order by rendering a single CTA in the empty view. Announce changes to empty or populated results when switching status.",
+        "[responsive] Let the heading use the full width on phones. Move Add below it on populated screens and use stacked company rows so trade and actions remain visible.",
+        "[wise] Take users from the initial empty view to one obvious creation action. Introduce search and row controls as entries become available."
+      ]
+    },
+    "S13": {
+      "scores": {
+        "hierarchy": 9,
+        "density": 8,
+        "typography": 8,
+        "consistency": 8,
+        "clarity": 7,
+        "interaction": 6,
+        "accessibility": 6,
+        "responsive": 7,
+        "wise": 7
+      },
+      "issues": [
+        "[density] Trim the Price fieldset’s interior spacing and place Currency next to the price entry. Keep Effective from beside them on desktop and below on phones.",
+        "[typography] Use tabular numerals and an explicit German-format date presentation such as 21.11.2026, with an accessible date picker. Show a localized money example.",
+        "[consistency] Match the supplier dropdown chevron and the date picker affordance to the shared field styling in both themes. Use the same currency format as the Products table.",
+        "[clarity] Mark required fields, label the blank price optional, and explain that entering a price creates a dated price record and what leaving it blank does.",
+        "[interaction] When data finishes loading, focus Product name unless the user has already moved focus. Keep focus stable across pending and error states and return it to the edited row after Save.",
+        "[accessibility] Resolve [data-autofocus] explicitly before the fallback query. Link field hints and validation errors with aria-describedby and move focus to the first invalid field on failed submission.",
+        "[responsive] Constrain the whole sheet to the dynamic viewport and size its scrolling form from the space left between the fixed header and footer. Keep Save above the on-screen keyboard when possible.",
+        "[wise] Preview the pending unit price beside the current price as the user types. Show the difference for matching currencies and distinguish a new effective-dated price from an edit to the product description."
+      ]
+    }
+  },
+  "global_issues": [
+    "Give the shared search shortcut a platform-specific label (⌘K or Ctrl+K), and add catalogue navigation commands to the palette.",
+    "Raise the contrast of the unspent crane rail in both themes. Its current neutral stroke is roughly 1.5:1 against the page in each theme. Use the stronger neutral token and keep the spent segment and end marker distinct.",
+    "Use the shared tinted secondary button treatment and keep dashed borders specific to drop targets. Standardize labeled row actions and touch hit areas across the ledger, catalogues and dialogs.",
+    "Add light and dark captures of an expanded flagged ledger and an open flagged drawer, plus phone captures of populated catalogue tables and the product editor with the keyboard open."
+  ]
+}

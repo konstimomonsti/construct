@@ -76,7 +76,7 @@ export function ExportDialog({
       width="max-w-2xl"
       footer={
         <>
-          <span className="mr-auto truncate font-mono text-[11px] text-slate-400" title={fileName}>{fileName}</span>
+          <span className="mr-auto truncate font-mono text-xs text-slate-600" title={fileName}>{fileName}</span>
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
           <Button variant="primary" icon="file_download" disabled={busy || (effScope === 'categories' && cats.size === 0)} onClick={run}>
             {busy ? 'Exporting…' : 'Export'}
@@ -92,15 +92,15 @@ export function ExportDialog({
             onClick={() => setFormat(f.id)}
             aria-pressed={format === f.id}
             className={clsx(
-              'flex flex-col items-start gap-1 rounded-xl border p-2.5 text-left transition-colors',
+              'flex flex-col items-start gap-1 rounded-lg border p-2.5 text-left transition-colors',
               format === f.id ? 'border-brand-500 bg-brand-50 ring-1 ring-brand-500' : 'border-slate-200 bg-white hover:bg-slate-50',
             )}
           >
             <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-800">
-              <Icon name={f.icon} size={16} className="text-slate-400" />
+              <Icon name={f.icon} size={16} className="text-slate-600" />
               {f.label}
             </span>
-            <span className="text-[11px] leading-snug text-slate-500">{fidelityNote(doc, f.id, edited, !!loadOriginal && effScope === 'all' && longTexts && (forcedOff || pricesOn))}</span>
+            <span className="text-xs leading-snug text-slate-600">{fidelityNote(doc, f.id, edited, !!loadOriginal && effScope === 'all' && longTexts && (forcedOff || pricesOn))}</span>
           </button>
         ))}
       </div>
@@ -119,7 +119,7 @@ export function ExportDialog({
               {resolved.tree.map((c) => (
                 <label key={c.oz} className="flex items-center gap-2 text-xs text-slate-700">
                   <input type="checkbox" checked={cats.has(c.oz)} onChange={() => toggleCat(c.oz)} />
-                  <span className="font-mono text-[11px] text-slate-400">{c.oz}</span>
+                  <span className="font-mono text-xs text-slate-600">{c.oz}</span>
                   <span className="truncate">{c.label}</span>
                 </label>
               ))}
@@ -135,8 +135,8 @@ export function ExportDialog({
           <label className={clsx('flex items-center gap-2 text-xs text-slate-700', (forcedOn || forcedOff) && 'opacity-60')}>
             <input type="checkbox" checked={pricesOn && canPrices} disabled={forcedOn || forcedOff} onChange={(e) => setPrices(e.target.checked)} />
             Include prices
-            {forcedOff && <span className="text-[11px] text-slate-400">(not part of tender formats)</span>}
-            {forcedOn && <span className="text-[11px] text-slate-400">(always in this format)</span>}
+            {forcedOff && <span className="text-xs text-slate-600">(not part of tender formats)</span>}
+            {forcedOn && <span className="text-xs text-slate-600">(always in this format)</span>}
           </label>
         </fieldset>
       </div>

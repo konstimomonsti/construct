@@ -6,6 +6,9 @@ export const CATALOGUES = {
 
 export type CatalogueKind = keyof typeof CATALOGUES
 
+/** rows per catalogue page; matches PAGE_SIZE in backend/catalogues.py */
+export const CATALOGUE_PAGE_SIZE = 50
+
 export type CatalogueEntry = {
   id: string
   name: string

@@ -1,13 +1,22 @@
-import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { Button, Icon, Menu, toast } from '../components/ui'
-import { Page, EmptyNote } from '../components/Page'
+import { useMemo, useState, type ReactNode } from 'react'
+import { Button, toast } from '../components/ui'
+import { Chips, EmptyState, PageFrame, PageHeader, PillLink, RowMenu, Section, SortMenu, Summary, ToolButton, heroStatus, worstTone } from '../components/Kit'
 import { FolderGrid } from '../components/FolderCard'
 import { Dock } from '../components/Dock'
-import { SORT_LABEL, useModel, useStore, type FolderView, type SortKey } from '../lib/store'
+import { SORT_LABEL, counts, portfolioBudget, useModel, useStore, type FolderView, type SortKey } from '../lib/store'
 import { useUi } from '../lib/ui-store'
 import { useActions } from '../lib/actions'
-import { plural } from '../lib/format'
+import { money, plural } from '../lib/format'
+
+type View = 'all' | 'attention' | 'unpriced'
+/** a project is as bad as its worst counted list, so a list at its cap flags the project too */
+export const projectTone = (f: FolderView) => worstTone(f, f.listMetas.filter(counts))
+const FLAGGED = new Set(['caution', 'warn', 'over'])
+const VIEWS: Record<View, (f: FolderView) => boolean> = {
+  all: () => true,
+  attention: (f) => FLAGGED.has(projectTone(f)),
+  unpriced: (f) => !f.total && f.listMetas.length > 0,
+}
 
 export function sortFolders(folders: FolderView[], sort: SortKey): FolderView[] {
   const a = [...folders]
@@ -20,15 +29,18 @@ export function sortFolders(folders: FolderView[], sort: SortKey): FolderView[] 
 }
 
 export function FolderCollection({
-  title, filter, crumb, emptyTitle, emptyText, emptyIcon, withOpenAll,
+  title, subtitle, filter, emptyTitle, emptyText, emptyIcon, withOpenAll, archive,
 }: {
   title: string
-  crumb: string
+  subtitle?: string
+  crumb?: string
   filter: (f: FolderView) => boolean
   emptyTitle: string
-  emptyText: string
+  emptyText: ReactNode
   emptyIcon: string
   withOpenAll?: boolean
+  /** this collection is the Archive, so the dock restores instead of archiving */
+  archive?: boolean
 }) {
   const { folders: all } = useModel()
   const sort = useStore((s) => s.sort)
@@ -37,8 +49,15 @@ export function FolderCollection({
   const { openLists } = useActions()
   const [selectMode, setSelectMode] = useState(false)
   const [sel, setSel] = useState<Set<string>>(new Set())
+  const [view, setView] = useState<View>('all')
 
-  const folders = useMemo(() => sortFolders(all.filter((f) => !f.trashedAt && filter(f)), sort), [all, sort, filter])
+  const scoped = useMemo(() => all.filter((f) => !f.trashedAt && filter(f)), [all, filter])
+  const flagged = scoped.filter(VIEWS.attention)
+  const unpriced = scoped.filter((f) => !f.total && f.listMetas.length > 0)
+  const folders = useMemo(
+    () => sortFolders(scoped.filter(VIEWS[view]), sort),
+    [scoped, sort, view],
+  )
   const listsOf = (ids: Iterable<string>) => {
     const set = new Set(ids)
     return folders.filter((f) => set.has(f.id)).flatMap((f) => f.listMetas.map((l) => l.id))
@@ -57,92 +76,107 @@ export function FolderCollection({
     setSel(new Set())
   }
 
-  return (
-    <Page className="mx-auto w-full max-w-7xl px-4 pt-6 pb-28 sm:px-6">
-      <div className="flex flex-col justify-between gap-3 pb-4 lg:flex-row lg:items-center">
-        <div className="min-w-0">
-          <nav aria-label="Breadcrumb" className="mb-1 flex min-w-0 items-center gap-1.5 overflow-hidden text-xs whitespace-nowrap text-slate-500">
-            <Link to="/" className="transition-colors hover:text-slate-900">Home</Link>
-            <Icon name="chevron_right" size={12} />
-            <Link to="/" className="transition-colors hover:text-slate-900">Workspace</Link>
-            <Icon name="chevron_right" size={12} />
-            <span className="truncate font-medium text-slate-900">{crumb}</span>
-          </nav>
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold tracking-tight text-slate-900">{title}</h1>
-            <span className="rounded-full border border-slate-200 bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500">
-              {plural(folders.length, 'Folder', 'Folders')}
-            </span>
-          </div>
-        </div>
-        <div className="flex w-full flex-wrap items-center gap-2 lg:w-auto">
-          <Button size="lg" icon="create_new_folder" iconClass="text-brand-600" onClick={() => openDialog({ kind: 'new-folder' })}>
-            New Folder
-          </Button>
-          {withOpenAll && (
-            <Button variant="primary" size="lg" icon="tab_group" onClick={() => openLists(openAllIds)} disabled={!openAllIds.length}>
-              Open All
-              <span className="ml-1 rounded bg-white/20 px-1.5 text-[11px] font-normal">{openAllIds.length}</span>
-            </Button>
-          )}
-          <div className="mx-1 h-4 w-px bg-slate-200" />
-          <div className="flex items-center gap-2 text-xs text-slate-500">
-            <Icon name="sort" size={18} />
-            <Menu
-              label="Sort folders"
-              width="w-48"
-              items={(Object.keys(SORT_LABEL) as SortKey[]).map((k) => ({ label: SORT_LABEL[k], checked: sort === k, onSelect: () => setSort(k) }))}
-              trigger={(p) => (
-                <button {...p} type="button" className="flex items-center gap-1 font-medium text-slate-900 transition-colors hover:text-brand-600">
-                  <span>{SORT_LABEL[sort]}</span>
-                  <Icon name="expand_more" size={15} />
-                </button>
-              )}
-            />
-          </div>
-          <div className="mx-1 h-4 w-px bg-slate-200" />
-          <button
-            type="button"
-            aria-pressed={selectMode}
-            onClick={() => (selectMode ? done() : setSelectMode(true))}
-            className={
-              selectMode
-                ? 'flex h-7 items-center gap-1.5 rounded-md border border-brand-600/30 bg-brand-50 px-2.5 text-xs font-semibold text-brand-700 transition-all hover:bg-brand-100'
-                : 'flex h-7 items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-2.5 text-xs font-medium text-slate-500 transition-all hover:bg-white hover:text-slate-900'
-            }
-          >
-            <Icon name={selectMode ? 'check' : 'checklist'} size={15} />
-            {selectMode ? (sel.size ? `${sel.size} Selected` : 'Done') : 'Select'}
-          </button>
-          {selectMode && (
-            <button
-              type="button"
-              className="text-xs font-medium text-brand-600 hover:underline"
-              onClick={() => setSel(sel.size === folders.length ? new Set() : new Set(folders.map((f) => f.id)))}
-            >
-              {sel.size === folders.length ? 'Deselect All' : 'Select All'}
-            </button>
-          )}
-        </div>
-      </div>
+  const budget = portfolioBudget(all)
+  const listCount = scoped.reduce((x, f) => x + f.listMetas.length, 0)
+  const newProject = () => openDialog({ kind: 'new-folder' })
 
-      {folders.length ? (
-        <FolderGrid folders={folders} selectMode={selectMode} selected={sel} onToggle={toggle} />
+  return (
+    <PageFrame>
+      <PageHeader
+        title={title}
+        subtitle={!scoped.length ? undefined : subtitle ?? (scoped.length ? `${plural(scoped.length, 'project', 'projects')} · ${plural(listCount, 'list', 'lists')}` : undefined)}
+        aside={withOpenAll && scoped.length > 0 ? (
+          <div className="flex items-center gap-2">
+            <Button variant="primary" icon="upload" onClick={() => openDialog({ kind: 'folder-target', action: 'import' })} aria-label="Import files" className="max-sm:w-10 max-sm:px-0">
+              <span className="max-sm:hidden">Import files</span>
+            </Button>
+            <Button icon="add" onClick={newProject} aria-label="New project" className="max-sm:w-10 max-sm:px-0"><span className="max-sm:hidden">New project</span></Button>
+            {openAllIds.length > 0 && <RowMenu label="More actions" items={[{ label: `Open all ${plural(openAllIds.length, 'list', 'lists')} in tabs`, icon: 'tab_group', onSelect: () => openLists(openAllIds) }]} />}
+          </div>
+        ) : undefined}
+      />
+
+      {withOpenAll && scoped.length > 0 && (
+        <Summary
+          label="Total across projects"
+          amount={money(budget.total)}
+          total={budget.total}
+          cap={budget.cap}
+          capLabel="in project caps"
+          status={heroStatus(budget, flagged.map((f) => ({ tone: projectTone(f) })), ['project', 'projects'])}
+          meta={unpriced.length > 0 && <span className="num">{budget.projects} of {plural(scoped.length, 'project', 'projects')} priced</span>}
+          onStatus={() => { setView('attention'); requestAnimationFrame(() => document.getElementById('sec-projects')?.focus()) }}
+          hint="Measured against project caps. List caps are on Active Budgets."
+        />
+      )}
+
+      {scoped.length ? (
+        <Section
+          title="Projects"
+          count={folders.length}
+          focusable
+          tools={
+            <>
+              {scoped.length > 3 && <SortMenu value={sort} options={SORT_LABEL} onChange={(k: SortKey) => setSort(k)} noun="projects" />}
+              <ToolButton icon={selectMode ? 'close' : 'checklist'} active={selectMode} aria-pressed={selectMode} onClick={() => (selectMode ? done() : setSelectMode(true))}>
+                {selectMode ? 'Cancel' : 'Select'}
+              </ToolButton>
+            </>
+          }
+        >
+          {((scoped.length > 3 && (flagged.length > 0 || unpriced.length > 0)) || view !== 'all') && (
+            <div className="mb-3">
+              <Chips
+                label="Filter projects"
+                value={view}
+                onChange={setView}
+                options={[
+                  { key: 'all', label: 'All' },
+                  ...(flagged.length ? [{ key: 'attention' as const, label: 'Needs attention', count: flagged.length }] : []),
+                  ...(unpriced.length ? [{ key: 'unpriced' as const, label: 'Not priced', count: unpriced.length }] : []),
+                ]}
+              />
+            </div>
+          )}
+          <p className="sr-only" aria-live="polite">
+            {view === 'all' ? '' : `Showing ${plural(folders.length, 'project', 'projects')} ${view === 'attention' ? 'that need attention' : 'not priced yet'}`}
+          </p>
+          {selectMode && (
+            <div className="mb-2 flex justify-end">
+              <button type="button" className="h-10 rounded-md px-3 text-sm font-semibold text-brand-700 hover:bg-brand-50" onClick={() => setSel(sel.size === folders.length ? new Set() : new Set(folders.map((f) => f.id)))}>
+                {sel.size === folders.length ? 'Deselect all' : 'Select all'}
+              </button>
+            </div>
+          )}
+          {folders.length ? (
+            <FolderGrid folders={folders} selectMode={selectMode} selected={sel} onToggle={toggle} />
+          ) : (
+            <EmptyState compact icon="check_circle" title={view === 'unpriced' ? 'Every project is priced' : 'Nothing needs attention'} text={view === 'unpriced' ? undefined : 'Every project is below 75% of its cap.'} />
+          )}
+        </Section>
       ) : (
-        <EmptyNote icon={emptyIcon} title={emptyTitle} text={emptyText} />
+        <EmptyState icon={emptyIcon} title={emptyTitle} text={emptyText}>
+          {withOpenAll ? (
+            <Button variant="primary" size="lg" icon="add" onClick={newProject}>New project</Button>
+          ) : (
+            <PillLink to="/" icon="arrow_back">Go to All Projects</PillLink>
+          )}
+        </EmptyState>
       )}
 
       <Dock
         open={selectMode}
         count={sel.size}
-        noun="folder"
+        noun="project"
         moveItems={[
           {
-            label: 'Move to Archive',
-            icon: 'archive',
+            label: archive ? 'Restore from Archive' : 'Move to Archive',
+            icon: archive ? 'unarchive' : 'archive',
             onSelect: () => {
-              sel.forEach((id) => useStore.getState().patchFolder(id, { archived: true }))
-              toast(`Archived ${plural(sel.size, 'folder', 'folders')}`)
+              const ids = [...sel]
+              const set = (archived: boolean) => ids.forEach((id) => useStore.getState().patchFolder(id, { archived }))
+              set(!archive)
+              toast(`${archive ? 'Restored' : 'Archived'} ${plural(ids.length, 'project', 'projects')}`, 'ok', { label: 'Undo', run: () => set(!!archive) })
               done()
             },
           },
@@ -154,7 +188,7 @@ export function FolderCollection({
         onDelete={() => {
           const chosen = folders.filter((f) => sel.has(f.id))
           chosen.forEach((f) => useStore.getState().patchFolder(f.id, { trashedAt: new Date().toISOString() }))
-          toast(`Moved ${plural(chosen.length, 'folder', 'folders')} to Trash`, 'ok', {
+          toast(`Moved ${plural(chosen.length, 'project', 'projects')} to Trash`, 'ok', {
             label: 'Undo',
             run: () => chosen.forEach((f) => useStore.getState().patchFolder(f.id, { trashedAt: undefined })),
           })
@@ -162,7 +196,7 @@ export function FolderCollection({
         }}
         onDone={done}
       />
-    </Page>
+    </PageFrame>
   )
 }
 
@@ -175,8 +209,8 @@ export function AllProjects() {
       filter={notArchived}
       withOpenAll
       emptyIcon="folder_off"
-      emptyTitle="No folders yet"
-      emptyText="Create a folder to start organising your item lists."
+      emptyTitle="No projects yet"
+      emptyText="Create a project, then upload GAEB, CSV or PDF lists into it."
     />
   )
 }

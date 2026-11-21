@@ -1,0 +1,129 @@
+{
+  "member": "visual",
+  "screens": {
+    "S1": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 8, "consistency": 8, "clarity": 8, "interaction": 8, "accessibility": 8, "responsive": 8, "wise": 8},
+      "issues": [
+        "Hierarchy/density: three tiers of small text sit between the hero number and the pills: the bar, the chip + '68% of 4.300.000 € in project caps' + '1.360.667 € left', and the separate '1 project near its cap' link. Fold the near-cap link into the status line ('… · 1.360.667 € left · 1 near cap'), so the hero reads as number, bar, one status line, then actions.",
+        "Wise: the hero card is 1056px wide, but its content ends at x≈788, so the right 40% is an empty slate-50 slab. Either drop the card fill and set the hero on the page background (as Wise does), or cap the card at content width (~560px).",
+        "Typography/consistency: rows use whole euros ('1.505.036 €') and so does the hero, which is good. But the 'Near cap ·' prefix pushes the percentage line ~70px further left than in the other rows. Move 'Near cap' to the title line as a small amber chip after the name, so the right column is a clean stack of amount over % + bar.",
+        "Consistency: there are three link styles on one screen. The hero uses a solid dark underline ('1 project near its cap'), the folder cap uses a dashed underline, and S9 uses brand-blue text ('Set a budget cap'). Use one inline-link token: slate-900, a 1px slate-300 underline with 3px offset, and brand-700 on hover.",
+        "Consistency: the top-bar search starts at x=272, but the page column (H1, hero, rows) starts at x=312. Give the top bar the same max-width and padding as the page container, so the search left edge lines up with the H1.",
+        "Clarity: the subtitles mix the project ref and the description ('2 lists · Projekt 2024-001 · Angebot AN24-0305 & Aufmaß'). The second and third segments compete with the list count. Keep 'N lists · ref' and drop the description segment, or show it only on hover/tooltip.",
+        "Interaction: rows show no hover state in this capture, and the only affordance is the ⋯. Make sure the whole row gets the same slate-50 hover fill seen on S2 (rounded-2xl), with cursor-pointer.",
+        "Accessibility: the progress track (slate-200 on slate-50) is still about 1.2:1, so the 'remaining' part of the hero bar and the row mini-bars nearly disappears. Use slate-300 for the track, or add an inset 1px slate-300 ring.",
+        "Responsive (11-mobile-home): the stacked rows work now. The amount line still starts with an inline 'Near cap ·' on line 4 of the first row, making it a 4-line row against 3 lines for the others. Put the chip on the amount line after '75% of 2.000.000 €', or show it as an amber dot before the amount."
+      ]
+    },
+    "S2": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 7, "consistency": 8, "clarity": 8, "interaction": 8, "accessibility": 8, "responsive": 8, "wise": 8},
+      "issues": [
+        "Typography: the money precision mixes within one screen. The hero 'Project total 1.505.036 €' is in whole euros, but the list rows directly below show '988.913,89 €' and '516.122,50 €', so the parts visibly don't round to the sum. Either show cents in the project hero, or show whole euros on project-level rows and keep cents only inside the list page.",
+        "Hierarchy: the hero repeats the S1 pattern of a status line plus a separate '314 positions, all priced' line above the pills. Append it to the status line ('… 494.964 € left · 314 positions priced'), or drop it when everything is priced.",
+        "Consistency: the header ⋯ (x≈1348) and the row ⋯ buttons (x≈1340) don't share a right edge, and the sort pill ends at x≈1364. Align every trailing control in the column to one right edge.",
+        "Consistency: the dashed-underline '2.000.000 € cap' is the only editable-text style in the hero, and S1 uses a solid underline for its link. Apply the one inline-link/editable token (see S1), and show a pencil icon on hover for editable values.",
+        "Density/Wise: same empty right half of the hero card as S1 (content ends at x≈788). Drop the fill or cap the width.",
+        "Clarity: the document rows' 'Linked to Angebot AN24-0305.D84' uses a filename (with extension) while the list row is titled 'Angebot AN24-0305'. Link text should use the list's display name ('Linked to Angebot AN24-0305'), so the user can match it to the row above.",
+        "Interaction: the hover fill on 'Angebot AN24-0305' extends to x≈308–1372, wider than the hero card (312–1368). Inset the hover background to the column edges, or the hover looks misaligned.",
+        "Accessibility: the hero and row progress tracks have the same ~1.2:1 contrast as S1. Use slate-300 for the tracks.",
+        "Responsive: not captured. With the 64px avatar + H1 + header ⋯ on one line, 'Fernleitung – Weinsbach' will crowd at 390px. Drop the avatar to 40px below sm, and let the H1 wrap with text-balance."
+      ]
+    },
+    "S3": {
+      "scores": {"hierarchy": 8, "density": 7, "typography": 8, "consistency": 7, "clarity": 8, "interaction": 8, "accessibility": 8, "responsive": 7, "wise": 7},
+      "issues": [
+        "Hierarchy/density: the sticky footer ('List total 536.991,65 € · 67% of cap · On track') is visible at the same time as the hero, which shows the same number 450px above it (desktop and mobile). Show the footer only once the hero has scrolled out of view (IntersectionObserver on the hero card), so the total never appears twice on screen.",
+        "Hierarchy (ledger): the group subtotal ('24.890,00 €') and the line GP ('5.700,00 €') render at the same 15px size and colour, and medium vs semibold is barely distinguishable in Hanken Grotesk. Make the group row a clear tier: a slate-50 band, or 16px semibold, with line GP at regular weight in slate-800.",
+        "Density: every EP cell has a permanent dashed underline, which adds 197 dashed lines down the table. Show the dashed underline only on row hover or focus-within, and keep the hover fill for affordance.",
+        "Consistency: the money headers are inconsistent. 'EP (€)' carries the unit in the header and its cells have no €, while 'GP' has no unit in the header but every cell ends in ' €'. Use 'EP (€)' / 'GP (€)' with bare numbers in the cells, or put € in both sets of cells.",
+        "Consistency: the 'Search positions' field is an outlined white input (1px slate-200 border), while the top-bar search, Categories and Sort are borderless slate-100 fills. Use the filled pill style for the in-page search too.",
+        "Density: with the checkbox column hidden on desktop, a blank ~48px gutter still sits left of OZ (OZ at x=360, page edge at 312). Collapse that column's width to 0 when not selecting, or render the checkbox inside the OZ cell on hover, so OZ aligns with the group-header text at x≈320.",
+        "Wise: the hairline under every row plus the rules under the header and the groups make it a classic table. Remove the per-row border-b (keep the hover fill), and keep dividers only above group headers.",
+        "Typography: in the rows, the Kurztext baseline sits about 1px above the numeric cells (e.g. 1.2.1 'Desinfektion…' vs '5.200,00'). Give the title button and the numeric cells the same line-height (leading-6) and align-middle.",
+        "Clarity: zero-quantity Nachtrag rows ('8.6.x', Menge 0, '0,00 €') look identical to priced rows. Render GP '0,00 €' in slate-500 regular, so live amounts stand out.",
+        "Responsive (12-mobile-list): the qty line '1 psch × 5.700,00' starts at x≈265 while the title starts at x≈137, so it floats in the middle of the card because the qty cell is text-right. Left-align the qty cell below xl (remove text-right / justify-start on the flex), so it lines up under the title.",
+        "Responsive: the mobile group header still truncates ('Baustelleneinrichtung und Dokumenta…'). Allow two lines (line-clamp-2) with the subtotal top-aligned on the right.",
+        "Responsive: in the mobile hero, '263.008 € left' and '197 positions, all priced' take two separate lines. Merge them into one muted line, to shorten the hero by ~40px."
+      ]
+    },
+    "S4": {
+      "scores": {"hierarchy": 8, "density": 7, "typography": 8, "consistency": 7, "clarity": 7, "interaction": 8, "accessibility": 8, "responsive": 8, "wise": 8},
+      "issues": [
+        "Density/clarity: the drawer title 'Baustelleneinrichtung und -räumung' and the Kurztext input directly below show the same string twice within ~340px. Make the title itself the editable Kurztext (inline-edit on click), or drop the title and promote the Kurztext field.",
+        "Density: the GP card's second section ('List total 536.991,65 € · 67% of cap · On track') repeats the page hero that sits visible behind the scrim. Remove it, or show only the delta this position contributes ('1,1% of list').",
+        "Consistency: the inputs (Menge, Einheit, EP, Kurztext) use 1px slate-300 borders on white, while every other input in the product (top search, filters) is a borderless slate-100 fill. Pick one input style. For a calm drawer, a slate-50 fill with a brand focus ring fits.",
+        "Consistency: Kategorie is a bordered card with a brand-blue 'Change' text link, and Langtext has a brand-blue 'Edit' link. Nowhere else does the product use brand-text links as buttons. Make Kategorie a select-style field (filled, chevron-right), and make Langtext 'Edit' a small soft-fill pill or an icon button.",
+        "Clarity: the label styles are mixed. 'Gesamtpreis (GP)' and 'Einheitspreis (EP)' are spelled out with abbreviations, while 'Menge', 'Einheit' and 'Kurztext' are bare. Use the ledger column headers verbatim (Menge, Einheit, EP (€), GP), so the drawer maps 1:1 to the table.",
+        "Clarity: the Kategorie subtitle 'Baustelleneinrichtung - Montagepläne - I' ends in a dangling '- I' that reads as a truncation bug. Truncate with an ellipsis, or show only the first segment.",
+        "Typography: the Langtext scroll area ends hard against the footer border ('Gestellung von Bau- …' is cut mid-glyph). Add a 24px white-to-transparent fade above the footer."
+      ]
+    },
+    "S5": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 8, "consistency": 8, "clarity": 7, "interaction": 8, "accessibility": 8, "responsive": 8, "wise": 8},
+      "issues": [
+        "Clarity: the hero ('2.939.333 € · 68% of 4.300.000 € in project caps') is identical to the All Projects hero, but this page lists list caps (1.500.000 + 1.500.000 + 800.000 + 600.000 = 4.400.000 €). Compare against the sum of list caps here ('… of 4.400.000 € in list caps'), or label the difference explicitly.",
+        "Hierarchy/Wise: same empty right half of the hero card (content ends at x≈788 of 1368). Drop the card fill, or use the space for a 3-project mini breakdown.",
+        "Consistency: the hero link '1 list near its cap · none over' is a solid underline across both segments, so 'none over' looks clickable too. Underline only '1 list near its cap', and render '· none over' as plain slate-600 text.",
+        "Typography: the 'Near cap ·' prefix on the last row pushes '86% of 600.000 €' left of the other rows' percentages. Move the chip to the title line (see S1).",
+        "Accessibility: the row mini-bar tracks are slate-200 on white (~1.3:1). Use slate-300.",
+        "Responsive: not captured. It uses the same row component as Home, so it inherits the S1 mobile fixes. Make sure 'RINGSCHLUSS BRUNNENWASSER, [PERSON_132]' (all-caps, long) is allowed two lines rather than truncating to ~14 characters."
+      ]
+    },
+    "S6": {
+      "scores": {"hierarchy": 8, "density": 9, "typography": 8, "consistency": 7, "clarity": 9, "interaction": 8, "accessibility": 8, "responsive": 8, "wise": 8},
+      "issues": [
+        "Consistency: the empty state differs from S9. Here it is a 56px slate-100 circle with a slate-600 glyph, an 18px heading, 13px body and a soft secondary pill. S9 uses a 64px brand-50 circle with a brand glyph, a 20px heading and 15px body. Route S9 through the shared EmptyState component, and pick one tint (brand-50/brand-600 reads warmer) and one size scale.",
+        "Hierarchy: the empty block starts at y≈258, so the lower 430px of the viewport is blank and the page feels top-weighted. Place it at ~35% of the viewport height (e.g. min-h-[60vh] flex items-center).",
+        "Typography: the 13px body is smaller than the 15px body on S9 and on the rest of the product. Use 15px slate-600 for empty-state body copy.",
+        "Interaction: 'Go to All Projects' is the only action and uses the secondary (slate-100) style. That is fine, but give it an arrow-back icon like the other pills ('+ New list', '↑ Upload'), so every pill has the same icon + label anatomy.",
+        "Accessibility: the slate-600 glyph on slate-100 is fine, but the icon circle is decorative. Ensure aria-hidden on it (Icon inside EmptyState).",
+        "Wise: Wise's empty states pair a friendly illustration-scale icon (~72–96px) with one primary action. Scale the icon up and make it the screen's anchor."
+      ]
+    },
+    "S7": {
+      "scores": {"hierarchy": 8, "density": 9, "typography": 8, "consistency": 7, "clarity": 9, "interaction": 8, "accessibility": 8, "responsive": 8, "wise": 8},
+      "issues": [
+        "Consistency: same mismatch with S9's empty state as S6 (icon tint, circle size, heading and body sizes). Unify via the shared EmptyState component.",
+        "Hierarchy: the block sits high (y≈258), leaving ~430px of blank viewport below it. Centre it at ~35% of the viewport height.",
+        "Typography: the 13px body copy is a step smaller than the rest of the product (15px). Raise it.",
+        "Interaction: the secondary pill has no icon, unlike every other pill. Add arrow_back, or a folder icon.",
+        "Accessibility: the trash glyph in the empty-state circle should be aria-hidden, and the H1 + empty heading levels should be h1 → h2 (check that EmptyState's h2 isn't preceded by a skipped level).",
+        "Wise: scale up the empty-state icon and give the screen one clear anchor (see S6)."
+      ]
+    },
+    "S8": {
+      "scores": {"hierarchy": 9, "density": 8, "typography": 8, "consistency": 8, "clarity": 8, "interaction": 9, "accessibility": 8, "responsive": 8, "wise": 8},
+      "issues": [
+        "Clarity: matches are highlighted only in titles. 'Bachdurchlass Neppen' matched via 'Stahlbetonrohre' in its subtitle, but nothing is highlighted, so the user can't see why it is a result. Apply the same brand highlight to the matched substring in subtitles.",
+        "Density: the list subtitles end with the filename ('LV_04_Porenbetonfassade.pdf'), which repeats the title. Replace it with 'Project · N positions', or drop the filename when it contains the title.",
+        "Typography: the group labels ('Projects 1', 'Lists 4', 'Positions 8') are 13px medium slate-700, the same size and colour as the 13px result subtitles. Make them 12px semibold slate-500 with +0.02em tracking, so they read as a separate tier.",
+        "Consistency: the selected row uses a brand-50 fill plus a 1px brand-300 border. No other selected state (sidebar, segmented 'All') uses a full-row border. Drop the border and keep the brand-50 fill.",
+        "Density: the 'Positions 8' group shows only one row before the footer hint, so the panel looks cut. Cap each group at 3 results with a 'Show all 8 positions' row, or let the list size to end on a group boundary.",
+        "Accessibility: the result icons all use the identical doc glyph in a brand-50 circle. Make sure each option has aria-selected and that the group labels are tied to their rows via role=group + aria-labelledby.",
+        "Wise: the backdrop blur in the capture still makes the page unreadable. Keep it at blur ≤2px (as in the source) and verify that the screenshot reflects that, so the palette feels anchored to the page underneath."
+      ]
+    },
+    "S9": {
+      "scores": {"hierarchy": 9, "density": 9, "typography": 8, "consistency": 7, "clarity": 9, "interaction": 9, "accessibility": 8, "responsive": 8, "wise": 8},
+      "issues": [
+        "Consistency: the folder header avatar is a generic grey folder in a slate circle, while folders on S1/S2 get a coloured project icon (magenta, blue, teal…). Assign the project's tint and icon at creation and use it here.",
+        "Consistency: this empty state (64px brand-50 circle, 20px heading, 15px body) diverges from S6/S7's EmptyState (56px slate, 18px, 13px). Render it through the same component with a variant, and share the size scale.",
+        "Consistency: 'Set a budget cap' is a brand-blue text link, a third link style (see S1). Make it a tertiary text button using the shared inline-link token, or move it into the header ⋯ menu.",
+        "Typography: the format hint 'GAEB (X81-X86, D81-D86), CSV, JSON or PDF' uses ASCII hyphens for ranges. Use en dashes (X81–X86, D81–D86), and set it in 12px slate-500 so it is clearly subordinate to the body.",
+        "Accessibility: the toast's green check on navy and the white close X need a ≥24px target. Make the close button size-8 with an aria-label 'Dismiss', and make sure the toast doesn't cover the bottom-right ⋯ of the last row on populated pages.",
+        "Wise: the page is calm, but the empty-state icon is small relative to the 1100px canvas. Scale the circle to ~80px so the screen has one confident anchor."
+      ]
+    }
+  },
+  "global_issues": [
+    "Hero component: on every page the hero card is full-width, but its content ends at x≈788, leaving a 40% empty slate-50 slab. Either drop the fill (Wise-style hero on the page background) or cap the card at content width. Also collapse the status line + extra meta line(s) into a single status line above the actions.",
+    "Link and editable-text styles: solid dark underline (hero links), dashed underline (cap, EP cells), and brand-blue text ('Change', 'Edit', 'Set a budget cap') coexist. Define one inline-link token and one editable-value token (dashed underline only on hover/focus), and use only those.",
+    "Input styles: borderless slate-100 fills (top search, filters) vs 1px-bordered white inputs ('Search positions', all drawer fields). Standardise on one.",
+    "Progress tracks (hero bars and row mini-bars) are slate-200 on slate-50 or white, about 1.2–1.3:1. Use slate-300 so the remaining budget is visible.",
+    "Money precision: whole euros on project-level surfaces, cents on list-level surfaces is a fine rule, but S2 breaks it by showing cents on rows under a whole-euro hero. Document the rule and apply it per surface.",
+    "Empty states: S6/S7 (slate, 56px, 18/13px) and S9 (brand, 64px, 20/15px) still differ. Use one EmptyState with one icon tint and size scale, placed at ~35% of the viewport height.",
+    "Status chip placement: the inline 'Near cap ·' before the percentage still makes the right column ragged on S1, S2 and S5. Give status a fixed slot on the title line.",
+    "Top-bar alignment: the search starts at x=272 while every page column starts at x=312. Align the top bar to the page container.",
+    "Duplicate totals: the List page's sticky footer total and the drawer's 'List total' line repeat the hero while it is still visible. Show them only when the hero is out of view."
+  ]
+}

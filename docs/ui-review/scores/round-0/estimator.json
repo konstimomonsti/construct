@@ -1,0 +1,123 @@
+{
+  "member": "estimator",
+  "screens": {
+    "S1": {
+      "scores": {"hierarchy":5,"density":5,"typography":5,"consistency":5,"clarity":6,"interaction":6,"accessibility":5,"responsive":5,"wise":4},
+      "issues": [
+        "Add a hero workspace total (sum of all lists vs. sum of caps, remaining €) at the top of the page; today the only portfolio total is a tiny 'Allocated Budget' widget at the sidebar bottom.",
+        "Replace the large centered icon tile on each card with the numbers: name, total, cap, remaining, % used. Today the icon takes about 40% of the card, so only 6 projects fit on a desktop and 2.5 on a phone.",
+        "Folders without a cap show '€0k' with an empty '0%' bar. Show 'No cap set' plus the actual priced total. 'Ausbildungszentrum' has 27 lists but reads €0k, which looks like the lists are unpriced or the data is broken.",
+        "Use one money format: €1.79M, €537.0k, €800.0k and €0k are mixed. Use consistent compact figures (e.g. €0.54M or €537k) in proportional tabular numerals, not monospace.",
+        "The orange '2 lists inside' text gives a cap warning through colour only, on the wrong element. Put a labelled status ('75% · Caution') next to the bar instead.",
+        "Percent labels drawn inside thin progress bars (white on green, green on grey) are unreadable. Move the % outside the bar.",
+        "'Open All 37' as the primary action is unclear (opens 37 tabs?). Make the primary action 'New Folder' or 'Upload LV' and move 'Open All' into a menu.",
+        "The mobile header says '7 Folders' while desktop says '6 Folders'. Make the counts agree, and on mobile drop the sort/select row in favour of a compact list."
+      ]
+    },
+    "S2": {
+      "scores": {"hierarchy":6,"density":4,"typography":5,"consistency":4,"clarity":4,"interaction":5,"accessibility":5,"responsive":5,"wise":4},
+      "issues": [
+        "The folder total of €1,794,610.90 appears to add up D84 and D86 versions of the same LV (2 × €897.3k), so the same tender is counted twice against the cap. Mark list versions (Angebot/Auftrag phase) and count only the active one.",
+        "The two lists have the same title 'RINGSCHLUSS BRUNNENWASSER, [PERSON_132]' and the same total. Show the GAEB phase/filename (D84 vs D86) as the main distinguishing label, not grey mono text.",
+        "The page shows 7 creation actions: top-bar New Subfolder/Upload/Import CSV plus page Upload Files/New subfolder/New List/Open All. Keep one primary (Upload LV) and one 'New…' menu.",
+        "Lists should be rows (name, phase, positions, priced/unpriced, total, cap %) rather than icon cards. An estimator compares totals across lists, and cards make that hard.",
+        "Show '498 of 746 priced' as an explicit unpriced-positions warning (248 open) with a link to filter them. It is the most important to-do on this screen.",
+        "The Documents section repeats the lists' source files (D86, D84, X83) as separate cards. Collapse it into a 'Source files' disclosure, or attach each file to its list.",
+        "The folder hero total uses monospace en-US format (€1,794,610.90). Use proportional tabular numerals and offer a de-DE format (1.794.610,90 €) for German tenders.",
+        "The first list card has a blue title, which looks like a hover or selected state, while the others don't. Make the selected/hover state consistent."
+      ]
+    },
+    "S3": {
+      "scores": {"hierarchy":4,"density":3,"typography":5,"consistency":5,"clarity":4,"interaction":4,"accessibility":5,"responsive":2,"wise":3},
+      "issues": [
+        "Only 5 of 197 positions are visible, even on the full-page capture. Rows are about 70px tall and the budget panel takes the rest. Use compact rows (about 40px), let the table fill the viewport, and show 20+ positions.",
+        "Put the list total vs. cap at the top as the hero, and keep it sticky (e.g. €536,991.65 / €800,000 · 67% · €263,008 remaining). Today it sits in tiny footer text.",
+        "Reorder columns to estimator convention: OZ | Kurztext | Menge | Einheit | EP | GP. Einheit currently sits after Gesamt, away from Menge.",
+        "Replace the −/+ quantity stepper with a plain right-aligned numeric input. LV quantities like 1.234,567 m³ are never adjusted by ±1. Make EP editable inline too.",
+        "Drop the repeated, truncated 'Baustelleneinrichtung …' Kategorie column and the identical per-row tool icon. Show the LV structure as Titel group rows (1.1 Baustelleneinrichtung) with subtotals.",
+        "Cut the budget panel down to one status line. Remove the demo-like controls: '•••  -/3' pager, the 'Caution 75% / Approaching Cap 90% / Budget Exceeded 105%' segmented control, prev/next arrows, and the 'Request Budget Expansion' primary button that shows even when within budget.",
+        "Remove the single-tab strip with '+', and drop the duplicate 'D86 · D86' in the footer metadata. Pick one breadcrumb root: 'Repositories' here vs 'Workspace' elsewhere.",
+        "On mobile the table scrolls sideways and EP/Menge/GP are off-screen. Render each position as a stacked row (OZ + Kurztext, then Menge Einheit × EP = GP)."
+      ]
+    },
+    "S4": {
+      "scores": {"hierarchy":6,"density":6,"typography":5,"consistency":6,"clarity":6,"interaction":5,"accessibility":5,"responsive":5,"wise":5},
+      "issues": [
+        "'Changes are saved in this browser' tells an estimator their pricing can be lost. Persist server-side and show a saved/synced state with a timestamp.",
+        "Reflow the Langtext. The raw GAEB hard line breaks ('nach' / 'für' on their own lines) make the specification hard to read. Show it as read-only formatted text, with editing on demand.",
+        "The EP input shows '5700' while the rest of the app shows '€5,700.00'. Format money inputs with a thousands separator and decimals in proportional tabular numerals.",
+        "Add previous/next position navigation (↑/↓ or J/K) and Save & next. Estimators price positions in sequence.",
+        "Show the effect of an edit: original vs. new GP and the change to the list total/cap, so the estimator sees the consequence before leaving the drawer.",
+        "Show GAEB position attributes the estimator needs: position type (Normal/Bedarf/Alternativ/Eventual), and optionally the EP breakdown (Lohn/Stoffe/Geräte/NU).",
+        "The category breadcrumb under the Kategorie field and the 'Reset changes' button are very low contrast. Raise them to AA.",
+        "The drawer leaves a large empty area under Langtext while the Langtext box clips. Let Langtext take the available height, and make the drawer full-screen on mobile."
+      ]
+    },
+    "S5": {
+      "scores": {"hierarchy":6,"density":7,"typography":6,"consistency":6,"clarity":6,"interaction":6,"accessibility":5,"responsive":4,"wise":6},
+      "issues": [
+        "Make the Σ €3,836,638.94 the hero number with total cap and remaining. Today it is small grey text next to the title.",
+        "Add Cap (€) and Remaining (€) columns. Usage % alone does not tell an estimator how much headroom is left.",
+        "The two 'RINGSCHLUSS BRUNNENWASSER' rows show identical totals and can only be told apart by D86/D84 in grey mono. Show the GAEB phase as a clear label, and flag possible duplicates.",
+        "Add the columns an estimator triages by: submission deadline (Abgabetermin), unpriced positions, and last edited.",
+        "Put the % next to the bar in readable text, and add a text status (Within / Caution / Over) so status does not rely on green vs. orange.",
+        "Remove the grid/list view toggle and the 'Upload File' primary from the top bar on this screen. They do nothing for this view.",
+        "Define the mobile layout: collapse to rows showing list name, folder, total and % used instead of a 6-column table."
+      ]
+    },
+    "S6": {
+      "scores": {"hierarchy":6,"density":7,"typography":7,"consistency":5,"clarity":6,"interaction":5,"accessibility":6,"responsive":6,"wise":6},
+      "issues": [
+        "Remove 'New Folder', the sort dropdown and 'Select' from an empty Archived view. They do nothing here, and creating folders in Archive makes no sense.",
+        "Drop the '0 Folders' badge, which repeats the empty state.",
+        "The empty-state hint 'menu (⋮)' relies on a tiny glyph. Use plain wording ('Archive a folder from its ⋯ menu on All Projects') with a link back.",
+        "Say whether archived budgets still count toward the workspace 'Allocated Budget'. An estimator needs to know this.",
+        "The dashed-border empty box adds an extra frame. Use a borderless soft empty state, consistent with Trash."
+      ]
+    },
+    "S7": {
+      "scores": {"hierarchy":7,"density":7,"typography":7,"consistency":6,"clarity":7,"interaction":6,"accessibility":6,"responsive":7,"wise":7},
+      "issues": [
+        "State the retention rule (e.g. 'Items are deleted permanently after 30 days').",
+        "Hide the grid/list toggle and 'Upload File' primary on Trash. They are irrelevant here.",
+        "The empty-state body text is light grey on a near-white background. Raise its contrast to AA.",
+        "The dashed empty container is a box in a box. Use a borderless empty state.",
+        "The breadcrumb 'Home > Trash' differs from 'Home > Workspace > …' on the other screens. Make it consistent."
+      ]
+    },
+    "S8": {
+      "scores": {"hierarchy":7,"density":6,"typography":6,"consistency":7,"clarity":6,"interaction":7,"accessibility":6,"responsive":6,"wise":7},
+      "issues": [
+        "Position results should show what an estimator searches for: parent LV/list name, Menge + Einheit, EP and GP on the right.",
+        "Highlight the matched term. 'Bachdurchlass Neppen' ranks first even though 'Beton' only appears inside 'Stahlbetonrohre' in the grey subtitle.",
+        "Positions get cut off at the bottom while lists take most of the space. Cap each group (e.g. 3) with 'Show all N', or let the estimator scope the search (Positions only).",
+        "Fix the copy '1 lists'. The monospace subtitles (filenames, OZ) add noise; use proportional muted text.",
+        "Show list total and cap status on list results, so the estimator can choose the right LV without opening it.",
+        "Footer hint text and the 'Esc' chip are low contrast."
+      ]
+    },
+    "S9": {
+      "scores": {"hierarchy":4,"density":3,"typography":6,"consistency":3,"clarity":5,"interaction":5,"accessibility":6,"responsive":5,"wise":3},
+      "issues": [
+        "There are four upload paths (top-bar Upload, Import CSV, '+ Upload Files', 'Import Item Lists & CSVs') and three subfolder paths (New Subfolder, '+ Create Subfolder', 'Add Nested Subfolder'). Keep one drop zone with one primary 'Upload LV' button and one secondary 'Blank list'.",
+        "The page header differs from the S2 folder screen: a boxed breadcrumb with an 'Empty' chip, actions inline, Rename/Delete top-right. Use the same folder header layout everywhere.",
+        "The breadcrumb order 'All Projects > Workspace > Legal & Compliance' is reversed vs. 'Home > Workspace > All Projects' elsewhere. Fix it.",
+        "Let the estimator set the folder's budget cap here. It is the first thing needed for a new tender, and an empty folder is the natural moment.",
+        "Labels like '+ Upload Files' have both an upload icon and a '+'. Pick one.",
+        "The red 'Delete' sits permanently in the header of a just-created folder. Move it into a ⋯ menu.",
+        "Lead the drop-zone copy with GAEB (X83/X84/D83/D84/X86 …), since that is the main input. CSV/JSON are secondary.",
+        "The large white card in a card (outer panel plus dashed inner zone) wastes most of the viewport. Use a single soft drop zone."
+      ]
+    }
+  },
+  "global_issues": [
+    "Every money screen needs one hero number: total vs. budget cap with € remaining and % used, large and in proportional tabular numerals (not monospace). Today totals hide in footers, subtitles and the sidebar.",
+    "Fix possible double counting: D84/D86 versions of the same LV are summed into the folder and workspace totals. Model list phase/version and count only the active version against the cap.",
+    "The ledger (S3) must be a dense, editable LV table: about 40px rows, OZ | Kurztext | Menge | Einheit | EP | GP, inline numeric inputs instead of ±1 steppers, Titel group rows with subtotals, and 20+ positions on screen.",
+    "Remove demo and decorative controls from the budget panel (threshold segmented control, '-/3' pager, 'Request Budget Expansion' when within budget, 'Review Overages' with no overages). Replace them with one status line.",
+    "De-duplicate actions: the top bar and page header repeat Upload/New Subfolder/Import, and S9 offers 4 upload and 3 subfolder buttons. Use one primary per screen and put the rest under '⋯'.",
+    "Use one money format: no mixing of €1.79M / €537.0k / €0k / €1,794,610.90 / '5700'. Offer a de-DE locale (1.794.610,90 €) since the content is German GAEB.",
+    "Status must not depend on colour alone or on % labels inside thin bars. Add text (Within / Caution 75% / Over) and put the % outside the bar for AA contrast.",
+    "Mobile ledger is unusable: EP, Menge and GP are off-screen and the table scrolls sideways. Use stacked position rows. Also persist edits server-side instead of 'saved in this browser', and show unpriced-position counts as an explicit to-do."
+  ]
+}

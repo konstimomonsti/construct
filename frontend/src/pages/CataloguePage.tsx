@@ -1,101 +1,199 @@
-import { clsx } from 'clsx'
-import { useEffect, useState } from 'react'
-import { Link, useParams, useSearchParams } from 'react-router-dom'
+import { useEffect, useState, type ReactNode } from 'react'
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { CatalogueEditor } from '../components/CatalogueEditor'
-import { EmptyNote, Page, Skeleton } from '../components/Page'
-import { Button, Dialog, Icon, inputCls, toast } from '../components/ui'
+import { Skeleton } from '../components/Page'
+import { Chips, EmptyState, PageFrame, PageHeader, Row, RowList, RowMenu } from '../components/Kit'
+import { Button, Dialog, Icon, toast } from '../components/ui'
+import { int, plural } from '../lib/format'
+import { useMedia } from '../lib/hooks'
 import {
-  CATALOGUES, cataloguePriceSource, formatCataloguePrice, requestCatalogue, writeCatalogue,
+  CATALOGUES, CATALOGUE_PAGE_SIZE, cataloguePriceSource, formatCataloguePrice, requestCatalogue, writeCatalogue,
   type CatalogueEntry, type CatalogueKind,
 } from '../lib/catalogues'
 
-type Listing = { rows: CatalogueEntry[]; has_more: boolean }
+const SUBTITLE: Record<CatalogueKind, string> = {
+  products: 'Items and prices you quote from',
+  suppliers: 'Companies you buy materials from',
+  subcontractors: 'Companies you hire for trades',
+}
+const EMPTY_TEXT: Record<CatalogueKind, string> = {
+  products: 'Add the items you buy often with their unit prices, so positions can be priced from them.',
+  suppliers: 'Add the companies you buy from. Products can then be linked to a supplier.',
+  subcontractors: 'Add each company with its trade, a contact person, email and phone.',
+}
 
-function CatalogueTable({ kind, entries, onEdit, onDelete, onRestore, busy }: {
+type Listing = { rows: CatalogueEntry[]; has_more: boolean }
+/** a fetched page, with the filters it was fetched for, so it can stay on screen while the next one loads */
+type Result = { key: string; q: string; supplier: string | null; archived: boolean; page: number; data?: Listing; error?: string }
+
+/** products get a package, so the catalogue never borrows the archive box that means "Archived" */
+const catalogueIcon = (kind: CatalogueKind) => (kind === 'products' ? 'package_2' : CATALOGUES[kind].icon)
+
+const squash = (text: string) => text.replace(/\s+/g, ' ').trim()
+
+/** a short piece of the description that tells same-named products apart; nothing when it only repeats the name */
+function excerpt(name: string, description?: string) {
+  const title = squash(name).toLowerCase()
+  let text = squash(description ?? '')
+  // descriptions often open with the product name: keep only what they add
+  if (title && text.toLowerCase().startsWith(title)) text = text.slice(title.length).replace(/^[\s,.;:–—-]+/, '')
+  if (!text || text.toLowerCase() === title) return ''
+  if (text.length <= 60) return text
+  const cut = text.slice(0, 60)
+  const space = cut.lastIndexOf(' ')
+  return `${(space > 40 ? cut.slice(0, space) : cut).replace(/[\s,.;:–—-]+$/, '')}…`
+}
+
+const shortId = (id: string, length = 6) => id.replace(/[^\da-z]/gi, '').slice(0, length).toLowerCase()
+
+/**
+ * products that share a name and category in the current result get one more detail on line two that tells them apart:
+ * the first of item code, supplier, unit or price source that differs between all of them, else a short record id
+ */
+function discriminators(entries: CatalogueEntry[]) {
+  const groups = new Map<string, CatalogueEntry[]>()
+  for (const entry of entries) {
+    const key = `${squash(entry.name).toLowerCase()}|${squash(entry.category ?? '').toLowerCase()}`
+    groups.set(key, [...(groups.get(key) ?? []), entry])
+  }
+  const candidates: ((entry: CatalogueEntry) => { text: string; label: string } | null)[] = [
+    (e) => (e.sku ? { text: `Item code ${e.sku}`, label: `item code ${e.sku}` } : null),
+    (e) => (e.supplier ? { text: e.supplier, label: `from ${e.supplier}` } : null),
+    (e) => (e.unit ? { text: e.unit, label: `per ${e.unit}` } : null),
+    (e) => (e.valid_from ? { text: cataloguePriceSource(e), label: `price from ${cataloguePriceSource(e)}` } : null),
+  ]
+  const tags = new Map<string, { text: string; label: string }>()
+  for (const group of groups.values()) {
+    if (group.length < 2) continue
+    const pick = candidates.find((candidate) => {
+      const values = group.map((entry) => candidate(entry)?.text)
+      return values.every(Boolean) && new Set(values).size === group.length
+    })
+    let length = 6
+    while (!pick && length < 32 && new Set(group.map((entry) => shortId(entry.id, length))).size < group.length) length += 2
+    for (const entry of group) {
+      const id = shortId(entry.id, length)
+      tags.set(entry.id, pick?.(entry) ?? { text: `#${id}`, label: `record ${id}` })
+    }
+  }
+  return tags
+}
+
+/** the second line of a row: only the details that exist, so empty columns never become a wall of dashes */
+function details(kind: CatalogueKind, entry: CatalogueEntry) {
+  if (kind === 'products') {
+    const specifics = [entry.unit, entry.sku && `Item code ${entry.sku}`, entry.supplier].filter(Boolean)
+    const parts = [entry.category, ...specifics, !specifics.length && excerpt(entry.name, entry.description)].filter(Boolean)
+    return parts.length ? parts.join(' · ') : 'No supplier or item code yet'
+  }
+  const shown = [kind === 'subcontractors' ? entry.trade : null, entry.contact_name, entry.email, entry.phone].filter(Boolean)
+  return shown.length ? shown.join(' · ') : 'No contact details yet'
+}
+
+function CatalogueRows({ kind, entries, onEdit, onArchive, onRestore }: {
   kind: CatalogueKind
   entries: CatalogueEntry[]
   onEdit: (entry: CatalogueEntry) => void
-  onDelete: (entry: CatalogueEntry) => void
+  onArchive: (entry: CatalogueEntry) => void
   onRestore: (entry: CatalogueEntry) => void
-  busy: boolean
 }) {
-  const columns = kind === 'products'
-    ? ['Product', 'Category', 'Supplier', 'ID', 'Unit', 'Price', 'Actions']
-    : ['Company', ...(kind === 'subcontractors' ? ['Trade'] : []), 'Contact', 'Email', 'Phone', ...(kind === 'suppliers' ? ['Products'] : []), 'Actions']
-
+  const navigate = useNavigate()
+  const icon = catalogueIcon(kind)
+  // touch screens can't hover, so the ⋯ stays visible in its own column there
+  const touch = useMedia('(hover: none)')
+  // the name travels along so the Products filter chip can say whose products these are
+  const showProducts = (entry: CatalogueEntry) => navigate(`/catalogues/products?supplier=${encodeURIComponent(entry.id)}`, { state: { supplierName: entry.name } })
+  const tags = kind === 'products' ? discriminators(entries) : new Map<string, { text: string; label: string }>()
   return (
-    <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-xs">
-      <table className="w-full whitespace-nowrap text-left text-sm">
-        <thead className="border-b border-slate-200 bg-slate-50 text-xs font-semibold text-slate-600">
-          <tr>{columns.map((column) => (
-            <th key={column} scope="col" className={clsx('px-4 py-3', (column === 'Price' || column === 'Actions') && 'text-right')}>
-              {column === 'ID' ? <span title="Supplier item code">ID</span> : column}
-            </th>
-          ))}</tr>
-        </thead>
-        <tbody className="divide-y divide-slate-100">
-          {entries.map((entry) => (
-            <tr key={entry.id} className="text-slate-600 hover:bg-slate-50/70">
-              <th scope="row" className="min-w-48 max-w-80 px-4 py-3 text-sm font-semibold whitespace-normal wrap-anywhere text-slate-900">{entry.name}</th>
-              {kind === 'products' ? (
-                <>
-                  <td className="px-4 py-3"><span className="rounded-md bg-slate-100 px-2 py-1 text-xs font-medium">{entry.category}</span></td>
-                  <td className="px-4 py-3">{entry.supplier ?? '—'}</td>
-                  <td className="px-4 py-3 font-mono text-xs">{entry.sku ?? '—'}</td>
-                  <td className="px-4 py-3">{entry.unit ?? '—'}</td>
-                  <td className="px-4 py-3 text-right">
-                    <div className="font-medium text-slate-900 tabular-nums">{formatCataloguePrice(entry)}</div>
-                    {entry.valid_from && <div className="mt-0.5 text-[11px] text-slate-500">{cataloguePriceSource(entry)}</div>}
-                  </td>
-                </>
-              ) : (
-                <>
-                  {kind === 'subcontractors' && <td className="px-4 py-3">{entry.trade}</td>}
-                  <td className="px-4 py-3">{entry.contact_name ?? '—'}</td>
-                  <td className="px-4 py-3">{entry.email ?? '—'}</td>
-                  <td className="px-4 py-3">{entry.phone ?? '—'}</td>
-                  {kind === 'suppliers' && (
-                    <td className="px-4 py-3">
-                      {entry.product_count ? (
-                        <Link className="font-semibold text-brand-700 hover:underline" to={`/catalogues/products?supplier=${entry.id}`} aria-label={`View products from ${entry.name}`}>
-                          {entry.product_count}
-                        </Link>
-                      ) : 0}
-                    </td>
-                  )}
-                </>
-              )}
-              <td className="px-4 py-3">
-                <div className="flex items-center justify-end gap-1">
-                  {entry.archived_at ? (
-                    <Button size="sm" icon="restore" disabled={busy} onClick={() => onRestore(entry)} aria-label={`Restore ${entry.name}`}>Restore</Button>
-                  ) : (
-                    <>
-                      <Button size="sm" variant="ghost" icon="edit" onClick={() => onEdit(entry)} aria-label={`Edit ${entry.name}`}>Edit</Button>
-                      <Button size="sm" variant="ghost" icon="delete_outline" onClick={() => onDelete(entry)} aria-label={`Delete ${entry.name}`} title="Delete" className="hover:text-rose-700" />
-                    </>
-                  )}
-                </div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <RowList>
+      {entries.map((entry) => {
+        const archived = !!entry.archived_at
+        const tag = tags.get(entry.id)
+        const name = tag ? `${entry.name} (${tag.label})` : entry.name
+        const line = details(kind, entry)
+        const subtitle = tag && !line.split(' · ').includes(tag.text) ? `${line} · ${tag.text}` : line
+        const price = kind === 'products' ? formatCataloguePrice(entry) : null
+        const priced = price && price !== '—'
+        const products = kind === 'suppliers' ? entry.product_count ?? 0 : 0
+        const menu = (
+          <RowMenu
+            label={`Actions for ${name}`}
+            items={archived ? [
+              { label: 'Restore', icon: 'restore', onSelect: () => onRestore(entry) },
+            ] : [
+              { label: 'Edit', icon: 'edit', onSelect: () => onEdit(entry) },
+              ...(products ? [{ label: `View ${plural(products, 'product', 'products')}`, icon: 'package_2', onSelect: () => showProducts(entry) }] : []),
+              'sep' as const,
+              { label: 'Archive', icon: 'archive', danger: true, onSelect: () => onArchive(entry) },
+            ]}
+          />
+        )
+        const amount: ReactNode = kind === 'products'
+          ? (priced ? price : <span className="text-sm font-normal text-slate-600">No price</span>)
+          : kind === 'suppliers' ? (products && !archived ? (
+            // a link to the supplier's products; above the row's own button, so it never opens the editor
+            <button
+              type="button"
+              aria-label={`View ${plural(products, 'product', 'products')} from ${entry.name}`}
+              onClick={(event) => { event.stopPropagation(); showProducts(entry) }}
+              className="group/link pointer-events-auto relative z-10 -my-1 inline-flex items-center gap-0.5 rounded py-1 text-sm font-normal text-slate-600 transition-colors after:absolute after:-inset-x-2 after:-inset-y-1.5 after:content-[''] hover:text-brand-700"
+            >
+              {/* underlined like the page's other text links; the chevron stays out of the underline */}
+              <span className="underline decoration-slate-400 underline-offset-2 group-hover/link:decoration-current">{plural(products, 'product', 'products')}</span>
+              <Icon name="chevron_right" size={18} className="-mr-1" />
+            </button>
+          ) : <span className="text-sm font-normal text-slate-600">{plural(products, 'product', 'products')}</span>) : null
+        const meta: ReactNode = kind === 'products' && priced
+          ? <span className="text-sm text-slate-600">{entry.unit ? `per ${entry.unit}` : 'no unit'}{entry.valid_from ? ` · ${cataloguePriceSource(entry)}` : ''}</span>
+          : null
+        return (
+          <Row
+            key={entry.id}
+            dataRow="catalogue"
+            label={archived ? `Restore ${name}` : `Edit ${name}`}
+            onOpen={() => (archived ? onRestore(entry) : onEdit(entry))}
+            icon={icon}
+            title={entry.name}
+            subtitle={subtitle}
+            // with a mouse, the ⋯ floats over the row's right end instead of keeping a column of its own,
+            // so prices and product links end on the same edge as the header's Add button
+            amount={touch ? amount ?? undefined : (
+              <>
+                {amount != null && <Reveal>{amount}</Reveal>}
+                <span className="pointer-events-auto absolute top-1/2 -right-2 z-10 -translate-y-1/2 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 has-[[aria-expanded=true]]:opacity-100">{menu}</span>
+              </>
+            )}
+            meta={meta == null ? undefined : touch ? meta : <Reveal>{meta}</Reveal>}
+            menu={touch ? menu : undefined}
+          />
+        )
+      })}
+    </RowList>
+  )
+}
+
+/** the trailing text slides aside while the floating ⋯ shows, on the row's hover fill so it never runs into a long name */
+function Reveal({ children }: { children: ReactNode }) {
+  return (
+    <span className="-ml-2 inline-block rounded pl-2 transition-transform duration-150 group-hover:-translate-x-11 group-hover:bg-slate-100 group-focus-within:-translate-x-11 group-has-[[aria-expanded=true]]:-translate-x-11">
+      {children}
+    </span>
   )
 }
 
 function Catalogue({ kind }: { kind: CatalogueKind }) {
-  const { title, item, icon } = CATALOGUES[kind]
+  const { title, item } = CATALOGUES[kind]
+  const icon = catalogueIcon(kind)
   const [filters, setFilters] = useSearchParams()
+  const location = useLocation()
   const supplier = kind === 'products' ? filters.get('supplier') : null
   const archived = filters.get('view') === 'archived'
   const [query, setQuery] = useState('')
   const [page, setPage] = useState(1)
   const [reload, setReload] = useState(0)
-  const [result, setResult] = useState<{ key: string; data?: Listing; error?: string } | null>(null)
+  const [result, setResult] = useState<Result | null>(null)
   const [editing, setEditing] = useState<CatalogueEntry | null | undefined>(undefined)
-  const [deleting, setDeleting] = useState<CatalogueEntry | null>(null)
+  const [confirm, setConfirm] = useState<{ entry: CatalogueEntry; action: 'archive' | 'restore' } | null>(null)
   const [busy, setBusy] = useState(false)
 
   const params = new URLSearchParams({ q: query.trim(), page: String(page) })
@@ -104,22 +202,24 @@ function Catalogue({ kind }: { kind: CatalogueKind }) {
   const request = `?${params}`
   const key = `${request}#${reload}`
   const current = result?.key === key ? result : null
+  const trimmed = query.trim()
 
   useEffect(() => {
     const controller = new AbortController()
+    const snapshot = { key, q: trimmed, supplier, archived, page }
     const timer = setTimeout(async () => {
       try {
         const data = await requestCatalogue<Listing>(kind, request, { signal: controller.signal })
-        if (!controller.signal.aborted) setResult({ key, data })
+        if (!controller.signal.aborted) setResult({ ...snapshot, data })
       } catch (error) {
-        if (!controller.signal.aborted) setResult({ key, error: (error as Error).message })
+        if (!controller.signal.aborted) setResult({ ...snapshot, error: (error as Error).message })
       }
     }, 180)
     return () => {
       clearTimeout(timer)
       controller.abort()
     }
-  }, [kind, request, key])
+  }, [kind, request, key, trimmed, supplier, archived, page])
 
   function setFilter(name: string, value?: string) {
     const next = new URLSearchParams(filters)
@@ -134,9 +234,9 @@ function Catalogue({ kind }: { kind: CatalogueKind }) {
     setBusy(true)
     try {
       await writeCatalogue(kind, { id: entry.id, action })
-      toast(action === 'archive' ? 'Entry moved to Archived' : 'Entry restored')
-      setDeleting(null)
-      if (current?.data?.rows.length === 1) setPage((n) => Math.max(1, n - 1))
+      toast(action === 'archive' ? `Archived ${entry.name}` : `Restored ${entry.name}`)
+      setConfirm(null)
+      if (view?.data?.rows.length === 1) setPage((n) => Math.max(1, n - 1))
       setReload((n) => n + 1)
     } catch (error) {
       toast((error as Error).message, 'error')
@@ -145,63 +245,101 @@ function Catalogue({ kind }: { kind: CatalogueKind }) {
     }
   }
 
-  return (
-    <Page className="mx-auto w-full max-w-7xl px-4 pt-6 pb-12 sm:px-6">
-      <header className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-xs sm:p-5">
-        <div className="flex items-center gap-3">
-          <span className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-700">
-            <Icon name={icon} size={23} />
-          </span>
-          <div>
-            <p className="mb-0.5 text-xs font-medium text-slate-500">Catalogues</p>
-            <h1 className="font-heading text-xl font-bold text-slate-900">{title}</h1>
-          </div>
-        </div>
-        <Button variant="primary" icon="add" onClick={() => setEditing(null)}>Add {item}</Button>
-      </header>
+  // while the next page or search loads, the last result stays on screen (only the first load shows a skeleton);
+  // everything below describes what is shown, so a stale result never borrows the new query's wording
+  const view = current ?? (result?.data ? result : null)
+  const refreshing = !current && !!view
+  const rows = view?.data?.rows ?? []
+  // a brand-new catalogue: one call to action in the empty state (the header's Add button steps aside)
+  const blank = !!view?.data && !rows.length && !view.q && !view.supplier && !view.archived && view.page === 1
+  const supplierName = (location.state as { supplierName?: string } | null)?.supplierName
+    ?? rows.find((entry) => entry.supplier_id === supplier)?.supplier ?? undefined
 
-      <div className="mb-4 flex flex-wrap items-center gap-3">
-        <div className="relative w-full sm:max-w-72">
-          <Icon name="search" size={16} className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-slate-400" />
+  // one result heading with the count: exact when this is the last page, else at least what has been paged through
+  const noun = title.toLowerCase()
+  let heading = ''
+  if (view?.data && rows.length) {
+    const seen = (view.page - 1) * CATALOGUE_PAGE_SIZE + rows.length
+    const n = view.data.has_more ? `${int(seen)}+` : int(seen)
+    const many = view.data.has_more || seen !== 1
+    heading = view.q
+      ? `${n} ${many ? 'matches' : 'match'} for “${view.q}”${view.archived ? ' in Archived' : ''}`
+      : `${n} ${view.archived ? 'archived ' : ''}${many ? noun : item}`
+  }
+
+  return (
+    <PageFrame>
+      <PageHeader
+        title={title}
+        subtitle={SUBTITLE[kind]}
+        aside={!blank && <Button variant="primary" size="lg" icon="add" onClick={() => setEditing(null)} aria-label={`Add ${item}`} className="max-sm:px-4"><span>Add<span className="max-sm:hidden"> {item}</span></span></Button>}
+      />
+
+      {/* kept on an empty catalogue too (search disabled), so switching catalogues never shifts the page */}
+      <div className="mb-6 flex flex-wrap items-center gap-2">
+        <div className="relative w-full sm:w-72">
+          <Icon name="search" size={20} className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-slate-600" />
           <input
             type="search"
             aria-label={`Search ${title.toLowerCase()}`}
             placeholder={`Search ${title.toLowerCase()}`}
             value={query}
+            disabled={blank}
             maxLength={200}
             onChange={(event) => { setQuery(event.target.value); setPage(1) }}
-            className={`${inputCls} pl-9`}
+            className="h-10 w-full rounded-md bg-slate-100 pr-3 pl-11 text-sm text-slate-900 ring-1 ring-slate-400 transition-[background-color,box-shadow] outline-none ring-inset placeholder:text-slate-600 hover:bg-slate-200/70 focus:bg-white focus:ring-2 focus:ring-brand-700 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-slate-100"
           />
         </div>
-        <div role="group" aria-label="Catalogue status" className="ml-auto inline-flex rounded-lg border border-slate-200 bg-slate-100 p-0.5">
-          <Button size="sm" variant={archived ? 'ghost' : 'secondary'} aria-pressed={!archived} onClick={() => setFilter('view')}>Active</Button>
-          <Button size="sm" variant={archived ? 'secondary' : 'ghost'} aria-pressed={archived} onClick={() => setFilter('view', 'archived')}>Archived</Button>
-        </div>
-        {supplier && <Button size="sm" icon="close" onClick={() => setFilter('supplier')}>Clear supplier filter</Button>}
+        <Chips
+          label="Catalogue status"
+          value={archived ? 'archived' : 'active'}
+          onChange={(k) => setFilter('view', k === 'archived' ? 'archived' : undefined)}
+          options={[{ key: 'active', label: 'Active' }, { key: 'archived', label: 'Archived' }]}
+        />
+        {supplier && (
+          <button type="button" onClick={() => setFilter('supplier')} aria-label={`Clear supplier filter: ${supplierName ?? 'one supplier'}`} className="inline-flex h-10 max-w-full min-w-0 items-center gap-1.5 rounded-md bg-slate-900 px-3.5 text-sm font-semibold text-white hover:bg-slate-800">
+            <span className="truncate">{supplierName ?? 'One supplier'}</span><Icon name="close" size={18} className="shrink-0" />
+          </button>
+        )}
+        {/* the result heading sits on the toolbar's line, and updates in place while a search refreshes */}
+        <h2 id="catalogue-rows" aria-live="polite" aria-atomic="true" className="num text-sm font-semibold text-slate-700 empty:hidden max-sm:w-full sm:ml-auto">{heading}</h2>
       </div>
 
-      {!current && <div role="status" aria-label="Loading catalogue"><Skeleton className="h-40 rounded-xl" /></div>}
+      {!view && !current?.error && <div role="status" aria-label="Loading catalogue"><Skeleton className="h-40 rounded-lg" /></div>}
       {current?.error && (
-        <div role="alert" className="flex flex-wrap items-center gap-3 rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">
-          {current.error}
+        <div role="alert" className="flex flex-wrap items-center gap-3 rounded-lg bg-rose-50 p-4 text-sm font-medium text-rose-800 ring-1 ring-rose-200 ring-inset">
+          <Icon name="error" size={20} />{current.error}
           <Button size="sm" onClick={() => setReload((n) => n + 1)}>Retry</Button>
         </div>
       )}
-      {current?.data && (current.data.rows.length ? (
-        <CatalogueTable kind={kind} entries={current.data.rows} onEdit={setEditing} onDelete={setDeleting}
-          onRestore={(entry) => { void changeArchive(entry, 'restore') }} busy={busy} />
+      {view?.data && !current?.error && (rows.length ? (
+        <section aria-labelledby="catalogue-rows" aria-busy={refreshing} className="mb-8">
+          <CatalogueRows kind={kind} entries={rows} onEdit={setEditing}
+            onArchive={(entry) => setConfirm({ entry, action: 'archive' })}
+            onRestore={(entry) => setConfirm({ entry, action: 'restore' })} />
+        </section>
       ) : (
-        <EmptyNote
-          icon={icon}
-          title={query.trim() || supplier ? 'No matching entries' : `No ${archived ? 'archived ' : ''}${title.toLowerCase()} yet`}
-          text={query.trim() ? 'Try a different search.' : undefined}
-        />
+        <EmptyState
+          icon={view.q || view.supplier ? 'search_off' : icon}
+          hint={!view.q && !view.archived && !view.supplier && (
+            <button type="button" onClick={() => setFilter('view', 'archived')} className="relative inline-block py-2 font-medium text-slate-600 underline underline-offset-2 transition-colors after:absolute after:-inset-x-2 after:inset-y-0 after:content-[''] hover:text-brand-700">
+              Show archived
+            </button>
+          )}
+          title={view.q || view.supplier ? 'No matching entries' : `No ${view.archived ? 'archived ' : ''}${noun} yet`}
+          text={view.q ? 'Try a different search, or clear it to see everything.'
+            : view.archived ? `Archived ${noun} land here, and you can restore them any time.`
+            : EMPTY_TEXT[kind]}
+        >
+          {view.q ? <Button size="lg" onClick={() => { setQuery(''); setPage(1) }}>Clear search</Button>
+            : !view.archived && !view.supplier && <Button variant="primary" size="lg" icon="add" onClick={() => setEditing(null)}>Add {item}</Button>}
+        </EmptyState>
       ))}
-      {current?.data && (page > 1 || current.data.has_more) && (
-        <nav aria-label="Catalogue pages" className="mt-4 flex items-center justify-end gap-3 text-xs text-slate-600">
+      {view?.data && !current?.error && (view.page > 1 || view.data.has_more) && (
+        <nav aria-label="Catalogue pages" className="mt-4 flex items-center justify-end gap-3 text-sm text-slate-600">
           <Button size="sm" disabled={page === 1} onClick={() => setPage((n) => n - 1)}>Previous</Button>
-          <span aria-live="polite">Page {page}</span>
-          <Button size="sm" disabled={!current.data.has_more} onClick={() => setPage((n) => n + 1)}>Next</Button>
+          <span aria-live="polite" className="num">Page {int(page)}</span>
+          <Button size="sm" disabled={!view.data.has_more || refreshing} onClick={() => setPage((n) => n + 1)}>Next</Button>
         </nav>
       )}
       {editing !== undefined && (
@@ -213,22 +351,31 @@ function Catalogue({ kind }: { kind: CatalogueKind }) {
             setReload((n) => n + 1)
           }} />
       )}
-      {deleting && (
-        <Dialog open onClose={() => { if (!busy) setDeleting(null) }} title={`Delete ${item}`} footer={<>
-          <Button disabled={busy} onClick={() => setDeleting(null)}>Cancel</Button>
-          <Button variant="danger" disabled={busy} onClick={() => { void changeArchive(deleting, 'archive') }}>Delete</Button>
+      {confirm && (
+        <Dialog open onClose={() => { if (!busy) setConfirm(null) }} title={`${confirm.action === 'archive' ? 'Archive' : 'Restore'} ${item}`} footer={<>
+          <Button disabled={busy} onClick={() => setConfirm(null)}>Cancel</Button>
+          <Button variant={confirm.action === 'archive' ? 'danger' : 'primary'} disabled={busy} onClick={() => { void changeArchive(confirm.entry, confirm.action) }}>
+            {confirm.action === 'archive' ? 'Archive' : 'Restore'}
+          </Button>
         </>}>
-          <p className="text-sm text-slate-700"><strong>{deleting.name}</strong> will move to Archived, where it can be restored.</p>
+          <p className="text-sm leading-relaxed text-slate-700">
+            <strong className="text-slate-900">{confirm.entry.name}</strong>
+            {confirm.action === 'archive' ? ' moves to Archived and stops showing up when you price positions. You can restore it any time.' : ' moves back to the active catalogue.'}
+          </p>
         </Dialog>
       )}
-    </Page>
+    </PageFrame>
   )
 }
 
 export function CataloguePage() {
   const { kind = '' } = useParams()
   if (!Object.hasOwn(CATALOGUES, kind)) {
-    return <Page className="mx-auto max-w-7xl p-6"><EmptyNote title="Catalogue not found" /></Page>
+    return (
+      <PageFrame>
+        <EmptyState icon="search_off" title="Catalogue not found" text="Choose Products, Suppliers or Subcontractors in the sidebar." />
+      </PageFrame>
+    )
   }
   return <Catalogue key={kind} kind={kind as CatalogueKind} />
 }

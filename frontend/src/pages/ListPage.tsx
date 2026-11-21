@@ -1,16 +1,16 @@
 import { clsx } from 'clsx'
-import { lazy, Suspense, use, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type FormEvent } from 'react'
+import { lazy, Suspense, use, useEffect, useId, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
-import { Button, Dialog, Field, Icon, inputCls, Menu, toast } from '../components/ui'
-import { Page, TableSkeleton } from '../components/Page'
+import { Button, Dialog, Field, Icon, inputCls, kbdCls, toast, type MenuItem } from '../components/ui'
+import { TableSkeleton } from '../components/Page'
+import { MetaLink, PageFrame, PageHeader, RowMenu, SortMenu, Summary, ToolButton, statusText } from '../components/Kit'
+import { phaseLabel } from '../components/ListCard'
 import { ErrorBoundary } from '../components/ErrorBoundary'
 import { LedgerTable } from '../components/LedgerTable'
-import { BudgetAlert } from '../components/BudgetAlert'
 import { FindingFilter, FindingText } from '../components/RiskAssessment'
 import { indexFindings, matchesFindingFilter, SEVERITIES, useUploadAssessment } from '../lib/risk-assessment'
-import { PricingBudget } from '../components/PricingBudget'
-import { MoreMenu } from '../components/FolderCard'
+import { AddSectionDialog, PricingLegend, PricingMeter, pricingSections } from '../components/PricingBudget'
 import { useActions } from '../lib/actions'
 import { DetailDrawer } from '../components/DetailDrawer'
 import { loadList } from '../lib/data'
@@ -19,7 +19,7 @@ import { CatalogueDetails, CatalogueOverview } from '../components/WorkspaceCata
 import { useWorkspaceCatalogue } from '../lib/workspace-catalogue'
 import { CategoryTree, useExpanded, type CheckState } from '../components/split/CategoryTree'
 import { MoveToCategory } from '../components/split/MoveToCategory'
-import { fixedBudget, money, parseNumber, plural } from '../lib/format'
+import { budgetStatus, fixedBudget, int, money, parseNumber, plural } from '../lib/format'
 import { positionTotal } from '../lib/money'
 import { applyMoves, globalStep, indexTree, leafOz, nextChildOz, nextPositionOz, pathOf, resolveList, treeStats, type CatStat } from '../lib/resolve'
 import { statsOf, useModel, useStore } from '../lib/store'
@@ -34,13 +34,13 @@ export function ListPage() {
     if (listId) useStore.getState().openTab(listId)
   }, [listId])
   return (
-    <Page className="mx-auto flex w-full max-w-7xl flex-col px-4 pt-5 pb-16 sm:px-6">
+    <PageFrame>
       <ErrorBoundary key={listId}>
-        <Suspense fallback={<><div className="mb-4 h-8" /><TableSkeleton /></>}>
+        <Suspense fallback={<TableSkeleton />}>
           <Loaded id={listId} />
         </Suspense>
       </ErrorBoundary>
-    </Page>
+    </PageFrame>
   )
 }
 
@@ -60,8 +60,6 @@ function TabsBar({ activeId, folderId }: { activeId: string; folderId: string })
   const setPalette = useUi((s) => s.setPalette)
   const byId = useMemo(() => new Map(lists.map((l) => [l.id, l])), [lists])
   const visible = tabs.filter((t) => byId.has(t) && !byId.get(t)!.trashedAt)
-  const strip = useRef<HTMLElement>(null)
-  const [edges, setEdges] = useState({ left: false, right: false })
 
   const close = (id: string) => {
     const i = visible.indexOf(id)
@@ -72,139 +70,41 @@ function TabsBar({ activeId, folderId }: { activeId: string; folderId: string })
     }
   }
 
-  // the active tab is scrolled into view without moving the page
-  const reveal = (behavior: ScrollBehavior) => {
-    const el = strip.current
-    const tab = el?.querySelector<HTMLElement>('[aria-current="page"]')?.parentElement
-    if (!el || !tab) return
-    const pad = 40
-    const box = el.getBoundingClientRect()
-    const r = tab.getBoundingClientRect()
-    if (r.left < box.left + pad) el.scrollBy({ left: r.left - box.left - pad, behavior })
-    else if (r.right > box.right - pad) el.scrollBy({ left: r.right - box.right + pad, behavior })
-  }
-  const revealRef = useRef(reveal)
-  useLayoutEffect(() => { revealRef.current = reveal })
-
-  // track whether tabs are hidden past either edge, so fades and arrows only show when needed
-  const visibleKey = visible.join('|')
-  useLayoutEffect(() => {
-    const el = strip.current
-    if (!el) return
-    const measure = () => {
-      const left = el.scrollLeft > 1
-      const right = el.scrollLeft + el.clientWidth < el.scrollWidth - 1
-      setEdges((e) => (e.left === left && e.right === right ? e : { left, right }))
-    }
-    measure()
-    // a mouse wheel scrolls vertically; turn that into sideways movement over the strip
-    const onWheel = (e: WheelEvent) => {
-      if (el.scrollWidth <= el.clientWidth || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return
-      e.preventDefault()
-      el.scrollLeft += e.deltaY
-    }
-    // tabs change width when fonts or titles load; keep the active one visible when they do
-    let first = true
-    const ro = new ResizeObserver(() => {
-      measure()
-      if (first) first = false
-      else revealRef.current('instant')
-    })
-    ro.observe(el)
-    for (const tab of el.children) ro.observe(tab)
-    el.addEventListener('scroll', measure, { passive: true })
-    el.addEventListener('wheel', onWheel, { passive: false })
-    return () => {
-      ro.disconnect()
-      el.removeEventListener('scroll', measure)
-      el.removeEventListener('wheel', onWheel)
-    }
-  }, [visibleKey])
-
-  useEffect(() => {
-    const raf = requestAnimationFrame(() => revealRef.current('smooth'))
-    return () => cancelAnimationFrame(raf)
-  }, [activeId, visibleKey])
-
-  const nudge = (dir: -1 | 1) => {
-    const el = strip.current
-    if (el) el.scrollBy({ left: dir * el.clientWidth * 0.7, behavior: 'smooth' })
-  }
-
-  const fade = 28
-  const mask = `linear-gradient(to right, ${edges.left ? 'transparent' : '#000'} 0, #000 ${edges.left ? fade : 0}px, #000 calc(100% - ${edges.right ? fade : 0}px), ${edges.right ? 'transparent' : '#000'} 100%)`
-  const arrow = 'flex size-7 shrink-0 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-white hover:text-slate-800 hover:shadow-xs'
-
+  if (visible.length < 2) return null
   return (
-    <div className="flex h-10 min-w-0 items-center gap-0.5 rounded-xl bg-slate-200/60 p-1 ring-1 ring-slate-200/80 ring-inset">
-      {edges.left && (
-        <button type="button" aria-label="Scroll tabs left" tabIndex={-1} onClick={() => nudge(-1)} className={arrow}>
-          <Icon name="chevron_left" size={18} />
-        </button>
-      )}
-      <nav
-        ref={strip}
-        aria-label="Open lists"
-        className="flex h-full min-w-0 items-center gap-0.5 overflow-x-auto overflow-y-hidden overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-        style={{ maskImage: mask, WebkitMaskImage: mask }}
-      >
+    <div className="mb-5 flex min-w-0 items-center gap-1">
+      <nav aria-label="Open lists" className="flex min-w-0 items-center gap-1.5 overflow-x-auto">
         {visible.map((id) => {
           const l = byId.get(id)!
           const active = id === activeId
           return (
-            <div
-              key={id}
-              className="group relative flex h-full shrink-0 items-center"
-              onAuxClick={(e) => { if (e.button === 1) { e.preventDefault(); close(id) } }}
-            >
-              {active && (
-                <motion.span
-                  layoutId="tab-pill"
-                  className="absolute inset-0 rounded-lg bg-white shadow-[0_1px_2px_rgb(15_23_42/0.08),0_0_0_1px_rgb(15_23_42/0.05)]"
-                  transition={{ type: 'spring', stiffness: 500, damping: 40 }}
-                />
-              )}
+            <div key={id} className="group relative flex shrink-0 items-center">
+              {active && <motion.span layoutId="tab-pill" className="absolute inset-0 rounded-md bg-brand-50 ring-1 ring-brand-200" transition={{ type: 'spring', stiffness: 500, damping: 40 }} />}
               <Link
                 to={`/list/${id}`}
                 aria-current={active ? 'page' : undefined}
                 title={l.title}
                 className={clsx(
-                  'relative flex h-full max-w-[14rem] items-center gap-2 rounded-lg pr-8 pl-2.5 text-[13px] leading-none transition-colors',
-                  active ? 'font-semibold text-slate-900' : 'font-medium text-slate-500 hover:bg-white/60 hover:text-slate-800',
+                  'relative flex h-10 max-w-[16rem] items-center gap-2 rounded-md pr-10 pl-4 text-sm transition-colors',
+                  active ? 'font-semibold text-brand-700' : 'bg-slate-100 font-medium text-slate-800 hover:bg-slate-200 hover:text-slate-900',
                 )}
               >
-                <span className="relative flex shrink-0">
-                  <Icon name="description" size={16} className={active ? 'text-brand-600' : 'text-slate-400'} />
-                  {l.pricedCount > 0 && (
-                    <span className="absolute -right-0.5 -bottom-0.5 size-2 rounded-full bg-emerald-500 ring-2 ring-white" aria-label="has prices" />
-                  )}
-                </span>
                 <span className="truncate">{l.fileName}</span>
               </Link>
               <button
                 type="button"
                 aria-label={`Close ${l.fileName}`}
-                title="Close"
                 onClick={() => close(id)}
-                className={clsx(
-                  'absolute right-1.5 flex size-5 items-center justify-center rounded-md text-slate-400 transition hover:bg-slate-200/80 hover:text-slate-700',
-                  active ? 'opacity-100' : 'opacity-0 group-focus-within:opacity-100 group-hover:opacity-100',
-                )}
+                className={clsx('absolute right-1 flex size-8 items-center justify-center rounded-md transition-colors', active ? 'text-brand-700 hover:bg-brand-100' : 'text-slate-600 hover:bg-slate-300/60 hover:text-slate-900')}
               >
-                <Icon name="close" size={14} />
+                <Icon name="close" size={16} />
               </button>
             </div>
           )
         })}
       </nav>
-      {edges.right && (
-        <button type="button" aria-label="Scroll tabs right" tabIndex={-1} onClick={() => nudge(1)} className={arrow}>
-          <Icon name="chevron_right" size={18} />
-        </button>
-      )}
-      <span className="mx-0.5 h-4 w-px shrink-0 bg-slate-300/70" aria-hidden />
-      <button type="button" title="Open another list" aria-label="Open another list" onClick={() => setPalette(true)} className={arrow}>
-        <Icon name="add" size={18} />
+      <button type="button" title="Open another list" aria-label="Open another list" onClick={() => setPalette(true)} className="flex size-10 shrink-0 items-center justify-center rounded-md text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900">
+        <Icon name="add" size={20} />
       </button>
     </div>
   )
@@ -214,10 +114,28 @@ function TabsBar({ activeId, folderId }: { activeId: string; folderId: string })
 /* Category filter                                                     */
 /* ------------------------------------------------------------------ */
 
+const pillCls = (on: boolean) =>
+  clsx(
+    'inline-flex h-10 shrink-0 items-center gap-2 rounded-md px-3.5 text-sm whitespace-nowrap transition-colors',
+    on ? 'bg-slate-900 font-semibold text-white hover:bg-slate-800' : 'bg-slate-100 font-medium text-slate-800 hover:bg-slate-200',
+  )
+
+/** toggles one quick filter; the pressed state is the filter's only visible state */
+function FilterPill({ on, onClick, children }: { on: boolean; onClick: () => void; children: ReactNode }) {
+  return (
+    <button type="button" aria-pressed={on} onClick={onClick} className={pillCls(on)}>
+      {children}
+      {on && <Icon name="close" size={16} />}
+    </button>
+  )
+}
+
 function CategoryFilter({ tree, stats, value, onChange }: { tree: CategoryNode[]; stats: Map<string, CatStat>; value: Set<string> | null; onChange: (v: Set<string> | null) => void }) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const root = useRef<HTMLDivElement>(null)
+  const trigger = useRef<HTMLButtonElement>(null)
+  const search = useRef<HTMLInputElement>(null)
   const id = useId()
   const ex = useExpanded(tree, 'all')
   const idx = useMemo(() => indexTree(tree), [tree])
@@ -225,7 +143,13 @@ function CategoryFilter({ tree, stats, value, onChange }: { tree: CategoryNode[]
   useEffect(() => {
     if (!open) return
     const down = (e: PointerEvent) => !root.current?.contains(e.target as Node) && setOpen(false)
-    const key = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false)
+    const key = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      setOpen(false)
+      trigger.current?.focus()
+    }
+    // focus moves into the panel so keyboard users land on the search field
+    requestAnimationFrame(() => search.current?.focus())
     window.addEventListener('pointerdown', down)
     window.addEventListener('keydown', key)
     return () => {
@@ -254,35 +178,43 @@ function CategoryFilter({ tree, stats, value, onChange }: { tree: CategoryNode[]
     onChange(cur.size === allOz.length ? null : cur)
   }
   return (
-    <div ref={root} className="relative inline-block">
+    <div
+      ref={root}
+      className="relative inline-block"
+      onBlur={(e) => {
+        if (open && e.relatedTarget && !root.current?.contains(e.relatedTarget as Node)) setOpen(false)
+      }}
+    >
       <button
+        ref={trigger}
         type="button"
         aria-expanded={open}
-        aria-haspopup="true"
+        aria-haspopup="dialog"
         aria-controls={id}
         onClick={() => setOpen((o) => !o)}
-        className="flex h-9 items-center gap-2 rounded-lg border border-slate-200/80 bg-white px-3.5 text-xs font-medium text-slate-700 shadow-xs transition-colors hover:bg-slate-50"
+        className={pillCls(!!value)}
       >
-        <Icon name="filter_alt" size={16} className="text-slate-500" />
-        <span>Filter Categories</span>
-        <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-semibold text-slate-600">{value ? `${value.size}/${allOz.length}` : `All ${allOz.length}`}</span>
-        <Icon name="expand_more" size={16} className={clsx('text-slate-400 transition-transform', open && 'rotate-180')} />
+        <Icon name="filter_list" size={18} />
+        <span>{value ? `${value.size} of ${allOz.length} categories` : 'Categories'}</span>
+        <Icon name="expand_more" size={18} className={clsx('transition-transform', open && 'rotate-180')} />
       </button>
       <AnimatePresence>
         {open && (
           <motion.div
             id={id}
+            role="dialog"
+            aria-label="Filter by category"
             initial={{ opacity: 0, y: -4, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, transition: { duration: 0.1 } }}
             transition={{ duration: 0.16, ease: [0.16, 1, 0.3, 1] }}
-            className="absolute left-0 z-40 mt-1.5 w-[26rem] max-w-[calc(100vw-2rem)] rounded-xl border border-slate-200 bg-white p-1.5 shadow-[0_4px_20px_-2px_rgba(15,23,42,0.1)]"
+            className="absolute left-0 z-40 mt-2 w-[26rem] max-w-[calc(100vw-2rem)] rounded-lg bg-white p-2 shadow-[0_8px_20px_-8px_var(--pop-shadow)] ring-1 ring-slate-300"
           >
             <div className="flex items-center gap-2 px-1.5 py-1.5">
-              <input aria-label="Search categories" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search categories…" className="h-7 min-w-0 flex-1 rounded-md border border-slate-200 px-2 text-xs outline-none focus:border-brand-500" />
-              <span className="flex gap-3 text-[11px] font-medium text-brand-600">
-                <button type="button" className="hover:underline" onClick={() => onChange(null)}>All</button>
-                <button type="button" className="hover:underline" onClick={() => onChange(new Set())}>None</button>
+              <input ref={search} aria-label="Search categories" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search categories…" className="h-10 min-w-0 flex-1 rounded-md bg-white px-4 text-sm ring-1 ring-slate-500 outline-none ring-inset placeholder:text-slate-500 hover:ring-slate-600 focus:ring-2 focus:ring-brand-600" />
+              <span className="flex gap-1 text-sm font-semibold text-slate-800">
+                <button type="button" className="h-10 rounded-md px-3 hover:bg-slate-100" onClick={() => onChange(null)}>All</button>
+                <button type="button" className="h-10 rounded-md px-3 hover:bg-slate-100" onClick={() => onChange(new Set())}>None</button>
               </span>
             </div>
             <div className="max-h-80 overflow-y-auto">
@@ -306,7 +238,7 @@ function AddItemDialog({ open, onClose, listId, tree, positions }: { open: boole
   const taken = new Set(positions.map((position) => position.oz))
   const nextOz = nextPositionOz(f.cat, positions.filter((position) => leafOz(position) === f.cat).map((position) => position.oz), taken, globalStep(positions))
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setF((s) => ({ ...s, [k]: e.target.value }))
-  const num = parseNumber
+  const num = (s: string) => parseNumber(s) ?? NaN
   const submit = (e: FormEvent) => {
     e.preventDefault()
     if (!f.short.trim()) return
@@ -339,23 +271,23 @@ function AddItemDialog({ open, onClose, listId, tree, positions }: { open: boole
     <Dialog
       open={open}
       onClose={onClose}
-      title="Add item"
+      title="Add position"
       description="Adds a new position to this list."
       footer={
         <>
           <Button onClick={onClose}>Cancel</Button>
-          <Button variant="primary" type="submit" form="add-item-form" disabled={!f.short.trim()}>Add item</Button>
+          <Button variant="primary" type="submit" form="add-item-form" disabled={!f.short.trim()}>Add position</Button>
         </>
       }
     >
       <form id="add-item-form" onSubmit={submit} className="grid grid-cols-2 gap-3">
-        <Field label="OZ"><input className={`${inputCls} font-mono`} value={f.oz} onChange={set('oz')} placeholder={nextOz} /></Field>
+        <Field label="OZ"><input className={`${inputCls} num`} value={f.oz} onChange={set('oz')} placeholder={nextOz} /></Field>
         <Field label="Einheit"><input className={inputCls} value={f.unit} onChange={set('unit')} placeholder="St, m, m2, psch" /></Field>
         <div className="col-span-2">
           <Field label="Kurztext"><input data-autofocus className={inputCls} value={f.short} onChange={set('short')} maxLength={200} /></Field>
         </div>
-        <Field label="Menge"><input inputMode="decimal" className={`${inputCls} font-mono`} value={f.qty} onChange={set('qty')} /></Field>
-        <Field label="Einheitspreis (EP, €)"><input inputMode="decimal" className={`${inputCls} font-mono`} value={f.up} onChange={set('up')} placeholder="optional" /></Field>
+        <Field label="Menge"><input inputMode="decimal" className={`${inputCls} num`} value={f.qty} onChange={set('qty')} /></Field>
+        <Field label="Einheitspreis (EP, €)"><input inputMode="decimal" className={`${inputCls} num`} value={f.up} onChange={set('up')} placeholder="optional" /></Field>
         <div className="col-span-2">
           <Field label="Kategorie">
             <select className={inputCls} value={f.cat} onChange={set('cat')}>
@@ -403,23 +335,44 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   const tree = resolved.tree
   const catStats = useMemo(() => treeStats(positions), [positions])
   const st = useMemo(() => statsOf(positions), [positions])
-  const hasUpload = useStore((s) => s.userDocuments.some(
-    (document) => document.listId === imported.id && document.original && document.name === imported.fileName,
-  ))
-  const assessment = useUploadAssessment(catalogueEnabled && hasUpload ? imported.id : null)
+  // findings from the automatic check that runs once on upload
+  const assessment = useUploadAssessment(catalogueEnabled && original ? imported.id : null)
   const uploadReport = assessment?.state === 'ready' ? assessment.report : null
   const reviewedIds = useStore((s) => s.listPatch[doc.id]?.reviewedFindings)
   const reviewed = useMemo(() => new Set(reviewedIds), [reviewedIds])
   const { byRow: findingsByRow, listWide } = useMemo(
     () => indexFindings(uploadReport?.findings ?? [], imported.positions), [uploadReport, imported.positions],
   )
+  // a finding about a field the user has since edited no longer describes the position: show it as
+  // "changed since upload" instead of flagging the row with an error the edit may already have fixed
+  const changedFindings = useMemo(() => {
+    const out = new Set<string>()
+    for (const finding of uploadReport?.findings ?? []) {
+      const id = finding.target.line_id
+      if (!id || !edits) continue
+      const patch = edits.patch[id] ?? {}
+      const field = finding.target.field
+      const touched =
+        field === 'quantity' ? id in edits.qty
+        : field === 'unit_price' ? id in edits.up
+        : field === 'line_amount' ? id in edits.qty || id in edits.up
+        : field === 'long_text' ? 'long' in patch
+        : field === 'short_text' ? 'short' in patch
+        : field === 'unit' ? 'unit' in patch
+        : field === 'code' ? 'oz' in patch
+        : false
+      if (touched) out.add(finding.id)
+    }
+    return out
+  }, [uploadReport, edits])
+  const settled = useMemo(() => new Set([...reviewed, ...changedFindings]), [reviewed, changedFindings])
   const risks = useMemo(() => {
     return new Map([...findingsByRow].flatMap(([id, findings]) => {
-      const open = findings.filter((finding) => !reviewed.has(finding.id))
+      const open = findings.filter((finding) => !reviewed.has(finding.id) && !changedFindings.has(finding.id))
       const severity = SEVERITIES.find((level) => open.some((finding) => finding.severity === level))
       return severity ? [[id, { severity, count: open.length, label: open.map((finding) => finding.title).join(', ') }] as const] : []
     }))
-  }, [findingsByRow, reviewed])
+  }, [findingsByRow, reviewed, changedFindings])
   const filterFindings = useMemo(
     () => positions.flatMap(({ id }) => {
       const findings = findingsByRow.get(id)
@@ -431,21 +384,50 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   const [q, setQ] = useState('')
   const [cats, setCats] = useState<Set<string> | null>(null)
   const [sortTotal, setSortTotal] = useState(false)
+  const [onlyUnpriced, setOnlyUnpriced] = useState(false)
+  const [onlyZero, setOnlyZero] = useState(false)
+  const [onlyEdited, setOnlyEdited] = useState(false)
+  const [selectMode, setSelectMode] = useState(false)
+  const [sectionsOpen, setSectionsOpen] = useState(false)
+  // the sticky total only appears once the hero total has scrolled away, so the number is never on screen twice
+  const heroEnd = useRef<HTMLDivElement>(null)
+  const [heroGone, setHeroGone] = useState(false)
+  useEffect(() => {
+    const el = heroEnd.current
+    if (!el) return
+    const io = new IntersectionObserver(([e]) => setHeroGone(!e.isIntersecting && e.boundingClientRect.top < 0))
+    io.observe(el)
+    return () => io.disconnect()
+  }, [])
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [detailId, setDetailId] = useState<string | null>(null)
   const [detailField, setDetailField] = useState<string | null>(null)
   const [findingFilter, setFindingFilter] = useState('all')
-  const openDetail = useCallback((id: string, field: string | null = null) => {
+  const openDetail = (id: string | null, field: string | null = null) => {
     setDetailField(field)
     setDetailId(id)
-  }, [])
-  const closeDetail = useCallback(() => setDetailId(null), [])
+  }
   const [adding, setAdding] = useState(false)
+  const [addingSection, setAddingSection] = useState(false)
+  const [showSections, setShowSections] = useState(false)
   const [notesOpen, setNotesOpen] = useState(false)
   const [splitPre, setSplitPre] = useState<string[] | null>(null)
   const [splitMounted, setSplitMounted] = useState(false)
   const [movePids, setMovePids] = useState<string[] | null>(null)
   const tableRef = useRef<HTMLDivElement>(null)
+  const searchRef = useRef<HTMLInputElement>(null)
+  // "/" jumps to position search from anywhere on the page, as in most keyboard-first tools
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== '/' || e.metaKey || e.ctrlKey || e.altKey) return
+      const t = e.target as HTMLElement
+      if (t.closest('input,textarea,select,[contenteditable=true],[role=dialog],[role=menu]')) return
+      e.preventDefault()
+      searchRef.current?.focus()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
   const focusId = params.get('pos')
 
   useEffect(() => {
@@ -457,19 +439,19 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
 
   const title = view?.title ?? doc.title
   const cap = view?.cap ?? fixedBudget(doc.total)
-  const used = cap ? (st.total / cap) * 100 : 0
   const editedIds = useMemo(() => new Set([...Object.keys(edits?.qty ?? {}), ...Object.keys(edits?.up ?? {}), ...Object.keys(edits?.patch ?? {}), ...Object.keys(edits?.moves ?? {})]), [edits])
   const addedIds = useMemo(() => new Set((edits?.added ?? []).map((p) => p.id)), [edits])
+  const qtyEdited = useMemo(() => new Set(Object.keys(edits?.qty ?? {})), [edits])
+  const upEdited = useMemo(() => new Set(Object.keys(edits?.up ?? {})), [edits])
 
   const rows = useMemo(() => {
     const t = q.trim().toLowerCase()
     let r = positions.filter(
-      (p) => matchesFindingFilter(findingFilter, findingsByRow.get(p.id) ?? [], reviewed) && (!cats || cats.has(leafOz(p))) &&
-        (!t || p.oz.toLowerCase().includes(t) || p.short.toLowerCase().includes(t) || p.path?.some((part) => part.label.toLowerCase().includes(t))),
+      (p) => matchesFindingFilter(findingFilter, findingsByRow.get(p.id) ?? [], settled) && (!cats || cats.has(leafOz(p))) && (!onlyUnpriced || p.up == null) && (!onlyZero || (p.up != null && p.qty === 0)) && (!onlyEdited || editedIds.has(p.id) || addedIds.has(p.id)) && (!t || p.oz.toLowerCase().includes(t) || p.short.toLowerCase().includes(t) || p.path?.some((part) => part.label.toLowerCase().includes(t))),
     )
     if (sortTotal) r = [...r].sort((a, b) => positionTotal(b) - positionTotal(a))
     return r
-  }, [positions, q, cats, sortTotal, findingFilter, findingsByRow, reviewed])
+  }, [positions, q, cats, sortTotal, onlyUnpriced, onlyZero, onlyEdited, editedIds, addedIds, findingFilter, findingsByRow, settled])
 
   const largest = useMemo(() => {
     let best: Position | null = null
@@ -478,20 +460,33 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   }, [positions])
 
   const detail = detailId ? positions.find((p) => p.id === detailId) ?? null : null
-  const detailFindings = detail ? findingsByRow.get(detail.id) : undefined
+  const detailIdx = detailId ? rows.findIndex((r) => r.id === detailId) : -1
   const detailCatalogue = detail && report?.positions[detail.id]
+  const detailFindings = detail ? findingsByRow.get(detail.id) : undefined
+  const detailOpen = detailFindings?.filter((finding) => !settled.has(finding.id)).length ?? 0
+  // several findings often carry the same advice; say it once under the heading instead of under each
+  const rationales = detailFindings?.map((finding) => finding.suggested_fix?.rationale ?? '') ?? []
+  const sharedRationale = rationales.length > 1 && rationales[0] && rationales.every((note) => note === rationales[0]) ? rationales[0] : ''
 
-  const toggleReviewed = (findingId: string) => {
+  // screen readers hear the outcome, since the button they pressed changes its own label
+  const [reviewNote, setReviewNote] = useState('')
+  const toggleReviewed = (findingId: string, title: string) => {
     const store = useStore.getState()
     const next = new Set(store.listPatch[doc.id]?.reviewedFindings)
-    if (!next.delete(findingId)) next.add(findingId)
+    const reopened = next.delete(findingId)
+    if (!reopened) next.add(findingId)
     store.patchList(doc.id, { reviewedFindings: [...next] })
+    setReviewNote(`${title}: ${reopened ? 'reopened' : 'marked reviewed'}`)
+    // after a review, carry on with the next open finding in the drawer
+    if (!reopened) requestAnimationFrame(() => document.querySelector<HTMLElement>('[data-review="open"]')?.focus())
   }
 
+  // opening a row from its finding badge focuses the field the finding is about
   const openRow = (position: Position, fromFinding?: boolean) => {
     const findings = fromFinding ? findingsByRow.get(position.id)?.filter((finding) => !reviewed.has(finding.id)) : undefined
     const relevant = findings?.find((finding) => matchesFindingFilter(findingFilter, [finding], reviewed)) ?? findings?.[0]
-    openDetail(position.id, relevant?.target.field)
+    // from a finding badge the cursor lands on the findings heading, which names the field to check
+    openDetail(position.id, relevant ? 'findings' : undefined)
   }
 
   const removeSelected = () => {
@@ -527,193 +522,321 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
     })
   }
 
+  const toTable = () => setTimeout(() => tableRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 40)
   const review = () => {
     setSortTotal(true)
     setQ('')
     setCats(null)
     setFindingFilter('all')
-    setTimeout(() => tableRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 40)
+    toTable()
+  }
+  const only = (k: 'unpriced' | 'zero' | 'edited') => {
+    setOnlyUnpriced(k === 'unpriced')
+    setOnlyZero(k === 'zero')
+    setOnlyEdited(k === 'edited')
+    setQ('')
+    setCats(null)
+    toTable()
+  }
+  const resetAll = () => {
+    const prev = useStore.getState().edits[doc.id]
+    const ids = [...editedIds].filter((x) => !addedIds.has(x))
+    ids.forEach((x) => useStore.getState().resetPosition(doc.id, x))
+    setOnlyEdited(false)
+    toast(`Reset ${plural(ids.length, 'position', 'positions')} to the imported values`, 'ok', { label: 'Undo', run: () => useStore.getState().setEdits(doc.id, prev) })
   }
 
-  const meta = [doc.format, doc.phase, doc.projectLabel ?? doc.project, doc.date].filter(Boolean)
+  const phase = view ? phaseLabel(view) : null
+  // dedupe tokens: format strings like "GAEB 90 · D86" repeat the phase code the phase label already shows
+  const meta = [...new Set([phase, doc.format, !phase ? doc.phase : null, doc.date].filter(Boolean).flatMap((m) => String(m).split(' · ')))]
+  // the store already renames lists that share their project's name (see listName); the file name is then the title
+  const sameAsFile = title === doc.fileName.replace(/\.[^.]+$/, '')
+  const heading = title
+  const zeroQty = positions.filter((p) => p.up != null && p.qty === 0).length
+  const status = budgetStatus(st.total, cap)
+  const unpriced = st.positionsCount - st.pricedCount
+  const editedCount = [...editedIds].filter((x) => !addedIds.has(x)).length
+  const filtered = !!q.trim() || !!cats || onlyUnpriced || onlyZero || onlyEdited || findingFilter !== 'all'
+  const sections = pricingSections(tree, catStats)
+  const live = view && !view.trashedAt ? view : null
+  const more: (MenuItem | 'sep')[] = [
+    { label: 'Add pricing section…', icon: 'playlist_add', onSelect: () => setAddingSection(true) },
+    { label: 'Split into new list…', icon: 'call_split', onSelect: split },
+    { label: 'Rename list', icon: 'edit', onSelect: () => openDialog({ kind: 'rename-list', id: doc.id }) },
+    ...(editedCount ? [{ label: 'Reset all edits', icon: 'restart_alt', onSelect: resetAll }] : []),
+    ...(live ? [{ label: 'Move to another project…', icon: 'drive_file_move', onSelect: () => openDialog({ kind: 'folder-target', action: 'move-list', listId: doc.id }) }] : []),
+    ...(attached.length
+      ? (['sep' as const, ...attached.map((d) => ({ label: d.name, icon: 'attach_file', onSelect: () => openDialog({ kind: 'doc', doc: d }) }))] as (MenuItem | 'sep')[])
+      : []),
+    ...(live ? (['sep' as const, ...listMenu(live).filter((it) => it !== 'sep' && it.danger)] as (MenuItem | 'sep')[]) : []),
+  ]
 
   return (
     <>
-      <nav aria-label="Breadcrumb" className="mb-3 flex flex-wrap items-center gap-1.5 text-xs font-medium text-slate-500">
-        <Link to="/" className="inline-flex items-center gap-1 transition-colors hover:text-slate-800">
-          <Icon name="home" size={15} className="text-slate-400" />
-          Home
-        </Link>
-        <Icon name="chevron_right" size={13} className="text-slate-300" />
-        <Link to="/" className="inline-flex items-center gap-1 transition-colors hover:text-slate-800">
-          <Icon name="source" size={15} className="text-slate-400" />
-          Repositories
-        </Link>
-        <Icon name="chevron_right" size={13} className="text-slate-300" />
-        <Link to={`/folder/${folder?.id ?? doc.folderId}`} className="inline-flex max-w-[16rem] items-center gap-1 transition-colors hover:text-slate-800">
-          <Icon name="folder" size={15} className="text-slate-400" />
-          <span className="truncate">{folder?.name ?? 'Folder'}</span>
-        </Link>
-        <Icon name="chevron_right" size={13} className="text-slate-300" />
-        <span title={title} className="inline-flex max-w-[18rem] items-center gap-1 rounded border border-slate-200/60 bg-slate-100/80 px-2 py-0.5 font-semibold text-slate-800">
-          <Icon name="description" size={14} className="text-brand-600" />
-          <span className="truncate">{doc.fileName}</span>
-        </span>
-      </nav>
+      <PageHeader
+        crumbs={[{ label: 'All Projects', to: '/' }, { label: folder?.name ?? 'Project', to: `/folder/${folder?.id ?? doc.folderId}` }]}
+        title={heading}
+        subtitle={[sameAsFile ? null : doc.fileName, ...meta].filter(Boolean).join(' · ')}
+        aside={
+          <div className="flex items-center gap-2">
+            <Button variant="primary" icon="add" onClick={() => setAdding(true)} aria-label="Add position" className="max-sm:w-10 max-sm:px-0">
+              <span className="max-sm:hidden">Add position</span>
+            </Button>
+            <ExportMenu listId={doc.id} doc={doc} original={original} selectedIds={[...selected]} />
+            <RowMenu items={more} label={`More actions for ${title}`} />
+          </div>
+        }
+      />
 
       {view?.trashedAt && (
-        <div className="mb-3 flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-xs text-amber-900">
-          <span className="flex items-center gap-2"><Icon name="delete" size={16} />This list is in the Trash.</span>
-          <button type="button" className="font-semibold hover:underline" onClick={() => useStore.getState().patchList(doc.id, { trashedAt: undefined })}>Restore</button>
+        <div className="mb-5 flex items-center justify-between gap-3 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <span className="flex items-center gap-2"><Icon name="delete" size={18} />This list is in the Trash.</span>
+          <button type="button" className="font-semibold underline underline-offset-4" onClick={() => useStore.getState().patchList(doc.id, { trashedAt: undefined })}>Restore</button>
         </div>
       )}
 
-      <div className="flex min-w-0 items-center justify-between gap-3 pb-4">
-        <TabsBar activeId={doc.id} folderId={folder?.id ?? doc.folderId} />
-        <div className="flex shrink-0 items-center gap-2">
-          {attached.length > 0 && (
-            <Menu
-              label="Documents"
-              width="w-60"
-              items={attached.map((document) => ({
-                label: document.name, icon: 'description', onSelect: () => openDialog({ kind: 'doc', doc: document }),
-              }))}
-              trigger={(props) => <Button {...props} icon="attach_file">Documents ({attached.length})</Button>}
-            />
-          )}
-          {view && !view.trashedAt && <MoreMenu items={listMenu(view)} label={`Options for ${view.title}`} />}
-          <ExportMenu listId={doc.id} doc={doc} original={original} selectedIds={[...selected]} />
+      {view?.supersededBy && (
+        <div role="note" className="mb-5 flex items-start gap-2.5 rounded-lg bg-slate-50 px-4 py-3 text-sm text-slate-700">
+          <Icon name="info" size={18} className="mt-px text-slate-600" />
+          <span>This is an earlier version. The {view.supersededBy} file of the same tender replaces it, so this list doesn't count toward project totals.</span>
         </div>
-      </div>
+      )}
+
+      <TabsBar activeId={doc.id} folderId={folder?.id ?? doc.folderId} />
+
+      <Summary
+        label="List total"
+        compact
+        amount={money(st.total)}
+        total={st.total}
+        cap={cap}
+        onEditCap={live ? () => openDialog({ kind: 'edit-cap', target: 'list', id: doc.id }) : undefined}
+        extra={sections.length > 1 && showSections && (
+          <div id="pricing-legend" className="mt-4 max-w-xl rounded-lg bg-slate-50 p-4">
+            <PricingMeter sections={sections} total={st.total} cap={cap || st.total} className="max-w-md" />
+            <PricingLegend sections={sections} />
+          </div>
+        )}
+        meta={
+          <span className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
+            <span className="num">{plural(st.positionsCount, 'position', 'positions')}</span>
+            {unpriced > 0 && (
+              <span className="inline-flex items-center gap-x-1.5">
+                <span aria-hidden className="max-sm:hidden">·</span>
+                <MetaLink onClick={() => only('unpriced')} pressed={onlyUnpriced}><span className="num">{int(unpriced)}</span> still to price</MetaLink>
+              </span>
+            )}
+            {zeroQty > 0 && (
+              <span className="inline-flex items-center gap-x-1.5">
+                <span aria-hidden className="max-sm:hidden">·</span>
+                <MetaLink onClick={() => only('zero')} pressed={onlyZero}><span className="num">{int(zeroQty)}</span> zero quantity</MetaLink>
+              </span>
+            )}
+            {editedCount > 0 && (
+              <span className="inline-flex items-center gap-x-1.5">
+                <span aria-hidden className="max-sm:hidden">·</span>
+                <MetaLink onClick={() => only('edited')} pressed={onlyEdited}><span className="num">{int(editedCount)}</span> edited</MetaLink>
+              </span>
+            )}
+            {sections.length > 1 && (
+              <span className="inline-flex items-center gap-x-1.5">
+                <span aria-hidden className="max-sm:hidden">·</span>
+                <button type="button" aria-expanded={showSections} aria-controls="pricing-legend" onClick={() => setShowSections((v) => !v)} className="relative inline-flex h-7 items-center gap-0.5 rounded-md pr-1 pl-2 font-medium after:absolute after:inset-x-0 after:-inset-y-2 after:content-[''] text-slate-900 bg-slate-100 hover:bg-slate-200">
+                  <span>Cost by section</span><Icon name="expand_more" size={18} className={clsx('text-slate-500 transition-transform', showSections && 'rotate-180')} />
+                </button>
+              </span>
+            )}
+            {(status.tone === 'warn' || status.tone === 'over') && largest && (
+              <span className="inline-flex items-center gap-x-1.5">
+                <span aria-hidden className="max-sm:hidden">·</span>
+                <MetaLink onClick={review}>Review the biggest positions</MetaLink>
+              </span>
+            )}
+          </span>
+        }
+      />
 
       {catalogueEnabled && (
-        <CatalogueOverview report={report} error={error} retryFailed={retryFailed} positions={positions} onOpen={openDetail} />
+        <div className="mb-6">
+          <CatalogueOverview report={report} error={error} retryFailed={retryFailed} positions={positions} onOpen={openDetail} />
+        </div>
       )}
 
-      <PricingBudget tree={tree} stats={catStats} total={st.total} cap={cap} onAdd={(name) => {
-        addCategory(null, name)
-        setQ('')
-        setCats(null)
-        setSortTotal(false)
-      }} />
-
-      <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-3">
+      <div ref={heroEnd} aria-hidden />
+      <div ref={tableRef} className="scroll-mt-20">
+        <div className="mb-3 flex flex-wrap items-center gap-2">
           <div className="relative w-full sm:w-72">
-            <Icon name="search" size={17} className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-slate-400" />
+            <Icon name="search" size={20} className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-slate-600" />
             <input
+              ref={searchRef}
               type="search"
               aria-label="Search positions"
+              aria-keyshortcuts="/"
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="Search OZ, Kurztext, category..."
-              className="h-9 w-full rounded-lg border border-slate-200 bg-white pr-3 pl-9 text-xs text-slate-800 shadow-xs transition-[border-color,box-shadow] outline-none placeholder:text-slate-400 focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
+              placeholder="Search positions"
+              className="peer h-10 w-full rounded-md bg-slate-100 pr-10 pl-11 text-sm text-slate-900 ring-1 ring-slate-400 transition-[background-color,box-shadow] outline-none ring-inset placeholder:text-slate-600 hover:bg-slate-200/70 focus:bg-white focus:ring-2 focus:ring-brand-700"
             />
+            {!q && <kbd aria-hidden className={clsx(kbdCls, 'pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 peer-focus:hidden [@media(hover:none)]:hidden')}>/</kbd>}
           </div>
           <CategoryFilter tree={tree} stats={catStats} value={cats} onChange={setCats} />
-          <FindingFilter rows={filterFindings} reviewed={reviewed} value={findingFilter} onChange={setFindingFilter} />
-          {assessment?.state === 'waiting' && <span role="status" className="text-xs text-slate-500">Checking uploaded list…</span>}
-          {(assessment?.state === 'failed' || assessment?.state === 'unavailable') &&
-            <span role="status" className="text-xs text-amber-800">Upload findings unavailable</span>}
-        </div>
-        <div className="flex items-center gap-2">
-          <Button size="lg" className="h-9" icon="call_split" iconClass="text-slate-500" onClick={split}>Split List</Button>
-          <Button variant="primary" size="lg" className="h-9" icon="add" onClick={() => setAdding(true)}>Add Item</Button>
-        </div>
-      </div>
-
-      <AnimatePresence initial={false}>
-        {selected.size > 0 && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
-            className="overflow-hidden"
+          <FindingFilter rows={filterFindings} reviewed={settled} value={findingFilter} onChange={setFindingFilter} />
+          {assessment?.state === 'waiting' && (
+            <span role="status" className="inline-flex h-10 items-center gap-1.5 text-sm text-slate-600">
+              <Icon name="progress_activity" size={18} className="animate-spin" />Checking the uploaded list
+            </span>
+          )}
+          {(assessment?.state === 'failed' || assessment?.state === 'unavailable') && (
+            <span role="status" className="inline-flex h-10 items-center gap-1.5 text-sm text-amber-900">
+              <Icon name="error" size={18} />Upload check unavailable
+            </span>
+          )}
+          {(unpriced > 0 || onlyUnpriced) && (
+            <FilterPill on={onlyUnpriced} onClick={() => setOnlyUnpriced((v) => !v)}>
+              Not priced <span className="num">{int(unpriced)}</span>
+            </FilterPill>
+          )}
+          {onlyZero && <FilterPill on onClick={() => setOnlyZero(false)}>Quantity 0 <span className="num">{int(zeroQty)}</span></FilterPill>}
+          {onlyEdited && (
+            <>
+              <FilterPill on onClick={() => setOnlyEdited(false)}>Edited <span className="num">{int(editedCount)}</span></FilterPill>
+              {editedCount > 0 && <button type="button" onClick={resetAll} className="h-10 rounded-md px-3 text-sm font-semibold text-slate-800 hover:bg-slate-100">Reset all</button>}
+            </>
+          )}
+          <button
+            type="button"
+            aria-pressed={selectMode || selected.size > 0}
+            onClick={() => { if (selectMode) setSelected(new Set()); setSelectMode((v) => !v) }}
+            className={pillCls(selectMode || selected.size > 0)}
           >
-            <div role="toolbar" aria-label="Selected rows" className="mt-3 flex flex-wrap items-center gap-2 rounded-lg border border-brand-200 bg-brand-50/60 px-3 py-2 text-xs">
-              <span className="font-semibold text-brand-700" aria-live="polite">{selected.size} selected</span>
-              <span className="mx-1 h-4 w-px bg-brand-200" />
-              <button type="button" onClick={removeSelected} className="flex items-center gap-1 rounded-md px-2 py-1 font-medium text-rose-600 hover:bg-rose-50">
-                <Icon name="delete" size={15} />Remove selected
-              </button>
-              <button type="button" onClick={() => setMovePids([...selected])} className="flex items-center gap-1 rounded-md px-2 py-1 font-medium text-slate-700 hover:bg-white">
-                <Icon name="drive_file_move" size={15} />Move to category…
-              </button>
-              <button type="button" onClick={split} className="flex items-center gap-1 rounded-md px-2 py-1 font-medium text-slate-700 hover:bg-white">
-                <Icon name="call_split" size={15} />Split into new list
-              </button>
-              <button type="button" onClick={() => setSelected(new Set())} className="ml-auto rounded-md px-2 py-1 font-medium text-slate-500 hover:bg-white hover:text-slate-800">Clear</button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            <Icon name="checklist" size={18} /><span className="max-sm:sr-only">Select</span>
+          </button>
+          <div className="flex items-center gap-2 sm:ml-auto">
+            {!sortTotal && !filtered && tree.length > 0 && (
+              <ToolButton icon={sectionsOpen ? 'unfold_less' : 'unfold_more'} aria-expanded={sectionsOpen} onClick={() => setSectionsOpen((v) => !v)} className="max-sm:w-10 max-sm:justify-center max-sm:px-0">
+                <span className="max-sm:sr-only">{sectionsOpen ? 'Collapse all' : 'Expand all'}</span>
+              </ToolButton>
+            )}
+            <SortMenu value={sortTotal ? 'amount' : 'oz'} options={{ oz: 'Position order', amount: 'Highest amount' }} onChange={(k) => setSortTotal(k === 'amount')} noun="positions" />
+          </div>
+        </div>
 
-      <div ref={tableRef} className="scroll-mt-20">
         <LedgerTable
           listId={doc.id}
           rows={rows}
           tree={tree}
-          showEmpty={!q.trim() && !cats && findingFilter === 'all'}
-          allPositions={positions}
+          showEmpty={!filtered}
           selected={selected}
           setSelected={setSelected}
-          over75={cap > 0 && used >= 75}
           focusId={focusId}
           onOpen={openRow}
           onMove={(pid) => setMovePids([pid])}
           editedIds={editedIds}
+          qtyEdited={qtyEdited}
+          upEdited={upEdited}
           risks={risks}
+          sectionsOpen={sectionsOpen}
           sortActive={sortTotal}
-          onResetSort={() => setSortTotal(false)}
-          footer={
-            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-t border-slate-100 bg-slate-50/60 px-4 py-2.5 text-[11px] text-slate-500">
-              <span>{[...meta, `${st.positionsCount} positions`, `${st.pricedCount} priced`].join(' · ')}</span>
-              <span>Total <strong className="font-mono text-slate-700">{money(st.total)}</strong></span>
-            </div>
-          }
-          resetKey={`${q}|${cats ? [...cats].join(',') : '*'}|${sortTotal}|${findingFilter}`}
+          selectMode={selectMode}
         />
+
+        {/* sticky footer: the running total, or the batch actions while rows are selected */}
+        <div className={clsx('sticky bottom-0 z-20 -mx-4 mt-2 border-t border-slate-200 bg-white px-4 py-3 transition-opacity sm:-mx-8 sm:px-8', !(heroGone || selected.size > 0 || rows.length !== positions.length) && 'pointer-events-none opacity-0')} aria-hidden={!(heroGone || selected.size > 0 || rows.length !== positions.length) || undefined}>
+          {selected.size > 0 ? (
+            <div role="toolbar" aria-label="Selected positions" className="flex flex-wrap items-center gap-1 text-sm">
+              <span className="mr-2 font-semibold text-slate-900" aria-live="polite">{plural(selected.size, 'position', 'positions')} selected</span>
+              <button type="button" onClick={() => setMovePids([...selected])} className="inline-flex h-10 items-center gap-1.5 rounded-md px-3 font-medium text-slate-800 hover:bg-slate-100">
+                <Icon name="drive_file_move" size={18} />Move
+              </button>
+              <button type="button" onClick={split} className="inline-flex h-10 items-center gap-1.5 rounded-md px-3 font-medium text-slate-800 hover:bg-slate-100">
+                <Icon name="call_split" size={18} />Split into new list
+              </button>
+              <button type="button" onClick={removeSelected} className="inline-flex h-10 items-center gap-1.5 rounded-md px-3 font-medium text-rose-700 hover:bg-rose-50">
+                <Icon name="delete" size={18} />Remove
+              </button>
+              <button type="button" onClick={() => { setSelected(new Set()); setSelectMode(false) }} className="ml-auto inline-flex h-10 items-center rounded-md bg-slate-100 px-4 font-semibold text-slate-900 hover:bg-slate-200">Clear</button>
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-sm text-slate-600">
+              <span className="flex items-center gap-3">
+                <button
+                  type="button"
+                  aria-label="Search positions"
+                  onClick={() => { tableRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); searchRef.current?.focus({ preventScroll: true }) }}
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-md text-slate-700 bg-slate-100 hover:bg-slate-200"
+                >
+                  <Icon name="search" size={20} />
+                </button>
+                <span className={rows.length === positions.length ? 'max-sm:hidden' : undefined}>
+                  {rows.length !== positions.length
+                    ? <><span className="num font-semibold text-slate-900">{int(rows.length)}</span> of <span className="num">{int(positions.length)}</span> positions shown</>
+                    : <span className="num">{plural(positions.length, 'position', 'positions')}</span>}
+                </span>
+              </span>
+              <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                <span>List total</span>
+                <span className="num text-base font-semibold text-slate-900">{money(st.total)}</span>
+                {cap > 0 && st.total > 0 && (
+                  <>
+                    <span aria-hidden>·</span>
+                    <span className="num">{Math.round(status.pct)}% of cap</span>
+                    <span aria-hidden>·</span>
+                    <span className={clsx('font-semibold', statusText[status.tone])}>{status.word}</span>
+                  </>
+                )}
+              </span>
+            </div>
+          )}
+        </div>
       </div>
 
-      {listWide.length > 0 && (
-        <details className="mt-2 text-xs text-slate-600">
-          <summary className="w-fit cursor-pointer font-medium">List-wide findings ({listWide.length})</summary>
-          <div className="mt-2 space-y-3">{listWide.map((finding) => <FindingText key={finding.id} finding={finding} />)}</div>
-        </details>
+      {(listWide.length > 0 || uploadReport?.source_notice || !!uploadReport?.errors.length) && (
+        <section aria-labelledby="list-findings-h" className="mt-8">
+          <h2 id="list-findings-h" className="font-heading text-base font-bold text-slate-900">
+            Upload check for the whole list{listWide.length > 0 && <span className="num ml-2 font-sans text-sm font-medium text-slate-600">{int(listWide.length)}</span>}
+          </h2>
+          {(uploadReport?.source_notice || !!uploadReport?.errors.length) && (
+            <p className="mt-1 text-sm text-amber-900">{uploadReport?.source_notice || 'Some checks could not finish during the upload.'}</p>
+          )}
+          {listWide.length > 0 && (
+            <ul className="mt-3 space-y-4">
+              {listWide.map((finding) => <li key={finding.id}><FindingText finding={finding} /></li>)}
+            </ul>
+          )}
+        </section>
       )}
-      {(uploadReport?.source_notice || !!uploadReport?.errors.length) && (
-        <p className="mt-2 text-xs text-amber-800">{uploadReport.source_notice || 'Some checks could not complete during upload.'}</p>
-      )}
-
-      <BudgetAlert
-        total={st.total}
-        cap={cap}
-        largest={largest}
-        onReview={review}
-      />
 
       {doc.notes && (
-        <section className="mt-4 rounded-xl border border-slate-200 bg-white shadow-xs">
+        <section className="mt-8 rounded-lg bg-slate-50">
           <button
             type="button"
             aria-expanded={notesOpen}
             onClick={() => setNotesOpen((o) => !o)}
-            className="flex w-full items-center justify-between gap-2 px-4 py-3 text-left text-xs font-semibold text-slate-800"
+            className="flex w-full items-center justify-between gap-2 rounded-lg px-5 py-4 text-left text-[15px] font-semibold text-slate-900"
           >
-            <span className="flex items-center gap-2"><Icon name="notes" size={17} className="text-slate-400" />Vorbemerkungen</span>
-            <Icon name="expand_more" size={18} className={clsx('text-slate-400 transition-transform', notesOpen && 'rotate-180')} />
+            <span className="flex items-center gap-2.5"><Icon name="notes" size={20} className="text-slate-500" />Vorbemerkungen</span>
+            <Icon name="expand_more" size={20} className={clsx('text-slate-500 transition-transform', notesOpen && 'rotate-180')} />
           </button>
           <AnimatePresence initial={false}>
             {notesOpen && (
               <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }} className="overflow-hidden">
-                <div className="max-h-96 overflow-y-auto border-t border-slate-100 px-4 py-3 text-xs leading-relaxed whitespace-pre-line text-slate-600">{doc.notes}</div>
+                <div className="max-h-96 overflow-y-auto px-5 pb-5 text-sm leading-relaxed whitespace-pre-line text-slate-700">{doc.notes}</div>
               </motion.div>
             )}
           </AnimatePresence>
         </section>
       )}
 
+      <AddSectionDialog open={addingSection} onClose={() => setAddingSection(false)} onAdd={(name) => {
+        addCategory(null, name)
+        setQ('')
+        setCats(null)
+        setOnlyUnpriced(false)
+        setOnlyZero(false)
+        setOnlyEdited(false)
+        setSortTotal(false)
+        toast(`Added section "${name}"`)
+      }} />
       <AddItemDialog open={adding} onClose={() => setAdding(false)} listId={doc.id} tree={tree} positions={positions} />
       <DetailDrawer
         p={detail}
@@ -721,22 +844,44 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
           <CatalogueDetails result={detailCatalogue} position={detail}
             onApply={(long) => useStore.getState().patchPosition(doc.id, detail.id, { long })} />
         ) : undefined}
-        findings={detailFindings?.length ? <section aria-label="Risk findings for this position" className="space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs">
-          <h3 className="font-semibold text-slate-900">Findings from upload</h3>
-          {detailFindings.map((finding) => (
-            <div key={finding.id} className="space-y-2 border-t border-slate-200 pt-3">
-              <FindingText finding={finding} />
-              <Button size="sm" icon={reviewed.has(finding.id) ? 'undo' : 'check'} onClick={() => toggleReviewed(finding.id)}
-                aria-label={`${reviewed.has(finding.id) ? 'Reopen' : 'Mark reviewed'}: ${finding.title}`}>
-                {reviewed.has(finding.id) ? 'Reopen finding' : 'Mark reviewed'}
-              </Button>
-            </div>
-          ))}
-        </section> : undefined}
+        findings={detailFindings?.length ? (
+          <section aria-labelledby="drawer-findings-h">
+            <h3 id="drawer-findings-h" tabIndex={-1} data-risk-field="findings" className="rounded text-[15px] font-semibold text-slate-900">
+              Upload check
+              <span className="num ml-2 text-sm font-medium text-slate-600">{detailOpen ? `${int(detailOpen)} open` : 'All reviewed'}</span>
+            </h3>
+            {sharedRationale && (
+              <details className="group/why mt-1 text-sm text-slate-600">
+                <summary className="inline-flex min-h-8 cursor-pointer list-none items-center gap-1 rounded font-medium text-slate-700 hover:text-slate-900 [&::-webkit-details-marker]:hidden">
+                  <Icon name="chevron_right" size={18} className="transition-transform group-open/why:rotate-90" />
+                  Why these were flagged
+                </summary>
+                <p className="mt-1 mb-2 max-w-[60ch] leading-relaxed text-pretty">{sharedRationale}</p>
+              </details>
+            )}
+            <ul className="mt-3 space-y-5">
+              {detailFindings.map((finding) => {
+                const done = reviewed.has(finding.id)
+                return (
+                  <li key={finding.id} className="space-y-3">
+                    <FindingText finding={finding} reviewed={done} changed={changedFindings.has(finding.id)} hideRationale={!!sharedRationale} />
+                    <Button className="ml-[15px]" icon={done ? 'undo' : 'check'} onClick={() => toggleReviewed(finding.id, finding.title)}
+                      data-review={done ? 'done' : 'open'}
+                      aria-label={`${done ? 'Reopen' : 'Mark reviewed'}: ${finding.title}`}>
+                      {done ? 'Reopen' : 'Mark reviewed'}
+                    </Button>
+                  </li>
+                )
+              })}
+            </ul>
+            <p className="sr-only" aria-live="polite">{reviewNote}</p>
+          </section>
+        ) : undefined}
         focusField={detailField}
-        onClose={closeDetail}
+        onClose={() => setDetailId(null)}
         edited={!!detail && editedIds.has(detail.id)}
         added={!!detail && addedIds.has(detail.id)}
+        imported={detail ? doc.positions.find((x) => x.id === detail.id) ?? null : null}
         onPatch={(patch) => detail && useStore.getState().patchPosition(doc.id, detail.id, patch)}
         onCode={(code) => {
           if (!detail || code === detail.oz) return true
@@ -751,6 +896,19 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
         onUp={(n) => detail && useStore.getState().setUp(doc.id, detail.id, n)}
         onReset={() => detail && useStore.getState().resetPosition(doc.id, detail.id)}
         onMoveCategory={() => detail && setMovePids([detail.id])}
+        onRemove={() => {
+          if (!detail) return
+          const id = detail.id
+          const next = rows[detailIdx + 1]?.id ?? rows[detailIdx - 1]?.id ?? null
+          useStore.getState().removePositions(doc.id, [id])
+          openDetail(next)
+          toast('Removed 1 position', 'ok', { label: 'Undo', run: () => useStore.getState().restorePositions(doc.id, [id]) })
+        }}
+        position={detailIdx >= 0 ? `${detailIdx + 1} of ${rows.length}` : undefined}
+        listTotal={st.total}
+        cap={cap}
+        onPrev={detailIdx > 0 ? () => openDetail(rows[detailIdx - 1].id) : undefined}
+        onNext={detailIdx >= 0 && detailIdx < rows.length - 1 ? () => openDetail(rows[detailIdx + 1].id) : undefined}
       />
       <MoveToCategory
         open={!!movePids}

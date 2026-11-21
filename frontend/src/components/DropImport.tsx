@@ -53,7 +53,7 @@ export function DropOverlay({ show, name }: { show: boolean; name: string }) {
       {show && (
         <motion.div
           aria-hidden
-          className="pointer-events-none fixed inset-3 z-[60] flex items-center justify-center rounded-2xl border-2 border-dashed border-brand-500 bg-brand-50/70 backdrop-blur-[2px]"
+          className="pointer-events-none fixed inset-3 z-[60] flex items-center justify-center rounded-lg border-2 border-dashed border-brand-500 bg-brand-50/90"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -62,7 +62,7 @@ export function DropOverlay({ show, name }: { show: boolean; name: string }) {
           <div className="flex flex-col items-center gap-2 text-brand-700">
             <Icon name="cloud_upload" size={40} />
             <p className="font-heading text-base font-bold">Drop files to import into "{name}"</p>
-            <p className="text-xs text-brand-600/80">GAEB, CSV, TSV, Excel, JSON, Word or PDF</p>
+            <p className="text-xs text-brand-700/80">GAEB, CSV, TSV, Excel, JSON, Word or PDF</p>
           </div>
         </motion.div>
       )}

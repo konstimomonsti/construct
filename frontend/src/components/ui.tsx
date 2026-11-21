@@ -5,7 +5,6 @@ import {
 import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import { create } from 'zustand'
-import { pct } from '../lib/format'
 
 /* ------------------------------------------------------------------ */
 /* Icon                                                                */
@@ -27,16 +26,17 @@ type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'soft'
 type Size = 'sm' | 'md' | 'lg'
 
 const variants: Record<Variant, string> = {
-  primary: 'bg-brand-600 hover:bg-brand-700 text-white font-semibold shadow-sm shadow-brand-600/20',
-  secondary: 'bg-white border border-slate-200 hover:bg-slate-50 hover:border-slate-300 text-slate-700 font-medium shadow-xs',
-  ghost: 'text-slate-500 hover:text-slate-800 hover:bg-slate-100 font-medium',
-  danger: 'bg-rose-600 hover:bg-rose-700 text-white font-semibold shadow-sm',
-  soft: 'bg-brand-50 text-brand-700 hover:bg-brand-100 font-semibold border border-brand-600/20',
+  primary: 'bg-brand-600 hover:bg-brand-500 text-ink font-semibold',
+  secondary: 'bg-slate-100 hover:bg-slate-200 text-slate-900 font-semibold',
+  ghost: 'text-slate-700 hover:text-slate-900 hover:bg-slate-100 font-medium',
+  danger: 'bg-rose-600 hover:bg-rose-700 text-white font-semibold',
+  soft: 'bg-brand-50 text-brand-700 hover:bg-brand-100 font-semibold',
 }
 const sizes: Record<Size, string> = {
-  sm: 'h-7 px-2.5 text-xs gap-1.5 rounded-md',
-  md: 'h-8 px-3 text-xs gap-1.5 rounded-lg',
-  lg: 'h-9 px-3.5 text-xs gap-1.5 rounded-lg',
+  // small buttons keep their look but reach a 44px hit area through an invisible pad
+  sm: "relative h-8 px-3 text-[13px] gap-1.5 rounded-md after:absolute after:inset-x-0 after:-inset-y-1.5 after:content-['']",
+  md: "relative h-9 px-4 text-sm gap-1.5 rounded-md after:absolute after:inset-x-0 after:-inset-y-1 after:content-['']",
+  lg: 'h-10 px-5 text-sm gap-2 rounded-md',
 }
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -59,14 +59,14 @@ export function Button({ variant = 'secondary', size = 'md', icon, iconClass, cl
       )}
       {...rest}
     >
-      {icon && <Icon name={icon} size={size === 'sm' ? 15 : 16} className={iconClass} />}
+      {icon && <Icon name={icon} size={size === 'sm' ? 16 : 18} className={iconClass} />}
       {children}
     </button>
   )
 }
 
 export function IconButton({
-  icon, label, className, size = 16, ...rest
+  icon, label, className, size = 18, ...rest
 }: ButtonHTMLAttributes<HTMLButtonElement> & { icon: string; label: string; size?: number; ref?: Ref<HTMLButtonElement> }) {
   return (
     <button
@@ -74,7 +74,7 @@ export function IconButton({
       aria-label={label}
       title={label}
       className={clsx(
-        'inline-flex size-7 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 active:scale-[0.94]',
+        'inline-flex size-9 items-center justify-center rounded-md text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 active:scale-[0.94]',
         className,
       )}
       {...rest}
@@ -89,38 +89,33 @@ export function IconButton({
 /* ------------------------------------------------------------------ */
 
 export const toneBar: Record<string, string> = {
-  ok: 'bg-emerald-500',
+  ok: 'bg-emerald-600',
   caution: 'bg-amber-500',
-  warn: 'bg-red-500',
-  over: 'bg-red-500',
+  warn: 'bg-orange-500',
+  over: 'bg-rose-600',
   brand: 'bg-brand-600',
+  none: 'bg-slate-300',
 }
 
-export function Meter({ value, tone, height = 'h-3.5', className, label }: { value: number; tone: string; height?: string; className?: string; label?: string }) {
+/** slim progress track; the value is always printed next to it as text by the caller */
+export function Meter({ value, tone, height = 'h-1.5', className, label }: { value: number; tone: string; height?: string; className?: string; label?: string }) {
   const w = Math.max(0, Math.min(100, value))
-  const tiny = w < 14
   return (
     <div
-      role="meter"
+      role="progressbar"
       aria-valuemin={0}
       aria-valuemax={100}
-      aria-valuenow={Math.round(value)}
+      aria-valuenow={Math.round(w)}
+      aria-valuetext={`${Math.round(value)}%`}
       aria-label={label ?? 'Budget used'}
-      className={clsx('relative flex flex-1 items-center overflow-hidden rounded-full bg-slate-100 p-0.5', height, className)}
+      className={clsx('relative flex-1 overflow-hidden rounded-[2px] bg-slate-300 ring-1 ring-slate-500/70 ring-inset', height, className)}
     >
       <motion.div
-        className={clsx('flex h-full items-center justify-center rounded-full shadow-xs', toneBar[tone])}
+        className={clsx('h-full rounded-[2px]', toneBar[tone] ?? toneBar.brand)}
         initial={false}
-        animate={{ width: value > 0 ? `${Math.max(w, 4)}%` : 0 }}
+        animate={{ width: value > 0 ? `${Math.max(w, 1.5)}%` : 0 }}
         transition={{ type: 'spring', stiffness: 260, damping: 32 }}
-      >
-        {!tiny && <span className="font-mono text-[10px] font-semibold tracking-tight text-white">{pct(value)}</span>}
-      </motion.div>
-      {tiny && (
-        <span className={clsx('absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 font-mono text-[10px] font-semibold tracking-tight', tone === 'ok' ? 'text-emerald-600' : 'text-slate-500')}>
-          {pct(value)}
-        </span>
-      )}
+      />
     </div>
   )
 }
@@ -210,7 +205,7 @@ export function Menu({
                 translate: `${align === 'end' ? '-100%' : '0'} ${pos.up ? '-100%' : '0'}`,
                 transformOrigin: `${align === 'end' ? 'right' : 'left'} ${pos.up ? 'bottom' : 'top'}`,
               }}
-              className={clsx('z-[70] rounded-xl border border-slate-200 bg-white p-1 shadow-[0_4px_20px_-2px_rgba(15,23,42,0.08)]', width)}
+              className={clsx('z-[85] rounded-lg border border-slate-300 bg-white p-1.5 shadow-[0_8px_20px_-8px_var(--pop-shadow)]', width)}
             >
               {items.map((it, i) =>
                 it === 'sep' ? (
@@ -224,14 +219,14 @@ export function Menu({
                     disabled={it.disabled}
                     onClick={() => { setOpen(false); it.onSelect() }}
                     className={clsx(
-                      'flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-xs font-medium outline-none transition-colors disabled:opacity-40',
-                      it.danger ? 'text-rose-600 hover:bg-rose-50 focus-visible:bg-rose-50' : 'text-slate-700 hover:bg-slate-100 focus-visible:bg-slate-100',
+                      'flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-left text-sm font-medium outline-none transition-colors disabled:opacity-40',
+                      it.danger ? 'text-rose-600 hover:bg-rose-50 focus-visible:bg-rose-50 focus-visible:ring-2 focus-visible:ring-rose-600 focus-visible:ring-inset' : 'text-slate-700 hover:bg-slate-100 focus-visible:bg-brand-50 focus-visible:text-brand-700 focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-inset',
                     )}
                   >
-                    {it.icon && <Icon name={it.icon} size={16} className={it.danger ? 'text-rose-500' : 'text-slate-400'} />}
+                    {it.icon && <Icon name={it.icon} size={18} className={it.danger ? 'text-rose-600' : 'text-slate-600'} />}
                     <span className="flex-1 truncate">{it.label}</span>
-                    {it.hint && <kbd className="font-mono text-[10px] text-slate-400">{it.hint}</kbd>}
-                    {it.checked && <Icon name="check" size={15} className="text-brand-600" />}
+                    {it.hint && <kbd className="text-xs text-slate-500">{it.hint}</kbd>}
+                    {it.checked && <Icon name="check" size={15} className="text-brand-700" />}
                   </button>
                 ),
               )}
@@ -261,6 +256,7 @@ export function Dialog({
 }) {
   const panel = useRef<HTMLDivElement>(null)
   const titleId = useId()
+  useInertRoot(open)
   useEffect(() => {
     if (!open) return
     const prev = document.activeElement as HTMLElement | null
@@ -290,7 +286,7 @@ export function Dialog({
       {open && (
         <div className="fixed inset-0 z-[80] flex items-end justify-center p-0 sm:items-center sm:p-4">
           <motion.div
-            className="absolute inset-0 bg-slate-900/25 backdrop-blur-[4px]"
+            className="absolute inset-0 bg-[var(--scrim)]"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -307,19 +303,19 @@ export function Dialog({
             exit={{ opacity: 0, scale: 0.98, y: 4, transition: { duration: 0.12 } }}
             transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
             className={clsx(
-              'relative w-full rounded-t-2xl border border-slate-200 bg-white shadow-[0_16px_32px_-4px_rgba(15,23,42,0.08)] sm:rounded-xl',
+              'relative w-full rounded-t-lg bg-white ring-1 ring-slate-300 sm:rounded-lg',
               width,
             )}
           >
-            <div className="flex items-start justify-between gap-3 border-b border-slate-100 px-5 py-4">
+            <div className="flex items-start justify-between gap-3 px-6 pt-6 pb-2">
               <div className="min-w-0">
-                <h2 id={titleId} className="font-heading text-base font-bold tracking-tight text-slate-900">{title}</h2>
-                {description && <div className="mt-0.5 text-xs text-slate-500">{description}</div>}
+                <h2 id={titleId} className="font-heading text-lg font-bold tracking-tight text-slate-900">{title}</h2>
+                {description && <div className="mt-1 text-sm text-slate-600">{description}</div>}
               </div>
               <IconButton icon="close" label="Close dialog" onClick={onClose} className="-mr-1.5" />
             </div>
-            <div className="max-h-[70vh] overflow-y-auto px-5 py-4">{children}</div>
-            {footer && <div className="flex items-center justify-end gap-2 border-t border-slate-100 px-5 py-3">{footer}</div>}
+            <div className="max-h-[70vh] overflow-y-auto px-6 py-4">{children}</div>
+            {footer && <div className="flex items-center justify-end gap-2 px-6 pt-2 pb-6">{footer}</div>}
           </motion.div>
         </div>
       )}
@@ -331,15 +327,15 @@ export function Dialog({
 export function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
   return (
     <label className="block space-y-1.5">
-      <span className="text-xs font-semibold text-slate-700">{label}</span>
+      <span className="text-sm font-semibold text-slate-800">{label}</span>
       {children}
-      {hint && <span className="block text-[11px] text-slate-400">{hint}</span>}
+      {hint && <span className="block text-xs text-slate-600">{hint}</span>}
     </label>
   )
 }
 
 export const inputCls =
-  'w-full h-9 px-3 rounded-lg bg-white border border-slate-200 text-slate-800 placeholder:text-slate-400 text-xs outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-[border-color,box-shadow] shadow-xs'
+  'w-full h-10 px-3.5 rounded-md bg-slate-100 ring-1 ring-inset ring-slate-400 hover:bg-slate-200/70 text-slate-900 placeholder:text-slate-500 text-sm outline-none focus:bg-white focus:ring-2 focus:ring-brand-700 transition-[background-color,box-shadow]'
 
 /* ------------------------------------------------------------------ */
 /* Toasts                                                              */
@@ -348,46 +344,81 @@ export const inputCls =
 interface Toast { id: number; text: string; tone: 'ok' | 'info' | 'error'; action?: { label: string; run: () => void } }
 const useToasts = create<{ toasts: Toast[]; push: (t: Omit<Toast, 'id'>) => void; drop: (id: number) => void }>((set) => ({
   toasts: [],
-  push: (t) => {
-    const id = Date.now() + Math.random()
-    set((s) => ({ toasts: [...s.toasts.slice(-3), { ...t, id }] }))
-    setTimeout(() => set((s) => ({ toasts: s.toasts.filter((x) => x.id !== id) })), 4200)
-  },
+  push: (t) => set((s) => ({ toasts: [...s.toasts.slice(-3), { ...t, id: Date.now() + Math.random() }] })),
   drop: (id) => set((s) => ({ toasts: s.toasts.filter((x) => x.id !== id) })),
 }))
+
+/** one toast — always the dark ink surface, in both themes; its timer pauses while hovered or focused, and runs longer when it offers an action */
+function ToastItem({ t, drop }: { t: Toast; drop: (id: number) => void }) {
+  const [paused, setPaused] = useState(false)
+  useEffect(() => {
+    if (paused) return
+    const h = setTimeout(() => drop(t.id), t.action ? 10000 : 5000)
+    return () => clearTimeout(h)
+  }, [paused, t.id, t.action, drop])
+  return (
+    <motion.div
+      layout
+      onPointerEnter={() => setPaused(true)}
+      onPointerLeave={() => setPaused(false)}
+      onFocus={() => setPaused(true)}
+      onBlur={() => setPaused(false)}
+      initial={{ opacity: 0, y: 12, scale: 0.98 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, x: 24, transition: { duration: 0.15 } }}
+      transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+      className="pointer-events-auto flex w-full items-center gap-2.5 rounded-lg border-l-2 border-[#edb03e] bg-[#1a0c01] py-2 pr-2 pl-4 text-sm text-[#fffaf2] ring-1 ring-[#7a6649]"
+    >
+      <Icon
+        name={t.tone === 'error' ? 'error' : t.tone === 'info' ? 'info' : 'check_circle'}
+        size={17}
+        className={t.tone === 'error' ? 'text-[#ff7a6e]' : 'text-[#edb03e]'}
+      />
+      <span className="min-w-0 flex-1 py-1.5 font-medium">{t.text}</span>
+      {t.action && (
+        <button type="button" className="h-10 rounded-md bg-white/10 px-3 font-semibold text-[#f3c160] hover:bg-white/20" onClick={() => { t.action!.run(); drop(t.id) }}>
+          {t.action.label}
+        </button>
+      )}
+      <button type="button" aria-label="Dismiss" onClick={() => drop(t.id)} className="flex size-9 items-center justify-center rounded-md text-[#d2c6b1] hover:bg-white/10 hover:text-white">
+        <Icon name="close" size={18} />
+      </button>
+    </motion.div>
+  )
+}
+
+/** the one keyboard-key chip, used for every shortcut hint */
+export const kbdCls = 'inline-flex h-6 min-w-6 items-center justify-center rounded-md bg-slate-200 px-1.5 font-sans text-xs font-medium text-slate-700'
 
 export const toast = (text: string, tone: Toast['tone'] = 'ok', action?: Toast['action']) =>
   useToasts.getState().push({ text, tone, action })
 
+/** while a drawer or panel is open, the app behind it is hidden from keyboard and screen readers */
+export function useInertRoot(active: boolean) {
+  useEffect(() => {
+    const root = document.getElementById('root')
+    if (!active || !root) return
+    root.inert = true
+    return () => { root.inert = false }
+  }, [active])
+}
+
+/* portaled so toasts (and their Undo) stay usable while the app behind a drawer is inert */
 export function Toaster() {
   const { toasts, drop } = useToasts()
-  return (
-    <div aria-live="polite" className="pointer-events-none fixed right-4 bottom-4 z-[90] flex w-[calc(100%-2rem)] max-w-sm flex-col items-end gap-2">
-      <AnimatePresence initial={false}>
-        {toasts.map((t) => (
-          <motion.div
-            key={t.id}
-            layout
-            initial={{ opacity: 0, y: 12, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, x: 24, transition: { duration: 0.15 } }}
-            transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-            className="pointer-events-auto flex w-full items-center gap-2.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs text-slate-700 shadow-lg shadow-slate-900/5"
-          >
-            <Icon
-              name={t.tone === 'error' ? 'error' : t.tone === 'info' ? 'info' : 'check_circle'}
-              size={17}
-              className={t.tone === 'error' ? 'text-rose-500' : t.tone === 'info' ? 'text-brand-600' : 'text-emerald-500'}
-            />
-            <span className="flex-1 font-medium">{t.text}</span>
-            {t.action && (
-              <button type="button" className="font-semibold text-brand-600 hover:text-brand-700" onClick={() => { t.action!.run(); drop(t.id) }}>
-                {t.action.label}
-              </button>
-            )}
-          </motion.div>
-        ))}
-      </AnimatePresence>
-    </div>
+  // always-mounted live regions: screen readers skip regions that arrive already filled
+  const polite = [...toasts].reverse().find((t) => t.tone !== 'error')
+  const urgent = [...toasts].reverse().find((t) => t.tone === 'error')
+  return createPortal(
+    <>
+      <div className="sr-only" aria-live="polite" aria-atomic="true">{polite ? `${polite.text}${polite.action ? `. ${polite.action.label} is available.` : ''}` : ''}</div>
+      <div className="sr-only" aria-live="assertive" aria-atomic="true">{urgent?.text ?? ''}</div>
+      <div className="pointer-events-none fixed right-4 bottom-24 z-[90] flex w-[calc(100%-2rem)] max-w-md flex-col items-end gap-2 sm:right-8 sm:bottom-20 lg:right-[max(2rem,calc((100vw-var(--side)-1120px)/2+2rem))]">
+        <AnimatePresence initial={false}>
+          {toasts.map((t) => <ToastItem key={t.id} t={t} drop={drop} />)}
+        </AnimatePresence>
+      </div>
+    </>,
+    document.body,
   )
 }

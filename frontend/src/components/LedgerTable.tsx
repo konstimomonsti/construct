@@ -1,19 +1,31 @@
 import { clsx } from 'clsx'
 import { memo, useEffect, useMemo, useRef, useState } from 'react'
 import { Icon, Menu, toast } from './ui'
-import { QtyStepper } from './QtyStepper'
-import { FindingBadge } from './RiskAssessment'
-import { inputNumber, money, parseNumber } from '../lib/format'
+import { QtyInput, editableCls } from './QtyStepper'
+import { FindingBadge, RISK_UI } from './RiskAssessment'
+import { amount, nbHyphen, parseNumber, plural } from '../lib/format'
 import { positionTotal } from '../lib/money'
-import { unitIcon } from '../lib/actions'
 import { useStore } from '../lib/store'
-import { leafOz, treeStats } from '../lib/resolve'
-import { RISK_STYLE, type Severity } from '../lib/risk-assessment'
+import { leafOz, treeStats, type CatStat } from '../lib/resolve'
+import type { Severity } from '../lib/risk-assessment'
 import type { CategoryNode, Position } from '../lib/types'
 
-const PAGE = 100
+export type RowRisk = { severity: Severity; count: number; label?: string }
 
-function PriceCell({ value, onSave, label }: { value: number | null; onSave: (v: number | null) => void; label: string }) {
+/** why a section adds up to nothing, in the words the rows use */
+function zeroWhy(s: CatStat) {
+  if (s.zero === s.count) return 'All quantities 0'
+  if (s.unpriced === s.count) return 'Not priced'
+  if (s.zero + s.unpriced === s.count) return 'Not priced or quantity 0'
+  return '0,00 €'
+}
+
+function EditDot({ on }: { on: boolean }) {
+  if (!on) return null
+  return <span aria-hidden title="Edited" className="absolute top-1/2 left-0 size-1.5 -translate-y-1/2 rounded-md bg-brand-600" />
+}
+
+function PriceCell({ value, onSave, oz, edited, muted, className }: { value: number | null; onSave: (v: number | null) => void; oz: string; edited?: boolean; muted?: boolean; className?: string }) {
   const [edit, setEdit] = useState(false)
   const [text, setText] = useState('')
   const done = useRef(false)
@@ -27,7 +39,7 @@ function PriceCell({ value, onSave, label }: { value: number | null; onSave: (v:
       return
     }
     const n = parseNumber(text)
-    if (Number.isFinite(n) && n >= 0 && n !== value) onSave(Math.round(n * 100) / 100)
+    if (n !== null && n >= 0 && n !== value) onSave(Math.round(n * 100) / 100)
   }
 
   if (edit) {
@@ -35,7 +47,7 @@ function PriceCell({ value, onSave, label }: { value: number | null; onSave: (v:
       <input
         autoFocus
         inputMode="decimal"
-        aria-label={`Unit price of ${label}`}
+        aria-label={`Unit price of ${oz}`}
         value={text}
         onChange={(e) => setText(e.target.value)}
         onBlur={commit}
@@ -47,224 +59,258 @@ function PriceCell({ value, onSave, label }: { value: number | null; onSave: (v:
             setEdit(false)
           }
         }}
-        className="h-7 w-28 rounded-md border border-brand-500 bg-white px-2 text-right font-mono text-xs text-slate-900 ring-1 ring-brand-500 outline-none"
+        className={clsx('num h-9 rounded-md border border-transparent bg-white px-2 text-right text-sm text-slate-900 ring-2 ring-brand-700 outline-none', className ?? 'w-full')}
       />
     )
   }
   return (
     <button
       type="button"
-      aria-label={`Edit unit price of ${label}`}
+      aria-label={value == null ? `Set price for ${oz}` : `${amount(value)} €, edit unit price of ${oz}${edited ? ' (edited)' : ''}`}
       onClick={() => {
         done.current = false
-        setText(value == null ? '' : inputNumber(value))
+        setText(value == null ? '' : amount(value))
         setEdit(true)
       }}
-      className="group/price -my-1 rounded-md px-1.5 py-1 text-right font-mono font-medium text-slate-600 transition-colors hover:bg-slate-100"
-    >
-      {value != null ? (
-        money(value)
-      ) : (
-        <>
-          <span className="text-slate-300 group-hover/price:hidden group-focus-visible/price:hidden">—</span>
-          <span className="hidden font-sans text-[11px] font-semibold text-brand-600 group-hover/price:inline group-focus-visible/price:inline">Set price</span>
-        </>
+      className={clsx(
+        value != null ? clsx(editableCls, edited ? 'font-semibold text-brand-700' : muted ? 'text-slate-500' : 'text-slate-900') : 'h-9 rounded-lg px-2 text-right text-sm font-semibold text-brand-700 hover:bg-brand-50',
+        className ?? 'w-full',
       )}
+    >
+      {value != null ? amount(value) : 'Set price'}
     </button>
   )
 }
 
-type RowRisk = { severity: Severity; count: number; label: string }
-
 interface RowProps {
   listId: string
-  depth: number
-  showCategory: boolean
   p: Position
+  showCategory: boolean
   selected: boolean
-  hot: boolean
   flash: boolean
   onToggle: (id: string) => void
   edited: boolean
+  qtyEdited: boolean
+  upEdited: boolean
   risk?: RowRisk
   onOpen: (p: Position, fromFinding?: boolean) => void
   onMove: (pid: string) => void
 }
 
-const Row = memo(function Row({ listId, depth, showCategory, p, selected, hot, flash, edited, risk, onToggle, onOpen, onMove }: RowProps) {
+const Row = memo(function Row({ listId, p, showCategory, selected, flash, edited, qtyEdited, upEdited, risk, onToggle, onOpen, onMove }: RowProps) {
   const total = positionTotal(p)
   const remove = () => {
-    const st = useStore.getState()
-    st.removePositions(listId, [p.id])
+    useStore.getState().removePositions(listId, [p.id])
     toast(`Removed ${p.oz}`, 'ok', { label: 'Undo', run: () => useStore.getState().restorePositions(listId, [p.id]) })
   }
+  const hasShort = p.short && p.short !== '(ohne Kurztext)'
+  const zero = p.up != null && p.qty === 0
+  const setUp = (v: number | null) => useStore.getState().setUp(listId, p.id, v)
   return (
-    <tr data-pid={p.id} data-risk={risk?.severity} className={clsx(
-      'group transition-colors', risk ? RISK_STYLE[risk.severity].row : 'hover:bg-slate-50/80',
-      selected && !risk && 'bg-brand-50/40', flash && 'outline outline-1 -outline-offset-1 outline-brand-300',
-    )}>
-      <td className="py-4 pr-2 pl-4 max-lg:sticky max-lg:left-0 max-lg:z-[1] max-lg:bg-white">
-        <input type="checkbox" className="checkbox" checked={selected} onChange={() => onToggle(p.id)} aria-label={`Select ${p.oz} ${p.short}`} />
+    <tr
+      data-pid={p.id}
+      data-row="position"
+      data-risk={risk?.severity}
+      className={clsx(
+        'group transition-colors lg:relative',
+        selected ? 'bg-brand-50/70' : 'hover:bg-slate-100',
+        risk && RISK_UI[risk.severity].row,
+        flash && 'bg-brand-50 outline-2 -outline-offset-2 outline-brand-300',
+      )}
+    >
+      <td data-a="cb" className="w-10 py-1 pl-2 align-middle">
+        <label className="cb-reveal flex size-9 cursor-pointer items-center justify-center rounded-md hover:bg-slate-100">
+          <input type="checkbox" className="checkbox" checked={selected} onChange={() => onToggle(p.id)} aria-label={`Select ${p.oz} ${p.short}`} />
+        </label>
       </td>
-      <td className={clsx('px-3 py-4 max-lg:sticky max-lg:left-10 max-lg:z-[1]', risk ? RISK_STYLE[risk.severity].row : 'max-lg:bg-white')}>
-        <div className="flex min-w-0 items-center gap-3 border-slate-200" style={{ marginInlineStart: depth * 16, paddingInlineStart: depth ? 10 : 0, borderInlineStartWidth: depth ? 1 : 0 }}>
-          <div className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-100 text-slate-600">
-            <Icon name={unitIcon(p.unit)} size={18} />
-          </div>
-          <div className="min-w-0">
-            <button type="button" onClick={() => onOpen(p)} title="Show full description" className="block max-w-full truncate text-left text-xs font-semibold text-slate-900 hover:text-brand-600">
-              {p.short && p.short !== '(ohne Kurztext)' ? p.short : <span className="font-normal text-slate-400 italic">(ohne Kurztext)</span>}
-            </button>
-            <div className="truncate font-mono text-[11px] text-slate-400">OZ: {p.oz}</div>
-            {risk && (
-              <button type="button" className="mt-1 rounded-md hover:underline" title={risk.label}
-                aria-label={`Review findings for ${p.oz}: ${risk.label}`} onClick={() => onOpen(p, true)}>
-                <FindingBadge severity={risk.severity}>{RISK_STYLE[risk.severity].label}{risk.count > 1 ? ` · ${risk.count} findings` : ''}</FindingBadge>
-              </button>
-            )}
-          </div>
-        </div>
-      </td>
-      {showCategory && <td className="px-3 py-4">
-        <span className="block w-fit max-w-full truncate rounded-md bg-slate-100 px-2 py-0.5 align-middle text-[11px] font-medium text-slate-600" title={`${p.path?.[p.path.length - 1]?.oz ?? ''} ${p.category}`.trim()}>{p.category}</span>
-      </td>}
-      <td className="px-3 py-4 text-right text-xs">
-        <PriceCell value={p.up} label={p.oz} onSave={(v) => useStore.getState().setUp(listId, p.id, v)} />
-      </td>
-      <td className="px-3 py-4 text-center">
-        <QtyStepper value={p.qty} label={p.oz} onChange={(n) => useStore.getState().setQty(listId, p.id, n)} />
-      </td>
-      <td className={clsx('px-3 py-4 text-right font-mono text-xs font-bold', hot ? 'text-amber-600' : total ? 'text-slate-900' : 'text-slate-300')}>
-        {hot && <Icon name="local_fire_department" size={14} className="mr-1 -mt-0.5 inline-block align-middle" />}
-        {p.up == null ? '—' : money(total)}
-      </td>
-      <td className="px-3 py-4 text-xs font-medium whitespace-nowrap text-slate-600">{p.unit}</td>
-      <td className="py-4 pr-3 pl-3 text-right whitespace-nowrap">
+      <td data-a="hide" className="w-[88px] px-2 py-1 font-mono text-[13px] whitespace-nowrap text-slate-600 tabular-nums">{p.oz}</td>
+      <td data-a="title" className="min-w-0 px-2 py-1">
         <button
           type="button"
-          onClick={remove}
-          title="Remove line"
-          aria-label={`Remove ${p.oz}`}
-          className="rounded p-1 text-slate-400 opacity-70 transition-all group-hover:opacity-100 hover:bg-rose-50 hover:text-rose-600"
+          data-open-detail
+          onClick={() => onOpen(p)}
+          aria-haspopup="dialog"
+          title="Show full description"
+          className={clsx('block max-w-full text-left text-[15px] underline-offset-4 hover:underline max-lg:line-clamp-2 max-lg:font-medium lg:truncate', zero ? 'text-slate-500' : 'text-slate-900')}
         >
-          <Icon name="delete" size={17} />
+          {/* cards lead with the OZ, the way the group headers do */}
+          <span className="mr-1.5 font-mono text-[13px] font-normal text-slate-600 lg:hidden">{p.oz}</span>
+          {hasShort ? nbHyphen(p.short) : <span className="text-slate-600 italic">(ohne Kurztext)</span>}
+          <span className="sr-only">, open details</span>
         </button>
+        {showCategory && <div className="mt-0.5 truncate text-[13px] text-slate-600">{p.category}</div>}
+        {risk && (
+          <button
+            type="button"
+            onClick={() => onOpen(p, true)}
+            title={risk.label}
+            aria-label={`Review ${risk.count === 1 ? 'finding' : `${risk.count} findings`} for ${p.oz}${risk.label ? `: ${risk.label}` : ''}`}
+            className="mt-1 mb-0.5 block rounded-md"
+          >
+            <FindingBadge severity={risk.severity}>
+              {RISK_UI[risk.severity].label}{risk.count > 1 ? ` · ${risk.count}` : ''}
+              {risk.label && <span className="max-w-[28ch] truncate font-normal max-sm:hidden">{risk.label}</span>}
+            </FindingBadge>
+          </button>
+        )}
+      </td>
+      <td data-a="qty" className="relative w-24 py-1 pr-1 pl-2 text-right">
+        <span className="hidden lg:inline"><EditDot on={qtyEdited} /></span>
+        <div className="flex items-center gap-1.5 lg:block">
+          <QtyInput value={p.qty} label={p.oz} edited={qtyEdited} muted={zero} onChange={(n) => useStore.getState().setQty(listId, p.id, n)} />
+          <span className="text-sm whitespace-nowrap text-slate-600 lg:hidden">{p.unit || '—'} ×</span>
+          <span className="relative lg:hidden">
+            <PriceCell value={p.up} oz={p.oz} edited={upEdited} muted={zero} onSave={setUp} className="w-auto min-w-20" />
+          </span>
+          {edited && <span className="size-1.5 shrink-0 rounded-md bg-brand-600 lg:hidden" aria-hidden title="Edited" />}
+        </div>
+      </td>
+      <td data-a="hide" className={clsx('w-16 py-1 pr-2 pl-1 text-sm whitespace-nowrap', zero ? 'text-slate-500' : 'text-slate-600')}>{p.unit || <span aria-label="no unit">—</span>}</td>
+      <td data-a="hide" className="relative w-[120px] py-1 pr-1 pl-2 text-right">
+        <EditDot on={upEdited} />
+        <PriceCell value={p.up} oz={p.oz} edited={upEdited} muted={zero} onSave={setUp} />
+      </td>
+      {/* desktop GP sits under the "GP (€)" header; cards have no header, so they carry the € */}
+      <td data-a="total" className={clsx('num w-32 px-2 py-1 text-right text-sm whitespace-nowrap lg:[@media(hover:hover)]:transition-[padding] lg:[@media(hover:hover)]:group-focus-within:pr-12 lg:[@media(hover:hover)]:group-hover:pr-12 lg:[@media(hover:hover)]:group-has-[[aria-expanded=true]]:pr-12', p.up == null || zero ? 'text-slate-500' : 'font-medium text-slate-900')}>
+        <span className="inline-flex h-9 items-center justify-end">
+          {p.up == null ? 'Not priced' : zero ? <>{amount(0)}<span className="lg:hidden">&nbsp;€</span></> : <>{amount(total)}<span className="lg:hidden">&nbsp;€</span></>}
+        </span>
+      </td>
+      <td data-a="menu" className="w-11 py-1 pr-1 text-right lg:[@media(hover:hover)]:absolute lg:[@media(hover:hover)]:top-1/2 lg:[@media(hover:hover)]:right-0 lg:[@media(hover:hover)]:w-auto lg:[@media(hover:hover)]:-translate-y-1/2 lg:[@media(hover:hover)]:p-0">
         <Menu
           label={`Actions for ${p.oz}`}
-          width="w-52"
+          width="w-56"
           items={[
-            { label: 'Edit details', icon: 'edit_note', onSelect: () => onOpen(p) },
+            { label: 'Open details', icon: 'open_in_full', onSelect: () => onOpen(p) },
             { label: 'Move to category…', icon: 'drive_file_move', onSelect: () => onMove(p.id) },
             ...(edited ? [{ label: 'Reset changes', icon: 'restart_alt', onSelect: () => useStore.getState().resetPosition(listId, p.id) }] : []),
             'sep',
             { label: 'Remove', icon: 'delete', danger: true, onSelect: remove },
           ]}
           trigger={(t) => (
-            <button {...t} type="button" aria-label={`Actions for ${p.oz}`} className="rounded p-1 text-slate-400 transition-all hover:bg-slate-100 hover:text-slate-700">
-              <Icon name="more_vert" size={17} />
+            <button {...t} type="button" aria-label={`Actions for ${p.oz}`} className="inline-flex size-10 items-center justify-center rounded-md text-slate-600 transition-[color,background-color,opacity] group-hover:opacity-100 group-focus-within:opacity-100 hover:bg-slate-200/70 hover:text-slate-900 focus-visible:opacity-100 aria-expanded:opacity-100 [@media(hover:hover)]:opacity-0">
+              <Icon name="more_horiz" size={20} />
             </button>
           )}
         />
-        {edited && <span className="sr-only">edited</span>}
       </td>
     </tr>
   )
 })
 
+const EMPTY = new Set<string>()
+const SEVERITY_RANK: Record<Severity, number> = { error: 0, warning: 1, info: 2 }
+
 export function LedgerTable({
-  listId, rows, tree, showEmpty, allPositions, selected, setSelected, over75, focusId, onOpen, onMove, editedIds, risks, sortActive, onResetSort, resetKey, footer,
+  listId, rows, tree, showEmpty, selected, setSelected, focusId, onOpen, onMove, editedIds, qtyEdited, upEdited, risks, sortActive, selectMode, sectionsOpen = false,
 }: {
+  /** sections start collapsed so a long list reads as an outline; "Expand all" opens every level */
+  sectionsOpen?: boolean
+  /** category tree; rows are grouped under it unless a sort is active */
+  tree: CategoryNode[]
+  /** show categories with no positions (only when nothing is filtered) */
+  showEmpty: boolean
+  /** touch layouts hide the checkboxes until the user turns on selection */
+  selectMode?: boolean
   listId: string
   /** already filtered + sorted */
   rows: Position[]
-  tree: CategoryNode[]
-  showEmpty: boolean
-  allPositions: Position[]
   selected: Set<string>
   setSelected: (s: Set<string>) => void
-  over75: boolean
   focusId?: string | null
   onOpen: RowProps['onOpen']
   onMove: (pid: string) => void
-  editedIds: Set<string>
+  /** positions with open risk findings, by id */
   risks?: Map<string, RowRisk>
+  editedIds: Set<string>
+  qtyEdited: Set<string>
+  upEdited: Set<string>
   sortActive: boolean
-  onResetSort: () => void
-  resetKey: string
-  footer?: React.ReactNode
 }) {
-  const [limit, setLimit] = useState(PAGE)
-  const [collapsed, setCollapsed] = useState(() => new Set<string>())
   const [flash, setFlash] = useState<string | null>(null)
+  // sections the user toggled away from the default. A search or filter opens everything so matches
+  // are visible, and switching between filtered, unfiltered or "expand all" starts from a clean slate.
+  const defaultOpen = sectionsOpen || !showEmpty
+  const mode = `${sectionsOpen}|${showEmpty}`
+  const [flips, setFlips] = useState(() => ({ mode, set: new Set<string>() }))
+  const flipped = flips.mode === mode ? flips.set : EMPTY
+  const isOpen = (oz: string) => defaultOpen !== flipped.has(oz)
   const headCb = useRef<HTMLInputElement>(null)
-  const scrollRef = useRef<HTMLDivElement>(null)
-  const [atEnd, setAtEnd] = useState(false)
-  const onScroll = () => {
-    const el = scrollRef.current
-    if (el) setAtEnd(el.scrollLeft + el.clientWidth >= el.scrollWidth - 4)
-  }
-  useEffect(() => {
-    onScroll()
-    window.addEventListener('resize', onScroll)
-    return () => window.removeEventListener('resize', onScroll)
-  }, [])
-
-  const hotId = useMemo(() => {
-    if (!over75) return null
-    let best: Position | null = null
-    for (const p of allPositions) if (!best || positionTotal(p) > positionTotal(best)) best = p
-    return best && positionTotal(best) > 0 ? best.id : null
-  }, [allPositions, over75])
-
-  useEffect(() => setLimit(PAGE), [resetKey])
-
-  type Entry = { item: Position; depth: number } | { category: CategoryNode; depth: number }
-  const stats = useMemo(() => treeStats(rows), [rows])
-  const entries = useMemo(() => {
-    const out: Entry[] = []
-    if (sortActive) return rows.map((item) => ({ item, depth: 0 }))
-    const direct = new Map<string, Position[]>()
-    for (const item of rows) {
-      const oz = leafOz(item)
-      const items = direct.get(oz) ?? []
-      items.push(item)
-      direct.set(oz, items)
-    }
-    const walk = (nodes: CategoryNode[], depth: number) => {
-      for (const category of nodes) {
-        if (!showEmpty && !stats.has(category.oz)) continue
-        out.push({ category, depth })
-        if (collapsed.has(category.oz)) continue
-        for (const item of direct.get(category.oz) ?? []) out.push({ item, depth: depth + 1 })
-        walk(category.children, depth + 1)
-      }
-    }
-    for (const item of direct.get('') ?? []) out.push({ item, depth: 0 })
-    walk(tree, 0)
-    return out
-  }, [rows, tree, sortActive, showEmpty, stats, collapsed])
-  const expandedRows = entries.flatMap((entry) => 'item' in entry ? [entry.item] : [])
 
   useEffect(() => {
     if (!focusId) return
-    const i = rows.findIndex((r) => r.id === focusId)
-    if (i < 0) return
-    const path = new Set(rows[i].path?.map((part) => part.oz))
-    setCollapsed((previous) => new Set([...previous].filter((oz) => !path.has(oz))))
-    setLimit((previous) => Math.max(previous, Math.ceil((i + 1) / PAGE) * PAGE))
+    const target = rows.find((r) => r.id === focusId)
+    const path = new Set(target?.path?.map((part) => part.oz))
+    // open the sections that lead to the requested position
+    setFlips((prev) => {
+      const set = new Set(prev.mode === mode ? prev.set : EMPTY)
+      for (const oz of path) {
+        if (defaultOpen) set.delete(oz)
+        else set.add(oz)
+      }
+      return { mode, set }
+    })
     setFlash(focusId)
-    const t = setTimeout(() => scrollRef.current?.querySelector(`[data-pid="${CSS.escape(focusId)}"]`)?.scrollIntoView({ block: 'center', behavior: 'smooth' }), 60)
+    const t = setTimeout(() => document.querySelector(`[data-pid="${CSS.escape(focusId)}"]`)?.scrollIntoView({ block: 'center', behavior: 'smooth' }), 60)
     const t2 = setTimeout(() => setFlash(null), 2600)
     return () => {
       clearTimeout(t)
       clearTimeout(t2)
     }
-    // A focus request comes from navigation. Editing the rows should not scroll again.
+    // a focus request comes from navigation; editing rows should not scroll again
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusId])
 
-  const selectedVisible = expandedRows.reduce((n, r) => n + (selected.has(r.id) ? 1 : 0), 0)
-  const all = expandedRows.length > 0 && selectedVisible === expandedRows.length
+  /** one block per category: its header and the positions filed directly under it */
+  type Block = { cat?: CategoryNode; depth: number; items: Position[] }
+  const stats = useMemo(() => treeStats(rows), [rows])
+  const blocks = useMemo(() => {
+    if (sortActive) return [{ depth: 0, items: rows }] as Block[]
+    const direct = new Map<string, Position[]>()
+    for (const r of rows) {
+      const oz = leafOz(r)
+      const list = direct.get(oz)
+      if (list) list.push(r)
+      else direct.set(oz, [r])
+    }
+    const out: Block[] = []
+    const loose = direct.get('')
+    if (loose?.length) out.push({ depth: 0, items: loose })
+    const walk = (nodes: CategoryNode[], depth: number) => {
+      for (const cat of nodes) {
+        if (!showEmpty && !stats.has(cat.oz)) continue
+        const open = defaultOpen !== flipped.has(cat.oz)
+        out.push({ cat, depth, items: open ? direct.get(cat.oz) ?? [] : [] })
+        if (open) walk(cat.children, depth + 1)
+      }
+    }
+    walk(tree, 0)
+    return out
+  }, [rows, tree, sortActive, showEmpty, stats, flipped, defaultOpen])
+  const visible = useMemo(() => blocks.flatMap((b) => b.items), [blocks])
+  const toggleCat = (oz: string) => setFlips((prev) => {
+    const set = new Set(prev.mode === mode ? prev.set : EMPTY)
+    if (set.has(oz)) set.delete(oz)
+    else set.add(oz)
+    return { mode, set }
+  })
+  /** worst open finding inside a collapsed section, so flagged rows stay visible as a hint */
+  const sectionRisk = (oz: string) => {
+    if (!risks?.size) return null
+    let worst: RowRisk | null = null
+    let count = 0
+    for (const pid of stats.get(oz)?.pids ?? []) {
+      const risk = risks.get(pid)
+      if (!risk) continue
+      count++
+      if (!worst || SEVERITY_RANK[risk.severity] < SEVERITY_RANK[worst.severity]) worst = risk
+    }
+    return worst ? { severity: worst.severity, count } : null
+  }
+
+  const selectedVisible = visible.reduce((n, r) => n + (selected.has(r.id) ? 1 : 0), 0)
+  const all = visible.length > 0 && selectedVisible === visible.length
+  const selecting = selected.size > 0
   useEffect(() => {
     if (headCb.current) headCb.current.indeterminate = selectedVisible > 0 && !all
   }, [selectedVisible, all])
@@ -275,35 +321,13 @@ export function LedgerTable({
     else n.add(id)
     setSelected(n)
   }
-  const toggleCategory = (oz: string) => setCollapsed((previous) => {
-    const next = new Set(previous)
-    if (next.has(oz)) next.delete(oz)
-    else next.add(oz)
-    return next
-  })
-  const shownCount = Math.min(expandedRows.length, limit)
-  const firstHidden = expandedRows[limit]
-  const shown = firstHidden ? entries.slice(0, entries.findIndex((entry) => 'item' in entry && entry.item === firstHidden)) : entries
-
   return (
-    <div className="mt-3.5 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs">
-      {sortActive && (
-        <div className="flex items-center gap-2 border-b border-slate-100 bg-amber-50/60 px-4 py-2 text-xs text-amber-900">
-          <Icon name="sort" size={15} />
-          Sorted by subtotal, highest first
-          <button type="button" onClick={onResetSort} className="font-semibold underline-offset-2 hover:underline">Reset order</button>
-        </div>
-      )}
-      <div className="relative">
-      <div
-        ref={scrollRef}
-        onScroll={onScroll}
-        className="relative overflow-auto md:max-h-[calc(100vh-520px)] md:min-h-[320px]"
-      >
-        <table className={clsx('w-full table-fixed border-collapse text-left', sortActive ? 'min-w-[900px]' : 'min-w-[740px]')}>
-          <thead className="[&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:bg-slate-50">
-            <tr className="border-b border-slate-200 text-[11px] font-semibold tracking-wider text-slate-500 uppercase">
-              <th scope="col" className="w-10 py-3 pr-2 pl-4 max-lg:left-0 max-lg:z-20">
+    <div>
+      <table className="ledger group/table w-full table-fixed border-collapse text-left" data-selecting={selecting || selectMode ? '' : undefined}>
+        <thead className="[&_th]:sticky [&_th]:top-16 [&_th]:z-10 [&_th]:bg-white">
+          <tr className="text-sm font-medium text-slate-600 [&_th]:border-b [&_th]:border-slate-200">
+            <th scope="col" className="w-10 py-2 pl-2">
+              <label className="cb-reveal flex size-9 cursor-pointer items-center justify-center rounded-md hover:bg-slate-100">
                 <input
                   ref={headCb}
                   type="checkbox"
@@ -311,75 +335,103 @@ export function LedgerTable({
                   checked={all}
                   onChange={() => {
                     const next = new Set(selected)
-                    for (const row of expandedRows) {
-                      if (all) next.delete(row.id)
-                      else next.add(row.id)
+                    for (const r of visible) {
+                      if (all) next.delete(r.id)
+                      else next.add(r.id)
                     }
                     setSelected(next)
                   }}
                   aria-label="Select all rows"
                 />
-              </th>
-              <th scope="col" className="px-3 py-3 max-lg:left-10 max-lg:z-20">OZ / Kurztext</th>
-              {sortActive && <th scope="col" className="w-40 px-3 py-3">Kategorie</th>}
-              <th scope="col" className="w-28 px-3 py-3 text-right">Einheitspreis</th>
-              <th scope="col" className="w-36 px-3 py-3 text-center">Menge</th>
-              <th scope="col" className="w-28 px-3 py-3 text-right">Gesamt</th>
-              <th scope="col" className="w-20 px-3 py-3">Einheit</th>
-              <th scope="col" className="w-20 py-3 pr-3 pl-3"><span className="sr-only">Actions</span></th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {shown.map((entry) => {
-              if ('item' in entry) {
-                const p = entry.item
-                return <Row key={`p-${p.id}`} listId={listId} depth={entry.depth} showCategory={sortActive} p={p} selected={selected.has(p.id)} hot={p.id === hotId} flash={flash === p.id} edited={editedIds.has(p.id)} risk={risks?.get(p.id)} onToggle={toggle} onOpen={onOpen} onMove={onMove} />
-              }
-              const { category, depth } = entry
-              const isOpen = !collapsed.has(category.oz)
-              const stat = stats.get(category.oz)
-              return (
-                <tr key={`c-${category.oz}`} className="bg-slate-50 text-xs">
-                  <td aria-hidden className="max-lg:sticky max-lg:left-0 max-lg:z-[1] max-lg:bg-slate-50" />
-                  <th scope="row" className="px-3 py-1.5 max-lg:sticky max-lg:left-10 max-lg:z-[1] max-lg:bg-slate-50">
-                    <button type="button" aria-expanded={isOpen} onClick={() => toggleCategory(category.oz)} title={category.label}
-                      className="flex max-w-full items-center gap-2 rounded px-1 py-1 text-left font-semibold text-slate-800 hover:bg-slate-200"
-                      style={{ marginInlineStart: depth * 16 }}>
-                      <Icon name={isOpen ? 'expand_less' : 'expand_more'} size={17} className="shrink-0 text-slate-500" />
-                      <span className="truncate">{category.label || category.oz}</span>
+              </label>
+            </th>
+            <th scope="col" className="w-[88px] px-2 py-2 font-medium">OZ</th>
+            <th scope="col" className="px-2 py-2 font-medium">Kurztext</th>
+            <th scope="col" className={clsx('w-24 py-2 pr-3 pl-2 text-right font-medium', !visible.length && 'text-transparent')}>
+Menge
+            </th>
+            <th scope="col" className={clsx('w-16 py-2 pr-2 pl-1 font-medium', !visible.length && 'text-transparent')}>Einheit</th>
+            <th scope="col" className={clsx('w-[120px] py-2 pr-3 pl-2 text-right font-medium', !visible.length && 'text-transparent')}>
+EP (€)
+            </th>
+            <th scope="col" className="w-32 px-2 py-2 text-right font-medium">GP (€)</th>
+            <th scope="col" className="w-11 py-2 pr-1 lg:[@media(hover:hover)]:w-0 lg:[@media(hover:hover)]:p-0"><span className="sr-only">Actions</span></th>
+          </tr>
+        </thead>
+        {blocks.map((b) => {
+          const cat = b.cat
+          const open = cat ? isOpen(cat.oz) : true
+          const flagged = cat && !open ? sectionRisk(cat.oz) : null
+          const top = b.depth === 0
+          return (
+            <tbody key={cat ? `c-${cat.oz}` : 'loose'}>
+              {cat && (
+                <tr data-group className={clsx('border-b', top ? 'border-slate-300' : 'border-slate-200')}>
+                  <th scope="rowgroup" colSpan={6} className={clsx('py-0 pr-2 text-left', top ? clsx('display text-base text-slate-900', open ? 'pt-6' : 'pt-2') : 'pt-3 text-sm font-semibold text-slate-800')}>
+                    <button
+                      type="button"
+                      aria-expanded={open}
+                      onClick={() => toggleCat(cat.oz)}
+                      className="-ml-1 flex min-h-10 max-w-full items-center gap-1.5 rounded-lg pr-2 text-left hover:bg-slate-100 max-sm:w-full max-sm:items-start"
+                      style={{ marginLeft: b.depth * 20 }}
+                    >
+                      <Icon name="expand_more" size={20} className={clsx('shrink-0 text-slate-500 transition-transform max-sm:mt-1.5', !open && '-rotate-90')} />
+                      <span className="shrink-0 font-mono text-[13px] font-medium text-slate-600 max-sm:mt-1.5">{cat.oz}</span>
+                      {/* phones wrap the title to two lines and drop the count under it, so "Baust…" never happens */}
+                      <span className="flex min-w-0 flex-col py-1 sm:flex-row sm:items-baseline sm:gap-2 sm:py-0">
+                        <span lang="de" className="min-w-0 hyphens-auto max-sm:line-clamp-2 max-sm:text-balance max-sm:break-words sm:truncate">{cat.label || cat.oz}</span>
+                        {!open && stats.has(cat.oz) && (
+                          <span className="num shrink-0 font-sans text-sm font-normal tracking-normal text-slate-600 [font-variation-settings:normal] sm:text-[13px]">{plural(stats.get(cat.oz)!.count, 'position', 'positions')}</span>
+                        )}
+                      </span>
                     </button>
+                    {flagged && (
+                      <span className="mt-0.5 mb-1.5 block font-sans text-sm font-normal" style={{ marginLeft: b.depth * 20 + 26 }}>
+                        <FindingBadge severity={flagged.severity}>{flagged.count === 1 ? '1 flagged position' : `${flagged.count} flagged positions`}</FindingBadge>
+                      </span>
+                    )}
                   </th>
-                  <td colSpan={2} />
-                  <td className="px-3 text-right font-mono font-semibold text-slate-700">{money(stat?.total ?? 0)}</td>
-                  <td colSpan={2} />
+                  <td colSpan={2} className={clsx('num px-2 pr-[3.25rem] text-right whitespace-nowrap lg:[@media(hover:hover)]:pr-2', top ? clsx('display text-base text-slate-900', open ? 'pt-6' : 'pt-2') : 'pt-3 text-sm font-semibold text-slate-800')}>
+                    {!stats.has(cat.oz) ? (
+                      <span className="text-sm font-normal text-slate-600">No positions yet</span>
+                    ) : stats.get(cat.oz)!.total === 0 ? (
+                      <span className="text-sm font-normal text-slate-600">{zeroWhy(stats.get(cat.oz)!)}</span>
+                    ) : (
+                      <>{amount(stats.get(cat.oz)!.total)}<span className="lg:hidden">&nbsp;€</span></>
+                    )}
+                  </td>
                 </tr>
-              )
-            })}
-          </tbody>
-        </table>
-      {entries.length === 0 && (
+              )}
+              {b.items.map((p) => (
+                <Row
+                  key={p.id}
+                  listId={listId}
+                  p={p}
+                  showCategory={sortActive}
+                  selected={selected.has(p.id)}
+                  flash={flash === p.id}
+                  edited={editedIds.has(p.id)}
+                  qtyEdited={qtyEdited.has(p.id)}
+                  upEdited={upEdited.has(p.id)}
+                  risk={risks?.get(p.id)}
+                  onToggle={toggle}
+                  onOpen={onOpen}
+                  onMove={onMove}
+                />
+              ))}
+            </tbody>
+          )
+        })}
+      </table>
+      {rows.length === 0 && (
         <div className="px-6 py-14 text-center">
-          <Icon name="search_off" size={30} className="text-slate-300" />
-          <p className="mt-2 text-sm font-semibold text-slate-700">No positions to show</p>
-          <p className="mt-0.5 text-xs text-slate-500">Adjust the search or category filter, or add an item.</p>
+          <span className="mx-auto mb-3 flex size-14 items-center justify-center rounded-md bg-slate-100 text-slate-600">
+            <Icon name="search_off" size={28} />
+          </span>
+          <p className="text-base font-semibold text-slate-900">No positions match</p>
+          <p className="mt-1 text-sm text-slate-600">Change the search or filters, or add a position.</p>
         </div>
       )}
-      <div className="sticky left-0 flex items-center justify-between gap-3 border-t border-slate-100 bg-slate-50/60 px-4 py-2.5 text-xs text-slate-500">
-        <span>
-          Showing <span className="font-mono font-semibold text-slate-700">{shownCount}</span> of <span className="font-mono font-semibold text-slate-700">{expandedRows.length}</span> expanded positions
-          {rows.length !== allPositions.length && <> (filtered from {allPositions.length})</>}
-        </span>
-        {expandedRows.length > limit && (
-          <button type="button" onClick={() => setLimit((l) => l + PAGE)} className="flex h-7 items-center gap-1 rounded-md border border-slate-200 bg-white px-2.5 font-medium text-slate-700 shadow-xs transition-colors hover:bg-slate-50">
-            Show more
-            <span className="font-mono text-slate-400">+{Math.min(PAGE, expandedRows.length - limit)}</span>
-          </button>
-        )}
-      </div>
-      </div>
-      <div aria-hidden className={clsx('pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-white via-white/70 to-transparent transition-opacity duration-200 lg:hidden', atEnd && 'opacity-0')} />
-      </div>
-      {footer}
     </div>
   )
 }

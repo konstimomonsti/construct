@@ -1,0 +1,146 @@
+{
+  "member": "visual",
+  "screens": {
+    "S1": {
+      "scores": {"hierarchy": 9, "density": 8, "typography": 9, "consistency": 8, "clarity": 8, "interaction": 8, "accessibility": 8, "responsive": 8, "wise": 8},
+      "issues": [
+        "Consistency: row amounts and meters end at x≈1316 while the hero 'Left' figure, Sort/Select and the ⋯ end at 1368, because the hover-only kebab still reserves a 52px column. Overlay the RowItem kebab absolutely (right-0, shown on hover/focus) so amounts align to the 1368 content edge, in both themes.",
+        "Clarity: the hero footnote 'Measured against project caps. List caps are on Active Budgets.' is still a full sentence beside the status chip. Move it into a tooltip/info icon on 'Used' and keep that row to chip + '5 of 14 projects priced'.",
+        "Clarity: row badges still mix 'Near cap' (this project's status) and '1 list almost at cap' (a roll-up pointer) in the same filled chip. Render roll-ups as plain muted text with a list icon, no fill.",
+        "Responsive: on mobile the status chip and '5 of 14 projects priced' take two lines under the jib; put 'priced' as a muted suffix on the 'Projects 14' header line.",
+        "Wise: mobile rows show '75%' with no cap; render '75% of 2 Mio. €' as desktop does."
+      ]
+    },
+    "S2": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 9, "consistency": 8, "clarity": 8, "interaction": 8, "accessibility": 8, "responsive": 7, "wise": 8},
+      "issues": [
+        "Hierarchy: two amber signals sit side by side under the jib ('Near cap' chip and the warning-icon sentence 'List caps add up to 2.100.000 €, 100.000 € over the project cap.'). Keep the chip; move the over-allocation note to a muted single line under 'of 2.000.000 €' in the Used block, without its own warning icon.",
+        "Consistency: list amounts end at x≈1316 while 'Left' and Select end at 1368 (same reserved kebab column as S1). Overlay the kebab so the money column aligns to the content edge.",
+        "Responsive: no mobile capture; verify the over-allocation sentence wraps under the hero (not beside the chip) at 390px and header actions collapse to icon buttons as on S1."
+      ]
+    },
+    "S3": {
+      "scores": {"hierarchy": 7, "density": 8, "typography": 8, "consistency": 8, "clarity": 8, "interaction": 8, "accessibility": 8, "responsive": 7, "wise": 8},
+      "issues": [
+        "Hierarchy: Add position/Export sit on their own row between the status line and the toolbar, making three stacked control rows above the ledger (status/meta, actions, search/toolbar). Move Add position + Export into the page header beside ⋯ (as Import/New list are on S2) so the first section rises ~60px on desktop.",
+        "Typography: desktop section headers set the '23 positions' count in the expanded display cut next to the heavy title. Set the count in body Archivo 13px slate-600, normal width, so only the title uses the display cut.",
+        "Responsive: mobile section title 1 wraps as 'Baustelleneinrichtung' / '- Montagepläne - I', leaving a line starting with a hyphen, and the OZ '1' is vertically centred on the 3-line block instead of aligned to the first line. Use text-wrap:balance on section titles and align the chevron + OZ to the first line (items-start, mt matching line-height).",
+        "Responsive: first section starts at y≈600 of 844 on mobile (status chip, meta chips, Add/Export, search, toolbar). Put 'On track' inline with '67% of 800.000 € · … left' and move Export into ⋯ below 640px so Add position shares a row with search.",
+        "Consistency: ledger GP column ends at x≈1316 while the toolbar ends at 1368 (reserved kebab column). Overlay the row kebab on hover so GP aligns with Sort.",
+        "Consistency: the Einheit column ('psch', 'St', 'h') is rendered in bronze while every other cell is ink/slate; it reads as a link. Use slate-600 at rest and bronze only on hover for the unit picker trigger."
+      ]
+    },
+    "S4": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 7, "consistency": 8, "clarity": 8, "interaction": 8, "accessibility": 8, "responsive": 7, "wise": 8},
+      "issues": [
+        "Typography: Langtext still keeps GAEB hard line breaks ('Die Kosten für das Vorhalten und' / 'den Betrieb…', 'Sicherung' / 'der Baustelle.'), giving a ragged right edge. Reflow single newlines to spaces at render (keep blank lines as paragraph breaks); the words stay verbatim.",
+        "Density: the header nav still shows five items ('1 of 197', ↑, 'k' kbd, ↓, 'j' kbd). Drop the visible kbd boxes and put 'Previous (k)' / 'Next (j)' in the button tooltips.",
+        "Clarity: Kategorie shows the full parent path as a first line ('1 Baustelleneinrichtung - Montagepläne - I ›'). Show only the leaf '1.1 Baustelleneinrichtung und Dokumentation' and put the path in the picker/tooltip.",
+        "Consistency: in light mode the scrim (bg-black/60) turns the page a flat neutral grey that is off-palette. Use the pit-black ink token (#0d0502) at ~45% so the dimmed page stays warm, in DetailDrawer, CommandPalette and Dialog.",
+        "Responsive: the mobile bottom sheet is not captured; verify GP, Menge/EP and the drag handle fit in the first 60% of the sheet."
+      ]
+    },
+    "S5": {
+      "scores": {"hierarchy": 9, "density": 8, "typography": 9, "consistency": 8, "clarity": 8, "interaction": 8, "accessibility": 8, "responsive": 7, "wise": 8},
+      "issues": [
+        "Clarity: 'Measured against each list's own cap.' is a stand-alone sentence beside the chip, and the cap (4.407.000 €) differs from All Projects (4.356.000 €) with no explanation. Replace the sentence with a tooltip on 'of 4.407.000 €': 'Sum of list caps; 51.000 € more than project caps'.",
+        "Consistency: amounts end at x≈1316 vs 1368 for Sort/Select and 'Left' (reserved kebab column). Overlay the kebab.",
+        "Responsive: no mobile capture; check long names ('LV-Positionen nach Aufmaß-Gruppen' + 'Near cap') wrap the badge under the name rather than truncating it."
+      ]
+    },
+    "S6": {
+      "scores": {"hierarchy": 9, "density": 8, "typography": 8, "consistency": 9, "clarity": 9, "interaction": 8, "accessibility": 8, "responsive": 8, "wise": 8},
+      "issues": [
+        "Density: the empty state is still wrapped in a 1056×395px bordered box — a frame around nothing. Drop the border on non-drop-target empty states (keep it only on S9 where it is a drop zone) and use py-12.",
+        "Typography: centred body text breaks 'its ··· menu on All Projects' / 'to set it aside…' unevenly; add text-wrap:balance and max-w-[46ch].",
+        "Wise/Theo: add a muted '⌘K to jump to a project' hint under the button, using the header kbd chip style."
+      ]
+    },
+    "S7": {
+      "scores": {"hierarchy": 9, "density": 8, "typography": 9, "consistency": 9, "clarity": 9, "interaction": 8, "accessibility": 8, "responsive": 8, "wise": 8},
+      "issues": [
+        "Density: same bordered box around the empty state as S6; drop the border (it is not a drop target) and use py-12.",
+        "Wise/Theo: show a count next to 'Trash' in the sidebar when it holds items so the empty page rarely needs visiting."
+      ]
+    },
+    "S8": {
+      "scores": {"hierarchy": 9, "density": 8, "typography": 9, "consistency": 8, "clarity": 8, "interaction": 9, "accessibility": 8, "responsive": 8, "wise": 8},
+      "issues": [
+        "Density: every position row still ends with 'Not priced' while the Lists group already says 'none priced'. Apply the same rule to Positions: when all shown positions are unpriced, say it once in the header ('Positions 106 · none priced') and leave the right column empty.",
+        "Consistency: three kbd styles coexist — white filled '⌘K' in the header, filled 'Esc' in the palette input, bordered boxes for ↑ ↓ ↵ / in the footer. Use one Kbd component (filled slate-100, no border, same height) everywhere.",
+        "Consistency: light-mode scrim is neutral grey (bg-black/60) and off-palette; use the ink token at ~45%.",
+        "Responsive: no mobile capture; confirm the palette becomes full-width from the top with the input at 44px height and the footer hints hidden on touch."
+      ]
+    },
+    "S9": {
+      "scores": {"hierarchy": 9, "density": 8, "typography": 8, "consistency": 8, "clarity": 9, "interaction": 8, "accessibility": 8, "responsive": 8, "wise": 8},
+      "issues": [
+        "Consistency: the toast's right edge sits at x≈1424 (16px from the viewport) while all content and the avatar align to 1368. Position toasts at the content gutter or page padding so they share the 1368 edge.",
+        "Consistency: the toast's Undo is a tinted button in light mode but bare yellow text in dark mode. Give it the same tinted fill (cream/10 on the ink surface) in both themes, min-h-10.",
+        "Typography: the drop-zone body text breaks 'on this' / 'page, or choose…'; add text-wrap:balance."
+      ]
+    },
+    "S10": {
+      "scores": {"hierarchy": 8, "density": 7, "typography": 8, "consistency": 7, "clarity": 6, "interaction": 7, "accessibility": 8, "responsive": 7, "wise": 7},
+      "issues": [
+        "Consistency: the primary button reads 'Add  product' with a double gap, because CataloguePage.tsx:190 renders Add<span> {item}</span> inside a flex button with gap, so gap + leading space stack. Drop the leading space (or wrap 'Add {item}' in one span with the item part hidden on mobile). Same bug on Suppliers.",
+        "Clarity: duplicates remain indistinguishable ('Abdichtung Sockelbereich Fassade' ×3, 'Abdeckung, PE-Folie, 0,2 mm' ×2, 'Abdichtung an Bodeneinläufen' ×2) because line two is only the category. Add unit / item code / supplier or the source list to line two ('Waterproofing · m² · from Ausbildungszentrum').",
+        "Density/Hierarchy: the section header 'Active' just repeats the selected 'Active' chip and has no count. Replace it with a count ('1.000+ products') or drop it.",
+        "Density: every visible row says 'Not priced'. When the column is uniformly unpriced, render '—' in slate-400 and add a 'Not priced N' filter chip so priced products stand out.",
+        "Consistency: the category on line two ('Waterproofing') is bronze while meta lines on every other RowItem are slate-600. Use slate-600.",
+        "Interaction: rows show no affordance at rest and no row menu. Add the RowItem hover ⋯ (Edit, Archive) and a hover background as on project rows.",
+        "Responsive: no mobile capture; confirm the price moves under the name at <640px."
+      ]
+    },
+    "S11": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 8, "consistency": 7, "clarity": 8, "interaction": 8, "accessibility": 8, "responsive": 7, "wise": 8},
+      "issues": [
+        "Consistency: 'Add  supplier' has the same double gap as S10 (flex gap + leading space in the span). Fix in CataloguePage.tsx:190.",
+        "Consistency: '17 products ›' ends at x≈1316 while 'Add supplier' ends at 1368 (reserved kebab column). Overlay the kebab so the right column aligns.",
+        "Interaction: add the hover ⋯ menu (Edit, Archive) on supplier rows, matching project rows.",
+        "Responsive: no mobile capture; ensure '17 products ›' moves under the bracketed name at <640px."
+      ]
+    },
+    "S12": {
+      "scores": {"hierarchy": 9, "density": 8, "typography": 8, "consistency": 8, "clarity": 9, "interaction": 8, "accessibility": 8, "responsive": 8, "wise": 8},
+      "issues": [
+        "Density: the empty state sits in a bordered 390px box like S6/S7; drop the border and use py-12.",
+        "Consistency: the page has no search/Active–Archived chip row here although Products and Suppliers show one, so the layout jumps between catalogue tabs. Keep the chip row (disabled search) or hide it on all three when empty.",
+        "Interaction: 'Show archived' is an underlined text link only ~20px tall; give it py-2 so the target reaches 40px."
+      ]
+    },
+    "S13": {
+      "scores": {"hierarchy": 7, "density": 8, "typography": 8, "consistency": 7, "clarity": 7, "interaction": 8, "accessibility": 8, "responsive": 7, "wise": 7},
+      "issues": [
+        "Hierarchy: the dialog title 'Edit product' (bold ~19px, normal width) is about the same weight as 'Price (optional)' below. Set dialog titles in the expanded display cut at 20–22px and the 'Price' subheading at 14px semibold.",
+        "Consistency: the close × sits ~5px below the title's centre line; centre it on the title row (items-center on the header flex).",
+        "Consistency: Cancel/Save are 36px (size sm) while page and toolbar buttons are 40px. Use the default 40px size for dialog footers.",
+        "Consistency: Supplier is still a styled native select. Use the app's listbox/Menu trigger as the drawer unit picker does.",
+        "Clarity: Unit is free text here but a picker in the drawer, and the Unit price hint says 'Per unit' even though a unit field exists. Reuse the drawer unit picker and render the hint as 'per {unit}' (or hide it when empty).",
+        "Responsive: at <640px stack the two-column rows (Category/Supplier, Item code/Unit, Unit price/Effective from) and present the dialog as a bottom sheet like the drawer.",
+        "Consistency: light-mode scrim is neutral grey; use the ink token at ~45%."
+      ]
+    },
+    "S14": {
+      "scores": {"hierarchy": 6, "density": 6, "typography": 8, "consistency": 7, "clarity": 6, "interaction": 7, "accessibility": 7, "responsive": 6, "wise": 6},
+      "issues": [
+        "Hierarchy (drawer): two findings blocks (~400px) sit above the position's Gesamtpreis, pushing the hero number to y≈740 and Menge/EP below the fold. Put GP + Menge/EP first and collapse findings into a compact 'Findings 2' section below (expanded by default only when unreviewed), or into a one-line summary under the title.",
+        "Clarity (drawer): both findings repeat the same 46-word paragraph with jargon ('Heuristic complement inferred from BoQ text…new BOM version'). Show it once as a muted note under the 'Findings from the upload check' header in plain words ('Guessed from the list text. Check the scope and enter a quantity before adding.') and keep each finding to its one-line title + one sentence.",
+        "Hierarchy/Density (list): five stacked bands sit above the ledger (file tabs, hero, status/meta, Add/Export, 'Catalogue research' line, toolbar); the first section starts at y≈708. Fold 'Catalogue research … 1 web suggestion · 4 unresolved' into the status line as one 'Research: 1 suggestion' link opening a popover, and move Add/Export into the header.",
+        "Consistency: the source-file tabs use × which reads as 'delete this list', and the selected tab is a yellow-tinted fill, a third selected style next to the inverted chips and the bronze nav bar. Use the inverted selected style (ink fill) and move remove into a per-tab ⋯ 'Remove source'; label the group 'Sources'.",
+        "Accessibility: 'Mark reviewed' buttons are 32px tall; use min-h-10. The second paragraph of each finding is set in a lighter muted tone on white; ensure it is at least slate-600 (≥4.5:1).",
+        "Accessibility: '1.223,00 € left in the list cap' is set in orange with no word or icon; prefix it with the 'Near cap' word/icon or keep the text ink and let the status chip carry the colour.",
+        "Responsive: no mobile capture; with five bands this page will stack ~9 rows before the ledger on a phone. Collapse research + findings into one 'Checks' disclosure on <640px and put the file tabs in a horizontal scroller."
+      ]
+    }
+  },
+  "global_issues": [
+    "Money columns on every RowItem and ledger page end at x≈1316 while the hero, header actions and toolbars end at 1368, because a hover-only kebab still reserves a 52px column. Overlay the kebab (absolute right-0, hover/focus reveal) so the money edge matches the content edge on S1, S2, S3, S5, S11, S14.",
+    "Overlays use bg-black/60, which turns the light theme into flat neutral grey behind the drawer, palette and dialogs. Use the pit-black ink token at ~45% for scrims (DetailDrawer, CommandPalette, ui.tsx Dialog, Sidebar).",
+    "Kbd chips come in three styles (white filled ⌘K, filled Esc, bordered ↑↓↵/ and k/j). Ship one Kbd component and drop the always-visible k/j boxes from the drawer header in favour of tooltips.",
+    "Catalogue primary buttons render 'Add  product' / 'Add  supplier' with a double gap (CataloguePage.tsx:190: flex gap plus a leading space inside the span).",
+    "Non-drop-zone empty states (Archived, Trash, Subcontractors) are still framed in a bordered box; keep a frame only for the folder drop zone.",
+    "Dialog footer buttons are 36px against 40px everywhere else, and dialog titles are weaker than their own subheadings; unify button height at 40px and use the display cut for dialog titles.",
+    "The upload-check drawer leads with long, repeated, jargon-heavy finding text above the price, and the findings list page stacks five control bands above the ledger. Lead with the number, put findings below in plain words, and fold research into the status line."
+  ]
+}

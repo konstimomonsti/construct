@@ -1,0 +1,117 @@
+{
+  "member": "a11y",
+  "screens": {
+    "S1": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 8, "consistency": 7, "clarity": 8, "interaction": 7, "accessibility": 6, "responsive": 4, "wise": 7},
+      "issues": [
+        "Mobile (11) has a broken row. 'Fernleitung - Weinsbach' is cut down to the single letter 'F' and its subtitle to '2'. Cause: StatusTag in BudgetMini gets className 'hidden sm:inline-flex', but its base classes already include 'inline-flex'. clsx does not merge classes and Tailwind v4 emits inline-flex after hidden, so the 'Near cap' pill never hides on phones. Fix: add tailwind-merge (twMerge in clsx calls in Kit.tsx/ui.tsx), or leave display out of StatusTag's base classes.",
+        "Mobile row layout: in Kit.tsx Row, the right column (amount + '72% of €2,500,000') is shrink-0 and takes about 60% of a 390px row, which squeezes titles to 'Ringschluss B…' and 'Maschinentech…'. Below sm, move amount and meta under the title (flex-col, or a grid with title spanning full width), or shorten the meta to '72%' without the cap amount.",
+        "Mobile hero actions wrap 2+1 and leave 'Open all' alone on its own line. Below sm, move 'Open all' into an overflow menu, or make the action row a 3-column grid of equal buttons.",
+        "Secondary hero buttons (Upload, Open all) are bg-slate-100 on the bg-slate-50 card, about 1.04:1, so the pill shape barely shows (WCAG 1.4.11 affordance). Inside grey cards use bg-white with ring-1 ring-slate-200.",
+        "Header search button: the visible text 'Search projects, lists, positions' doesn't match aria-label 'Search folders, lists and positions' (WCAG 2.5.3 label-in-name). Make aria-label equal the visible text, or drop it. The account button shows 'AC' but is named 'Account menu'. Use aria-label 'AC, account menu'.",
+        "The stretched row link label (FolderRow label) has name, list count and amount but leaves out budget status. Screen-reader users tabbing through rows never hear 'Near cap'. Append the status word and percent, e.g. 'Fernleitung - Weinsbach, 2 lists, €1,505,036, near cap 75%'.",
+        "The sort control reads 'Cost (High to Low)' here, 'Highest amount' on Active Budgets and 'Sort by amount' on the list. Use the same wording everywhere.",
+        "Row menu (36px) and ToolButton (36px) meet AA 24px but fall short of the 44px touch target on the phone. Under @media (pointer: coarse) raise them to size-11."
+      ]
+    },
+    "S2": {
+      "scores": {"hierarchy": 8, "density": 7, "typography": 7, "consistency": 7, "clarity": 7, "interaction": 7, "accessibility": 7, "responsive": 6, "wise": 7},
+      "issues": [
+        "Each list row repeats the shouting uppercase source title 'RINGSCHLUSS BRUNNENWASSER, [PERSON_132]' in its subtitle. That is noise, and screen readers read it 3 times. When the list title equals the folder name, drop it from the subtitle and show only the file type/date, positions and unpriced count.",
+        "Folder rows on S1 use whole euros (€1,794,611) but list rows here use cents (€897,305.45, €0.00). Pick one precision per level. '€0.00 / Not priced yet' should show only '—' with 'Not priced yet'.",
+        "The editable cap ('€2,500,000 cap') only signals that it is a button through decoration-slate-300 underline on slate-50 (about 1.4:1). Use decoration-slate-500 or text-brand-700 and add an 'edit' icon, so it reads as a control and not as body text.",
+        "The folder kebab (top right, x≈1300) is about 900px from the title it acts on, and the hero below already holds three actions. Put the kebab next to the hero actions as a 4th 'More' pill, so actions sit in one place.",
+        "Same mobile Row layout as S1: list rows with long uppercase subtitles and 'x% of €1,500,000' will collapse titles to a few characters below 640px. Apply the stacked mobile Row fix.",
+        "Document rows (Abgabe LV.pdf) have only a menu and no amount column, so the right edge is ragged against the list rows. Right-align a muted 'PDF · 2 pages' or the date so the columns line up."
+      ]
+    },
+    "S3": {
+      "scores": {"hierarchy": 8, "density": 7, "typography": 8, "consistency": 7, "clarity": 7, "interaction": 6, "accessibility": 6, "responsive": 5, "wise": 7},
+      "issues": [
+        "Ledger column widths are fixed (table-fixed): checkbox 48 + OZ 128 + Menge 112 + Einheit 80 + EP 144 + GP 144 + menu 56 = 712px. At 1024px with the sidebar, the content box is 720px, so Kurztext gets about 8px. From 768–1023px (sidebar hidden, content 704px) the table overflows. Shrink OZ to w-20, EP/GP to w-28, menu to w-12 and merge Einheit into Menge ('4 St'), or move the card layout breakpoint from md to xl.",
+        "Unchecked .checkbox uses border-slate-400 (#94a3b8), 2.5:1 on white. That fails WCAG 1.4.11 (3:1) for the row checkboxes and the select-all checkbox. Use border-slate-500 (#64748b, 4.8:1).",
+        "Inline editing can't be seen. Menge (QtyInput) is md:border-transparent and EP is a plain button, so both look like static text until hovered. Show a persistent hairline (border-slate-200) on editable cells, or a pencil icon on row hover and focus-within, so estimators know which numbers they can type into.",
+        "EP cell buttons show '€5,700.00' but are named 'Edit unit price of 1.1.1', which breaks label-in-name (2.5.3) for voice control. Use aria-label '€5,700.00, unit price of 1.1.1, edit', or keep the visible text and add the context via aria-describedby.",
+        "The Kurztext button's accessible name is just the text. Nothing says it opens a drawer (the only hint is a title tooltip). Add aria-haspopup='dialog' and an sr-only ' – open details'.",
+        "The position search field is bg-slate-100 with border-transparent, 1.07:1 against white, so you can't see where the field is (1.4.11). Add border-slate-200, or use a white field with a slate-300 border like the drawer inputs.",
+        "Mobile (12): the H1 truncates to 'Maschinentechnik - Anlag…', the meta line to '27.0…' and the group header to 'Dokumentati…'. Below md, let the H1 wrap (line-clamp-2, break-words, no truncate), wrap the meta and clamp group headers to 2 lines.",
+        "Mobile row targets: checkbox label 36px, qty input 36px tall, menu 36px. On touch, raise them to 44px (pointer: coarse) and keep at least 8px between the qty input and the menu.",
+        "The breadcrumb leaf 'Maschinentechnik - Anlagenbau' is the same text as the H1 (folder and list share a name). Show the file name or GAEB type in the H1 subtitle and keep the crumb, or label the crumb as a folder with its folder icon so the two read differently.",
+        "04-list-full: the page is about 7000px tall with 'Show 97 more'. The sticky header row works, but the GP sum and cap only show at the top. Add a slim sticky footer bar ('Total €536,991.65 · 67% of cap') so the hero number stays visible while editing."
+      ]
+    },
+    "S4": {
+      "scores": {"hierarchy": 8, "density": 7, "typography": 7, "consistency": 8, "clarity": 8, "interaction": 8, "accessibility": 6, "responsive": 6, "wise": 8},
+      "issues": [
+        "The drawer sets aria-modal='true' but has no Tab focus trap, and the page behind isn't inert. Tab leaves the drawer into the dimmed ledger. Trap focus as Dialog in ui.tsx does, or set inert on #main while the drawer is open.",
+        "Labeled wraps each input in a <label> and also sets aria-label ('Einheitspreis' while the visible label is 'Einheitspreis (EP)'). aria-label overrides the visible label. Remove the redundant aria-labels so the visible text is the accessible name.",
+        "Langtext shows the GAEB source's hard line breaks, so lines are ragged ('nach' / 'für' alone on a line). In display mode, join single newlines (keep double newlines as paragraphs), or render a reflowed read view with an Edit toggle.",
+        "The Kurztext input repeats the H2 directly above it. Make the H2 itself the editable field (click to edit), or drop the H2 and keep the field, to remove the duplicate.",
+        "At 390px the 3-column grid (Menge / Einheit / Einheitspreis (EP)) gives each field about 100px. 'Einheitspreis (EP)' wraps and pushes the inputs out of line. Use grid-cols-2 below sm, with EP spanning full width.",
+        "The previous/next chevrons are 40px and the close button 40px, which is fine. 'Changes save automatically' has no live region, though, so screen-reader users get no confirmation when a save happens. Announce 'Saved' via aria-live='polite' after each commit."
+      ]
+    },
+    "S5": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 8, "consistency": 7, "clarity": 7, "interaction": 8, "accessibility": 7, "responsive": 5, "wise": 8},
+      "issues": [
+        "The hero says 'Every list is within its cap' while the last row says 'Near cap' at 86%. Change the sentence to '1 list near its cap' with a link that applies the Needs attention filter. The 'Needs attention' chip should also show its count ('Needs attention · 1').",
+        "Subtitles are very long and repeat themselves ('Ringschluss Brunnenwasser · RINGSCHLUSS BRUNNENWASSER, [PERSON_132] · 249 positions'). Show folder · positions only. On mobile, the Row layout will truncate these, and the titles, to fragments (same fix as S1).",
+        "Avatar tile colours (amber, blue, green) come from the parent folder but carry no meaning here and could be mistaken for status colours next to the amber 'Near cap' pill. Use one neutral tile for lists on this page, or add the folder name as visible context.",
+        "Sort label 'Highest amount' differs from 'Cost (High to Low)' on S1. Use the same vocabulary.",
+        "Filter chips use aria-pressed, which is good, but the selected chip (slate-900) is the darkest element on the page and competes with the hero number. Use bg-brand-50 text-brand-700 ring-1 ring-brand-200 for the selected state."
+      ]
+    },
+    "S6": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 8, "consistency": 8, "clarity": 8, "interaction": 7, "accessibility": 8, "responsive": 8, "wise": 8},
+      "issues": [
+        "The helper text contains a literal '···' glyph, which screen readers read as 'midline horizontal ellipsis'. Write 'from its More options (···) menu' with the glyph in aria-hidden.",
+        "The empty state gives no next step. Add a quiet link 'Go to All Projects' so keyboard users aren't left at the end of the page.",
+        "Use text-wrap: pretty (or balance) on the empty-state paragraph to avoid the short last line ('active projects.').",
+        "The large grey box (bg-slate-50, py-16) for an empty page is heavy compared with Wise. Drop the fill and keep the icon and text centred on white, or reduce the padding."
+      ]
+    },
+    "S7": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 7, "consistency": 8, "clarity": 8, "interaction": 7, "accessibility": 8, "responsive": 8, "wise": 8},
+      "issues": [
+        "The helper text wraps with a one-word last line ('here.'). Add text-wrap: pretty, or widen max-w-sm to max-w-md.",
+        "Say whether and when trashed items are permanently deleted (or that they never are). Users need this before they rely on Trash for recovery.",
+        "No next step: add a 'Go to All Projects' link, as on Archived.",
+        "Same heavy grey empty box as S6. Lighten it, or drop the fill."
+      ]
+    },
+    "S8": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 8, "consistency": 7, "clarity": 7, "interaction": 7, "accessibility": 5, "responsive": 7, "wise": 8},
+      "issues": [
+        "The active option is marked only by bg-slate-100 on white (about 1.07:1). It's barely visible in the screenshot, and keyboard users can't see what Enter will open. Use bg-brand-50 plus an inset 2px brand-600 left bar or ring-1 ring-brand-200.",
+        "The palette has aria-modal but no Tab focus trap. Tab goes from the input to 'Esc' and then into the blurred page. Trap focus, or set inert on the app root while it's open.",
+        "role='listbox' contains plain <div> group headings and wrapper divs, which is invalid ARIA (a listbox may only own options or groups). Wrap each group in role='group' aria-labelledby={heading id} and mark the wrappers role='presentation'.",
+        "Result count and the 'Indexing positions…' state aren't announced. Add an sr-only aria-live='polite' region: '6 folders, 5 lists, 12 positions'.",
+        "The 'Esc' button's accessible name is 'Esc'. Use aria-label 'Close search (Esc)'.",
+        "Copy bug: '1 lists · LV 152516'. Use plural() in the folder result subtitle.",
+        "List results repeat the title as a file name ('Porenbetonfassade / LV_04_Porenbetonfassade.pdf') and show no folder or amount. Use 'Folder name · €total' as the subtitle so same-named lists can be told apart.",
+        "All results use the same brand-tinted icon tile. Folder results should use the folder's own tone and icon, as on S1, for consistency.",
+        "The footer keyboard hints (↑↓ to move, ↵ to open) are useless on touch. Hide them under pointer: coarse."
+      ]
+    },
+    "S9": {
+      "scores": {"hierarchy": 9, "density": 8, "typography": 8, "consistency": 8, "clarity": 7, "interaction": 8, "accessibility": 7, "responsive": 8, "wise": 8},
+      "issues": [
+        "The subtitle 'Awaiting initial line allocations' is jargon from seed data and means nothing to an estimator. When a folder has no description, show 'Empty folder' or 'No lists yet'.",
+        "Toasts auto-dismiss after 4.2s with no pause on hover or focus. Toasts that carry Undo (remove position, move to Trash) disappear before keyboard or screen-reader users can reach the button (WCAG 2.2.1). Pause on hover and focus-within, keep actionable toasts for at least 10s, and give Undo a keyboard shortcut.",
+        "Toasts are fixed bottom-right with no offset for the selection Dock or mobile bottom actions, so they can cover controls. Lift them above the Dock when it's open.",
+        "The format line 'GAEB .X81–.X86 / .D81–.D86 · CSV · JSON · PDF' is dense. Use 'GAEB (X8x / D8x), CSV, JSON or PDF'."
+      ]
+    }
+  },
+  "global_issues": [
+    "There is no tailwind-merge. Components accept className overrides (StatusTag, Button, IconButton, Meter) whose display and size utilities clash with base classes. Tailwind v4 picks the winner by CSS order, not by where the class appears. Already visible as the always-shown 'Near cap' pill on mobile. Wrap clsx with twMerge in a cn() helper and use it everywhere.",
+    "Responsive breakpoints: the Kit Row has no stacked phone layout, so titles get crushed. The ledger switches to a table at md (768px) even though its fixed columns need at least 712px plus the description, which is broken from 768 to about 1200px with the sidebar. Add a phone Row variant and fluid ledger columns, or move the table breakpoint up.",
+    "Checkbox borders (slate-400, 2.5:1) and filled search fields (bg-slate-100, no border, about 1.07:1) fail WCAG 1.4.11 non-text contrast. Use border-slate-500 for checkboxes and a slate-200/300 hairline on fields.",
+    "Keyboard focus and active indicators in Menu items and the command palette are only bg-slate-100 on white, close to invisible. Use a brand-50 fill plus an inset brand ring or left bar for :focus-visible and aria-selected.",
+    "The modal drawer and command palette lack a focus trap and an inert background (Dialog in ui.tsx does both). Reuse one useModal hook (focus trap, inert #main, restore focus) for Dialog, DetailDrawer and CommandPalette.",
+    "Label-in-name mismatches (WCAG 2.5.3): header search, the 'AC' account button, EP price cells and drawer inputs with aria-label overriding the visible <label>. The visible text must be contained in the accessible name.",
+    "Touch targets: row menus, ToolButtons, checkbox hit areas, the qty input and IconButtons are 32–36px. They pass AA 2.5.8 but are below the 44px platform minimum on the phone screenshots. Add a @media (pointer: coarse) rule to raise them to 44px.",
+    "Toasts: a 4.2s auto-dismiss with Undo actions and no pause violates WCAG 2.2.1. Pause on hover and focus, and keep actionable toasts for at least 10s.",
+    "Budget meters (emerald-500 and amber-500 on slate-200, about 2:1) are fine only because the percentage is always printed. Keep that rule: never show a meter on its own, and include the status word in each row's accessible name."
+  ]
+}

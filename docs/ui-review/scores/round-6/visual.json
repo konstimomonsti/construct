@@ -1,0 +1,107 @@
+{
+  "member": "visual",
+  "screens": {
+    "S1": {
+      "scores": {"hierarchy": 8, "density": 7, "typography": 8, "consistency": 7, "clarity": 7, "interaction": 8, "accessibility": 8, "responsive": 7, "wise": 7},
+      "issues": [
+        "Hero meta block is four stacked lines in three styles (chip+figures, 'Measured against project caps…' sentence, '4 of 13 projects priced'). Merge them into one row: chip · 68% of 4.350.000 € · 1.409.686,51 € left · 4 of 13 priced. Move the 'Measured against…' sentence into a tooltip on the % figure.",
+        "The selected filter chip 'All' (cream fill) is the brightest block below the hero and pulls focus from the yellow 'Import files' button. Use a dim selected fill (slate-200 bg, slate-900 text, 1px brand-600 bottom edge) so yellow stays the only loud accent.",
+        "Project icon tiles mix bronze, blue-black and plain brown fills with no meaning (Fernleitung bronze, Ringschluss/Maschinentechnik navy, Site brown). Use one tile treatment (slate-100 fill, slate-600 icon), or tie the fill to status and say so.",
+        "The 'Site' row reads '1 list almost at cap' in its meta line but shows no status chip, so the roll-up looks broken. Show an 'Almost at cap' chip on the row, as on Fernleitung.",
+        "The crane jib stops at about 576px while the content column is 1056px, which leaves the right half of the hero band empty. Extend the jib to the column width, or right-align the meta row against it so the band feels intentional.",
+        "Mobile: the row progress bar ends about 100px short of the right edge, under the ••• column, so the row looks ragged. Let the bar flex to the row's right edge (or align it with the amount column). Also bring back 'of 4.350.000 €' after '68%' in the hero line, since the cap context is lost on mobile.",
+        "The ⌘K kbd hint in the top search is about 10px and low contrast. Raise it to 12px, slate-600 on slate-200, so the keyboard-first cue is legible."
+      ]
+    },
+    "S2": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 8, "consistency": 8, "clarity": 7, "interaction": 8, "accessibility": 8, "responsive": 7, "wise": 8},
+      "issues": [
+        "'List caps add up to 2.100.000 €, 100.000 € over the project cap.' is a real warning but uses the same muted caption style as neutral text. Render it as an amber status line with an icon and the word 'Over-allocated', or as a chip next to 'Near cap'.",
+        "'314 positions' sits alone on its own line under the hero. Fold it into the subtitle ('Projekt 2024-001 · 2 lists · 314 positions') to remove a line from the meta stack.",
+        "The list-row hover fill bleeds 12px outside the content column on both sides (x≈300–1380 vs 312–1368). The rows themselves are aligned, but the hover shape breaks the left edge shared with the hero. Either keep the bleed and inset the tile/text consistently on every list page, or clip the hover to the column.",
+        "Below the two rows, 40% of the viewport is empty with no hint. Add a quiet drop-zone line ('Drop GAEB files to add a list') under the last row to use the space and teach the drop target."
+      ]
+    },
+    "S3": {
+      "scores": {"hierarchy": 8, "density": 7, "typography": 8, "consistency": 7, "clarity": 8, "interaction": 7, "accessibility": 8, "responsive": 6, "wise": 7},
+      "issues": [
+        "'Search positions' is the only outlined control (1px light border). The global search, Categories, Select and Sort are borderless filled. Give it the same slate-100 fill with no border, and show the border only on focus.",
+        "The table header row is about 56px with a large empty gap before group 1. Tighten it to 40px with a single hairline, and cut the space between the toolbar and the header to 16px.",
+        "OZ codes render in proportional Archivo slate-500. Use JetBrains Mono at 13px (or at least tabular-nums) so 1.3.10 / 6.3.12 line up as codes and read as identifiers.",
+        "On wide screens Kurztext ends far from Menge (about 250px of dead space), which makes row tracking hard across six unruled columns. Cap the Kurztext column at about 560px and move the number columns left, or add a slate-100 hover/zebra on position rows.",
+        "Mobile: positions (1.1.1 at x≈40) are outdented to the left of their parent section (1.1 at x≈140), which inverts the hierarchy. Indent position rows at least to the section-title start, or drop the indent on section rows.",
+        "Mobile: inline Menge/EP inputs are tall filled boxes with a light bottom edge, and the '1' box is about 128px wide for one digit. Size Menge to its content (min 64px) and use the same input style as the drawer, or show values as text and edit in the drawer as on desktop.",
+        "Mobile: Categories / Select / Sort don't fill the row (Sort ends 40px short of the edge). Make the three buttons flex-1 or right-align Sort.",
+        "Mobile: section titles wrap to two lines in bold next to a big total. Truncate level-1 and level-2 titles to one line with an ellipsis and keep the full text in the drawer/tooltip."
+      ]
+    },
+    "S4": {
+      "scores": {"hierarchy": 7, "density": 7, "typography": 7, "consistency": 7, "clarity": 8, "interaction": 8, "accessibility": 8, "responsive": 7, "wise": 7},
+      "issues": [
+        "The drawer has no type character: the title is plain 22px semibold and the GP figure is normal-width bold. Set the GP figure in the .display cut (wdth 125, 800) with small decimals like the page heroes, so the drawer's one hero number matches the system.",
+        "The GP block is a filled rounded card inside a filled panel (box in box). Drop the card fill and use a hairline divider below it instead.",
+        "Field labels 'Menge', 'EP', 'Kategorie', 'Langtext' are 15px medium in near-body colour, so they compete with the content. Make them 12–13px slate-500, uppercase tracking-wide or small-caps, with 6px to the field.",
+        "The Menge input right-aligns '1 psch ⌄' and leaves about 140px of empty field on the left. Put the unit select in a fixed 72px suffix segment with a divider, and use the same structure for EP's € suffix.",
+        "Menge/EP are outlined (1px light border) while Kategorie is a filled box. Pick one field style for all three; filled slate-100 with a focus ring matches the rest of the app.",
+        "The drawer's outer corner radius (about 16px) and the inner card radius are larger than the 6px signage radius used elsewhere. Cut the drawer to 8px or square it against the viewport edge.",
+        "The footer 'Changes save automatically' takes a permanent 72px band. Show it only briefly after an edit, or shrink it to a 12px caption in the header next to '1 of 197'."
+      ]
+    },
+    "S5": {
+      "scores": {"hierarchy": 7, "density": 8, "typography": 8, "consistency": 6, "clarity": 7, "interaction": 8, "accessibility": 8, "responsive": 7, "wise": 7},
+      "issues": [
+        "The hero number is 'Left in list caps 1.460.686,51 €', but the jib lights the spent 67% and the hook hangs at spend, so number and visual describe opposite quantities. Either make the hero the priced total (2.940.313,49 € of 4.401.000 €) with remaining in the meta line, or label the hook/unlit section as 'left'.",
+        "List icon tiles alternate between dark outline, bronze fill and navy fill (Estimate, LV-Positionen, ORT_024, Angebot, PERSON_132) with no legend. Use one tile style, or map fill to status heat.",
+        "The red 'Almost at cap' summary chip sits directly above an all-yellow jib, so the colours disagree at a glance. Prefix the chip line with the aggregate status word ('On track overall') or tint the jib tick at the worst list.",
+        "'2.940.313,49 € priced across 5 lists' and 'Measured against each list's own cap.' are two muted caption lines. Merge them into the chip row or drop the explanatory one."
+      ]
+    },
+    "S6": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 8, "consistency": 8, "clarity": 8, "interaction": 8, "accessibility": 8, "responsive": 8, "wise": 7},
+      "issues": [
+        "The subtitle 'Archived projects don't count toward totals' has no final period while Trash's subtitle has one. Make punctuation consistent across page subtitles.",
+        "Body copy says 'from its More options menu', which leaks the aria label. Say 'from the ••• menu on a project' and render the ••• glyph inline.",
+        "Below the empty state, 50% of the viewport is blank and the 80px filled icon tile is the heaviest shape on the page. Shrink the tile to 56px with no fill (icon only, slate-500) to keep the empty state quiet."
+      ]
+    },
+    "S7": {
+      "scores": {"hierarchy": 8, "density": 7, "typography": 8, "consistency": 8, "clarity": 7, "interaction": 8, "accessibility": 8, "responsive": 8, "wise": 7},
+      "issues": [
+        "The page subtitle 'Restore or delete items forever from their More options menu.' shows even when Trash is empty, and it repeats the empty-state message. Hide the subtitle while empty, or replace it with 'Items are deleted forever after 30 days' (if true).",
+        "'More options menu' is the aria label, not a visible name. Refer to the ••• menu instead.",
+        "Same empty-state tile note as S6: an 80px filled tile is too heavy. Use a 56px unfilled icon."
+      ]
+    },
+    "S8": {
+      "scores": {"hierarchy": 8, "density": 7, "typography": 8, "consistency": 7, "clarity": 7, "interaction": 8, "accessibility": 8, "responsive": 7, "wise": 8},
+      "issues": [
+        "Counts don't add up: the header says 'Positions 104' but there are 3 rows plus 'Show 47 more positions' (= 50). Make the header show the number reachable, or the expander show the true remainder.",
+        "Match highlighting is also applied in the meta line ('Ort**beton**arbeiten'), giving each row 2–3 yellow hits. Highlight only in the title line and keep meta plain slate-500.",
+        "Drop 'none priced' from the group headers ('104 · none priced'). It is noise in a search result; show price on the row if it matters.",
+        "The palette only searches. Add a 'Go to' / 'Actions' group (New project, Import files, Active Budgets, Toggle sidebar) when the query is empty or matches, so ⌘K earns the Theo test.",
+        "The backdrop is blurred (backdrop-blur-[2px]) on top of bg-black/60. Drop the blur and use a plain 70% scrim, per the no-glassy brief (same for the drawer scrim and the sticky header's backdrop-blur-md).",
+        "Responsive: the palette is a fixed-width 672px centred card. On mobile it should be full-bleed from the top with the input at 48px height. Verify there's a max-sm style for this."
+      ]
+    },
+    "S9": {
+      "scores": {"hierarchy": 8, "density": 7, "typography": 8, "consistency": 6, "clarity": 8, "interaction": 8, "accessibility": 7, "responsive": 7, "wise": 7},
+      "issues": [
+        "The empty state is indented 34px (x≈346) from the page title (x≈312) because the drop-zone wrapper adds sm:px-8, while the Archived/Trash empty states align at 312. Remove the horizontal padding from the drop-zone wrapper (or apply a negative margin) so the icon tile aligns with the title.",
+        "The subtitle 'No lists yet' duplicates the 'Add your first list' heading. Drop the fallback subtitle, or show the project description only when one exists.",
+        "Toast: the yellow check icon (emerald-400 #f3c160) on the cream toast (#f4efe6) is about 1.5:1. Use brand-200/bronze #523a0f for the icon on the cream toast, or make the toast dark (slate-100 bg, slate-900 text) with a yellow icon.",
+        "Toast uses rounded-2xl and shadow-lg shadow-black/40, which is heavier and rounder than the signage radii. Use rounded-md, a 1px slate-300 border and no large shadow. Widen it to max 420px so 'Created project \"Legal & Compliance\"' doesn't wrap mid-name, and use typographic quotes („…“ or “…”).",
+        "The footnote 'Supports GAEB, CSV, …' sits in the same colour as the body text above it. Make it 13px slate-500 so the hierarchy is title > body > hint."
+      ]
+    }
+  },
+  "global_issues": [
+    "Icon tile fills (bronze, navy #0d0e17, plain brown) are used without meaning across S1/S5 rows. Define one rule (fill = status heat, or a single neutral tile) and apply it everywhere.",
+    "Hero meta stacks run to 3–4 caption lines on every hero page (S1, S2, S3, S5). Standardise one meta row (status chip · % of cap · € left · count) plus at most one muted line, with explanatory sentences moved to tooltips.",
+    "Selected-state language is inconsistent: the cream filled chip (S1/S5 filters), the darker 'hole' with a border (sidebar active item), and brown fill + yellow bar (palette). Pick one selected treatment that uses the yellow accent sparingly; the cream chip is too loud.",
+    "Field styles are mixed: outlined inputs (list search, drawer Menge/EP) next to filled borderless controls everywhere else. Standardise on filled slate-100 with a yellow focus ring.",
+    "Radii drift above the signage spec: drawer about 16px, palette about 12px, toast rounded-2xl, GP card about 12px. Cap overlays at 8px and controls/chips at 4–6px.",
+    "Glassy effects remain despite the brief: backdrop-blur on the header (bg-white/90 backdrop-blur-md), palette/drawer scrims, and the list sticky footer; shadow-lg on the toast. Replace them with solid fills and hairline borders.",
+    "Expanded display type appears only in page titles and heroes; the drawer (S4) and section headings in the ledger don't use it, so the character drops off as you go deeper. Use the display cut for the drawer's GP figure and level-1 ledger group titles.",
+    "The crane jib: the unlit truss is very low contrast and the hook is about 8px, so at a glance it reads as hazard tape more than as a jib. Raise the unlit truss to slate-300, make the hook about 14px with a short cable, and label the mast tick with the cap amount."
+  ]
+}

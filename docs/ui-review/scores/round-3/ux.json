@@ -1,0 +1,92 @@
+{
+  "member": "ux",
+  "screens": {
+    "S1": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 8, "consistency": 8, "clarity": 8, "interaction": 8, "accessibility": 8, "responsive": 7, "wise": 8},
+      "issues": [
+        "The hero still gives two status signals: a green 'On track overall' pill, and an underlined '1 project near its cap' link on its own line. Make the pill reflect the worst child status: amber 'Needs attention' when any project is near or over its cap, with the link inline after it ('Needs attention · 1 project near its cap'). Keep green 'On track' for when nothing is flagged.",
+        "The hero meta and the 'Needs attention 1' chip lead to the same thing: the link '1 project near its cap' and the chip both filter to Fernleitung. Make the hero link activate the 'Needs attention' chip and scroll to the list, so both are clearly one control. Today it is unclear whether the link navigates or filters.",
+        "Mobile (11): the hero still takes the whole first viewport. Its meta wraps to 3 lines ('On track overall 68% of … in project caps' / '1.360.667 € left' / '1 project near its cap'). Below sm, drop 'in project caps', put '… left' right-aligned at the end of the progress bar, and merge status and link into one line.",
+        "Mobile (11): amount placement differs between rows. On Fernleitung the amount is on its own line with 'Near cap · 75%…' on another, while on the other rows the amount and % share one line, all left-aligned under the subtitle. Put the amount right-aligned on the title line and the cap meta right-aligned on the subtitle line, the same for every row."
+      ]
+    },
+    "S2": {
+      "scores": {"hierarchy": 8, "density": 7, "typography": 8, "consistency": 8, "clarity": 8, "interaction": 7, "accessibility": 8, "responsive": 7, "wise": 8},
+      "issues": [
+        "The hero has three meta lines between the progress bar and the actions: status/cap/left, '314 positions, all priced · 1 list near its cap', and the red list-caps warning. Fold '1 list near its cap' into the status pill line as the link (see global status rule) and leave line 2 for positions only, so the meta is two lines plus the warning.",
+        "Lists still have no Select tool, although Projects on All Projects do. Add the same 'Select' pill next to 'Sort: Highest amount' in the Lists section header, plus the Dock (Move, Trash, Open in tabs).",
+        "In Documents, 'Linked to Angebot AN24-0305' shows the list name as bold static text. Make the list name a real link (underline on hover, navigates to /list/:id) so the relationship can be acted on.",
+        "The Documents section repeats the list rows above it: each PDF is the source of a list already shown. Fold source files into each list row's ··· menu ('Open source PDF') or collapse Documents by default with a count, so the page has one list of things.",
+        "'Near cap' has no definition anywhere. Add title/tooltip on the status pill and the row 'Near cap' text: 'Near cap: 75% or more of the cap used'.",
+        "No mobile capture of this screen. Check that the two-line list rows use the same right-aligned amount/meta layout requested for S1 mobile."
+      ]
+    },
+    "S3": {
+      "scores": {"hierarchy": 8, "density": 7, "typography": 8, "consistency": 8, "clarity": 7, "interaction": 7, "accessibility": 7, "responsive": 6, "wise": 7},
+      "issues": [
+        "The meta reads '197 positions, all priced · 38 with quantity 0', which contradicts itself: 38 rows contribute 0,00 €. Change it to '197 positions · 38 with quantity 0', make '38 with quantity 0' a filter button like 'still to price', and show a muted 'No quantity' in GP for those rows instead of '0,00'.",
+        "Desktop editable cells (Menge, EP) are plain text at rest. The only cue is a small pencil in the column header and an outline on row hover, so a first-time user can't tell the numbers are editable. Add a resting cue to editableCls: a dotted bottom border in slate-300 (border-b border-dotted) that turns into the full outline on hover.",
+        "Desktop has no visible way to start selecting rows. Checkboxes are opacity 0 until hover (index.css .cb-reveal), and the 'Select' toggle is xl:hidden. Show the Select pill at all widths, as on All Projects, or keep the header checkbox visible at rest.",
+        "The hero's right half is empty, and 'Add position' and 'Export' float alone at the right, about 450px from the total they belong to. Put the actions under the meta, left-aligned like on All Projects and Folder, so every hero uses the same layout.",
+        "Mobile (12): only one full position is visible in the first viewport. Below sm, reduce the hero to the total plus one status line, and put Search, Categories, Select and Sort in one row (search as an icon button that expands).",
+        "Mobile (12): each row spends about 90px on two 56px-tall bordered inputs (Menge, EP), so each row is about 240px tall. Below sm, show Menge × EP as text with an edit affordance that opens the detail drawer, or reduce the inputs to h-9 inline with 'psch ×', to roughly halve row height."
+      ]
+    },
+    "S4": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 8, "consistency": 8, "clarity": 8, "interaction": 8, "accessibility": 8, "responsive": 7, "wise": 8},
+      "issues": [
+        "The H2 Kurztext is now an input but looks like static text, so editing it can't be discovered. Add a hover/focus treatment (rounded bg-slate-50 on hover, a pencil icon after the text on hover, and a full outline on focus).",
+        "The GP card repeats 'List total 536.991,65 € · 67% of cap · On track', which is the page hero visible behind the scrim. Replace it with what changes when this position is edited: 'Share of list: 1,1%', or the delta after an edit ('+300,00 € vs. original').",
+        "The Kategorie card's second line 'Baustelleneinrichtung - Montagepläne - I' still reads as truncated. Label it ('Section: …') or render the path as a breadcrumb with › separators.",
+        "Below sm the drawer is still a full-width right panel with prev/next in the top-right corner, out of thumb reach. Render it as a bottom sheet below sm and move prev/next into the footer beside 'Changes save automatically'."
+      ]
+    },
+    "S5": {
+      "scores": {"hierarchy": 7, "density": 8, "typography": 8, "consistency": 8, "clarity": 7, "interaction": 7, "accessibility": 8, "responsive": 7, "wise": 7},
+      "issues": [
+        "The hero number 2.939.333 € is identical to All Projects, so the screen opens on information the user just saw. Make attention the hero on this screen: large '1 list near its cap', with 'Total of priced lists 2.939.333 €' as the secondary line. Or give the screen a job of its own, such as sorting by '% of cap' by default.",
+        "The status is still doubled: green 'On track overall' pill, then an underlined '1 list near its cap · none over' on the next line. Apply the global rule: amber 'Needs attention' pill followed by '1 list near its cap' inline, and drop 'none over' (absence is implied).",
+        "The nav says 'Active Budgets' but the page says '4 priced lists' and 'Total of priced lists', and the section is 'Lists'. Pick one noun: rename the nav item to 'Priced lists', or change the subtitle and hero label to '4 active budgets' and 'Total of active budgets'.",
+        "The default sort 'Highest amount' hides the one list that needs attention at the bottom (LV-Positionen, 86%). On this screen default to sorting by '% of cap' (descending), so flagged lists come first.",
+        "The screen has no actions: no Select or Export on a list-of-lists view. Add 'Select' next to Sort, with Dock actions (Export selected, Open in tabs), or an 'Export all' secondary pill in the hero."
+      ]
+    },
+    "S6": {
+      "scores": {"hierarchy": 9, "density": 8, "typography": 9, "consistency": 9, "clarity": 8, "interaction": 9, "accessibility": 8, "responsive": 9, "wise": 9},
+      "issues": [
+        "Still duplicated: the subtitle 'Archived projects don't count toward totals' is repeated in the body 'It stops counting toward your totals.' (Collections.tsx:15). Cut the body to 'Archive a project from its More (⋯) menu to set it aside.'",
+        "The literal '⋯' glyph in the body copy is read as 'midline horizontal ellipsis' by screen readers. Write 'More (⋯) menu' and wrap the glyph in <span aria-hidden>."
+      ]
+    },
+    "S7": {
+      "scores": {"hierarchy": 9, "density": 9, "typography": 9, "consistency": 9, "clarity": 8, "interaction": 9, "accessibility": 9, "responsive": 9, "wise": 9},
+      "issues": [
+        "The subtitle 'Items stay here until you delete them forever' still doesn't say how (Trash.tsx:56). Change it to 'Items stay here until you delete them forever from their ⋯ menu', or add a disabled 'Empty trash' button in the header so the control is discoverable."
+      ]
+    },
+    "S8": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 8, "consistency": 8, "clarity": 7, "interaction": 7, "accessibility": 8, "responsive": 8, "wise": 8},
+      "issues": [
+        "The preselected first result 'Bachdurchlass Neppen' matches only in its subtitle ('Stahlbetonrohre'), and that match isn't highlighted, so it looks like a wrong hit. Run the highlight helper on subtitles too, and set the initial active index to the first title match across groups ('Porenbetonfassade').",
+        "'Positions 8' shows 1 result above the fold, and positions are the most specific hits for an estimator. When positions match, cap Projects at 1 and Lists at 2–3 with a 'Show all N' row, or add group tabs (All / Projects / Lists / Positions) with counts.",
+        "Position results show 'OZ 1.1.70 · Rohbau' with no list or project, so the same OZ in different lists can't be told apart. Change the subtitle to 'OZ 1.1.70 · <list title> · <project>'.",
+        "List subtitles repeat the title through the file name ('Porenbetonfassade' / 'LV_04_Porenbetonfassade.pdf'). Drop the file name when it contains the title, and right-align the list total, or a muted 'Not priced' as on position results."
+      ]
+    },
+    "S9": {
+      "scores": {"hierarchy": 9, "density": 9, "typography": 9, "consistency": 9, "clarity": 9, "interaction": 8, "accessibility": 8, "responsive": 8, "wise": 9},
+      "issues": [
+        "'Set a budget cap' is still a lone colour-only text button floating under the format line (EmptyFolder.tsx:49). Move it into the header subtitle ('No lists yet · No cap set — Set cap', underlined), where the cap meta appears once lists exist.",
+        "The touch copy is wrong: 'Drop tender files … anywhere on this page' is shown on touch devices, where drag-and-drop doesn't exist. Under @media (pointer: coarse) show 'Choose tender files or price sheets from your device.' Also stack the two CTAs full-width below 400px."
+      ]
+    }
+  },
+  "global_issues": [
+    "Aggregate heroes (All Projects, Folder, Active Budgets) still give two statuses: a status pill ('On track overall') plus a separate underlined 'N near its cap' line. Make the pill reflect the worst child status (amber 'Needs attention' when anything is near or over), with the count inline as the link, so each hero has one status line.",
+    "Hero action placement is inconsistent: All Projects, Folder and Empty folder put actions under the meta, left-aligned, but the List page pushes 'Add position' and 'Export' to the far right. Use one hero layout everywhere.",
+    "Bulk selection is inconsistent: All Projects has a Select pill, the List page has Select only below xl (hover-revealed checkboxes on desktop), and Folder and Active Budgets have none. Show one 'Select' pill beside Sort on every collection.",
+    "The desktop ledger has no resting affordance for editable cells (Menge, EP look like plain numbers until hover). Add a subtle dotted bottom border at rest in editableCls.",
+    "Mobile heroes still fill the first viewport on S1 and S3 (meta wraps to 3–4 lines). Build a compact mobile hero: total, one status line, action pills. Right-align amounts in mobile rows.",
+    "'Near cap' (75%+) is never defined. Add a tooltip or title on every 'Near cap' pill or label, and mention the threshold in the cap dialog."
+  ]
+}

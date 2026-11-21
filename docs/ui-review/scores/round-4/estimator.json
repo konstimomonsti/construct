@@ -1,0 +1,75 @@
+{
+  "member": "estimator",
+  "screens": {
+    "S1": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 8, "consistency": 7, "clarity": 7, "interaction": 8, "accessibility": 8, "responsive": 6, "wise": 8},
+      "issues": [
+        "Mobile (11) breaks the project name mid-word: 'Fernleit / ung -…'. In Kit.tsx ListRow the title span shares row 1 with a shrink-0 badge and a whitespace-nowrap amount, so break-words splits the word. Below sm, move the badge to the subtitle/meta row (or move the amount to row 3 next to the % line) and use truncate/line-clamp-2 without mid-word breaks, so 'Fernleitung – Weinsbach' wraps only at spaces.",
+        "Mobile rows still put the amount beside the title, not on its own line under it as asked in round 3. Below sm, render amount and '% of cap + meter' as one right-aligned block in row 3 (amount above, % line below), so every row has the same shape whatever the name length.",
+        "The Site row says '2% of 50.000 €' with no flag, but its only list (Estimate) is at 98% of its 1.000 € list cap (Active Budgets shows 'Almost at cap'). Roll list-level warnings up to the project row: show 'Almost at cap' (or '1 list near cap') on the project row and count it in 'Needs attention'.",
+        "The hero meta 'Counts 4 priced projects · 4 projects not priced yet' leaves 5 of the 13 projects unexplained and reads awkwardly. Change it to '4 priced · 4 not priced yet · 5 empty' (each a link to its filter), or 'Total of 4 priced projects' plus the not-priced link.",
+        "The headroom here ('1.409.686,51 € left' in project caps) differs from Active Budgets ('1.460.686,51 €' left in list caps) for the same 2.940.313,49 € total. Add a one-line tooltip or the meta text 'measured against project caps' under the bar, so estimators know why the two numbers differ."
+      ]
+    },
+    "S2": {
+      "scores": {"hierarchy": 9, "density": 9, "typography": 9, "consistency": 8, "clarity": 8, "interaction": 8, "accessibility": 8, "responsive": 7, "wise": 8},
+      "issues": [
+        "The two list caps add up to 2.100.000 € (1.500.000 + 600.000), more than the project cap of 2.000.000 €, and nothing says so. Add a muted note under the hero bar when the sum of list caps is higher than the project cap ('List caps add up to 2.100.000 €, 100.000 € over the project cap').",
+        "The hero meta '1 list near its cap' and the 'Needs attention 1' chip do the same thing. Keep the meta link and drop the chip when the list count is under 5, or make the meta link just activate the chip, so it doesn't look like a second action.",
+        "The hero meta says '314 positions' with no zero-quantity count, but the list page reports '38 with quantity 0'. Add '· n with quantity 0' here when n > 0 so the project and the list agree on completeness.",
+        "No mobile capture, and these rows use the same ListRow as S1, so a long name plus the 'Near cap' badge ('LV-Positionen nach Aufmaß-Gruppen') will hit the same mid-word break. Apply the S1 mobile fix and capture this screen at 390px."
+      ]
+    },
+    "S3": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 8, "consistency": 8, "clarity": 8, "interaction": 8, "accessibility": 8, "responsive": 7, "wise": 8},
+      "issues": [
+        "Mobile (12): the hero, Cost by section, Add position/Export, search and the filter row still fill about 90% of the first screen, and the first position starts at the bottom edge. Below sm, collapse Add position/Export into one row with the ⋯ menu (or icon buttons next to the search) and put the search and the Categories/Select/Sort icon buttons on one row.",
+        "Mobile rows still put the OZ ('1.1.1') on its own line under the Kurztext. Put it inline before the Kurztext (muted, tabular), the way the Titel rows ('1.1 Baustelleneinrichtung …') already do.",
+        "Zero-quantity Nachtrag rows (8.1.1–8.6.8) have an empty Einheit cell, and their Menge '0' and EP inputs stay full-contrast while the Kurztext is muted. Show a muted '—' when the unit is missing, and render Menge/EP in text-slate-500 on qty-0 rows so the whole row reads as 'not ordered'.",
+        "Titel totals for all-zero Nachträge are a bare '—'. Add a muted 'Menge 0' label next to the dash (or a tooltip 'All positions have quantity 0') so it isn't read as a missing value."
+      ]
+    },
+    "S4": {
+      "scores": {"hierarchy": 9, "density": 9, "typography": 8, "consistency": 8, "clarity": 9, "interaction": 9, "accessibility": 8, "responsive": 8, "wise": 9},
+      "issues": [
+        "The drawer shows '263.008 € left in cap' (moneyWhole) while the list hero behind it shows '263.008,35 € left'. Use money() in the drawer as well, so the headroom matches the hero to the cent while an EP is being changed.",
+        "'1,1 % of list' uses a space before % while every other percent in the app is '67%'. Make sharePct() output '1,1%' to match.",
+        "No mobile capture of the drawer. Check it at 390px as a full-height sheet with the Menge/EP fields above the fold and the 'Changes save automatically' footer not covering the Langtext, and add the screenshot."
+      ]
+    },
+    "S5": {
+      "scores": {"hierarchy": 9, "density": 9, "typography": 9, "consistency": 9, "clarity": 8, "interaction": 9, "accessibility": 8, "responsive": 8, "wise": 9},
+      "issues": [
+        "The '2 lists near cap' chip uses the warning triangle, while the rows use two different statuses ('Almost at cap' triangle in orange, 'Near cap' circle in amber). Label the hero chip with the worst status ('1 almost at cap · 1 near cap') so the count matches the badges below.",
+        "No mobile capture. These rows use the S1 ListRow, and 'LV-Positionen nach Aufmaß-Gruppen' + 'Near cap' will break mid-word the same way. Apply the S1 mobile fix and add a 390px screenshot."
+      ]
+    },
+    "S6": {
+      "scores": {"hierarchy": 9, "density": 9, "typography": 9, "consistency": 9, "clarity": 9, "interaction": 9, "accessibility": 9, "responsive": 9, "wise": 9},
+      "issues": []
+    },
+    "S7": {
+      "scores": {"hierarchy": 9, "density": 9, "typography": 9, "consistency": 9, "clarity": 9, "interaction": 9, "accessibility": 9, "responsive": 9, "wise": 9},
+      "issues": []
+    },
+    "S8": {
+      "scores": {"hierarchy": 9, "density": 9, "typography": 9, "consistency": 9, "clarity": 8, "interaction": 8, "accessibility": 9, "responsive": 8, "wise": 9},
+      "issues": [
+        "Priced position results show only the GP on the right. To compare 'Beton' across LVs the estimator needs the unit price: show 'EP 245,00 € / m³' on the right (with the GP muted under it), not the GP alone.",
+        "'Show 50 of 104 positions' reads as if 54 results will stay hidden for no reason. Either show all 104 on expand, or label it 'Show 50 more' and add 'Refine your search to see the rest' at the end of the expanded list.",
+        "The position subtitle 'OZ 3.1.60 · Rohbau · Ortbetonarbeiten' doesn't name the project, and list names like 'Rohbau' repeat across projects. Add the project name ('Ausbildungszentrum …') to the subtitle, or group positions under a project/list heading."
+      ]
+    },
+    "S9": {
+      "scores": {"hierarchy": 9, "density": 9, "typography": 9, "consistency": 9, "clarity": 9, "interaction": 9, "accessibility": 9, "responsive": 9, "wise": 9},
+      "issues": []
+    }
+  },
+  "global_issues": [
+    "Mobile ListRow (Kit.tsx) breaks names mid-word when a badge and an amount share row 1 ('Fernleit / ung -…' on S1). It affects S1, S2 and S5. Move the badge and the amount out of the title row below sm and wrap names only at spaces.",
+    "Caps don't roll up: a project row can look safe ('Site · 2% of 50.000 €') while its only list is at 98% of its own cap, and a project's list caps can add up to more than the project cap (Fernleitung: 2.100.000 € vs 2.000.000 €) without a warning. Surface list-level warnings on the project row and flag list caps that exceed the project cap.",
+    "Headroom is shown with different precision in the drawer (whole euros) and in the list hero (cents). Use cents for the same number everywhere it appears inside a list.",
+    "The mobile list page (12) still spends almost the whole first screen on the hero and controls. Compact the action and filter rows below sm and put the OZ inline in position rows.",
+    "Search shows GP but not EP for positions, which is the number an estimator compares across tenders."
+  ]
+}

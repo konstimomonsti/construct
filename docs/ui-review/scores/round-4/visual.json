@@ -1,0 +1,107 @@
+{
+  "member": "visual",
+  "screens": {
+    "S1": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 8, "consistency": 8, "clarity": 7, "interaction": 8, "accessibility": 8, "responsive": 6, "wise": 8},
+      "issues": [
+        "Responsive (11-mobile-home): the 'Near cap' chip on the title line squeezes the title column, so 'Fernleitung – Weinsbach' breaks mid-word ('Fernleit / ung -…'). Below sm, move the StatusTag to the subtitle or meter line ('75% of 2.000.000 € · Near cap'). Also replace break-words with break-normal + hyphens-auto on the Row title span (Kit.tsx:370), so words never split without a hyphen.",
+        "Responsive (11-mobile-home): the hero meta takes three lines on mobile (chip + '68% of 4.350.000 €', then '1.409.686,51 € left' on its own line, then 'Counts 4 priced projects · 4 projects not priced yet'). Below sm, drop '… € left' (the bar already shows it) or merge it into the chip line, so the meta is at most two lines.",
+        "Clarity: 'Counts 4 priced projects · 4 projects not priced yet' is awkward and says 'projects' twice. Rewrite it as '4 of 8 projects priced · 4 not priced yet', with only the second part as the link.",
+        "Hierarchy: there are still two muted lines between the bar and the pills. Fold the priced/unpriced note into the status line after '… € left', or into the filter chip 'Not priced 4' (it is already there), and delete the line.",
+        "Consistency: Sort, Select, New project and the filter chips are slate-fill pills with a 1px slate-300 border, while the top search is borderless filled. Drop the border on secondary pills (bg-slate-100, hover:bg-slate-200), so the chrome uses one borderless surface style.",
+        "Consistency: the glyph centres of the trailing ⋯ differ (header ⋯ at x≈1348, row ⋯ at x≈1352). Give the header and row kebab buttons the same size (size-9) with the same right edge."
+      ]
+    },
+    "S2": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 8, "consistency": 7, "clarity": 8, "interaction": 8, "accessibility": 8, "responsive": 7, "wise": 8},
+      "issues": [
+        "Clarity: the hero shows two separate warnings: the project chip 'Near cap', and the link '1 list near its cap' on the next line. Keep the chip, and change the second line to '314 positions' only. The list-level warning is already the Near cap chip on the LV-Positionen row and the 'Needs attention 1' filter.",
+        "Density: with 2 lists, the 'All | Needs attention 1' filter row, the 'Sort: Highest amount' pill and the 'Select' pill are more chrome than content. Hide the filter chips and Sort when a section has 3 or fewer rows.",
+        "Consistency: the list rows use a project-tinted icon (magenta doc on a pink circle), while the same lists on Active Budgets (S5) use a grey slate-100 circle, and the palette (S8) uses brand-lavender. Pick one list-icon treatment (the project tone everywhere is the best) and apply it in FolderPage, ActiveBudgets and CommandPalette.",
+        "Consistency: secondary pills (New list, Sort, Select, Needs attention) carry a 1px border. Make them borderless slate-100, the same as on S1.",
+        "Responsive: not captured. At 390px, the 48px avatar plus the 24px H1 leaves ~200px for 'Fernleitung – Weinsbach'. Hide the avatar below sm, or shrink it to size-9, and apply the same mobile Row status fix as S1, so list titles don't split mid-word."
+      ]
+    },
+    "S3": {
+      "scores": {"hierarchy": 7, "density": 7, "typography": 7, "consistency": 7, "clarity": 8, "interaction": 8, "accessibility": 8, "responsive": 6, "wise": 7},
+      "issues": [
+        "Hierarchy: the hero now stacks four tiers between the number and the pills: the segmented bar, the status chip line, '197 positions · 38 with quantity 0', and the 'Cost by section' disclosure. Move 'Cost by section' into the toolbar (or make the bar itself the toggle), and keep one status line plus one muted line, so the anatomy matches S1/S2.",
+        "Consistency/colour: the list meter is now a 7-colour categorical bar (blue, red, green, purple, olive, teal, magenta), so it no longer carries the green/amber/red status that every other meter uses, and the olive and red read as warnings. Default to the single status-coloured meter, and show the per-section split only when 'Cost by section' is expanded, using a sequential brand ramp, not semantic hues.",
+        "Density: every Menge and EP cell shows a permanent dotted slate-400 bottom border (editableCls border-b-slate-400), which puts ~400 underline segments on the page and makes the ledger look like a form. Make the border transparent at rest and show it only on row hover or focus (group-hover:border-slate-400). Coarse pointers can keep the visible border.",
+        "Typography: the row baselines don't line up. Kurztext and the GP value sit ~2px higher (y≈748) than OZ, Menge, Einheit and EP (y≈750), because the inputs are h-9 boxes while the text cells are not. Use align-baseline on the tds, or give the GP and Kurztext cells the same h-9 / leading-9 box.",
+        "Typography: group subtotals and GP have no € on desktop ('53.061,00', with the header 'GP (€)'), but on mobile they show '53.061,00 €' and '5.700,00 €'. Pick one: keep the € on mobile (there is no column header there), and say so in the code, or drop it on both.",
+        "Consistency: the 'Search positions' field is a white box with a 1px slate-400 border, while the header search is a borderless slate-100 fill. Use the filled style for in-page search too.",
+        "Responsive (12-mobile-list): Menge and EP are still permanent 1px bordered white boxes (~128px each), and Menge is left-aligned ('1' hugging the left edge) because of max-xl:text-left. Use a borderless slate-100 filled field (border on focus only), size Menge to w-16, and keep the numbers right-aligned at all widths.",
+        "Responsive (12-mobile-list): the position card puts the OZ ('1.1.1') under the title, the reverse of desktop and the group headers, where the number leads. Put the OZ before the title on the same line (slate-500, tabular), or above it as a small caption.",
+        "Responsive (12-mobile-list): the toolbar row still spaces 'Categories', 'Select' and 'Sort' unevenly (Sort is pushed to the right edge). Use gap-2 with no justify-between / ml-auto below sm.",
+        "Responsive (12-mobile-list): level-1 group titles wrap with a dangling separator ('Baustelleneinrichtung -' / 'Montagepläne - I'). Allow line-clamp-2 with text-balance, and drop the subtotal to its own right-aligned line below sm, so the title gets the full width."
+      ]
+    },
+    "S4": {
+      "scores": {"hierarchy": 8, "density": 7, "typography": 7, "consistency": 7, "clarity": 8, "interaction": 8, "accessibility": 8, "responsive": 8, "wise": 8},
+      "issues": [
+        "Typography: the GP card reads '263.008 € left in cap' (moneyWhole), while the hero visible behind the scrim reads '263.008,35 € left'. The same number is shown at two precisions on one screen. Use money() here, or drop the headroom segment entirely (it repeats the page hero), and keep only '1,1% of list'.",
+        "Typography: sharePct renders '1,1 %' (with a space), while every other percentage in the product is '67%' / '75%'. Remove the space in sharePct, so all percentages share one format.",
+        "Consistency/density: Menge and EP (€) are white inputs with 1px slate-300 borders, and the Kategorie control is a bordered box (border-slate-400) that holds a filled 'Change' pill. That puts a box inside a box next to a borderless slate-50 GP card. Switch fieldCls and the Kategorie button to bg-slate-50 with no border, plus a brand focus ring, and drop the inner pill's fill (text button), or make the whole row the button.",
+        "Clarity: the EP field has '(€)' in its label and a '€' suffix inside the input. Drop one (keep the suffix, and label it 'EP').",
+        "Clarity: the unit 'psch' floats between the two inputs with no label, while Einheit exists as an sr-only label. Show it as the Menge input's suffix (like the € in EP), so the two fields have the same anatomy.",
+        "Hierarchy: the GP card's 30px figure and the 20px title compete. With the OZ now inline, raise the title to text-[22px], or drop the GP to 26px, so the title is clearly the heading and GP the hero value."
+      ]
+    },
+    "S5": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 8, "consistency": 7, "clarity": 8, "interaction": 8, "accessibility": 8, "responsive": 8, "wise": 8},
+      "issues": [
+        "Consistency: the list icons are a grey slate-100 circle here, but tinted on S2 and brand-lavender in the palette. Use the parent project's tone (the same as on S2), which would also help tell lists from different projects apart.",
+        "Consistency: the hero chip '2 lists near cap' uses the red-orange triangle (the 'Almost at cap' tone), but one of the two lists is only 'Near cap' (amber circle). Give the hero chip the tone of the worst item, with copy that matches ('1 almost at cap · 1 near cap'), or call the hero category 'need attention' to match the filter chip.",
+        "Clarity: every row subtitle ends in '· all priced', and the page is by definition 'priced lists'. Drop the segment when a list is fully priced, and show it only when something is unpriced ('12 not priced').",
+        "Typography: the meta line '2.940.313,49 € priced across 5 lists' bolds the amount at the same 14px, which competes with the chip line above. Use regular slate-600 for the whole line, or move it into the page subtitle.",
+        "Hierarchy: the hero label 'Left in list caps' makes the remaining amount the hero, while S1/S2/S3 make the total the hero, with '… left' in the meta line. That is defensible, but put the formula in the meta ('of 4.401.000 € in caps · 2.940.313 € used'), so the number reads unambiguously."
+      ]
+    },
+    "S6": {
+      "scores": {"hierarchy": 8, "density": 9, "typography": 9, "consistency": 9, "clarity": 9, "interaction": 9, "accessibility": 9, "responsive": 8, "wise": 8},
+      "issues": [
+        "Hierarchy: the empty-state block sits at y≈234–446, leaving ~450px of blank canvas below it, and the subtitle above already says the same thing. Add min-h-[50vh] with justify-center to the EmptyState wrapper (keeping it left-aligned to the column), so it sits near the optical centre.",
+        "Wise: the 64px slate-100 circle with a 28px glyph is still a small anchor on an 1100px canvas. Use a size-20 circle with a 36px glyph, or a project-tone tint instead of slate.",
+        "Responsive: not captured. Verify that the 'Go to All Projects' pill and the body text keep 16px gutters at 390px (the body line is ~400px long at 15px)."
+      ]
+    },
+    "S7": {
+      "scores": {"hierarchy": 8, "density": 9, "typography": 9, "consistency": 9, "clarity": 8, "interaction": 9, "accessibility": 9, "responsive": 8, "wise": 8},
+      "issues": [
+        "Clarity: the body is two sentences on two lines and repeats the subtitle ('Items stay here until you delete them forever'). Cut it to one line: 'Deleted projects and lists can be restored from here.' Keep the position/Undo note in the Undo toast, where it is actionable.",
+        "Hierarchy: same as S6. The block is top-weighted with ~430px blank below. Centre it optically (min-h-[50vh], justify-center).",
+        "Wise: same as S6. Scale the icon circle to size-20 with a 36px glyph."
+      ]
+    },
+    "S8": {
+      "scores": {"hierarchy": 9, "density": 8, "typography": 8, "consistency": 7, "clarity": 7, "interaction": 9, "accessibility": 8, "responsive": 8, "wise": 8},
+      "issues": [
+        "Clarity: the expander reads 'Show 50 of 104 positions', which is an implementation cap shown as a label. Use 'Show more positions (104)', and when the 50 cap is reached, add a final hint row: 'Refine the search to see all 104'.",
+        "Clarity/density: every one of the six rows ends in an identical 'Not priced' in the right column. Show the right column only when it differs (an amount for priced items), and render unpriced as nothing, or as one muted line in the group header ('all not priced').",
+        "Consistency: the active row has a brand-50 fill and a 3px brand bar at x≈393. The bar sits on the panel edge, outside the row's 8px inset and rounded corners, so it looks detached. Put the indicator inside the rounded row (before:left-0 within the row), or drop it and rely on the fill.",
+        "Consistency: the position icons are grey slate-100 circles and the list icons are brand-lavender, while lists are grey on S5 and project-tinted on S2. Use one list-icon treatment app-wide (see S2).",
+        "Typography: the group label 'POSITIONS 104' puts the count in the same uppercase tracking as the label. Render the count as normal-case tabular slate-400 (like 'Projects 13' on S1), so the two parts read as label plus count.",
+        "Wise: the page behind is still heavily blurred in the capture, although CommandPalette.tsx:234 sets backdrop-blur-[2px]. Find the extra blur (a parent filter or the dialog's own backdrop), and keep the 2px blur with the slate-900/20 scrim only, so the palette feels anchored to the page."
+      ]
+    },
+    "S9": {
+      "scores": {"hierarchy": 9, "density": 8, "typography": 9, "consistency": 8, "clarity": 8, "interaction": 9, "accessibility": 9, "responsive": 8, "wise": 8},
+      "issues": [
+        "Density/consistency: the empty state now sits in a full-width dashed rounded-3xl box (≈1056×368px), the only dashed container in the product, and S6/S7 use the same EmptyState with no container. Remove the dashed border at rest, and show it (with a brand-50 fill) only while a file is dragged over the page.",
+        "Clarity: the copy says 'Drop GAEB or price files anywhere on this page', but the dashed box suggests that only the box is a drop target. Removing the resting border (above) fixes the contradiction.",
+        "Responsive: not captured. Make the 'Import files' and 'Start a blank list' pills w-full sm:w-auto below sm, so they stack evenly at 390px, and check that the fine print wraps inside 16px gutters.",
+        "Wise: scale the icon circle to size-20 (see S6), so the empty canvas has one confident anchor."
+      ]
+    }
+  },
+  "global_issues": [
+    "Fixed since round 3: status chips moved to the title line (no more ragged right column), the List hero pills now sit under the hero, per-row ledger hairlines are gone, zero-quantity rows are muted with a '—' GP, the pencil header icons are gone, the drawer labels match the ledger and Kategorie has no dangling '- I', the Langtext fade, the empty states are unified with arrow_back icons, palette subtitle highlights and group caps, and the S5 'D84' jargon is gone.",
+    "Mobile rows: putting the StatusTag on the title line at 390px makes titles split mid-word ('Fernleit / ung'). Below sm, the status must move to the meter/subtitle line, and titles must use break-normal + hyphens-auto.",
+    "Field style is still split three ways: the drawer uses white 1px-bordered inputs, desktop ledger cells have permanent dotted underlines, and mobile ledger cells are bordered boxes. Every other control is a borderless filled pill. Standardise on bg-slate-50/100 with no border at rest and a brand focus ring, and on desktop show the cell affordance only on row hover or focus.",
+    "Secondary pills (Sort, Select, New project/list, filter chips) carry 1px borders, while the header search is borderless filled. Pick borderless slate-100 for all secondary controls, which is closer to Wise.",
+    "The list icon treatment differs on every surface: tinted on S2, grey on S5, brand-lavender in S8. Use one rule (the parent project's tone).",
+    "Number formatting: '1,1 %' (drawer) vs '67%' everywhere else; '263.008 €' (drawer, whole) vs '263.008,35 €' (hero) on one screen; desktop ledger GP without € vs mobile with €. Define one formatter per role and use it everywhere.",
+    "The List hero's 7-colour section bar breaks the status-colour meaning of every other meter. Default to the status meter, and show the categorical split only when it is expanded."
+  ]
+}

@@ -1,0 +1,120 @@
+{
+  "member": "ux",
+  "screens": {
+    "S1": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 8, "consistency": 7, "clarity": 6, "interaction": 7, "accessibility": 7, "responsive": 4, "wise": 7},
+      "issues": [
+        "Mobile (11): the 'Near cap' pill and the '75% of €2,000,000' meta squeeze the Fernleitung row so its title shows as 'F' and its subtitle as '2'. On narrow widths, stack the amount and meta under the title (2-line layout: title + amount on line 1, subtitle + '% of cap' on line 2), drop the pill to an icon-only dot with an aria-label, and never let the title column go below roughly 50% of the row width.",
+        "Mobile (11): titles truncate after about 10 characters ('Ringschluss B…', 'Maschinentech…') and subtitles after 2 words, so rows can't be identified. Let the title wrap to 2 lines and hide the description subtitle below sm, keeping just 'N lists'.",
+        "Hero says 'On track' while a project row says 'Near cap'. Add an aggregate line under the meter, such as '1 project near cap' (linked to Active Budgets › Needs attention), so the summary doesn't hide the one thing that needs attention.",
+        "'Open all' as a hero-level action opens 37 lists into the tab bar, which is a rare, heavy action sitting next to the primary CTA. Move it into a ··· menu on the hero or into the Select dock (already present as onOpen). Keep at most 2 hero pills: New Folder (primary) and Upload.",
+        "Terminology clash: nav says 'All Projects', the section says 'Projects', the subtitle says '6 folders', and the CTA says 'New Folder'. Pick one noun ('Project') and use it for the button ('New project'), the subtitle ('6 projects · 37 lists'), the menus and the toasts.",
+        "Unpriced projects show a bold '€0' over 'Not priced yet'. Replace the bold €0 with a muted '—' or 'Not priced', and use the meta line for progress ('27 lists to price') so the right column carries information rather than zeros.",
+        "Mobile: the hero's 3 buttons wrap to 2 rows (Open all orphaned) and '€1,463,361 left' drops to its own line. With Open all removed, the 2 pills fit one row; put 'left' on the meter's right end.",
+        "Mobile: sort is an unlabeled ⇅ icon next to a labeled 'Select'. Give it a short label ('Sort') or an accessible name with a visible current-sort state.",
+        "Casing: 'New Folder' (Title Case) vs 'New list' / 'Upload files' / 'Add item' (sentence case) elsewhere. Use sentence case throughout."
+      ]
+    },
+    "S2": {
+      "scores": {"hierarchy": 8, "density": 7, "typography": 7, "consistency": 6, "clarity": 6, "interaction": 7, "accessibility": 7, "responsive": 6, "wise": 7},
+      "issues": [
+        "Every list subtitle repeats the folder name in source caps ('RINGSCHLUSS BRUNNENWASSER, [PERSON_132]'), which is pure noise inside that folder. In folder context, drop the project label from the subtitle and show 'N positions · N unpriced · date/format'.",
+        "Two lists (StBALV23040.D86 / .D84) have identical subtitles and identical totals and differ by one character. Add a distinguishing attribute in the subtitle (GAEB phase D84 'Angebotsaufforderung' vs D86 'Auftragserteilung', or the import date) so the user can tell which one to open.",
+        "Documents rows say 'Linked to RINGSCHLUSS BRUNNENWASSER, [PERSON_132]', but two lists share that title, so the link target is ambiguous. Show the linked list's file name ('Linked to StBALV23040.D86') and make it a link.",
+        "Money precision is inconsistent: the hero and home rows show whole euros (€1,794,611), while list rows here show cents (€897,305.45). Use whole euros at folder and portfolio level and cents only inside a list, or use cents everywhere on this screen.",
+        "Hero actions are 'Upload files' (primary), 'New list' and 'Open all', while home uses 'Upload' and has no 'New list'. Use the same label ('Upload'), move 'Open all' into the header ··· menu, and keep 2 pills.",
+        "There is no 'Select' tool for lists here although the home folder rows have one, so bulk move, trash and open of lists isn't possible from the folder. Add the same Select + Dock pattern.",
+        "Sort label 'Cost (High to Low)' differs from 'Highest amount' (Active Budgets) and 'Sort by amount' (List). Unify to one menu component and one label set.",
+        "Header ··· (top right of the title) and per-row ··· look identical but act on different scopes. Give the folder-level menu a visible label or move it into the hero next to the actions."
+      ]
+    },
+    "S3": {
+      "scores": {"hierarchy": 7, "density": 6, "typography": 8, "consistency": 7, "clarity": 7, "interaction": 6, "accessibility": 7, "responsive": 6, "wise": 7},
+      "issues": [
+        "The breadcrumb's last crumb and the H1 are both 'Maschinentechnik - Anlagenbau' (list title = folder name), so the user can't tell they're on a list rather than the folder. When the list title equals the folder name, use the file name (LV24069.D86) as the H1, or add a small 'List' eyebrow, and keep the folder only in the breadcrumb.",
+        "The table starts at y≈490 of 900, leaving about 6 positions above the fold for an estimator whose job is editing rows. Make the hero collapse to a compact sticky bar ('€536,991.65 · 67% of €800,000 · On track') once the user scrolls into the table, and offer a 'Compact rows' density toggle (about 40px rows instead of about 57px).",
+        "No running total is visible while editing far down the list (see 04: row 5.1.52 is about 6,000px below the total). The sticky summary bar above should update live when Menge or EP changes and flash the delta.",
+        "Ledger pagination ('Showing 100 of 197 · Show 97 more') breaks Ctrl+F, scanning and category subtotals mid-list. Virtualize the full list instead of paging, or at least auto-load on scroll.",
+        "Editable cells (Menge, EP) look exactly like static text at rest. Add a faint input affordance (a hairline bottom border or a subtle bg-slate-50 cell on row hover) and a pencil cursor so estimators know they can click to edit in place without opening the drawer.",
+        "Checkboxes on all 197 rows add a full column of visual noise. Show them only on row hover or focus and when at least one row is selected (Gmail pattern), or hide them behind a 'Select' toggle like home.",
+        "Sort is a one-way 'Sort by amount' button that disappears and turns into a 'Reset order' link, which differs from the sort menus on S1, S2 and S5. Use the same sort menu (Position order / Amount high→low / Amount low→high).",
+        "'Add item' vs '197 positions': the UI calls the same object 'item' and 'position'. Use 'Add position'.",
+        "'197 positions · 197 priced' is redundant when everything is priced. Show '197 positions · all priced' and reserve the bold 'N still to price' for the incomplete case.",
+        "Mobile (12): the hero card fills the whole first viewport, the H1 truncates to 'Maschinentechnik - Anlag…' and the meta line to '27.0…'. Let the H1 wrap to 2 lines, drop the meta to the ··· menu, and put the action pills in a single compact row (or a floating 'Add' FAB).",
+        "Mobile (12): the Kurztext breaks as 'Baustelleneinrichtung und -' / 'räumung' because the hyphen is treated as a break opportunity. Use a non-breaking hyphen (U+2011) when rendering, or hyphens: manual, and drop per-row checkboxes on mobile in favour of long-press select."
+      ]
+    },
+    "S4": {
+      "scores": {"hierarchy": 8, "density": 7, "typography": 7, "consistency": 7, "clarity": 8, "interaction": 7, "accessibility": 7, "responsive": 6, "wise": 7},
+      "issues": [
+        "The Kurztext appears twice: as the drawer H2 'Baustelleneinrichtung und -räumung' and again directly below in the Kurztext input. Make the title itself the editable field (inline-editable heading), or drop the heading to 'OZ 1.1.1' and keep only the input.",
+        "The EP input shows '5700.00' (raw) while every other place shows '€5,700.00'. Format on blur with thousands separators and keep raw only while focused.",
+        "Langtext renders the GAEB hard line breaks ('vorhalten und / nach / Ende der Baumaßnahme räumen,'), which looks broken. Reflow single newlines into spaces for display and keep paragraph breaks (double newlines).",
+        "Edits change the list total but the drawer gives no feedback on list-level impact. Under the GP card, add 'List total €536,991.65 · 67% of cap', updated live with the delta, so the estimator sees cap impact without closing the drawer.",
+        "Footer has both an X (top-left) and a 'Done' button, plus an autosave note. Keep X + Esc and change 'Done' to a quiet secondary, or keep Done and remove X; two close affordances at opposite corners dilute focus.",
+        "There is no destructive or secondary action in the drawer (Remove, Move to category, Reset changes exist only in the row ··· menu). Add a ··· menu in the drawer header with the same items so the detail view is complete.",
+        "The Kategorie 'Change' link is a text-link style, while every other action is a pill. Use a ghost pill button for consistency.",
+        "At ~512px fixed width the drawer will not work on mobile. Make it a full-height bottom sheet under sm, with prev/next pinned at the bottom."
+      ]
+    },
+    "S5": {
+      "scores": {"hierarchy": 7, "density": 8, "typography": 8, "consistency": 7, "clarity": 5, "interaction": 7, "accessibility": 7, "responsive": 7, "wise": 7},
+      "issues": [
+        "The summary text contradicts the row status: 'Every list is within its cap' sits above a row tagged 'Near cap' (86%). Change it to '1 list near cap · none over' and make that text the link that toggles the 'Needs attention' chip.",
+        "The same hero total (€3,836,639) appears here and on All Projects, but against different caps (€5,900,000 / 65% here vs €5,300,000 / 72% on home). Users will read this as an error. Either use one cap basis across both screens or label the difference explicitly ('Sum of list caps' vs 'Sum of project caps'), and consider making this screen's hero 'Needs attention: 1' rather than repeating the portfolio total.",
+        "Row subtitles repeat the folder name twice ('Ringschluss Brunnenwasser · RINGSCHLUSS BRUNNENWASSER, [PERSON_132]'), and the Maschinentechnik row has title = folder name = subtitle prefix. Subtitle should be 'Folder · file name · N positions'. Never repeat the source project label when it equals the folder.",
+        "Filter chips have no counts. Use 'All 5' and 'Needs attention 1' so the user knows whether the filter is worth clicking.",
+        "Naming: the nav says 'Active Budgets' and the page subtitle says '5 priced lists'. Pick one concept. 'Budgets' suggests caps, but the content is priced lists. Consider 'Budgets' with subtitle '5 lists with prices'.",
+        "Sort label 'Highest amount' is yet another variant (see S2/S3). Unify."
+      ]
+    },
+    "S6": {
+      "scores": {"hierarchy": 7, "density": 7, "typography": 8, "consistency": 8, "clarity": 8, "interaction": 6, "accessibility": 8, "responsive": 8, "wise": 7},
+      "issues": [
+        "The empty state has no action, and its instruction relies on recall ('Archive a folder from its ··· menu'). Add a secondary pill 'Go to All Projects', or better, explain archiving as a benefit ('Finished tenders stay searchable but leave your totals').",
+        "The large grey card is a box in an otherwise empty page and makes the screen feel heavier than its content. Drop the fill and render the icon + text directly on white, about 120px below the title (Wise empty states are unboxed).",
+        "There is no subtitle under the H1, while other list pages show counts. Add a muted 'Archived projects don't count toward totals' line so the page explains its purpose even when it has items."
+      ]
+    },
+    "S7": {
+      "scores": {"hierarchy": 7, "density": 7, "typography": 8, "consistency": 8, "clarity": 7, "interaction": 7, "accessibility": 8, "responsive": 8, "wise": 7},
+      "issues": [
+        "The retention policy is not stated. Say whether trashed items auto-delete ('Items are deleted after 30 days') or stay until emptied. Users need this before trusting Trash as a safety net.",
+        "Same boxed empty card as Archived. Drop the grey fill for a calmer unboxed empty state.",
+        "Copy: 'Folders and lists you move to Trash can be restored from here.' wraps with an orphaned 'here.'. Shorten it ('Deleted folders and lists land here for restore.') or widen the max-width so it fits on 2 balanced lines (text-wrap: balance)."
+      ]
+    },
+    "S8": {
+      "scores": {"hierarchy": 7, "density": 7, "typography": 7, "consistency": 7, "clarity": 6, "interaction": 7, "accessibility": 7, "responsive": 7, "wise": 8},
+      "issues": [
+        "There is no match highlighting. The first, preselected result 'Bachdurchlass Neppen' matches 'Beton' only via its description ('Stahlbetonrohre'), so it looks like a wrong hit. Bold or highlight the matched substring in title and subtitle, and rank name matches above description matches.",
+        "List results show only the file name as subtitle, with no folder context and no amount, so the user can't tell which project 'Porenbetondach' belongs to. Change the subtitle to 'Folder · file name' and right-align the total (or 'Not priced').",
+        "The Positions group is cut off below the fold (only its header is visible), so the most specific results for an estimator are hidden behind 6 folder/list results. Cap Folders at 3 and Lists at 4 when positions match, or add group tabs (All / Folders / Lists / Positions) with counts.",
+        "Pluralisation bug: '1 lists · LV 152516…'. Use the plural() helper already used elsewhere.",
+        "The footer '3,052 positions indexed' is system noise. Replace it with the result count ('14 results') or remove it.",
+        "Subtitles that repeat the title as a file name ('Porenbetonfassade' / 'LV_04_Porenbetonfassade.pdf') add a second line of near-duplicate text. When file name ≈ title, show the folder instead."
+      ]
+    },
+    "S9": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 8, "consistency": 7, "clarity": 7, "interaction": 8, "accessibility": 8, "responsive": 8, "wise": 8},
+      "issues": [
+        "The folder subtitle 'Awaiting initial line allocations' is jargon/demo filler and isn't BillBuild vocabulary. For a new folder, show nothing or a muted 'No lists yet · Add a description' affordance.",
+        "Terminology: 'Add your first item list' introduces a third name for a list ('item list'), next to 'list' and 'LV'. Use 'Add your first list' (or 'Import your first LV').",
+        "The format line 'GAEB .X81–.X86 / .D81–.D86 · CSV · JSON · PDF' is useful, but the slash and dot separators make it read as noise. Use 'GAEB (X81–X86, D81–D86), CSV, JSON or PDF'.",
+        "The empty card is again a large grey box. Since 'drop anywhere on this page' is the promise, a dashed drop zone (shown on dragover) would communicate the drop target better than a static filled card."
+      ]
+    }
+  },
+  "global_issues": [
+    "Terminology is not unified, which raises cognitive load on every screen: Project vs Folder (nav 'All Projects', button 'New Folder', subtitle '6 folders'), List vs Item list vs LV, Item vs Position ('Add item' / '197 positions'). Fix one noun per concept and apply it to nav, buttons, menus, toasts and empty states.",
+    "Budget status contradicts itself across screens: home hero 'On track' with a Near-cap project, Active Budgets 'Every list is within its cap' next to a Near-cap row, and the same €3,836,639 total against €5.3M on one screen and €5.9M on another. Define one cap model and one 'needs attention' rule and surface the count wherever a hero shows status.",
+    "Sorting uses 3 labels and 2 interaction patterns: 'Cost (High to Low)' menu, 'Highest amount' menu, and a 'Sort by amount' one-way toggle that turns into 'Reset order'. Use one sort-menu component with shared labels everywhere.",
+    "'Open all' appears as a hero action on Home and Folder, competing with the primary CTA for a rare, heavy operation. Move it to ··· / the selection dock so heroes carry at most 2 pills.",
+    "Row subtitles repeat context the user already has (folder name in caps inside the folder, file name ≈ title in search, folder name twice on Active Budgets). Make subtitles context-aware: omit the parent you're inside, and lead with the attribute that distinguishes siblings.",
+    "No persistent total on the List page: once the hero scrolls away, edits give no budget feedback. Add a compact sticky total/cap bar (and show list-total impact in the drawer). This is the main way to beat Wise for estimators.",
+    "Inline-editable numbers (Menge, EP) have no resting affordance, and the ledger pages at 100 rows. Both work against the core estimator flow of scan → edit → see total.",
+    "Mobile row layout is broken where meta is wide (S1 'F' / '2'). The shared Row component needs a stacked narrow-width variant: title wraps, meta moves under the subtitle, status becomes icon-only.",
+    "Inconsistent button casing (New Folder vs New list / Upload files / Add item) and labels for the same action ('Upload' vs 'Upload files'). Use sentence case and one label per action.",
+    "Money precision varies by level without a rule (whole euros on Home/Folder hero, cents in Folder list rows, cents in List hero). Use whole euros for aggregates and cents for list/position level, applied consistently, including inside the same Folder screen."
+  ]
+}

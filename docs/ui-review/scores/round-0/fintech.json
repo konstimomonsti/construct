@@ -1,0 +1,120 @@
+{
+  "member": "fintech",
+  "screens": {
+    "S1": {
+      "scores": {"hierarchy": 4, "density": 5, "typography": 4, "consistency": 5, "clarity": 5, "interaction": 5, "accessibility": 4, "responsive": 5, "wise": 3},
+      "issues": [
+        "Add a hero number: the workspace total (€3.84M of €5.30M, 72%) is buried in a tiny monospace widget in the sidebar footer. Wise opens every home screen on the total balance in very large type with 2-3 pill actions right under it. Move it to the top of the page and drop the sidebar widget.",
+        "Keep one primary action. 'Upload File' (top bar) and 'Open All 37' (header) are both filled indigo. Make Upload the primary and turn Open All into a secondary or a 'more' item.",
+        "Replace monospace money (€1.79M, €2.50M, Set cap) with a proportional font using tabular figures, as Wise does. Monospace makes the money look like a terminal, not a premium product.",
+        "Remove the percentage label printed inside the thin progress bars (white on green/orange fails AA). Show '72% of €2.50M' as muted text beside or under a slim bar.",
+        "Flatten the cards. Each has a bordered box, a top divider, a centred icon in its own tinted box and a bottom divider (boxes-in-boxes). Use Wise-style rows or soft borderless tiles: round icon on the left, bold name, muted subtitle, amount right-aligned.",
+        "Uncapped folders show '€0k', an empty '0%' bar and 'Set cap' in mono. Show a calm 'No budget set' and a single 'Set budget' link instead of an empty gauge.",
+        "Explain the status colour. The orange dot and orange '2 lists inside' text carry budget status, but colour alone with an unrelated label does not say so. Write the status in words ('Approaching cap').",
+        "Mobile: the header actions wrap into two loose rows with a stray divider, and only about two cards fit per screen. Stack the hero total, then one pill row, then compact list rows. The count also says '7 Folders' on mobile but '6 Folders' on desktop."
+      ]
+    },
+    "S2": {
+      "scores": {"hierarchy": 4, "density": 3, "typography": 4, "consistency": 4, "clarity": 4, "interaction": 4, "accessibility": 4, "responsive": 4, "wise": 3},
+      "issues": [
+        "Remove the duplicate actions. The top bar has New Subfolder / Upload / Import CSV and the page header has Upload Files / New subfolder / New List / Open All / sort / more: about 9 buttons, two of them filled primaries, and some repeated. Keep one primary ('Add list' or 'Upload') and put the rest behind 'More', as Wise does.",
+        "Make the folder total the hero. €1,794,610.90 sits small and monospace inside a boxed strip. Set it large and proportional with 'of €2,500,000 · 72%' muted underneath, unboxed.",
+        "All three list cards have the identical ALL-CAPS title 'RINGSCHLUSS BRUNNENWASSER, [PERSON_132]', and one renders in link blue. Lead with what tells them apart (file name / LV number / Angebot), use sentence-weight text and keep the title colour the same in every state.",
+        "The Documents cards use red/pink icons and red dots for 'PDF' and 'Source file'. In money UI, red means error. Use a neutral grey file icon and plain muted type labels.",
+        "Documents duplicate the lists (StBALV23040.D86/.D84 appear both as lists and as source files). Show source files as a disclosure under each list instead of a second grid.",
+        "Same fixes as S1 for the cards: drop the boxes-in-boxes, mono figures and labels inside the bars. Use Wise-style activity rows.",
+        "'746 positions · 498 priced' is useful, but it is pushed to the far right and muted. Put it under the hero total as a secondary line.",
+        "No mobile view was shown. With 9 header buttons this layout cannot stack cleanly. Plan a single pill row plus overflow."
+      ]
+    },
+    "S3": {
+      "scores": {"hierarchy": 3, "density": 4, "typography": 4, "consistency": 4, "clarity": 3, "interaction": 5, "accessibility": 4, "responsive": 2, "wise": 2},
+      "issues": [
+        "The list has no hero number. The total and cap only appear as tiny footer text ('Total €536,991.65 of cap €800.0k') and again in a big green panel at the bottom. Put one large proportional total at the top with 'of €800,000 · 67% · €263,008 left' and a slim bar, like a Wise balance header.",
+        "Delete the demo-looking budget panel: the dot pager '• • • -/3', the threshold tabs 'Caution (75%) / Approaching Cap (90%) / Budget Exceeded (105%)' and the carousel arrows read as prototype controls. Show one calm inline status line. Alerts belong in settings.",
+        "Settle on one primary. 'Add Item' (indigo), 'Request Budget Expansion' (green) and 'Upload File' (indigo) are all filled. 'Request Budget Expansion' should not be primary while the list is within budget.",
+        "Only about 5 of 197 positions are visible above the fold. The single-tab strip, the boxed breadcrumb and an empty 40px gap waste the top. Cut the chrome so the estimator sees 12-15 rows.",
+        "Use proportional tabular figures for Einheitspreis and Gesamt, right-aligned with matching decimals. Move Einheit next to Menge (the qty/unit pair). Today it sits after Gesamt.",
+        "Every row repeats the same truncated category chip 'Baustelleneinrichtung …'. Group rows under category headers (like Wise's date headers) and drop the per-row chip.",
+        "Per-row trash plus kebab is the same action shown twice. Keep the kebab only and reveal delete inside it.",
+        "Mobile is broken. The table scrolls sideways with Menge and Gesamt off screen, the tab name is cut to '[ORT_024', and there is no total anywhere. On mobile, render positions as Wise-style rows (Kurztext + OZ left, Gesamt right) under a sticky total."
+      ]
+    },
+    "S4": {
+      "scores": {"hierarchy": 6, "density": 6, "typography": 5, "consistency": 6, "clarity": 6, "interaction": 6, "accessibility": 5, "responsive": 6, "wise": 5},
+      "issues": [
+        "Make Gesamt the drawer's hero: set it large at the top under the title, not as a grey mono field mid-form. That mirrors how Wise's transfer detail leads with the amount.",
+        "Format Einheitspreis like money ('5.700,00 €' or '€5,700.00', proportional, with the currency prefix inside the field). The raw mono '5700' does not match the formatted total.",
+        "'Changes are saved in this browser' undermines trust in a money tool. Show an explicit saved state with a timestamp, and confirm syncing, as Wise does with clear status.",
+        "Langtext shows the source hard line breaks as ragged, one-word lines ('nach', 'für'). Reflow the paragraph for display, and keep the raw text editable on demand.",
+        "The uppercase grey micro-labels (KURZTEXT, MENGE…) are low contrast and shouty. Use sentence-case labels at AA contrast.",
+        "The category path line under the field is pale grey with low contrast and partly duplicates the field. Merge them into a single breadcrumb-style value.",
+        "'Reset changes' is barely visible bottom right and is the only footer action. Add a clear Done/Close, and show which fields changed against the original."
+      ]
+    },
+    "S5": {
+      "scores": {"hierarchy": 5, "density": 7, "typography": 5, "consistency": 6, "clarity": 6, "interaction": 6, "accessibility": 5, "responsive": 5, "wise": 5},
+      "issues": [
+        "This screen should open on the hero total, as Wise's balance does. Today the sum is a small mono 'Σ €3,836,638.94' next to the title. Set it large and proportional with 'across 5 lists · 72% of €5.30M' underneath.",
+        "Rows 2 and 3 are indistinguishable ('RINGSCHLUSS BRUNNENWASSER, [PERSON_132]' with the same folder and amount). Show the file or version as the bold title, or explain the duplicate.",
+        "Use proportional tabular figures for Total. Drop the monospace subtitles (file names) and use muted sans text instead.",
+        "Remove the percentage text printed inside the bars (white on green or orange fails AA). Put '66%' as text beside the bar, and add a word status for the orange row ('Approaching cap'), since colour alone is not enough.",
+        "The grid/list view toggle in the top bar has no effect on this table view. Hide controls that do nothing here.",
+        "The table header with sort chevrons on every column is heavier than Wise's list. Make the rows a bit taller, keep only hairline dividers, and limit sort to Total and Usage.",
+        "On mobile, the 5-column table needs to collapse to two-line rows (name/folder left, total plus a small bar right)."
+      ]
+    },
+    "S6": {
+      "scores": {"hierarchy": 6, "density": 6, "typography": 6, "consistency": 5, "clarity": 6, "interaction": 5, "accessibility": 6, "responsive": 6, "wise": 5},
+      "issues": [
+        "Remove 'New Folder', the sort dropdown and 'Select' from an empty Archive. Creating a folder inside Archive makes no sense, and sort/select on 0 items is dead UI.",
+        "Drop the '0 Folders' pill. The empty state already says it.",
+        "The empty-state copy refers to the '(⋮)' glyph. Use plain words ('Use Archive in a folder's menu'), and add a link back to All Projects.",
+        "The dashed bordered box around the empty state adds a box for nothing. Wise centres a quiet illustration plus one line on the plain surface.",
+        "The breadcrumb 'Home > Workspace > Archived' is redundant with the selected sidebar item. Drop it on top-level sections."
+      ]
+    },
+    "S7": {
+      "scores": {"hierarchy": 7, "density": 7, "typography": 7, "consistency": 6, "clarity": 7, "interaction": 6, "accessibility": 6, "responsive": 7, "wise": 6},
+      "issues": [
+        "State the retention policy ('Items are deleted permanently after 30 days'). Money products are explicit about irreversible actions.",
+        "Remove the dashed outer box and let the empty state sit on the page surface.",
+        "The header layout differs from Archived (no count pill, no actions, different breadcrumb depth). Use one page-header component for every top-level section.",
+        "The light grey icon and subtitle are near the AA limit. Darken the muted text a step.",
+        "The global grid/list toggle and 'Upload File' are still shown in the top bar, but they do not apply to Trash."
+      ]
+    },
+    "S8": {
+      "scores": {"hierarchy": 7, "density": 7, "typography": 5, "consistency": 7, "clarity": 6, "interaction": 7, "accessibility": 5, "responsive": 6, "wise": 6},
+      "issues": [
+        "Show amounts on results: lists and positions should carry their Gesamt right-aligned, like Wise search results showing transaction amounts. Today there is no money at all in a money app's search.",
+        "Subtitles are monospace ('1 lists · LV 152516 …', 'LV_04_Porenbetonfassade.pdf'). Use muted proportional text, and fix the grammar ('1 list').",
+        "Highlight the matched query ('Beton') in the results so the eye can scan.",
+        "The footer hints ('navigate', 'open', '3,052 positions indexed') are tiny and low contrast. Raise them to AA, or drop the index count, which is engineering noise.",
+        "Positions show a different icon (a calculator) from lists, but the difference is subtle. Add the parent list or folder as context on position rows instead of the category only."
+      ]
+    },
+    "S9": {
+      "scores": {"hierarchy": 4, "density": 4, "typography": 6, "consistency": 3, "clarity": 5, "interaction": 4, "accessibility": 6, "responsive": 5, "wise": 3},
+      "issues": [
+        "There are about 10 actions for an empty folder, repeated three times. Top bar: New Subfolder / Upload / Import CSV. Header: + Upload Files / + Create Subfolder / Rename / Delete. Centre: Import Item Lists & CSVs / Create Blank List / Add Nested Subfolder. Keep one primary in the empty state ('Upload GAEB file') and one secondary ('Create blank list'). Move Rename/Delete into a 'more' menu.",
+        "Three filled primaries are visible (Import CSV, + Upload Files, Import Item Lists & CSVs). Wise never shows more than one.",
+        "This folder header differs completely from S2: a boxed breadcrumb with an 'Empty' mono badge, buttons with a '+' text glyph added to an icon. Reuse the S2 header component.",
+        "Labels name the same thing three ways ('Upload', 'Import CSV', 'Import Item Lists & CSVs'). Pick one verb and one noun.",
+        "The large white card wrapping a dashed drop zone is a box inside a box. Make the whole page the drop target and show a single calm illustration.",
+        "The toast overlaps the card's bottom-right edge. Anchor toasts clear of content.",
+        "The sidebar budget changed to €5.35M on this screen versus €5.30M elsewhere. The numbers must stay consistent, because trust is everything in money UI."
+      ]
+    }
+  },
+  "global_issues": [
+    "Add one hero number per screen (workspace, folder or list total vs cap) in large proportional type, with pill actions under it. Remove the sidebar 'Allocated Budget' widget.",
+    "Replace monospace money everywhere with a proportional font using tabular figures. Use one currency format (choose €1,794,610.90 or 1.794.610,90 €, never mixed with €1.79M on the same path).",
+    "Show one filled primary per screen. Remove duplicated create/upload/import actions across the top bar, page header and body, and put secondaries in a 'more' menu.",
+    "Flatten the surfaces. Cards with internal dividers, tinted icon boxes, dashed boxes and boxed breadcrumbs or tabs stack 2-3 borders deep. Use Wise-style list rows and soft borderless tiles.",
+    "Fix the progress bars: no white percentage text inside thin bars (fails AA). Add a word status next to the colour (Within budget / Approaching cap / Over budget).",
+    "Remove prototype and demo controls: the budget-panel pager, the threshold tabs, the carousel arrows, the view toggle on screens where it does nothing, 'Shared with Team' if there is nothing behind it, and the 'REPOSITORIES' section header.",
+    "Treat mobile as first-class. Render lists and positions as two-line rows with the amount right-aligned under a sticky total, with no horizontal table scroll, and keep header actions to one pill row.",
+    "Trust signals: replace 'saved in this browser' with clear saved/synced status, keep totals consistent across screens, and use red only for real errors (not for file types)."
+  ]
+}

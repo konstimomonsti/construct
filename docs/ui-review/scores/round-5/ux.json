@@ -1,0 +1,80 @@
+{
+  "member": "ux",
+  "screens": {
+    "S1": {
+      "scores": {"hierarchy": 8, "density": 7, "typography": 8, "consistency": 7, "clarity": 7, "interaction": 8, "accessibility": 8, "responsive": 7, "wise": 8},
+      "issues": [
+        "Site is flagged in two different ways. The hero pill says '1 project almost at cap' and counts Site, but Site's row has no badge, only the subtitle '1 list · 1 list almost at cap' next to a nearly empty 2% bar. Fernleitung's milder 'Near cap' does get a badge. In FolderRow (FolderCard.tsx:23), drive the badge from projectTone(f) (worst of own and child lists), not just from f.total/f.cap. Label a child-derived badge 'List almost at cap'.",
+        "The hero contradicts itself. The pill says '1 project almost at cap', and the note right below says 'Measured against project caps', yet Site is at 2% of its project cap. When the flag comes from a list, phrase the pill '1 project with a list almost at cap · 1 near cap', or drop the note line.",
+        "The row subtitle '1 list · 1 list almost at cap' repeats 'list'. When the project has exactly one list, render '1 list · almost at its cap'.",
+        "The hero stacks three muted lines: status line, note 'Measured against project caps…' and '4 of 13 projects priced'. '13' also appears in the page subtitle and in 'Projects 13'. Move the note into the StatusTag/cap tooltip or the cap dialog. Drop '13 projects · 39 lists' from the page subtitle and keep only '39 lists' there, or drop it entirely.",
+        "Mobile (11): rows without a badge have their subtitle indented about 8px ('3 lists · Neubau…' starts to the right of the title). Row receives badge={<BudgetBadge/>}, an element that is always truthy even when it renders null, so the empty span plus gap-2 shifts the text (Kit.tsx:405). Pass badge only when there is a status, or render the badge span only when the element has content.",
+        "Mobile (11): the hero still fills about 70% of the first viewport: the first row starts at y≈1220 of 1690. Below sm, also hide the note line, put '4 of 13 priced' in the section header, and use mt-4 above the actions.",
+        "Mobile: the cap amount and its edit button are hidden (max-sm:hidden in Summary), so '68% · 1.409.686,51 € left' has no reference. Below sm, show '68% of 4,35 Mio. €' (compact money) as the button instead of hiding it."
+      ]
+    },
+    "S2": {
+      "scores": {"hierarchy": 9, "density": 8, "typography": 8, "consistency": 8, "clarity": 8, "interaction": 8, "accessibility": 8, "responsive": 7, "wise": 8},
+      "issues": [
+        "The list subtitles still mix two facets: 'Bid · 274 positions' versus 'Word import · 40 positions' (phaseLabel falls back to the import source). Show the phase when it is known. Otherwise show just the position count, and keep the source on the list page meta only.",
+        "The over-allocation note 'List caps add up to 2.100.000 €, 100.000 € over the project cap.' is muted body text with no way to act on it. Make '100.000 € over' a link-button that opens the edit-cap dialog for the project, or give the note a caution icon so it doesn't read as decoration.",
+        "Mobile (no capture): the Summary hides the cap amount and the edit-cap button below sm (max-sm:hidden), so on a phone the project cap can only be edited from the ⋯ menu. Keep a compact cap button visible on mobile (see S1)."
+      ]
+    },
+    "S3": {
+      "scores": {"hierarchy": 8, "density": 7, "typography": 8, "consistency": 8, "clarity": 8, "interaction": 8, "accessibility": 8, "responsive": 6, "wise": 7},
+      "issues": [
+        "The list ⋯ menu (ListPage.tsx:468) has no 'Edit budget cap…', although the row menus for the same list (listMenu) do. Below sm the hero cap button is hidden, so on mobile a list cap can't be edited from its own page. Add listMenu's 'Edit budget cap…' item to `more`.",
+        "'Cost by section ⌄' draws a second, separate underline under the chevron (visible on desktop and mobile). Make sure only the label span gets text-decoration (e.g. no-underline on the Icon), or underline the whole button as one.",
+        "On desktop the first position still starts at y≈700 of 900, under the hero, actions (mt-6) and toolbar. Put Add position / Export on the toolbar row (right side, next to Sort) and drop the separate actions row, so 2–3 more rows fit above the fold.",
+        "Quantity-0 rows show '—' for both Einheit and GP, so 'no unit/no quantity' can't be told apart from 'unpriced'. Keep the imported unit visible when it exists, and render a muted 'Menge 0' (or '0,00') in GP instead of '—'. Keep '—' for rows that have no EP.",
+        "Mobile (12): the hero still fills the first viewport, and the first position appears at y≈1400 of 1690. Below sm, use the compact hero: total, one status line, and the meta links folded into a single 'Details ⌄' disclosure. Put Add position/Export on the same row as the search icon.",
+        "Mobile (12): each position still uses three lines: title, then a row of two tall filled inputs 'Menge psch × EP', then the menu. Below sm, render 'Menge psch × EP' as tappable text with the dotted-underline cue and open the drawer (or an inline editor) on tap. Put the ⋯ on the title line."
+      ]
+    },
+    "S4": {
+      "scores": {"hierarchy": 9, "density": 9, "typography": 9, "consistency": 9, "clarity": 9, "interaction": 9, "accessibility": 9, "responsive": 8, "wise": 9},
+      "issues": [
+        "Below sm the drawer is a bottom sheet (max-h-[90dvh], rounded-t-3xl) with no grab handle and no swipe-to-dismiss, and there is no mobile capture. Add a 36×4px slate-300 handle at the top and drag-down-to-close. Keep the Menge/EP fields side by side at ≥44px height on 375px widths."
+      ]
+    },
+    "S5": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 8, "consistency": 8, "clarity": 8, "interaction": 8, "accessibility": 8, "responsive": 8, "wise": 8},
+      "issues": [
+        "The hero number is headroom ('Left in list caps 1.460.686,51 €'), but the bar beneath fills with the used share (67%, green), so the biggest number and the bar point in opposite directions. Either make the hero 'Priced across lists 2.940.313,49 €' with the bar showing used (and '1.460.686,51 € left' on the status line, like every other hero), or label the bar 'used'.",
+        "Row subtitles mix facets: 'Site · JSON import', 'Fernleitung – Weinsbach · Word import', 'Maschinentechnik – Anlagenbau · Award'. Use 'Project · Phase' when the phase is known and 'Project' alone otherwise.",
+        "The 'Needs attention 2' chip repeats the default 'Sort: Closest to cap', which already puts the two flagged lists first. Drop the chip row on this screen (5 rows), or show it only when there are more than about 8 lists.",
+        "The status words' thresholds ('75 to 89% of the cap used' etc.) are sr-only, so sighted users can't find out what 'Near cap' versus 'Almost at cap' means. Add the same text as a visible tooltip (title or Tooltip on hover/focus) on StatusTag."
+      ]
+    },
+    "S6": {
+      "scores": {"hierarchy": 9, "density": 9, "typography": 9, "consistency": 9, "clarity": 9, "interaction": 9, "accessibility": 9, "responsive": 9, "wise": 9},
+      "issues": []
+    },
+    "S7": {
+      "scores": {"hierarchy": 9, "density": 9, "typography": 9, "consistency": 9, "clarity": 9, "interaction": 9, "accessibility": 9, "responsive": 9, "wise": 9},
+      "issues": []
+    },
+    "S8": {
+      "scores": {"hierarchy": 9, "density": 9, "typography": 9, "consistency": 9, "clarity": 8, "interaction": 9, "accessibility": 9, "responsive": 8, "wise": 9},
+      "issues": [
+        "'POSITIONS 104 · none priced' sits next to the full count, but nonePriced is computed only over the visible rows (`shown.every(...)`, CommandPalette.tsx:219). It can be false for the other 101. Compute it over all results of the group (rs), or say 'none of these priced'.",
+        "On mobile the palette is full-screen and the subtitle truncates. 'OZ 3.1.60 · Ortbetonarbeiten · in Rohbau (Ausbildungszentrum und Bürogebäude)' loses the list name, which is the part that tells hits apart. Below sm, order it as 'Rohbau · OZ 3.1.60 · Ortbetonarbeiten' and drop the '(project)' suffix."
+      ]
+    },
+    "S9": {
+      "scores": {"hierarchy": 9, "density": 9, "typography": 9, "consistency": 8, "clarity": 9, "interaction": 9, "accessibility": 9, "responsive": 9, "wise": 9},
+      "issues": [
+        "The empty state is inset about 34px from the page title's left edge (icon and heading at x≈346, title at x≈312) because the drop-zone wrapper adds px-5 sm:px-8. Archived and Trash align their empty states with the title. Give the wrapper matching negative margins (-mx-5 sm:-mx-8) so the content lines up, and keep the dashed outline area."
+      ]
+    }
+  },
+  "global_issues": [
+    "A project's status is still split across two signals. The hero pill and the 'Needs attention' filter use projectTone (worst of own cap and lists), but the row badge uses only the project's own cap (FolderRow → BudgetBadge). Use projectTone everywhere a project's status shows: badge, pill, filter.",
+    "Row prop `badge` is passed as an element that may render null, so `{badge && …}` in Row always renders a wrapper. That indents mobile subtitles and adds a phantom gap on desktop. Make BudgetBadge's presence a boolean the caller checks, or have Row accept a status object.",
+    "Below sm, Summary hides the cap amount and its edit button. The '% of cap' figure loses its reference, and caps can only be edited from ⋯ menus (and not at all from the list page, whose ⋯ menu lacks 'Edit budget cap…'). Show a compact cap button on mobile and add the item to the list page menu.",
+    "Status thresholds are announced only to screen readers. Give StatusTag a visible hover/focus tooltip with the same STATUS_HINT text, so 'Near cap' and 'Almost at cap' can be learned by everyone.",
+    "List subtitles mix phase and import source ('Bid', 'Award' versus 'Word import', 'JSON import') on S2 and S5. Use one facet (phase, or nothing) in rows, and keep the source on the list page.",
+    "Mobile heroes on S1 and S3 still take 70–80% of the first viewport. Add a compact-hero variant below sm: total, one status line, one action row, with notes and meta behind a disclosure."
+  ]
+}

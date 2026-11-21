@@ -1,0 +1,93 @@
+{
+  "member": "a11y",
+  "screens": {
+    "S1": {
+      "scores": {"hierarchy": 9, "density": 8, "typography": 8, "consistency": 8, "clarity": 8, "interaction": 8, "accessibility": 8, "responsive": 7, "wise": 8},
+      "issues": [
+        "Mobile regression (11): the first row title breaks mid-word as 'Fernleit / ung -…'. In Kit.tsx Row, the shrink-0 'Near cap' badge shares the title line with the amount column, which squeezes the title to about 100px, and 'break-words' then splits the word. Below sm, render the badge on the subtitle line ('Near cap · 2 lists · Projekt 2024-001'), keep it inline from sm up, and replace 'break-words' with '[overflow-wrap:normal] hyphens-auto' plus lang='de' on the title span.",
+        "Hero meta is spread over two lines with three loose parts: the chip, '68% of 4.350.000 € in project caps' and '1.409.686,51 € left', then 'Counts 4 priced projects · 4 projects not priced yet'. Merge them into one line: chip · '68% of 4.350.000 € · 1.409.686,51 € left', and render the coverage note ('4 projects not priced yet') as a single MetaLink. Drop the word 'Counts'.",
+        "StatusTag carries its meaning in title=NEAR_CAP_HINT, and the badge is pointer-events-auto only to show that tooltip. Touch and keyboard users can't reach it. Remove the title and the pointer-events-auto, and spell the threshold once in the hero chip's sr-only text (', 75% or more of cap used').",
+        "Row amount (15px semibold slate-900) has the same weight as the title, so they compete. On rows, use font-medium for the amount and keep semibold for the title, or the reverse, but not both."
+      ]
+    },
+    "S2": {
+      "scores": {"hierarchy": 9, "density": 8, "typography": 8, "consistency": 8, "clarity": 8, "interaction": 8, "accessibility": 8, "responsive": 7, "wise": 8},
+      "issues": [
+        "This screen uses the same Row component as S1, so on phones 'LV-Positionen nach Aufmaß-Gruppen' plus the 'Near cap' badge plus '516.122,50 €' will hit the same mid-word break. Apply the S1 Row fix (move the badge to the subtitle line below sm, and use overflow-wrap normal with hyphens-auto).",
+        "A folder with 2 lists still shows 'Sort: Highest amount', 'Select' and the 'All / Needs attention 1' chips: four controls for two rows. Hide the Chips when the list count is 3 or fewer (the hero link '1 list near its cap' already filters), and fold Sort into the header kebab below 4 rows.",
+        "Hero status line: the chip 'Near cap', '75% of 2.000.000 € cap' and '494.963,61 € left' sit at three different visual weights on one line. Make it one sentence-weight run (chip · 75% of 2.000.000 € · 494.963,61 € left), with only the percentage in semibold, matching S3 and S5.",
+        "StatusTag tooltip-only hint (title) is mouse-only. Remove it and rely on the visible word, as in S1.",
+        "Wise: the hero is followed by 'Lists' with chips plus two tool pills, which adds a second header band. Drop the chips here, per the item above, so the list starts right under 'Lists 2'."
+      ]
+    },
+    "S3": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 8, "consistency": 8, "clarity": 8, "interaction": 8, "accessibility": 8, "responsive": 8, "wise": 8},
+      "issues": [
+        "Correction to my round-3 advice: slate-400 (#94a3b8) is only 2.56:1 on white, so the field boundaries still fail WCAG 1.4.11. Change 'Search positions' to ring-slate-500, the desktop ledger editableCls resting 'border-b-slate-400' dotted underline to border-b-slate-500, and inputCls/fieldCls border-slate-400 to border-slate-500 (#64748b, 4.76:1). Keep the hover state at slate-600.",
+        "The hero PricingMeter is split into 7 golden-angle hues, including a red (hsl ≈354) segment next to blue, and the only legend is behind 'Cost by section'. Colour-only segments read as status (red = over) and can't be told apart with colour-vision deficiency. By default, render the single status-coloured fill (emerald/amber/orange like S1/S2), switch to the section split only while the legend is open, and drop hues within 30° of red, orange and green from pricingSections.",
+        "LedgerTable position rows still use hover:bg-slate-50 (about 1.04:1). Use hover:bg-slate-100, as Kit Row now does.",
+        "MoveToCategory (opened from a row's 'Move to category…') still uses text-slate-400 at 11px for 'Renumbering preview', the old OZ and '+ n more' (about 2.6:1). Use text-slate-600 at 12px or larger. Its search icon can stay slate-400 because it is decorative.",
+        "Mobile position card (12): the quantity input shows '1' left-aligned (max-xl:text-left), while EP '5.700,00' is right-aligned in the box next to it. Right-align both, so the numbers line up when scanning cards.",
+        "Hero density: chip, %, left, '197 positions · 38 with quantity 0', 'Cost by section' and two pills make 6 stacked bands before the toolbar. Move 'Cost by section' into the meter itself (click/tap the bar to toggle the legend; keep the button for keyboard as sr-only-focusable) to cut one band.",
+        "The toolbar wraps on mobile with 'Sort' floating alone at the far right of the second row. Below sm, put Categories, Select and Sort in one left-aligned row, with no justify-between."
+      ]
+    },
+    "S4": {
+      "scores": {"hierarchy": 9, "density": 8, "typography": 9, "consistency": 8, "clarity": 8, "interaction": 8, "accessibility": 8, "responsive": 8, "wise": 8},
+      "issues": [
+        "fieldCls uses border-slate-400 (2.56:1, fails 1.4.11) for the Menge and EP inputs and the Kategorie box. Use border-slate-500.",
+        "The unit 'psch' floats between Menge and EP with no visible label. It can only be changed from the ⋯ menu, and the only hint is title='Einheit (change it from the ⋯ menu)'. Make it a small ghost button labelled 'psch' with an expand icon that opens the existing inline unit editor, and put a visible 'Einheit' label above it like Menge/EP.",
+        "On phones the bottom sheet hides previous/next (the 'ml-auto hidden … sm:flex' wrapper), so mobile users must close and reopen to step through positions. Show the counter and both chevrons on mobile too, in the sheet header next to Close.",
+        "The Kategorie field looks like a text input (bordered rounded-xl box), but it is static text with a 'Change' pill inside. Render the path as plain text with 'Change' as a ghost text button on the label row, like 'Edit' on Langtext.",
+        "GP card: a filled surface plus an inner hairline divider makes a box with a rule inside. Drop the divider and space the '1,1 % of list · 263.008 € left in cap' line with mt-3."
+      ]
+    },
+    "S5": {
+      "scores": {"hierarchy": 9, "density": 8, "typography": 8, "consistency": 8, "clarity": 8, "interaction": 8, "accessibility": 8, "responsive": 7, "wise": 8},
+      "issues": [
+        "The hero chip says '2 lists near cap' with the orange warning triangle, but the rows say 'Almost at cap' (orange triangle) and 'Near cap' (amber circle). The hero wording hides the worse state. Use '1 almost at cap · 1 near cap', or tone the chip by the worst row and word it as 'Needs attention: 2 lists'.",
+        "StatusTag sets title=NEAR_CAP_HINT ('Near cap: 75% or more…') on the 'Almost at cap' tag too, so the tooltip contradicts the word. Remove the title, or give each tone its own threshold text.",
+        "Same Row squeeze as S1 on phones: 'LV-Positionen nach Aufmaß-Gruppen' plus the badge plus the amount will break mid-word. Apply the S1 Row fix.",
+        "Meta line '2.940.313,49 € priced across 5 lists' puts a bold amount right under the hero and competes with it. Render the figure in font-medium slate-700.",
+        "Wise: the 'Sort: Closest to cap' and 'Select' pills on a 5-row list add a toolbar band. Move Select into the kebab (it's rarely used here), and keep Sort."
+      ]
+    },
+    "S6": {
+      "scores": {"hierarchy": 9, "density": 9, "typography": 9, "consistency": 9, "clarity": 9, "interaction": 9, "accessibility": 9, "responsive": 9, "wise": 8},
+      "issues": [
+        "Wise: the empty state starts about 80px below the subtitle, which reads as a gap rather than grouping. Reduce the top margin to about 32px so the icon, title and action sit with the header."
+      ]
+    },
+    "S7": {
+      "scores": {"hierarchy": 9, "density": 9, "typography": 9, "consistency": 9, "clarity": 9, "interaction": 9, "accessibility": 9, "responsive": 9, "wise": 8},
+      "issues": [
+        "Wise: same as S6. Reduce the gap between the subtitle and the empty state to about 32px."
+      ]
+    },
+    "S8": {
+      "scores": {"hierarchy": 9, "density": 8, "typography": 9, "consistency": 8, "clarity": 8, "interaction": 9, "accessibility": 9, "responsive": 9, "wise": 8},
+      "issues": [
+        "'Not priced' repeats on all six visible results and adds noise for sighted and screen-reader users. Show the trailing status only when it differs from the norm (a price or 'Over cap'), or show it once per group in the heading ('Positions 104 · none priced').",
+        "Position results use a slate document tile, while list results use a brand tile with the same-sized glyph. The icons are too similar to tell the groups apart. Use a distinct glyph for positions (e.g. 'tag' or 'list'), or drop the tile for positions and indent them under a left OZ column.",
+        "'Show 50 of 104 positions' reads like a count, not an action. Reword it as 'Show 47 more positions' (or 'Show next 50'), and keep the total in the group heading.",
+        "Wise: the footer hints ('to move', 'to open') repeat what the combobox already announces. Hide the footer on pointer:coarse, and below sm."
+      ]
+    },
+    "S9": {
+      "scores": {"hierarchy": 9, "density": 9, "typography": 9, "consistency": 9, "clarity": 9, "interaction": 9, "accessibility": 8, "responsive": 9, "wise": 8},
+      "issues": [
+        "The 'Created project…' toast mounts its own role='status' node with its text already inside. Screen readers often skip live regions that arrive pre-filled, so the creation may go unannounced. Make the Toaster container a persistent aria-live='polite' region (with a separate always-mounted role='alert' region for errors), and keep ToastItem without a role.",
+        "Wise: the dashed drop zone spans the full 1056px column, and its content hugs the left, which leaves a large empty box. Constrain it to max-w-2xl, or keep the dashed outline only while a drag is active and use a borderless soft fill (bg-slate-50, rounded-3xl) at rest."
+      ]
+    }
+  },
+  "global_issues": [
+    "Correction to my round-3 advice: slate-400 (#94a3b8) is 2.56:1 on white, below the 3:1 that WCAG 1.4.11 requires for input boundaries. Move inputCls and DetailDrawer fieldCls (border-slate-400), the ListPage 'Search positions' ring-slate-400, and the editableCls dotted underline (border-b-slate-400) to slate-500 (#64748b, 4.76:1). Hover goes to slate-600.",
+    "Mobile Row (Kit.tsx): the shrink-0 status badge on the title line, next to a whitespace-nowrap amount, crushes the title, and 'break-words' splits German words mid-word ('Fernleit/ung'). Below sm, move the badge to the subtitle line and use overflow-wrap normal plus hyphens-auto with lang='de'. This affects S1, S2 and S5.",
+    "LedgerTable rows still use hover:bg-slate-50 (about 1.04:1). Use hover:bg-slate-100 to match Kit Row.",
+    "Toaster: each ToastItem mounts with role='status' or role='alert' already filled, which screen readers often skip. Make the container a persistent polite live region, plus a persistent assertive region for errors.",
+    "MoveToCategory and SplitOverlay still use text-slate-400 at 11px for meaningful text (OZ codes, 'Renumbering preview', file names, '+ n more'), about 2.6:1. Use text-slate-600 at 12px or larger. The icon-only buttons in SplitOverlay (p-0.5, about 20px) also need size-9 hit areas.",
+    "StatusTag uses one title (NEAR_CAP_HINT) for every non-ok tone, and that tooltip is mouse-only (the badge is pointer-events-auto only for it). Remove the title, and put any threshold explanation in visible or sr-only text.",
+    "Still no tailwind-merge. IconButton's base 'size-9' plus className 'size-10' (DetailDrawer) still depends on CSS source order. Add cn() = twMerge(clsx(...)) in Button, IconButton, ToolButton and Meter."
+  ]
+}

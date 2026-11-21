@@ -1,57 +1,48 @@
 import { useEffect, useState } from 'react'
-import { Icon } from './ui'
-import { inputNumber, parseNumber } from '../lib/format'
+import { parseNumber, qty } from '../lib/format'
 
-const fmt = inputNumber
+/**
+ * editable numbers (Menge, EP) share one cue: a dotted rule under the field at rest, a field outline while the
+ * row is hovered or focused, and always outlined on touch screens where there is no hover.
+ */
+export const editableCls =
+  'num h-9 rounded-md border border-dotted border-transparent px-2 text-right text-sm transition-colors group-hover:border-solid group-hover:border-slate-500 group-hover:bg-white group-focus-within:border-solid group-focus-within:border-slate-500 hover:border-slate-600 focus:border-solid focus:bg-white max-lg:border-solid max-lg:border-slate-400 [@media(pointer:coarse)]:border-solid [@media(pointer:coarse)]:border-slate-400'
+
 const round = (n: number) => Math.round(n * 1000) / 1000
 
-export function QtyStepper({ value, onChange, label }: { value: number; onChange: (n: number) => void; label: string }) {
-  const [text, setText] = useState(fmt(value))
-  useEffect(() => setText(fmt(value)), [value])
+/** typed quantity field: dotted underline at rest, a full field on hover/focus; arrows step by 1 */
+export function QtyInput({ value, onChange, label, edited, muted }: { value: number; onChange: (n: number) => void; label: string; edited?: boolean; muted?: boolean }) {
+  const [text, setText] = useState(qty(value))
+  useEffect(() => setText(qty(value)), [value])
 
   const commit = () => {
     const n = parseNumber(text)
-    if (Number.isFinite(n) && n >= 0) {
-      if (n !== value) onChange(round(n))
-      setText(fmt(n))
-    } else setText(fmt(value))
+    if (text.trim() !== '' && n !== null && n >= 0) {
+      if (round(n) !== value) onChange(round(n))
+      setText(qty(round(n)))
+    } else setText(qty(value))
   }
 
   return (
-    <div className="inline-flex h-9 items-center gap-0.5 rounded-lg border border-slate-200 bg-slate-100 p-1">
-      <button
-        type="button"
-        aria-label={`Decrease quantity of ${label}`}
-        disabled={value <= 0}
-        onClick={() => onChange(Math.max(0, round(value - 1)))}
-        className="flex size-6 items-center justify-center rounded text-slate-500 transition-colors hover:bg-white hover:text-slate-900 disabled:opacity-40"
-      >
-        <Icon name="remove" size={14} />
-      </button>
-      <input
-        inputMode="decimal"
-        aria-label={`Quantity of ${label}`}
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        onBlur={commit}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') e.currentTarget.blur()
-          if (e.key === 'Escape') {
-            setText(fmt(value))
-            e.currentTarget.blur()
-          }
-        }}
-        onFocus={(e) => e.currentTarget.select()}
-        className="h-7 w-11 rounded border border-slate-300 bg-white text-center font-mono text-xs font-bold text-slate-900 focus:outline-none"
-      />
-      <button
-        type="button"
-        aria-label={`Increase quantity of ${label}`}
-        onClick={() => onChange(round(value + 1))}
-        className="flex size-6 items-center justify-center rounded text-slate-500 transition-colors hover:bg-white hover:text-slate-900"
-      >
-        <Icon name="add" size={14} />
-      </button>
-    </div>
+    <input
+      inputMode="decimal"
+      aria-label={`Quantity of ${label}${edited ? ' (edited)' : ''}`}
+      value={text}
+      onChange={(e) => setText(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') e.currentTarget.blur()
+        if (e.key === 'Escape') {
+          setText(qty(value))
+          e.currentTarget.blur()
+        }
+        if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+          e.preventDefault()
+          onChange(Math.max(0, round(value + (e.key === 'ArrowUp' ? 1 : -1))))
+        }
+      }}
+      onFocus={(e) => e.currentTarget.select()}
+      className={`${editableCls}${edited ? ' font-semibold text-brand-700' : muted ? ' text-slate-500' : ' text-slate-900'} w-16 outline-none focus:border-transparent focus:bg-white focus:ring-2 focus:ring-brand-700 lg:w-full`}
+    />
   )
 }

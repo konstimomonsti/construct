@@ -1,0 +1,91 @@
+{
+  "member": "a11y",
+  "screens": {
+    "S1": {
+      "scores": {"hierarchy": 9, "density": 8, "typography": 8, "consistency": 8, "clarity": 8, "interaction": 8, "accessibility": 8, "responsive": 8, "wise": 8},
+      "issues": [
+        "Mobile (11): the amount/meta line still wobbles. Fernleitung puts '1.505.036 €' and 'Near cap · 75% of 2.000.000 €' on two lines, while Ringschluss and Maschinentechnik put amount and meta on one. In Kit.tsx Row, change the amount wrapper 'flex flex-wrap items-baseline gap-x-3 … sm:block' to 'flex flex-col gap-0.5 sm:block' so every row stacks amount, then meta.",
+        "Row hover is hover:bg-slate-50 on a white page (about 1.04:1), so pointer users get almost no hover feedback on project rows. In Kit.tsx Row, use hover:bg-slate-100.",
+        "Hero secondary pill 'Upload files' (Button variant secondary, bg-slate-100) now sits on white, and its fill is the only edge (about 1.1:1). Add ring-1 ring-inset ring-slate-200 to the secondary variant so the pill shape reads, the same way the selected Chip does.",
+        "Mobile (11): the top-bar search trigger truncates to 'Search projects, lists, posit…'. Below sm, show the shorter label 'Search' (keep the full aria-label)."
+      ]
+    },
+    "S2": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 7, "consistency": 8, "clarity": 8, "interaction": 8, "accessibility": 8, "responsive": 8, "wise": 8},
+      "issues": [
+        "Money precision is mixed on one screen. The hero shows '1.505.036 €' and the meta uses whole euros, but list rows show cents ('988.913,89 €', '516.122,50 €'), and Active Budgets shows the same list as '988.914 €'. In ListCard, use moneyWhole for the row amount, and keep cents for the ledger and drawer only.",
+        "The editable cap button '2.000.000 € cap' has accessible name '2.000.000 € cap'. The only hint that it changes the cap is title='Change cap', which screen readers and touch users often miss. Add a 16px 'edit' icon (text-slate-600, aria-hidden) after the text, and an sr-only ', change' suffix so the name starts with the visible text (2.5.3).",
+        "Document rows repeat the type: the title is 'Angebot AN24-0305.pdf' and the subtitle is 'PDF'. Show the page count, or 'Original upload', as the subtitle instead, so screen readers don't hear the type twice.",
+        "List row hover is bg-slate-50 on white (about 1.04:1), so the hover seen on 'Angebot AN24-0305' is barely perceptible. Use hover:bg-slate-100 (same Row fix as S1)."
+      ]
+    },
+    "S3": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 8, "consistency": 8, "clarity": 8, "interaction": 8, "accessibility": 7, "responsive": 8, "wise": 8},
+      "issues": [
+        "The 'Search positions' field (ListPage) is border-transparent bg-slate-100 on white. Its boundary is about 1.1:1, so it fails WCAG 1.4.11, and the Categories search input has the same problem. Give both a resting 'border-slate-400' (or ring-1 ring-inset ring-slate-400), and keep focus:border-brand-600.",
+        "Group header rows still use <th scope='colgroup' colSpan={6}> (LedgerTable). For a row that labels the positions below it, wrap each category in its own <tbody> and use <th scope='rowgroup'>, so screen readers announce the category for each position cell.",
+        "The Kurztext cell button opens the detail drawer, but only title='Show full description' says so. Add aria-haspopup='dialog' and an sr-only ', open details' suffix to the button.",
+        "Categories popover (CategoryFilter) closes on Escape and outside pointerdown, but tabbing past 'All'/'None'/the tree leaves it open behind the focus. Close it on focusout when relatedTarget is outside root.current.",
+        "ExportDialog (opened by Export on this screen) uses text-slate-400 for 11px text: the file name, the format icons, the category OZ, and '(not part of tender formats)'/'(always in this format)'. That is about 2.6:1 on white. Use text-slate-600, and make that text at least 12px.",
+        "The edited marker is a 6px brand dot (EditDot), aria-hidden, with a title. On desktop that is a tiny colour-only cue. Make it size-2 and add a visible 'Edited' text hint on row hover, or tint the edited value text-brand-700 font-semibold, so it isn't dot-colour alone."
+      ]
+    },
+    "S4": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 8, "consistency": 8, "clarity": 8, "interaction": 8, "accessibility": 8, "responsive": 8, "wise": 8},
+      "issues": [
+        "The Menge, Einheit and Einheitspreis inputs sit inside <Labeled> (a <label>) and also have aria-label. aria-label overrides the visible text, so the name is 'Einheitspreis' while the screen shows 'Einheitspreis (EP)'. Remove the three aria-label props and let the <label> text name them.",
+        "Previous/next (chevron up/down) swap the whole content, but focus stays on the chevron and nothing is announced. Put aria-live='polite' on the '1 of 197' counter span, or move focus to the Kurztext title (tabIndex=-1 wrapper) after navigating.",
+        "The Kurztext title textarea has no resting edit cue: border-transparent, and hover:border-slate-300 is about 1.5:1. Show a 16px slate-500 'edit' icon at the right of the title on hover and focus-within, and use hover:border-slate-400.",
+        "Footer: 'Changes save automatically' (left) and the live 'Saved' (right, emerald-700) sit at opposite ends. Render 'Saved' in place of the helper text for 2 seconds after a commit, so sighted users see it where they read.",
+        "Drawer fields use inputCls with border-slate-300 (about 1.5:1 on white, fails 1.4.11). Use border-slate-400 (see global)."
+      ]
+    },
+    "S5": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 8, "consistency": 8, "clarity": 8, "interaction": 8, "accessibility": 8, "responsive": 8, "wise": 8},
+      "issues": [
+        "The hero meta button underlines the whole phrase '1 list near its cap · none over', but only the first part is an action. Make only '1 list near its cap' the button, and render ' · none over' as plain text after it.",
+        "Choosing 'Needs attention' (chip or hero link) filters the list, but focus stays where it was and the result isn't announced. After setView('attention'), move focus to the 'Lists' h2 (tabIndex=-1) and announce '1 list needs attention' in a polite sr-only live region.",
+        "Folder-tinted avatar tiles (fuchsia, blue, cyan) look like a status code next to the green and orange meters, but the subtitle already names the project. Use tone='slate' for list rows on this page, so colour here only means budget status."
+      ]
+    },
+    "S6": {
+      "scores": {"hierarchy": 9, "density": 9, "typography": 9, "consistency": 9, "clarity": 8, "interaction": 9, "accessibility": 8, "responsive": 9, "wise": 8},
+      "issues": [
+        "The empty-state text in Collections.tsx still has the literal '⋯' glyph ('from its ⋯ menu'), which screen readers announce as 'midline horizontal ellipsis'. Write 'from its More options (⋯) menu' with the glyph in <span aria-hidden>, or drop the glyph.",
+        "The subtitle 'Archived projects don't count toward totals' and the body 'It stops counting toward your totals' say the same thing. Cut the body to 'Archive a project from its More options menu to set it aside.'",
+        "The centred empty state floats about a third of the way down, under a left-aligned header, which leaves a large dead area. Left-align it under the H1 (max-w-md, icon inline with the title)."
+      ]
+    },
+    "S7": {
+      "scores": {"hierarchy": 9, "density": 9, "typography": 9, "consistency": 9, "clarity": 9, "interaction": 9, "accessibility": 9, "responsive": 9, "wise": 8},
+      "issues": [
+        "Wise: same as S6. The centred empty state under a left-aligned header leaves a large dead area. Left-align it to the content column under the H1."
+      ]
+    },
+    "S8": {
+      "scores": {"hierarchy": 9, "density": 8, "typography": 9, "consistency": 8, "clarity": 8, "interaction": 8, "accessibility": 8, "responsive": 9, "wise": 8},
+      "issues": [
+        "Group headings ('Projects 1', 'Lists 4', 'Positions 8') are role='presentation' divs inside role='listbox', so screen-reader users lose the grouping. Wrap each group's options in <div role='group' aria-labelledby={headingId}>, and give the heading that id with no presentation role.",
+        "Tab always refocuses the input (onKey preventDefault), so keyboard users can never reach the 'Esc' close button. Let Tab and Shift+Tab cycle between the input and the close button.",
+        "List result subtitles fall back to raw file names ('LV_10_Stahlbetonfertigteile_Stuetzen_Binder.pdf'), which repeat the title and are long and noisy for screen readers. When phaseLabel is empty, use '<n> positions' instead of l.fileName.",
+        "The active option is shown only by bg-brand-50 plus ring-brand-200 (about 1.3:1 against white). Use ring-brand-600 (or a 3px left brand-600 bar) so the active row meets 3:1 for keyboard users."
+      ]
+    },
+    "S9": {
+      "scores": {"hierarchy": 9, "density": 9, "typography": 9, "consistency": 9, "clarity": 9, "interaction": 8, "accessibility": 9, "responsive": 9, "wise": 8},
+      "issues": [
+        "'Set a budget cap' is a lone brand text button below the format hint, cut off from the two actions. Move it into the header kebab, or make it a third ghost pill in the action row, so all next steps sit together.",
+        "Wise: the dashed drop zone is border-transparent until a drag starts, so the 'drop anywhere' promise has no resting visual. Show a faint resting border-slate-200 dashed outline around the empty state, or drop the dashed treatment and rely on the full-page DropOverlay."
+      ]
+    }
+  },
+  "global_issues": [
+    "inputCls still uses border-slate-300 (about 1.5:1 on white, fails WCAG 1.4.11) for every dialog and drawer text field. Change it to border-slate-400. The filled pill fields ('Search positions', 'Search categories…') rely on bg-slate-100 (about 1.1:1) and need a resting ring-slate-400 too.",
+    "The pointer:coarse 44px rule now covers labels and size-8, but not h-8. Button size='sm' (h-8, e.g. FolderPage 'Restore'), ErrorBoundary 'Try again'/'Go home' (h-8) and the DocViewer 'Open'/'Download' links (h-8) stay 32px on touch. Add .h-8 to the selector in index.css.",
+    "Dialog (ui.tsx) traps Tab but doesn't call useInertRoot, unlike DetailDrawer, CommandPalette and the mobile Sidebar. Screen-reader virtual cursors can leave Add position, Export, Cap and Rename into the page. Call useInertRoot(open) in Dialog.",
+    "ExportDialog uses text-slate-400 for 11px text (file name, OZ codes, format notes), about 2.6:1. Use text-slate-600 and at least 12px.",
+    "Row hover across Kit Row and LedgerTable is bg-slate-50 on white (about 1.04:1). Use hover:bg-slate-100 so pointer users get visible hover feedback.",
+    "Still no tailwind-merge. IconButton's base 'size-9' plus className 'size-10' (DetailDrawer) only works because of CSS source order. Add cn() = twMerge(clsx(...)) in Button, IconButton, ToolButton and Meter.",
+    "Selected or active states (Chips, CommandPalette option, Categories trigger when filtered) use bg-brand-50 + ring-brand-200 (about 1.3:1 boundary). Selected chips also have aria-pressed and bolder text, so they pass, but the palette option relies on the ring alone. Use ring-brand-600 for active options."
+  ]
+}
