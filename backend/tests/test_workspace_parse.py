@@ -166,7 +166,11 @@ def test_mixed_pdf_upload_marks_scanned_positions_and_arithmetic_evidence(tmp_pa
         "native", "original-scan", "scanned", "combined",
     ))
     pdf_file(native, [Item("01.0010", "Kabelkanal liefern", 3, "m")])
-    pdf_file(original_scan, [Item("02.0010", "Leerrohre liefern", 5, "m", amount=85)])
+    pdf_file(original_scan, [
+        Item("02.0010", "Bodenbelag liefern", 5, "m²", amount=85),
+        Item("02.0020", "Bodenaushub herstellen", 7, "m³"),
+        Item("02.0030", "Kabelkanal montieren", 9, "m?"),
+    ])
     rasterize(original_scan, scanned)
     assert not poppler("pdftotext", scanned, "-").strip()
 
@@ -183,7 +187,8 @@ def test_mixed_pdf_upload_marks_scanned_positions_and_arithmetic_evidence(tmp_pa
     monkeypatch.delenv("PDF_OCR")
     source = read_document(combined.name, data).snapshots[0]
     assert source.project.source_document.ocr_pages == [2]
-    assert [line.code for line in source.lines] == ["01.0010", "02.0010"]
+    assert [line.code for line in source.lines] == ["01.0010", "02.0010", "02.0020", "02.0030"]
+    assert [line.unit for line in source.lines] == ["m", "m²", "m³", "m?"]
     assert "ocr_pages" not in source.lines[0].source_locator
     assert source.lines[1].source_locator["ocr_pages"] == [2]
 
@@ -196,6 +201,14 @@ def test_mixed_pdf_upload_marks_scanned_positions_and_arithmetic_evidence(tmp_pa
     finding = next(f for f in report["findings"] if f["rule_id"] == "L1.ARITH.LINE_AMOUNT")
     assert finding["source_locator"]["page"] == 2
     assert finding["source_locator"]["ocr_pages"] == [2]
+    if unit_ocr := finding["source_locator"].get("unit_ocr"):
+        assert unit_ocr["page"] == 2
+        assert unit_ocr["original"] == "m?"
+        assert unit_ocr["unit"] == "m²"
+    assert "unit_ocr" not in source.lines[3].source_locator
+    unknown = next(f for f in report["findings"] if f["rule_id"] == "L1.UNIT.UNKNOWN")
+    assert unknown["target"]["line_code"] == "02.0030"
+    assert unknown["evidence"]["unit_raw"] == "m?"
     assert finding["evidence"]["stated_amount"] == "85.00"
     assert finding["evidence"]["expected_amount"] == "50.00"
 

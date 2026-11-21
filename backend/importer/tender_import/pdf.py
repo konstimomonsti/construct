@@ -152,6 +152,55 @@ def split_layout(raw: bytes) -> list[str]:
 OCR_PAGE_LIMIT = 8
 OCR_SECONDS = 60
 OCR_RASTER_SIZE = 2400
+OCR_DPI = 240
+OCR_UNIT_LIMIT = 8
+OCR_UNIT_PADDING = 8
+_OCR_METRE_UNIT = re.compile(r"(?<!\S)m\?(?!\S)")
+_OCR_METRE_ROW = re.compile(
+    rf"^[ \t]*{_NUMBER}[ \t]+(?P<unit>m\?)[ \t]{{2,}}{_NUMBER}[ \t]{{2,}}{_NUMBER}[ \t]*$", re.M
+)
+_OCR_RECOVERED_UNITS = {"m2": "m²", "m²": "m²", "m3": "m³", "m³": "m³"}
+
+
+def _reread_ocr_units(layout, boxes, render, recognize):
+    """Retry unread superscripts in a single price column, keeping the original reading."""
+    rows = list(_OCR_METRE_ROW.finditer(layout))
+    if not 0 < len(rows) <= OCR_UNIT_LIMIT or len(_OCR_METRE_UNIT.findall(layout)) != len(rows):
+        return layout, []
+
+    words = parse_xml(boxes(), generated=True)
+    scale = OCR_DPI / 72
+    unit_boxes = sorted(
+        (tuple(round(float(word.get(key, "")) * scale) for key in ("yMin", "xMin", "yMax", "xMax"))
+         for word in words.iter() if local_name(word) == "word" and word.text == "m?"),
+    )
+    if len(unit_boxes) != len(rows):
+        return layout, []
+    # Both representations must describe one column of separate rows. A second
+    # column or a reference in prose makes this alignment ambiguous.
+    tops, lefts, bottoms, _ = zip(*unit_boxes)
+    if max(lefts) - min(lefts) > 12 or any(bottom >= top for bottom, top in zip(bottoms, tops[1:])):
+        return layout, []
+
+    rereads = []
+    for row, (top, left, bottom, right) in zip(rows, unit_boxes):
+        if not (0 <= left < right <= OCR_RASTER_SIZE and 0 <= top < bottom <= OCR_RASTER_SIZE):
+            continue
+        x, y = max(0, left - OCR_UNIT_PADDING), max(0, top - OCR_UNIT_PADDING)
+        w = min(OCR_RASTER_SIZE, right + OCR_UNIT_PADDING) - x
+        h = min(OCR_RASTER_SIZE, bottom + OCR_UNIT_PADDING) - y
+        image = render(["-x", str(x), "-y", str(y), "-W", str(w), "-H", str(h)])
+        readings = [recognize(image, mode).decode("utf-8", errors="replace").strip() for mode in ("7", "8")]
+        unit = _OCR_RECOVERED_UNITS.get(readings[0])
+        if unit and _OCR_RECOVERED_UNITS.get(readings[1]) == unit:
+            offset = row.start("unit")
+            rereads.append({"offset": offset, "line": layout.count("\n", 0, offset) + 1,
+                            "original": "m?", "readings": readings, "unit": unit,
+                            "bbox_px": [left, top, right, bottom]})
+    for reread in reversed(rereads):
+        offset = reread["offset"]
+        layout = layout[:offset] + reread["unit"] + layout[offset + 2:]
+    return layout, rereads
 
 
 def _ocr_layout(source, pages, result):
@@ -186,10 +235,11 @@ def _ocr_layout(source, pages, result):
     found = {}
     for number in pages[:OCR_PAGE_LIMIT]:
         try:
-            image = execute([rasterizer, "-f", str(number), "-l", str(number), "-scale-to",
-                             str(OCR_RASTER_SIZE), "-singlefile", "-png", str(source)])
-            searchable = execute([tesseract, "stdin", "stdout", "-l", language, "--dpi", "240", "pdf"],
-                                 data=image)
+            raster = [rasterizer, "-f", str(number), "-l", str(number), "-scale-to",
+                      str(OCR_RASTER_SIZE), "-singlefile", "-png"]
+            ocr = [tesseract, "stdin", "stdout", "-l", language, "--dpi", str(OCR_DPI)]
+            image = execute([*raster, str(source)])
+            searchable = execute([*ocr, "pdf"], data=image)
             layouts = split_layout(execute([text_extractor, "-enc", "UTF-8", "-layout", "-", "-"],
                                            data=searchable))
         except TimeoutExpired:
@@ -199,8 +249,21 @@ def _ocr_layout(source, pages, result):
             result.warn("pdf_ocr_incomplete", {"page": number}, "The page could not be read by local OCR.")
             continue
         if len(layouts) == 1 and layouts[0].strip():
-            found[number] = layouts[0]
-            result.add("pdf_ocr_page", {"page": number, "ocr_pages": [number]}, layout=layouts[0], language=language)
+            original = revised = layouts[0]
+            rereads = []
+            try:
+                revised, rereads = _reread_ocr_units(
+                    original,
+                    lambda: execute([text_extractor, "-enc", "UTF-8", "-bbox", "-", "-"], data=searchable),
+                    lambda args: execute([*raster, *args, str(source)]),
+                    lambda crop, mode: execute([*ocr, "--psm", mode], data=crop),
+                )
+            except (OSError, SyntaxError, ValueError, TimeoutExpired):
+                # Preserve the first transcription if the optional cell retry fails.
+                pass
+            found[number] = revised, rereads
+            result.add("pdf_ocr_page", {"page": number, "ocr_pages": [number]}, layout=original,
+                       language=language, unit_rereads=rereads)
     if len(pages) > OCR_PAGE_LIMIT:
         result.warn("pdf_ocr_page_limit", {"page": pages[OCR_PAGE_LIMIT]},
                     f"Only the first {OCR_PAGE_LIMIT} raster-only pages are eligible for local OCR in one import.")
@@ -266,8 +329,10 @@ def pdf(data: bytes) -> Result:
             for number, raw_page in enumerate(native, 1):
                 if number not in ocr and not raw_page.strip():
                     result.warn("page_has_no_extractable_text", {"page": number}, "Inspect the page image or run OCR")
-            extract_pdf_tables([ocr.get(number, raw_page) for number, raw_page in enumerate(native, 1)],
-                               result, ocr_pages=ocr.keys())
+            pages = [ocr[number][0] if number in ocr else raw_page for number, raw_page in enumerate(native, 1)]
+            unit_evidence = {(page, reread["line"]): {"page": page, **reread}
+                             for page, (_, rereads) in ocr.items() for reread in rereads}
+            extract_pdf_tables(pages, result, ocr_pages=ocr.keys(), unit_evidence=unit_evidence)
     return result
 
 
@@ -434,7 +499,7 @@ def detached_note_title(line, following):
     return False
 
 
-def extract_pdf_tables(pages, result, *, ocr_pages=()):
+def extract_pdf_tables(pages, result, *, ocr_pages=(), unit_evidence=None):
     current = None
     note = None
     section_paths = []
@@ -458,6 +523,10 @@ def extract_pdf_tables(pages, result, *, ocr_pages=()):
                             "The quantity was found by a loose scan of the item text; check it against the source")
         if numbers:
             flags["unit_price_only"] |= numbers["unit_price_only"]
+            if unit_evidence and (quantity_locator := current.get("quantity_locator")):
+                key = (quantity_locator["page"], quantity_locator["line"])
+                if reread := unit_evidence.get(key):
+                    locator["unit_ocr"] = reread
         else:
             result.warn("pdf_quantity_review", {**locator, "code": current["code"]},
                         "Review the source evidence for quantity and unit")

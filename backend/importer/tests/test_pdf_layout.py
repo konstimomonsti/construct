@@ -23,6 +23,26 @@ def extract(*pages):
     return items, sections, result
 
 
+
+def test_ocr_unit_reread_requires_matching_price_rows_and_agreement():
+    layout = " 5,000   m?   10,00   50,00\n 7,000   m?   10,00   70,00\n"
+    boxes = b"""
+        <html><word xMin="300" yMin="100" xMax="309" yMax="107">m?</word>
+        <word xMin="300" yMin="131" xMax="309" yMax="138">m?</word></html>
+    """
+    render = mock.Mock(side_effect=[b"first", b"second"])
+    recognize = mock.Mock(side_effect=[b"m2", b"m2", b"m3", b"m?"])
+    revised, details = pdf_module._reread_ocr_units(layout, lambda: boxes, render, recognize)
+    assert revised == layout.replace("m?", "m²", 1)
+    assert len(details) == 1
+    assert (details[0]["line"], details[0]["original"], details[0]["readings"]) == (1, "m?", ["m2", "m2"])
+
+    multi_column = boxes.replace(b'xMin="300" yMin="131"', b'xMin="500" yMin="131"')
+    render.reset_mock()
+    assert pdf_module._reread_ocr_units(layout, lambda: multi_column, render, recognize) == (layout, [])
+    render.assert_not_called()
+
+
 def warning_codes(result):
     return [issue["code"] for issue in result.issues]
 
