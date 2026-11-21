@@ -131,7 +131,8 @@ in `ListPatch`, `tests/subcontract.test.ts` (20 tests). `npm run lint`, `npm run
 **Not verified**
 - Sync to a **second browser** against the real backend (needs Postgres). The packages travel inside the `listPatch` record
   that the existing record-level sync already hashes and pushes, but I only ran the UI against a mock of the API.
-- Opening a draft in **Apple Mail and Thunderbird**. The `.eml` follows RFC 5322/2045/2047 (CRLF, quoted-printable text,
+- Opening a draft in a **real mail client** (Outlook, Apple Mail, Thunderbird). An attempt to open one in Outlook did not
+  produce a compose window, so the PR shows a decoded view of the generated `.eml` instead. The `.eml` follows RFC 5322/2045/2047 (CRLF, quoted-printable text,
   base64 attachment, `X-Unsent: 1`), and the tests parse it back.
 
 **Blockers / requests**
