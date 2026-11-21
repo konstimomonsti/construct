@@ -34,6 +34,8 @@ _QUANTITY = re.compile(
 _JOINED_QUANTITY = re.compile(rf"^(?P<quantity>{_NUMBER})(?P<unit>[^\s\d]\S*)(?P<tail>[ \t]+EP\b.*)$", re.I)
 _UNIT = re.compile(r"^(?:m(?:[²³23])?(?:wo|d)?|cm[²23]?|mm|km[²2]?|kg|t|to|l|kwh|st(?:k|ck)?\.?|stwo|satz|set|pau|psch\.?|h|std\.?|wo\.?|mt\.?|mo\.?|d|j(?:r|ahre?)|lfm)$", re.I)
 _TOTAL = re.compile(rf"^\s*(?P<label>(?:Summe|Gesamt(?:betrag|summe|preis)|Angebotssumme|Übertrag|MwSt|USt|zzgl\. Mehrwertsteuer|Mehrwertsteuer|Nachlass)[^\n]*?)[ \t]{{2,}}(?:EUR\s+)?(?P<amount>{_NUMBER})\s*(?:EUR|€)?\s*$", re.I)
+_NOTE_TITLE = re.compile(r"^(?:Spezifikation\s+\S|Vorbemerkung(?:en)?\b|.{1,60}\s+-\s+Vorbemerkung(?:en)?\b)", re.I)
+_REDACTED_LINE = re.compile(r"\[(?:FIRMA|PERSON|ORT|ADRESSE|TELEFON)_\d+\]", re.I)
 _PRICE_ONLY = re.compile(r"nur\s+(?:einh[. -]*pr\.?|einheitspreis|EP)\b", re.I)
 _FORM = re.compile(r"^\s*(\d{3}(?:\.[A-Z][A-Za-z]*)?)\s*$")
 _SUMMARY_TITLE = re.compile(r"^\s*(?:LV-Zusammenfassung|(?:Gesamt)?Zusammenstellung|Inhaltsverzeichnis)\s*$", re.I)
@@ -335,8 +337,27 @@ def extends_code(code, parent):
     return code.rstrip(".").startswith(parent + ".") and len(code.rstrip(".")) > len(parent)
 
 
+def detached_note_title(line, following):
+    if _NOTE_TITLE.match(line):
+        return True
+    # Some schedules repeat a short section title above a preamble, with a page label in between.
+    if len(line.split()) > 5:
+        return False
+    repeated = False
+    for raw in following:
+        candidate = raw.strip()
+        if candidate.casefold() == line.casefold():
+            repeated = True
+        elif not candidate or _REDACTED_LINE.fullmatch(candidate):
+            continue
+        else:
+            return repeated and bool(_NOTE_TITLE.match(candidate))
+    return False
+
+
 def extract_pdf_tables(pages, result):
     current = None
+    note = None
     section_paths = []
     sections_seen = set()
 
@@ -382,6 +403,12 @@ def extract_pdf_tables(pages, result):
         section_row(current["code"], current["short_description"] or "", locator)
         current = None
 
+    def flush_note():
+        nonlocal note
+        if note is not None:
+            result.add("note", note["locator"], text="\n".join(note["lines"]), section_path=note["section_path"])
+            note = None
+
     for page_number, page in enumerate(pages, 1):
         lines = page.splitlines()
         header_row = find_header(lines)
@@ -393,6 +420,7 @@ def extract_pdf_tables(pages, result):
         summary_page = any(_SUMMARY_TITLE.fullmatch(line) for line in lines[:16])
         if header_row is None or summary_page:
             flush()
+            flush_note()
         for line_number, raw in enumerate(lines, 1):
             locator = {"page": page_number, "line": line_number}
             total = _TOTAL.fullmatch(raw)
@@ -410,10 +438,12 @@ def extract_pdf_tables(pages, result):
             heading = _SECTION.fullmatch(raw)
             if heading and abs(len(heading["indent"]) - indent) <= 3:
                 flush()
+                flush_note()
                 section_row(heading["code"], heading["label"].strip(), locator)
                 continue
             match = _CODE.fullmatch(raw)
             if match and abs(len(match["indent"]) - indent) <= 3:
+                flush_note()
                 code, body = match["code"], match["body"]
                 amounts = read_quantity(body)
                 if amounts or is_item_code(code, header["code"].casefold()):
@@ -440,7 +470,14 @@ def extract_pdf_tables(pages, result):
                     flush()
                     section_row(code, body.strip(), locator)
                 continue
-            if current is not None and raw.strip():
+            line = raw.strip()
+            if not line:
+                continue
+            if note is not None:
+                note["lines"].append(line)
+                note["locator"].update(end_page=page_number, end_line=line_number)
+                continue
+            if current is not None:
                 if raw.strip().startswith(("Nr.)", "in EUR", "Alle Einzelbeträge", "Betrag in EUR")):
                     continue
                 numbers = read_quantity(raw)
@@ -456,7 +493,13 @@ def extract_pdf_tables(pages, result):
                     else:
                         current.setdefault("other_amount_candidates", []).append({"locator": locator, **numbers})
                 else:
-                    line = raw.strip()
+                    amounts = current["amounts"]
+                    if (amounts and len(amounts["price_cells_raw"]) >= 2 and current["description_lines"]
+                            and current["quantity_locator"]["line"] != current["locator"]["line"]
+                            and detached_note_title(line, lines[line_number:line_number + 5])):
+                        flush()
+                        note = {"locator": locator.copy(), "lines": [line], "section_path": list(section_paths)}
+                        continue
                     current["description_lines"].append(line)
                     if current["short_description"] is None and not _MARKER_LINE.match(line):
                         current["short_description"] = line
@@ -464,6 +507,7 @@ def extract_pdf_tables(pages, result):
         if "EUR" in page_head:
             result.metadata.setdefault("currency", "EUR")
     flush()
+    flush_note()
 
 
 def _parent_codes(code):

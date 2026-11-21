@@ -4,7 +4,8 @@ type Product = { id: string; name: string; category: string }
 type Suggestion = { name: string; description: string; url: string; source: string }
 
 export type CataloguePosition = {
-  state: 'matched' | 'activity' | 'needs_description' | 'queued' | 'researching' | 'suggested' | 'no_evidence' | 'failed'
+  model_review?: boolean
+  state: 'matched' | 'activity' | 'needs_description' | 'queued' | 'researching' | 'suggested' | 'no_evidence' | 'failed' | 'research_disabled'
   recovered: { short: string; long: string; source: string | null } | null
   product: Product | null
   suggestion: Suggestion | null
@@ -13,6 +14,7 @@ export type CataloguePosition = {
 export type CatalogueReport = {
   state: 'queued' | 'ready' | 'failed' | 'unstarted'
   positions: Record<string, CataloguePosition>
+  web_research?: boolean
 }
 
 const endpoint = (id: string) => `/api/workspace/catalogue?id=${encodeURIComponent(id)}`
@@ -22,7 +24,7 @@ async function readReport(response: Response): Promise<CatalogueReport> {
   if (!report?.positions || typeof report.positions !== 'object' || Array.isArray(report.positions) || !report.state) {
     throw new Error('Unexpected catalogue response.')
   }
-  return { state: report.state, positions: report.positions }
+  return { state: report.state, positions: report.positions, web_research: report.web_research }
 }
 
 export function useWorkspaceCatalogue(id: string | null, documentIds: string) {
