@@ -1,6 +1,7 @@
 """Generate ordinary tender files with labelled specification and pricing mutations."""
 
 import argparse
+import csv
 from dataclasses import dataclass, replace
 from decimal import Decimal
 import json
@@ -231,6 +232,64 @@ def _write_text_case(out, name, title, item, prefix, *, additional=()):
     return {"pdf": {"page": 1}, "docx": {"table": 1, "row": 2}, "json": {"row": 1}, "X83": {"source_id": identifier}}
 
 
+def _write_offer_tables(out, name, item):
+    from openpyxl import Workbook
+    from . import workbooks
+
+    rows = [
+        ("OZ", "Kurztext", "Menge", "ME", "EP", "GP", "Langtext"),
+        (*item.cells(), item.detail),
+    ]
+    for ext, delimiter in (("csv", ";"), ("tsv", "\t")):
+        with (out / f"{name}.{ext}").open("w", encoding="utf-8", newline="") as handle:
+            csv.writer(handle, delimiter=delimiter).writerows(rows)
+    book = Workbook()
+    sheet = book.active
+    sheet.title = "Entwässerung"
+    for row in rows:
+        sheet.append(row)
+    book.save(out / f"{name}.xlsx")
+    legacy_item = workbooks.Item(item.code, item.short, item.quantity, item.unit, item.price,
+                                 item.quantity * item.price, item.detail)
+    workbooks.workbook(out / f"{name}.xls", [("Entwässerung", [legacy_item], 0, 0)])
+    return {"csv": {"row": 2}, "tsv": {"row": 2}, "xlsx": {"sheet": sheet.title, "row": 2},
+            "xls": {"sheet": sheet.title, "row": 3}}
+
+
+def generate_product_offer(out):
+    """Keep the planned product constant while changing the separately offered SKU."""
+    out.mkdir(parents=True, exist_ok=True)
+    examples = Path(__file__).resolve().parents[3] / "data" / "examples"
+    package = json.loads((examples / "drainage-variant-evidence.json").read_text(encoding="utf-8"))
+    package["product_requirements"][0]["position_code"] = "01.0010"
+    deficient, = package["declarations"]
+    compliant = {**deficient, "product_code": "P160-B", "document": "Synthetic declaration P160-B",
+                 "ring_stiffness_sn": 8,
+                 "properties": {"material": {"value": "PVC-U"}, "outside_diameter": {"value": "16", "unit": "cm"}}}
+    package["declarations"].append(compliant)
+    (out / "product-evidence.json").write_text(json.dumps(package, indent=2), encoding="utf-8")
+
+    detail = ("Mindestens SN 8.\nFabrikat der Planung:\nHersteller: Design Works; SKU: R160; oder gleichwertig.")
+    rules = ("L1.PRODUCT.DRAINAGE_RING_STIFFNESS", "L1.PRODUCT.DIN_MATERIAL", "L1.PRODUCT.DECLARED_PROPERTY")
+    for name, suffix, expected, severity in (
+        ("offer-baseline", "\nAngebotenes Fabrikat:\nHersteller: Synthetic Works; SKU: P160-B", (), "warning"),
+        ("offer-matching", "\nAngebotenes Fabrikat: Hersteller: Synthetic Works; Artikelnummer: P160-B", (), "warning"),
+        ("offer-conflict", "\nAngebotenes Fabrikat:\nHersteller: Synthetic Works; SKU: P160-A", rules, "warning"),
+        ("offer-reference-only", "", ("L1.PRODUCT.DECLARED_PROPERTY",), "info"),
+    ):
+        item = Item("01.0010", "PVC-U-Abwasserrohr nach DIN EN 1401-1", 10, "m", detail=detail + suffix)
+        locators = _write_text_case(out, name, "Leistungsverzeichnis Entwässerung", item, "offer")
+        locators.update(_write_offer_tables(out, name, item))
+        if name == "offer-baseline":
+            continue
+        for ext, locator in locators.items():
+            labels = [{"match": "line", "layers": [1], "expect": [rule], "target": {
+                "line_codes": [item.code], "severity": severity, "source_locator": locator,
+            }} for rule in expected]
+            write_fixture_labels(out / f"{name}.{ext}", f"offer-baseline.{ext}",
+                                 *(labels or [{"control": True, "layers": [1], "expect": []}]))
+
+
 def generate_grade_scope(out):
     """Test concrete grade conflicts, legitimate component differences and unclear attribution."""
     out.mkdir(parents=True, exist_ok=True)
@@ -339,7 +398,8 @@ if __name__ == "__main__":
     parser.add_argument("out", type=Path)
     suites = {"tabular": generate, "precast": generate_precast, "gutter": generate_gutter,
               "dimensions": generate_dimensions, "dotted": generate_dotted, "grade-scope": generate_grade_scope,
-              "exposure-scope": generate_exposure_scope, "dependency-scope": generate_dependency_scope}
+              "exposure-scope": generate_exposure_scope, "dependency-scope": generate_dependency_scope,
+              "product-offer": generate_product_offer}
     parser.add_argument("--suite", choices=suites, default="tabular")
     args = parser.parse_args()
     suites[args.suite](args.out)

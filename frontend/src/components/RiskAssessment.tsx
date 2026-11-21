@@ -60,6 +60,7 @@ function FindingEvidence({ finding }: { finding: Finding }) {
   const quantityCheck = evidence?.quantity_check
   const scopeStatements = evidence?.scope_statements ?? []
   const quotes = [
+    ['Offered variant' + sourceField(evidence?.offer_field), evidence?.offer_quote],
     ['Grade' + sourceField(evidence?.grade_field), evidence?.grade_quote],
     ['Exposure' + sourceField(evidence?.exposure_field), evidence?.exposure_quote],
     ['Heading', concrete ? evidence.short_quote : undefined],

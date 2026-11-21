@@ -25,6 +25,8 @@ export type Evidence = {
   long_quote?: string
   scope_statements?: { line_id: string; line_code?: string | null; role: string; quote: string }[]
   quantity_check?: { state: CoverageCheckState; unit?: string | null; minimum_shortfall?: string | null; quantity?: string | null }
+  offer_quote?: string
+  offer_field?: string
   grade_quote?: string
   grade_field?: string
   exposure_quote?: string

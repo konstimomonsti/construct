@@ -137,6 +137,26 @@ Layer 1 compares the exact offered variant with the stated minimum SN and cited 
 The targeted tests cover three planted conflicts, matching values in different units, variant mismatches, contradictory declarations, and an unsupported edition. They exercise both JSON and a generated X83. The PostgreSQL tests cover attachment order, moving evidence between lists, replacing its bytes, removing it, and discarding a stale result if evidence changes while the worker is running. A preliminary replay of the repository's 8209 X83 and D83 exports (159 positions each) and LV 14 sanitary PDF (168 positions) produced zero findings from the new rules. Those bills lack the paired declarations needed to measure product-check accuracy independently.
 
 
+### Separating planned products from the offered SKU
+
+The product check compares an exact offered manufacturer and SKU with the attached declaration. Use a separate `Angebotenes Fabrikat:` or `Offered product:` label when the position also names a planning reference or permits an equivalent. The findings quote the offer from its source field and link the declaration and requirement. A blank offer or a competing offered SKU leaves the identity unresolved. The evidence does not establish a selected product when the position only names a reference.
+
+Across 32 uploads in PDF, Word, JSON, GAEB X83, CSV, TSV, XLSX, and XLS, the replay caught all 24 planted material, ring-stiffness, and outside-diameter conflicts and all eight reference-only cases that require offer confirmation. Each finding pointed to the expected source locator and included guidance. The eight matching-variant controls added no findings beyond the shared reference wording. A three-layer replay with local Qwen 2.5 7B kept all 12 expected findings and passed all three matching controls in PDF, X83, and XLS.
+
+The repository sanitary PDF and both 8209 exports contained 110 "oder gleichwertig" notes across 486 positions. The preliminary rerun did not treat them as offered SKUs. Those files contain planning references and do not provide paired, independently reviewed offer declarations.
+
+Generate and replay the fixtures with the local server and disposable workspace database. In addition to the replay dependencies, the generator uses `openpyxl` and `xlwt` for spreadsheet fixtures.
+
+```sh
+export PYTHONPATH=backend:backend/importer
+fixture_dir=$(mktemp -d)
+python -m analysis.eval.documents "$fixture_dir" --suite product-offer
+WORKSPACE_PARSE_ORIGIN=http://127.0.0.1:8080 \
+  frontend/node_modules/.bin/tsx frontend/tests/risk-upload-fixtures.ts \
+  "$fixture_dir"/offer-*.{pdf,docx,json,X83,csv,tsv,xlsx,xls} \
+  | python -m analysis.eval.uploads --product-evidence "$fixture_dir/product-evidence.json"
+```
+
 ## GAEB workspace upload replay
 
 The workspace picker parses the test files. The replay saves each original file and its parsed list in PostgreSQL, runs the assessment worker, and checks the stored findings and input hash against analysis of the original file. The worker keeps the original file's quantities, prices, subtotals, flags, and source locators. Unambiguous position and section links carry those findings into the workspace. Separate draft assessments continue to use the edited values.

@@ -44,6 +44,50 @@ def test_exact_offered_variant_conflicts_with_material_stiffness_and_diameter(dr
     assert Decimal(report[PROPERTY].evidence["observed"]) == Decimal("125")
 
 
+@pytest.mark.parametrize("offer", [
+    "Angebotenes Fabrikat: Hersteller: Synthetic Works; SKU: P160-A",
+    "Angebotenes Fabrikat:\r\nHersteller: Synthetic Works\r\nArt.-Nr.: P160-A",
+    "Offered product: Manufacturer: Synthetic Works; SKU: P160-A",
+])
+def test_explicit_offer_is_checked_with_separate_design_reference(drainage, offer):
+    row = drainage["items"][0]
+    row["long"] = ("Mindestens SN 8.\nFabrikat der Planung:\nHersteller: Reference Works; SKU: R160\n"
+                   "oder gleichwertig.\n" + offer)
+    report = findings(drainage)
+    for rule in (MATERIAL, STIFFNESS, PROPERTY):
+        item = report[rule]
+        assert item.evidence["outcome"] == "conflict"
+        assert item.evidence["offer_quote"] == offer.replace("\r\n", "\n")
+        assert item.evidence["offer_field"] == "long_text"
+        assert item.evidence["declarations"][0]["product_code"] == "P160-A"
+        assert item.suggested_fix and not item.suggested_fix.operations
+
+
+@pytest.mark.parametrize("heading,detail", [
+    ("", "Fabrikat der Planung:\nHersteller: Synthetic Works; SKU: P160-A"),
+    ("", "Hersteller: Synthetic Works; SKU: P160-A\noder gleichwertig"),
+    ("", "Hersteller: Synthetic Works; SKU: ........"),
+    ("", "Hersteller: ______; SKU: P160-A"),
+    ("", "Hersteller: Synthetic Works; SKU: P160-A\nAngebotenes Fabrikat: [Bieterangabe]"),
+    ("\nHersteller: Synthetic Works", "SKU: P160-A"),
+    ("", "Angebotenes Fabrikat: Hersteller: Synthetic Works; SKU: P160-A\n"
+         "Angebotenes Fabrikat: Hersteller: Synthetic Works; SKU: P160-B"),
+    ("", "Angebotenes Fabrikat: Hersteller: Synthetic Works; SKU: P160-A\nWahlweise auch SN 4."),
+    ("", "Angebotenes Fabrikat: Hersteller: Synthetic Works; SKU: P160-A; oder gleichwertig."),
+    ("", "Angebotenes Fabrikat: Hersteller: Synthetic Works; SKU: P160-A\nAngebotenes Fabrikat: [Bieterangabe]"),
+])
+def test_never_turns_reference_placeholders_or_competing_offers_into_a_product_conflict(drainage, heading, detail):
+    row = drainage["items"][0]
+    row["short"] += heading
+    row["long"] = "Mindestens SN 8.\n" + detail
+    report = findings(drainage)
+    assert report[PROPERTY].evidence["outcome"] == "insufficient_evidence"
+    for rule in (MATERIAL, STIFFNESS, PROPERTY):
+        if rule in report:
+            assert report[rule].severity == "info"
+            assert report[rule].evidence["declarations"] == []
+
+
 def test_matching_declaration_and_convertible_units_are_clean(drainage):
     declaration = drainage["declarations"][0]
     declaration["properties"]["material"]["value"] = "pvc-u"

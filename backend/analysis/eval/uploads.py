@@ -23,6 +23,7 @@ from . import harness, labels
 import workspace
 import workspace_analysis
 from workspace_parse import original_document
+from workspace_product_evidence import add_to_snapshot
 
 
 GAEB_SUFFIXES = {".x83", ".d83", ".x84", ".d84", ".x86", ".d86"}
@@ -30,16 +31,36 @@ DOCUMENT_SUFFIXES = {".pdf", ".docx", ".xls"}
 TABLE_SUFFIXES = {".csv", ".tsv", ".xlsx", ".json"}
 
 
-def assess(connection, path, document, layers):
+def assessment_snapshot(path, document):
+    payload = workspace_analysis._uploaded_input(document)
+    editable, _ = workspace_analysis.prepare(payload)
+    suffix = path.suffix.lower()
+    if suffix in GAEB_SUFFIXES:
+        source = adapter.from_file(path)
+    elif suffix in DOCUMENT_SUFFIXES:
+        source = original_document(path.name, path.read_bytes())
+    else:
+        return editable
+    return workspace_analysis._original_tender(editable, source, payload["original_refs"])
+
+
+def assess(connection, path, document, layers, evidence_path=None):
     with connection.transaction(force_rollback=True):
         workspace.save_file(connection, "source", "application/octet-stream", path.read_bytes())
+        documents = {"source": {"name": path.name, "original": True, "listId": "bom"}}
+        if evidence_path:
+            workspace.save_file(connection, "evidence", "application/json", evidence_path.read_bytes())
+            documents["evidence"] = {"name": evidence_path.name, "productEvidence": True, "listId": "bom"}
         workspace.apply(connection, {"changes": {
             "userLists": {"set": {"bom": document}},
-            "userDocuments": {"set": {"source": {"name": path.name, "original": True, "listId": "bom"}}},
+            "userDocuments": {"set": documents},
         }})
         if not workspace_analysis.assess_next(connection):
             raise RuntimeError(f"{path.name}: assessment was never queued")
         job = workspace_analysis.status(connection, workspace.WORKSPACE, "bom")
+        canonical = assessment_snapshot(path, document)
+        evidence_files = add_to_snapshot(connection, workspace.WORKSPACE, "bom", canonical) if evidence_path else []
+        canonical = canonical.with_hash()
 
     report = job["report"]
     if job["state"] != "ready" or any(
@@ -47,18 +68,10 @@ def assess(connection, path, document, layers):
     ):
         raise RuntimeError(f"{path.name}: assessment is incomplete: {report and report['errors']}")
 
-    payload = workspace_analysis._uploaded_input(document)
-    editable, _ = workspace_analysis.prepare(payload)
-    canonical = editable
-    if path.suffix.lower() in GAEB_SUFFIXES:
-        if not report["used_source"]:
-            raise RuntimeError(f"{path.name}: original GAEB file was not assessed")
-        canonical = workspace_analysis._original_tender(editable, adapter.from_file(path), payload["original_refs"]).with_hash()
-    if path.suffix.lower() in DOCUMENT_SUFFIXES:
-        if not report["used_source"]:
-            raise RuntimeError(f"{path.name}: original document was not assessed")
-        source = original_document(path.name, path.read_bytes())
-        canonical = workspace_analysis._original_tender(editable, source, payload["original_refs"]).with_hash()
+    if path.suffix.lower() in GAEB_SUFFIXES | DOCUMENT_SUFFIXES and not report["used_source"]:
+        raise RuntimeError(f"{path.name}: original file was not assessed")
+    if evidence_path and (evidence_files != ["evidence"] or report["product_evidence_files"] != evidence_files):
+        raise RuntimeError(f"{path.name}: attached product evidence was not included in the assessment")
     result = AnalysisResult.model_validate({key: report[key] for key in AnalysisResult.model_fields if key in report})
     if result.input_hash != canonical.input_hash or labels.layers_that_ran(result, layers) != layers:
         raise RuntimeError(f"{path.name}: assessment used a different input or missed a requested layer")
@@ -104,7 +117,9 @@ def score(reports, layers):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--local-layer3", action="store_true", help="enable Layer 3 using Ollama on localhost")
-    local = parser.parse_args().local_layer3
+    parser.add_argument("--product-evidence", type=Path, help="attach a synthetic evidence package to each evaluated bill")
+    args = parser.parse_args()
+    local = args.local_layer3
     os.environ["ANALYSIS_L3_PROVIDER"] = "ollama" if local else "none"
     if local:
         os.environ["OLLAMA_HOST"] = "http://127.0.0.1:11434"
@@ -120,7 +135,7 @@ def main():
                 path = Path(entry["path"]).resolve()
                 if path.suffix.lower() not in GAEB_SUFFIXES | DOCUMENT_SUFFIXES | TABLE_SUFFIXES:
                     raise ValueError(f"{path.name}: unsupported fixture format")
-                reports[path] = assess(connection, path, entry["document"], layers)
+                reports[path] = assess(connection, path, entry["document"], layers, args.product_evidence)
     if not reports:
         raise ValueError("Supply at least one parsed upload on stdin.")
     counts = score(reports, layers)

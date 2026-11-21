@@ -40,10 +40,10 @@ RUN_SCHEMA = "construct-eval-run/1"
 VERDICTS = ("true_error", "false_alarm", "importer_artefact", "unsure")
 
 
-def write_fixture_labels(path: Path, baseline: str, label: dict) -> None:
+def write_fixture_labels(path: Path, baseline: str, *labels: dict) -> None:
     path.with_suffix(path.suffix + ".labels.json").write_text(json.dumps({
         "schema": SCHEMA, "file": path.name, "suite": "catalogue",
-        "backend": path.suffix[1:], "baseline": baseline, "labels": [label],
+        "backend": path.suffix[1:], "baseline": baseline, "labels": labels,
     }), encoding="utf-8")
 
 
