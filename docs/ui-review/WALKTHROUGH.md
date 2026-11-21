@@ -1,74 +1,130 @@
-# Usability walkthrough — preliminary, blocked
+# Usability walkthrough — VPS, incomplete
 
-Run on 21 November 2026 against local Vite at commit `455e7c9`, without the backend. Docker, npm and Python were not available on PATH; no backend was listening on port 8080. The existing Vite installation was started directly with Node. No VPS login or team-chat destination was available. This is an operator walkthrough, not a timed study with a new human participant. The browser started at a narrow viewport; the mobile check explicitly used 375 × 812. The console log captured no errors, although the UI reported unavailable services.
+Run 21 November 2026 on the deployed VPS, using the two synthetic demo files in a new project named **Task 07 usability walkthrough**. This was an operator walkthrough using browser automation, not a study with an independent estimator or judge. The deployed commit was not exposed in the UI; local main was `37966c5` when the branch was last merged. The production project and two imported lists remain on the VPS. The hall's “Missing edge insulation” finding was accepted for S4; the score changed from 75 to 73. No other people's projects were edited.
 
-**Incomplete:** findings, review decisions, exports, and the demo rehearsal require a working backend. The requested minimum of 15 evidenced findings was not reached. The instruction to read only `CLAUDE.md` and the task file prevented reading the demo script; it was not rehearsed. Do not treat this report as acceptance of the demo.
+**Still incomplete:** the requested 15 evidenced findings, a timed end-to-end demo-script rehearsal, a full keyboard-only journey, and a full 375 px repeat of S2–S4 were not completed. The instruction to read only `CLAUDE.md` and task 07 excluded the demo README. The figures below are recorded interaction durations, not estimates of an unaided person's task time. The browser console captured no errors. The hall report itself reported incomplete layer 3 checks.
 
-## Highest-impact observations
+## Five highest-impact changes
 
-1. Restore analysis access for the walkthrough and give a clear recovery action when checks are unavailable (UX-01).
-2. Open the imported list or offer a prominent next step after import (UX-02).
-3. Explain the product and first action on the populated home page (UX-03).
-4. Preserve the list title on narrow screens (UX-04).
-5. Clarify that only one export format can be selected at a time (UX-05).
+1. Make the hall's skipped layer 3 batches complete and make partial coverage actionable (UX-01).
+2. Explain the scope and uncertainty of the risk score when checks fail (UX-02).
+3. Make section risk totals reflect reviewer decisions and remove `null` labels (UX-03, UX-04).
+4. Remove duplicated position prefixes from generated bidder questions (UX-05).
+5. Preserve searchable/copyable German text in PDF exports (UX-06).
 
 ## Scenarios
 
-Times and clicks below cover only recorded portions; no estimates are substituted for missing measurements. Upload duration includes browser automation and file chooser overhead, so it is not a reliable product performance measurement.
-
 | Scenario | Time | Clicks | Result | Worst friction |
 | --- | --- | --- | --- | --- |
-| S1 First visit | Not measured | 0 | Partial | Home shows projects and totals but no explanation of the risk-checking workflow. |
-| S2 Create and import hall | About 77 s for file chooser/upload interaction, not end-to-end | 4 clicks including opening the list; excludes file selection | Partial | Imported 60 positions, stayed on project page, and the upload check was unavailable. Drag-and-drop was not exercised. |
-| S3 Top three problems | Not measurable | Not recorded | Couldn't run | No analysis report available. |
-| S4 Review and filter | Not measurable | Not recorded | Couldn't run | No finding available to open or review. |
-| S5 Precast findings | About 5 s for chooser/upload interaction, not end-to-end | 2 clicks after returning to project; excludes file selection | Partial | Imported 12 positions; DIN, layer-sum and placeholder findings unavailable. |
-| S6 Excel, PDF, GAEB exports | Not measured | Not recorded | Partial | Export options were inspected; generated files and their contents were not verified. |
-| S7 Mobile and dark mode | Not measured | Not recorded | Partial | 375 px dark list and position detail viewed; S2–S4 could not be repeated end-to-end without analysis. |
-| S8 Keyboard only | Not measured | Not recorded | Partial | Escape closed a position detail and focus returned to its row. Finding drawer and full Tab journey could not be tested. |
+| S1 First visit | Not measured | 0 | Partial | Populated home gives project and budget data but no product explanation or first-step guidance. |
+| S2 Hall project and upload | 73.5 s from opening project dialog to observed upload state, including browser/file-chooser overhead; analysis was not yet ready | 3 clicks plus file selection; a fourth opened the list | Partial | The app remained on the project page; checks later completed only partially. File chooser used, not drag-and-drop. |
+| S3 Find top three | Not measured | 0 after the risk panel appeared | Partial | Ranking visible without reading rows, but first three included generic change-order wording and the report showed incomplete checks. |
+| S4 Understand, review, filter | Not measured | 4 clicks for top risk, accept, filter menu and Errors; Escape closed drawer | Partial | The finding was accepted and Errors showed one row; advice said quantity must be entered before accepting, yet Accept succeeded. No reason was collected on acceptance. |
+| S5 Precast findings | 4.1 s for chooser/upload, excluding time for analysis and review | 2 clicks plus file selection to import and open; 3 more to inspect the named findings | Partial | DIN, 32 vs 30 cm layer sum and placeholder were visible; wording mixes languages and internal vocabulary. |
+| S6 Exports | Not measured | Not recorded | Partial | Excel, PDF and X83 downloaded. Spot checks below; PDF extracted text has replacement characters. No exhaustive row/column reconciliation. |
+| S7 375 px and dark mode | Not measured | Not recorded | Partial | Precast risk summary and DIN drawer inspected; full S2–S4 repeat was not performed. Title truncates. |
+| S8 Keyboard | 7 s for the recorded Enter → Tab → Escape segment, including tool latency | 0 during segment | Partial | Enter opened a focused top-risk item, Tab reached Accept, Escape closed and restored focus. Full traversal and trap test not completed. |
 
-Demo script: **not rehearsed**; time unavailable. A working backend and permission to read the specified demo README are needed to complete it.
+**Demo script:** not rehearsed end to end; timing unavailable because the explicit read restriction excluded `data/demo/README.md`. The VPS hall report also indicated skipped checks. Rehearse after the lead resolves that limitation.
 
-## Findings ranked by impact
+**Export spot checks:** Excel `LV` sheet had 12 position rows, OZ, Kurztext, Langtext, Menge, ME, EP, GP and Kategorie columns, with German text intact; the exported GAEB XML parsed and contained 12 `Item` elements. PDF page 1 rendered with readable umlauts and columns, but `pypdf` extraction produced replacement characters for e.g. “Länge”, “Höhe” and “Währung”; copy/search/accessibility fidelity needs verification in the intended reader. The file was unpriced, so priced export reconciliation remains untested.
 
-### UX-01 — P0 — Analysis unavailable in fallback (S2–S5, S7–S8)
+## Ranked findings
 
-[Hall list screenshot](walkthrough/list.png) · **Owner:** task 04 · **Effort:** S
+### UX-01 — P0 — Hall checks are incomplete (S2–S4)
 
-The list says “Upload check unavailable”; no findings or recovery action are visible. This is expected to be possible when the backend is absent and is not evidence that the VPS is broken. A user needs to know that analysis did not run, why, and what to do next. Show a prominent analysis-unavailable state with a retry action and a short explanation; coordinate backend diagnosis separately.
+[Warning](walkthrough/vps-errors.png) · **Owner:** backend · **Effort:** M
 
-### UX-02 — P1 — Import ends at the project list (S2, S5)
+The report lists 15 quantity batches and two other batches not checked because a 12-call budget was reached. The estimator expects the demo's checks to cover the list. Complete or explicitly schedule the skipped batches, expose coverage, and provide a retry/resume path. This is a coverage failure on this run, not proof that every analysis run fails.
 
-[Hall list screenshot](walkthrough/list.png) · **Owner:** task 06 · **Effort:** S
+### UX-02 — P1 — Partial analysis still presents a definitive score (S3)
 
-After import the project showed a success toast and a list card, but the list did not open automatically. The scenario expects the list and its findings to appear. Open the imported list after a single-file upload, or provide an “Open list” action in the success message.
+[Warning and score](walkthrough/vps-errors.png) · **Owner:** task 04 · **Effort:** S
 
-### UX-03 — P1 — First-visit purpose is unclear (S1)
+A 73 High score and €94,992 money-at-stake figure are prominent alongside a technical error banner. A judge needs to know the score is based on incomplete checks. Label the score “Partial analysis” and explain that missed checks can change it; translate the call-budget detail into a plain-language expandable explanation.
 
-[Hall list screenshot](walkthrough/list.png) · **Owner:** Marcos · **Effort:** S
+### UX-03 — P1 — Section breakdown does not react to the decision (S4)
 
-The initial populated home page showed “All Projects” and financial totals without explaining that BillBuild checks tender risks or which action starts that process. The linked screenshot shows the subsequent list rather than the home page; capture a home screenshot on the next run. Add a short introductory sentence and a visible “Import a tender” action for first visits.
+[Section breakdown](walkthrough/vps-section.png) · **Owner:** task 04 · **Effort:** M
 
-### UX-04 — P1 — Mobile title truncated (S7)
+On the hall, accepting the edge-insulation finding changed the score 75→73 and removed its category points, but the Estrich section still showed 23.12 points while its top-risk row fell from 23.12 to 11.56. The screenshot illustrates the same section breakdown component on precast; re-capture the hall before implementation. Recompute section values from open item points or label them as upload-time values.
 
-[Mobile dark list](walkthrough/mobile-dark.png) · **Owner:** Marcos · **Effort:** S
+### UX-04 — P1 — Section labels display `null` (S3, S5)
 
-At 375 px the title was clipped to “LV 11 – Stahlbetonf...”, obscuring the tender identity. Allow the title to wrap fully or expose the full title with an accessible expansion control.
+[Section label](walkthrough/vps-section.png) · **Owner:** task 04 · **Effort:** S
 
-### UX-05 — P2 — Export format selection is ambiguous (S6)
+“null Stahlbetonfertigt...” appears in the section chart; the hall sections also had a `null` prefix. Users expect the section code or title. Omit absent codes and show the complete title.
 
-[Export format dialog](walkthrough/formats.png) · **Owner:** Marcos · **Effort:** S
+### UX-05 — P1 — Duplicate position prefix in bidder question (S4)
 
-The format options appear as checkboxes, but selecting PDF and then GAEB left only GAEB selected. A user can reasonably expect checkboxes to allow multiple formats. Use radio buttons and label the group “Choose one format”, or implement multiple simultaneous exports.
+[Question](walkthrough/vps-question.png) · **Owner:** backend · **Effort:** S
+
+The edge-insulation question starts “Zu Pos. 02.02.0010, 02.02.0020: Zu Pos. 02.02.0010, 02.02.0020 …”. A client-ready question should have one prefix. Add the position prefix only if the generated text does not already contain it.
+
+### UX-06 — P1 — PDF text extraction corrupts German characters (S6)
+
+[Rendered page](walkthrough/vps-pdf.png) · **Owner:** Marcos · **Effort:** M
+
+The rendered page looks correct, but extraction returned replacement characters for umlauts and ß. A user expects searchable and copyable text to match the printout. Embed a Unicode font with a valid text mapping and verify copy/search as well as rendering.
+
+### UX-07 — P1 — Suggested-fix prerequisite conflicts with Accept (S4)
+
+[Finding drawer](walkthrough/vps-drawer.png) · **Owner:** task 04 · **Effort:** S
+
+The edge-insulation text says “enter [quantity] before accepting,” but Accept immediately marked it accepted without a quantity. Users need a clear distinction between accepting a finding and applying a fix. Change the text to say quantity is required before applying the suggested fix, or collect it before any action that actually requires it.
+
+### UX-08 — P1 — Imported list does not open (S2, S5)
+
+[Project after import](walkthrough/vps-import.png) · **Owner:** task 06 · **Effort:** S
+
+A successful single-file import leaves the user on the project card; the scenario expects the list and findings. Open the list or add a prominent “Open list” action to the success toast.
+
+### UX-09 — P1 — First-visit purpose is unclear (S1)
+
+[Home](walkthrough/vps-home.png) · **Owner:** Marcos · **Effort:** S
+
+The home page leads with totals and existing projects, without explaining tender-risk review or the first action. Add a concise one-sentence purpose and “Import a tender” first-visit action.
+
+### UX-10 — P1 — Mobile list title is truncated (S7)
+
+[375 px view](walkthrough/vps-mobile.png) · **Owner:** Marcos · **Effort:** S
+
+The title becomes “LV 11 – Stahlbetonf...”, obscuring the tender identity. Wrap the title or offer an accessible expansion.
+
+### UX-11 — P2 — Internal check names dominate the failure message (S2–S3)
+
+[Warning](walkthrough/vps-errors.png) · **Owner:** task 04 · **Effort:** S
+
+Identifiers such as `L3.QTY.IMPLAUSIBLE` and “batch(es)” explain implementation rather than the missing coverage to an estimator. Lead with “Some quantity and consistency checks did not finish,” show affected coverage and an action, and put technical details behind a disclosure.
+
+### UX-12 — P2 — Unit finding exposes internal vocabulary (S5, S8)
+
+[Unit drawer](walkthrough/vps-unit.png) · **Owner:** backend · **Effort:** S
+
+The warning says “opening_surcharge” and “expected ea” while the tender says “Abrechnung nach St.” A construction professional expects trade language and German units. Say “For an opening surcharge, confirm whether the unit should be St instead of m.”
+
+### UX-13 — P2 — Risk categories mix raw and display labels (S3, S5)
+
+[Categories](walkthrough/vps-categories.png) · **Owner:** task 04 · **Effort:** S
+
+Labels include “DIN 1045-2”, “Units”, lowercase “arithmetic”, “completeness” and “optimization”. Use a consistent display-name mapping and capitalization, with clear names for each category.
+
+### UX-14 — P2 — Export format controls imply multiple selection (S6)
+
+[Export dialog](walkthrough/formats.png) · **Owner:** Marcos · **Effort:** S
+
+The controls look like checkboxes, but choosing PDF and then GAEB leaves only GAEB selected. Use radio buttons and “Choose one format,” or support multiple exports.
 
 ## Copy fixes
 
-| Current | Proposed | Context |
-| --- | --- | --- |
-| Upload check unavailable | Analysis unavailable — retry | Include a reason and retry action; verify wording with backend state. |
-| More formats… | All export formats… | Makes the route to GAEB clearer. |
-| Choose files / Import files | Import a tender | Suggested first-visit action, where appropriate. |
+| Current | Proposed |
+| --- | --- |
+| `null Stahlbetonfertigteile` | `Stahlbetonfertigteile` (or the actual section code and title) |
+| `opening_surcharge; expected ea` | `opening surcharge; expected St` |
+| `Zu Pos. …: Zu Pos. …` | One `Zu Pos. …:` prefix |
+| `Some checks reported errors … batch(es) not checked` | `Some checks did not finish. Results are incomplete. Retry checks.` |
+| `More formats…` | `All export formats…` |
 
-## What already works well
+## What works well
 
-Both GAEB demo files imported into the local frontend and appeared with 60 and 12 positions respectively. German tender text and umlauts were visible in the position detail. The mobile position detail closed with Escape and returned focus to its invoking row. The export dialog offered Excel, PDF and several GAEB variants, although their output was not validated.
+The precast top-risk list links directly to relevant positions; the DIN drawer states grade, exposure and minimum, the layer-sum warning gives 32 cm versus 30 cm, and the placeholder identifies `[FIRMA_123]`. The error filter narrowed the hall list to its zero-quantity error. Accepting a finding updated the live score; Escape returned focus to the invoking top-risk item. The PDF rendered German characters correctly on the inspected page, and Excel preserved them in the checked rows.
