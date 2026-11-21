@@ -1,0 +1,28 @@
+import { chromium } from 'playwright'
+const b = await chromium.launch(); const p = await (await b.newContext({ viewport: { width: 1280, height: 1024 } })).newPage()
+const errs = []; p.on('pageerror', e => errs.push(e.message))
+const ok = (c, n) => console.log((c ? 'PASS ' : 'FAIL ') + n)
+await p.goto('http://localhost:5173/'); await p.evaluate(() => localStorage.clear())
+// qty stepper updates subtotal + sidebar budget
+await p.goto('http://localhost:5173/list/ort-024-lv24069-d86', { waitUntil: 'networkidle' })
+const row = p.locator('tbody tr').first()
+const before = await row.innerText()
+await row.getByRole('button', { name: /increase|plus|\+/i }).first().click()
+await p.waitForTimeout(300)
+const after = await row.innerText()
+ok(before.includes('€5,700.00') && after.includes('€11,400.00'), 'qty + doubles subtotal')
+// alert reacts to a lowered cap
+await p.goto('http://localhost:5173/', { waitUntil: 'networkidle' })
+const sidebar = await p.locator('aside').innerText()
+ok(/€3\.84M|€3\.85M/.test(sidebar), 'sidebar total includes edit: ' + sidebar.match(/€[\d.]+M/)?.[0])
+// import real GAEB XML into new empty folder
+await p.getByRole('button', { name: /new folder/i }).first().click()
+await p.getByRole('dialog').locator('input').first().fill('Import Test')
+await p.getByRole('dialog').getByRole('button', { name: /create/i }).click()
+await p.waitForTimeout(500)
+const [fc] = await Promise.all([p.waitForEvent('filechooser'), p.getByRole('button', { name: /Import Item Lists/i }).click()])
+await fc.setFiles('../data/GAEB-[PROJEKT_004].X83')
+await p.waitForTimeout(1000)
+const body = await p.locator('body').innerText()
+ok(/50 position/i.test(body), 'GAEB import shows 50 positions')
+console.log(errs.length ? 'errors: ' + errs.join(' | ') : 'errors: none'); await b.close()
