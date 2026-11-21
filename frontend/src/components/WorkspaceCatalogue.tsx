@@ -1,7 +1,8 @@
-import { Fragment } from 'react'
+import { Fragment, useState } from 'react'
 import { Button, Icon } from './ui'
 import { MetaLink } from './Kit'
 import type { Position } from '../lib/types'
+import { money, parseNumber } from '../lib/format'
 import type { CataloguePosition, CatalogueReport } from '../lib/workspace-catalogue'
 
 const labels: Record<CataloguePosition['state'], string> = {
@@ -22,7 +23,45 @@ export type ResearchView = 'suggested' | 'matched' | 'unresolved' | null
  * catalogue research for a list in two parts that share one `show` state: `line` is a single status line that sits in the
  * list hero (no band of its own), `list` is the positions behind the pressed count, shown under the hero.
  */
-export function CatalogueOverview({ report, error, retryFailed, positions, onOpen, part, show, setShow, hideMatched }: {
+/** the cited note a web suggestion adds to the long description */
+export const suggestionNote = (suggestion: NonNullable<CataloguePosition['suggestion']>) =>
+  `${suggestion.name} — ${suggestion.description}\nWikipedia (CC BY-SA 4.0) ${suggestion.url}`
+/** the long description with the note added, or null when it is already there */
+export function withSuggestion(position: Position, result: CataloguePosition): string | null {
+  if (!result.suggestion) return null
+  const note = suggestionNote(result.suggestion)
+  return position.long?.includes(note) ? null : [position.long, note].filter(Boolean).join('\n\n')
+}
+
+/** a unit price typed straight into the research list, for positions neither the catalogue nor the web could match */
+function PriceInput({ position, onPrice }: { position: Position; onPrice: (id: string, price: number | null) => void }) {
+  const shown = position.up == null ? '' : position.up.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  const [draft, setDraft] = useState<string | null>(null)
+  const commit = () => {
+    if (draft === null) return
+    const empty = draft.trim() === ''
+    const value = empty ? null : parseNumber(draft)
+    setDraft(null)
+    if (!empty && (value === null || value < 0)) return
+    if (value !== position.up) onPrice(position.id, value)
+  }
+  return (
+    <label className="flex shrink-0 items-center gap-1.5 text-[13px] text-slate-600">
+      <span className="max-sm:sr-only">EP</span>
+      <input inputMode="decimal" aria-label={`Unit price for ${position.oz}${position.unit ? ` per ${position.unit}` : ''}`}
+        value={draft ?? shown} placeholder="Price" onChange={(e) => setDraft(e.target.value)} onBlur={commit}
+        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); commit(); (e.target as HTMLInputElement).blur() } if (e.key === 'Escape') setDraft(null) }}
+        className="num h-8 w-24 rounded-md bg-white px-2 text-right text-sm text-slate-900 ring-1 ring-slate-400 outline-none ring-inset focus:ring-2 focus:ring-brand-600" />
+      <span className="w-10 truncate">{position.unit ? `€/${position.unit}` : '€'}</span>
+    </label>
+  )
+}
+
+export function CatalogueOverview({ report, error, retryFailed, positions, onOpen, part, show, setShow, hideMatched, onApplyAll, onPrice }: {
+  /** adds several web suggestions to their long descriptions in one go */
+  onApplyAll?: (changes: { id: string; long: string }[]) => void
+  /** sets the unit price of a position that has no catalogue or web match */
+  onPrice?: (id: string, price: number | null) => void
   /** matches that already became pending prices: the pricing status says it, so the research line doesn't repeat it */
   hideMatched?: { has: (id: string) => boolean }
   report: CatalogueReport | null
@@ -34,6 +73,7 @@ export function CatalogueOverview({ report, error, retryFailed, positions, onOpe
   show: ResearchView
   setShow: (v: ResearchView) => void
 }) {
+  const [unpicked, setUnpicked] = useState<Set<string>>(new Set())
   const rows = positions.flatMap((item) => {
     const result = report?.positions[item.id]
     return result ? [{ item, result }] : []
@@ -71,16 +111,46 @@ export function CatalogueOverview({ report, error, retryFailed, positions, onOpe
     )
   }
 
+  const applicable = show === 'suggested' ? visible.flatMap(({ item, result }) => {
+    const long = withSuggestion(item, result)
+    return long ? [{ id: item.id, long }] : []
+  }) : []
+  const picked = applicable.filter(({ id }) => !unpicked.has(id))
+  const unpricedLeft = show === 'unresolved' ? visible.filter(({ item }) => item.up == null).length : 0
+  const pricedTotal = show === 'unresolved' ? visible.reduce((sum, { item }) => sum + (item.up ?? 0) * item.qty, 0) : 0
   return (
     <section id="research-list" aria-label="Catalogue research" className="text-sm">
+      {show === 'suggested' && onApplyAll && (
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+          <p className="text-slate-600">{applicable.length
+            ? 'Check each source against the tender text. Ticked suggestions are added to the long descriptions; Undo puts them back.'
+            : 'Every web suggestion is already in its long description.'}</p>
+          {applicable.length > 0 && (
+            <Button size="sm" variant="primary" icon="done_all" disabled={!picked.length} onClick={() => { onApplyAll(picked); setUnpicked(new Set()) }}>
+              {picked.length === applicable.length ? `Apply all ${applicable.length}` : `Apply ${picked.length} of ${applicable.length}`}
+            </Button>
+          )}
+        </div>
+      )}
+      {show === 'unresolved' && onPrice && visible.length > 0 && (
+        <p className="mb-2 text-slate-600">
+          Neither the catalogue nor the web found these. Enter your own unit price; it counts in the total like a typed price.
+          {' '}<span className="num">{unpricedLeft}</span> still without a price{pricedTotal > 0 && <>, <span className="num font-medium text-slate-800">{money(pricedTotal)}</span> priced here</>}.
+        </p>
+      )}
       {show && (
         <ul className="max-h-60 divide-y divide-slate-200 overflow-y-auto border-y border-slate-200">
           {visible.map(({ item, result }) => (
-            <li key={item.id}>
-              <button type="button" onClick={() => onOpen(item.id)} className="flex min-h-10 w-full flex-wrap items-center justify-between gap-2 rounded-md px-2 py-2 text-left hover:bg-slate-100">
+            <li key={item.id} className="flex items-center gap-1">
+              {show === 'suggested' && onApplyAll && (withSuggestion(item, result)
+                ? <input type="checkbox" aria-label={`Apply the suggestion for ${item.oz}`} checked={!unpicked.has(item.id)} className="ml-2 size-4 shrink-0 accent-brand-700"
+                  onChange={() => setUnpicked((prev) => { const next = new Set(prev); if (next.has(item.id)) next.delete(item.id); else next.add(item.id); return next })} />
+                : <span title="Already applied" className="ml-2 inline-flex shrink-0"><Icon name="check" size={16} className="text-slate-500" /></span>)}
+              <button type="button" onClick={() => onOpen(item.id)} className="flex min-h-10 min-w-0 flex-1 flex-wrap items-center justify-between gap-2 rounded-md px-2 py-2 text-left hover:bg-slate-100">
                 <span className="text-slate-800"><span className="mr-2 font-mono text-[13px] text-slate-600">{item.oz}</span>{' '}{item.short || 'Position without a description'}</span>
                 <span className="font-medium text-slate-900">{result.product?.name || result.suggestion?.name || labels[result.state]}</span>
               </button>
+              {(show === 'unresolved' || show === 'suggested') && onPrice && <PriceInput position={item} onPrice={onPrice} />}
             </li>
           ))}
           {!visible.length && <li className="px-2 py-2 text-slate-600">There are no positions in this view yet.</li>}
@@ -96,7 +166,7 @@ export function CatalogueDetails({ result, position, onApply }: {
   onApply: (description: string) => void
 }) {
   const suggestion = result.suggestion
-  const note = suggestion ? `${suggestion.name} — ${suggestion.description}\nWikipedia (CC BY-SA 4.0) ${suggestion.url}` : ''
+  const note = suggestion ? suggestionNote(suggestion) : ''
   const applied = Boolean(note && position.long?.includes(note))
   return (
     <section aria-labelledby="drawer-catalogue-h" className="space-y-1.5 text-sm leading-relaxed text-slate-700">

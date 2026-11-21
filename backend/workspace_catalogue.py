@@ -447,18 +447,26 @@ def wiki_json(path):
         return json.loads(response.read(256 * 1024))
 
 
+def related(term, token):
+    """Same word, a shared stem, or a German compound and its head noun (Zementestrich -> Estrich)."""
+    if term == token:
+        return True
+    if min(len(term), len(token)) < 6:
+        return False
+    return term.startswith(token) or token.startswith(term) or term.endswith(token) or token.endswith(term)
+
+
 def research(name):
     """A job can refine its search once. Report only cited public evidence with title overlap."""
     terms = keywords(name)
     if not terms:
         return None
-    queries = dict.fromkeys((" ".join(terms[:6]), max(terms, key=len)))
+    # the whole name first, then single words, longest (most specific) first; at most four searches per position
+    queries = list(dict.fromkeys((" ".join(terms[:6]), *sorted(terms, key=len, reverse=True))))[:4]
     for query in queries:
         pages = wiki_json("/w/rest.php/v1/search/page?" + urlencode({"q": query, "limit": 5}))["pages"]
         for page in pages:
-            title_tokens = keywords(page["title"])
-            if not any(term == token or (min(len(term), len(token)) >= 6 and
-                       (term.startswith(token) or token.startswith(term))) for term in terms for token in title_tokens):
+            if not any(related(term, token) for term in terms for token in keywords(page["title"])):
                 continue
             article = quote(page["key"], safe="")
             summary = wiki_json(f"/api/rest_v1/page/summary/{article}")

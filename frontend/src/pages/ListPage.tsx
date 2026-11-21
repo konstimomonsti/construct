@@ -17,11 +17,13 @@ import { ErrorBoundary } from '../components/ErrorBoundary'
 import { LedgerTable } from '../components/LedgerTable'
 import { BidSimulator } from '../components/BidSimulator'
 import { ChangeOrderText, FindingFilter, FindingText } from '../components/RiskAssessment'
-import { decisionsOf, indexFindings, matchesFindingFilter, SEVERITIES, useUploadAssessment, type ChangeOrderSignal, type Decision, type Report, type ReviewItem } from '../lib/risk-assessment'
+import { decisionsOf, indexFindings, matchesFindingFilter, SEVERITIES, useUploadAssessment, type ChangeOrderSignal, type Decision, type Finding, type Report, type ReviewItem } from '../lib/risk-assessment'
 import { riskXlsx, downloadBytes } from '../lib/risk-export'
 import type { RowRisk } from '../components/LedgerTable'
 import { DecisionControls, DismissMenu } from '../components/risk/DecisionControls'
 import { RiskSummary } from '../components/risk/RiskSummary'
+import { WarningsPanel, type WarningEntry } from '../components/risk/WarningsPanel'
+import { runSteps, type FixPlan } from '../lib/apply-fix'
 import { partialAnalysis } from '../lib/risk-labels'
 import { BidderQuestions, openQuestions } from '../components/risk/BidderQuestions'
 import { RiskPrint } from '../components/risk/RiskPrint'
@@ -455,6 +457,20 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
     riskCacheRef.current = risks
   }, [risks])
   const filterFindings = useMemo(() => [...reviewByRow.values()], [reviewByRow])
+  // every warning once, in list order (a warning on several rows sits at its first one), then the list-wide ones
+  const warningEntries = useMemo(() => {
+    const seen = new Set<string>()
+    const out: WarningEntry[] = []
+    for (const position of positions) {
+      for (const item of reviewByRow.get(position.id) ?? []) {
+        if (seen.has(item.id)) continue
+        seen.add(item.id)
+        out.push({ item, position })
+      }
+    }
+    for (const item of [...listWide, ...listSignals]) if (!seen.has(item.id)) out.push({ item, position: null })
+    return out
+  }, [positions, reviewByRow, listWide, listSignals])
 
   const [q, setQ] = useState('')
   const [categoryFilter, setCategoryFilter] = useState<Set<string> | null>(null)
@@ -579,7 +595,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
     useStore.getState().decideFindings(doc.id, ids, decision)
     const what = !decision ? 'reopened' : decision.status === 'accepted' ? 'accepted' : 'dismissed'
     setReviewNote(`${title ?? plural(ids.length, 'item', 'items')}: ${what}`)
-    if (ids.length > 1) toast(`${plural(ids.length, 'finding', 'findings')} ${what}`, 'ok', { label: 'Undo', run: () => useStore.getState().decideFindings(doc.id, ids, null) })
+    if (ids.length > 1) toast(`${plural(ids.length, 'warning', 'warnings')} ${what}`, 'ok', { label: 'Undo', run: () => useStore.getState().decideFindings(doc.id, ids, null) })
   }
   const decideInDrawer = (findingId: string, title: string, decision: Decision | null) => {
     decide([findingId], decision, title)
@@ -592,6 +608,66 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
         ?? drawerFindings?.querySelector<HTMLElement>('#drawer-findings-h')
       next?.focus()
     })
+  }
+  // applies suggested fixes as tracked edits and records them as accepted; one Undo puts back edits and decisions
+  const applyFixes = (plans: { finding: Finding; plan: FixPlan }[]) => {
+    if (!plans.length) return
+    const store = useStore.getState()
+    const beforeEdits = store.edits[doc.id]
+    const beforeDecisions = decisionsOf(store.listPatch[doc.id])
+    const at = new Date().toISOString()
+    for (const { plan } of plans) runSteps(store, doc.id, plan.steps)
+    const findingDecisions = { ...beforeDecisions }
+    for (const { finding } of plans) findingDecisions[finding.id] = { status: 'accepted', at, applied: at }
+    store.patchList(doc.id, { findingDecisions, reviewedFindings: Object.keys(findingDecisions) })
+    const changes = plans.reduce((sum, { plan }) => sum + plan.steps.length, 0)
+    setReviewNote(`${plural(plans.length, 'warning', 'warnings')} fixed`)
+    toast(plans.length === 1 ? `Fixed: ${plans[0].finding.title}` : `Fixed ${plural(plans.length, 'warning', 'warnings')} with ${plural(changes, 'change', 'changes')}`, 'ok', {
+      label: 'Undo',
+      run: () => {
+        const s = useStore.getState()
+        s.setEdits(doc.id, beforeEdits)
+        s.patchList(doc.id, { findingDecisions: beforeDecisions, reviewedFindings: Object.keys(beforeDecisions) })
+      },
+    })
+  }
+  // web suggestions added to several long descriptions at once; Undo restores the edits from before
+  const applySuggestions = (changes: { id: string; long: string }[]) => {
+    if (!changes.length) return
+    const before = useStore.getState().edits[doc.id]
+    for (const { id, long } of changes) useStore.getState().patchPosition(doc.id, id, { long })
+    toast(`Added ${plural(changes.length, 'web suggestion', 'web suggestions')} to the long descriptions`, 'ok', {
+      label: 'Undo', run: () => useStore.getState().setEdits(doc.id, before),
+    })
+  }
+  // a price typed for a position nothing could match: the same as typing it in the table
+  const setOwnPrice = (id: string, price: number | null) => {
+    const before = useStore.getState().edits[doc.id]?.up ?? {}
+    const had = id in before
+    const previous = before[id]
+    useStore.getState().setUp(doc.id, id, price)
+    const oz = positions.find((p) => p.id === id)?.oz
+    toast(price == null ? `Cleared the price of ${oz}` : `Set ${money(price)} for position ${oz}`, 'ok', {
+      label: 'Undo',
+      run: () => {
+        const e = useStore.getState().edits[doc.id]
+        if (!e) return
+        const up = { ...e.up }
+        if (had) up[id] = previous
+        else delete up[id]
+        useStore.getState().setEdits(doc.id, { ...e, up })
+      },
+    })
+  }
+  const showWarnings = (filter: string) => {
+    setOnlyUnpriced(false)
+    setOnlyPending(false)
+    setOnlyZero(false)
+    setOnlyEdited(false)
+    setQ('')
+    setCats(null)
+    setFindingFilter(filter)
+    toTable()
   }
   const exportExcel = async () => {
     if (!uploadReport) return
@@ -832,10 +908,15 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
 
       {tab === 'x83' && <PhasePanel phase="x83">
       {risk && <RiskSummary risk={risk} decisions={decisions} partial={partial} />}
+      {uploadReport && (
+        <WarningsPanel entries={warningEntries} decisions={decisions} settled={settled} positions={positions}
+          onOpen={(id) => openDetail(id, 'findings')} onFilter={showWarnings} onDecide={decide} onApplyFixes={applyFixes} />
+      )}
 
       {catalogueEnabled && researchShow && (
         <div className="mb-6">
-          <CatalogueOverview part="list" show={researchShow} setShow={setResearchShow} report={report} error={error} retryFailed={retryFailed} positions={positions} onOpen={openDetail} />
+          <CatalogueOverview part="list" show={researchShow} setShow={setResearchShow} report={report} error={error} retryFailed={retryFailed} positions={positions} onOpen={openDetail}
+            onApplyAll={applySuggestions} onPrice={setOwnPrice} />
         </div>
       )}
 
@@ -872,8 +953,8 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
           <CategoryFilter key={ledgerGrouping} tree={ledgerTree} stats={ledgerStats} value={cats} onChange={setCats} byOz={!!grouped} />
           <FindingFilter rows={filterFindings} reviewed={settled} value={findingFilter} onChange={setFindingFilter} />
           {repeatedIds.length > 1 && (
-            <DismissMenu label={`Dismiss ${repeatedIds.length} shown findings`} onDismiss={(decision) => decide(repeatedIds, decision)}>
-              {`Dismiss ${repeatedIds.length} shown findings`}
+            <DismissMenu label={`Dismiss ${repeatedIds.length} shown warnings`} onDismiss={(decision) => decide(repeatedIds, decision)}>
+              {`Dismiss ${repeatedIds.length} shown warnings`}
             </DismissMenu>
           )}
           {assessment?.state === 'waiting' && (
@@ -994,7 +1075,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
 
       {(listWide.length > 0 || listSignals.length > 0 || uploadReport?.source_notice || analysisErrors.length > 0) && (
         <section aria-labelledby="list-findings-h" className="mt-8">
-          <h2 id="list-findings-h" className="font-heading text-base font-bold text-slate-900">Upload check for the whole list</h2>
+          <h2 id="list-findings-h" className="font-heading text-base font-bold text-slate-900">Warnings for the whole list</h2>
           {(uploadReport?.source_notice || analysisErrors.length > 0) && (
             <div className="mt-1 space-y-1 text-sm text-amber-900" role="note">
               {uploadReport?.source_notice && <p>{uploadReport.source_notice}</p>}
