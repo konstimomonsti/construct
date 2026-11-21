@@ -17,7 +17,7 @@ const sharePct = (v: number) => (v > 0 && v < 0.05 ? `< ${pctFmt.format(0.1)}%`
 
 /* text fields: a filled slate-100 well (no outline at rest), a slate-400 ring on hover and a brand focus ring (no padding/height, so callers never stack conflicting classes) */
 const fieldCls =
-  'w-full rounded-md bg-slate-100 text-sm text-slate-900 ring-1 ring-transparent outline-none ring-inset transition-[background-color,box-shadow] placeholder:text-slate-500 hover:bg-slate-200/70 hover:ring-slate-400 focus:bg-white focus:ring-2 focus:ring-brand-700 aria-invalid:ring-2 aria-invalid:ring-rose-600'
+  'w-full rounded-md bg-slate-100 text-sm text-slate-900 ring-1 ring-transparent outline-none ring-inset transition-[background-color,box-shadow] placeholder:text-slate-600 hover:bg-slate-200/70 hover:ring-slate-400 focus:bg-white focus:ring-2 focus:ring-brand-700 aria-invalid:ring-2 aria-invalid:ring-rose-600'
 /* header icon buttons: 44px hit area on the phone sheet, 40px on desktop */
 const headBtn =
   'inline-flex size-11 shrink-0 items-center justify-center rounded-md text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 active:scale-[0.94] disabled:pointer-events-none disabled:text-slate-400 disabled:opacity-60 sm:size-10'
@@ -88,6 +88,15 @@ export function DetailDrawer({
   const open = !!p
   useInertRoot(open)
   const editLong = !!p && editLongId === p.id
+  // Escape leaves the long-text editor: the cursor goes back to its Edit button
+  const longBtnRef = useRef<HTMLButtonElement>(null)
+  const refocusLong = useRef(false)
+  useEffect(() => {
+    if (!editLong && refocusLong.current) {
+      refocusLong.current = false
+      longBtnRef.current?.focus()
+    }
+  }, [editLong])
   const editUnit = !!p && editUnitId === p.id
   const didSave = () => {
     setSavedAt(0)
@@ -116,6 +125,8 @@ export function DetailDrawer({
   // opening from a finding puts the cursor on the field it is about; otherwise on Close
   useEffect(() => {
     if (!p) return
+    // stepping with Previous or Next keeps the cursor on that button
+    if (!focusField && asideRef.current?.contains(document.activeElement) && document.activeElement !== asideRef.current) return
     const target = focusField ? asideRef.current?.querySelector<HTMLElement>(`[data-risk-field="${CSS.escape(focusField)}"]`) : null
     ;(target ?? closeRef.current)?.focus()
   }, [p?.id, focusField]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -143,7 +154,7 @@ export function DetailDrawer({
   const changed = !!p && !!imported && (imported.qty !== p.qty || imported.up !== p.up)
   const delta = changed && p && imported ? total - positionTotal(imported) : 0
 
-  // Kategorie: parent chain as a breadcrumb above the leaf
+  // Category: parent chain as a breadcrumb above the leaf
   const path: CategoryRef[] = p?.path?.length ? p.path : p ? [{ oz: '', label: p.category }] : []
   const leaf = path[path.length - 1]
   const leafLabel = cleanLabel(leaf?.label ?? '')
@@ -174,7 +185,9 @@ export function DetailDrawer({
               <button ref={closeRef} type="button" aria-label="Close details" title="Close details" onClick={onClose} className={`${headBtn} -ml-2`}>
                 <Icon name="close" size={22} />
               </button>
-              <div className="ml-auto flex items-center gap-0.5 sm:gap-1">
+              <div className="group/nav ml-auto flex items-center gap-0.5 sm:gap-1">
+                {/* the shortcuts show up once the keyboard reaches the arrows */}
+                <span aria-hidden className="hidden text-[13px] text-slate-600 group-has-[:focus-visible]/nav:inline"><kbd className="font-sans font-semibold">K</kbd> / <kbd className="font-sans font-semibold">J</kbd></span>
                 {navCounter('px-1')}
                 <button ref={prevRef} type="button" aria-label="Previous position" aria-keyshortcuts="k" title="Previous position (k)" onClick={() => { onPrev?.(); requestAnimationFrame(() => { if (prevRef.current?.disabled) nextRef.current?.focus() }) }} disabled={!onPrev} className={headBtn}>
                   <Icon name="keyboard_arrow_up" size={22} />
@@ -251,12 +264,12 @@ export function DetailDrawer({
                   {(edited || added) && (
                     <div className="flex shrink-0 flex-col items-end gap-1 pt-2">
                       {edited && <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[13px] font-semibold text-slate-700" data-testid="edited-badge">Edited</span>}
-                      {added && <span className="rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-800">Added by you</span>}
+                      {added && <span className="rounded-md bg-brand-50 px-2 py-0.5 text-xs font-semibold text-brand-700">Added by you</span>}
                     </div>
                   )}
                 </div>
                 <div className="border-y border-slate-200 py-4">
-                  <div className="text-sm font-medium text-slate-600">Gesamtpreis (GP)</div>
+                  <div className="text-sm font-medium text-slate-600">{projected != null ? 'Projected Gesamtpreis' : 'Gesamtpreis'}</div>
                   {projected != null ? (
                     <>
                       {/* not money yet: slate, with a dashed underline like the pending EP in the ledger */}
@@ -358,7 +371,7 @@ export function DetailDrawer({
                       </span>
                       {errOn('qty') && <p id={`${uid}-qty-err`} className="text-[13px] font-medium text-rose-700">Enter a number of 0 or more, like 12,5</p>}
                     </div>
-                    <Labeled label="Einheitspreis (EP)">
+                    <Labeled label="Einheitspreis">
                       <span className="relative block">
                         <input
                           key={`e-${p.up}`}
@@ -395,7 +408,7 @@ export function DetailDrawer({
                 {findings}
                 {catalogue}
                 <div className="space-y-1.5">
-                  <span id={`${uid}-cat`} className="block text-[13px] font-semibold text-slate-600">Kategorie</span>
+                  <span id={`${uid}-cat`} className="block text-[13px] font-semibold text-slate-600">Category</span>
                   <button
                     id={`${uid}-cat-btn`}
                     type="button"
@@ -421,6 +434,7 @@ export function DetailDrawer({
                     <span id={`${uid}-long`} className="block text-[13px] font-semibold text-slate-600">Langtext</span>
                     {!editLong && (
                       <button
+                        ref={longBtnRef}
                         type="button"
                         data-risk-field="long_text"
                         onClick={() => setEditLongId(p.id)}
@@ -433,6 +447,7 @@ export function DetailDrawer({
                   </div>
                   {editLong ? (
                     <textarea
+                      lang="de"
                       aria-labelledby={`${uid}-long`}
                       data-risk-field="long_text"
                       rows={10}
@@ -444,13 +459,13 @@ export function DetailDrawer({
                         setEditLongId(null)
                       }}
                       onKeyDown={(e) => {
-                        if (e.key === 'Escape') { e.stopPropagation(); e.currentTarget.value = p.long ?? ''; e.currentTarget.blur() }
+                        if (e.key === 'Escape') { e.stopPropagation(); e.currentTarget.value = p.long ?? ''; refocusLong.current = true; e.currentTarget.blur() }
                       }}
                     />
                   ) : (
                     /* click-to-edit like Kurztext: the text itself opens the editor, the pencil button gives keyboard access */
                     <div
-                      className="group relative -mx-2 cursor-text rounded-lg border border-transparent px-2 py-1 transition-colors hover:border-slate-400"
+                      className="group relative cursor-text rounded-lg border border-transparent px-2 py-1 transition-colors hover:border-slate-400"
                       onClick={() => { if (!window.getSelection()?.toString()) setEditLongId(p.id) }}
                     >
                       {p.long?.trim() ? (

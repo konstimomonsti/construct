@@ -1,3 +1,4 @@
+import { Fragment } from 'react'
 import { Button, Icon } from './ui'
 import { MetaLink } from './Kit'
 import type { Position } from '../lib/types'
@@ -20,7 +21,9 @@ export type ResearchView = 'suggested' | 'matched' | 'unresolved' | null
  * catalogue research for a list in two parts that share one `show` state: `line` is a single status line that sits in the
  * list hero (no band of its own), `list` is the positions behind the pressed count, shown under the hero.
  */
-export function CatalogueOverview({ report, error, retryFailed, positions, onOpen, part, show, setShow }: {
+export function CatalogueOverview({ report, error, retryFailed, positions, onOpen, part, show, setShow, hideMatched }: {
+  /** matches that already became pending prices: the pricing status says it, so the research line doesn't repeat it */
+  hideMatched?: { has: (id: string) => boolean }
   report: CatalogueReport | null
   error: string
   retryFailed: () => Promise<void>
@@ -34,7 +37,7 @@ export function CatalogueOverview({ report, error, retryFailed, positions, onOpe
     const result = report?.positions[item.id]
     return result ? [{ item, result }] : []
   })
-  const count = (state: CataloguePosition['state']) => rows.filter(({ result }) => result.state === state).length
+  const count = (state: CataloguePosition['state']) => rows.filter(({ item, result }) => result.state === state && !(state === 'matched' && hideMatched?.has(item.id))).length
   const pending = count('queued') + count('researching')
   const unresolved = count('failed') + count('no_evidence') + count('needs_description')
   const visible = rows.filter(({ result }) =>
@@ -44,22 +47,22 @@ export function CatalogueOverview({ report, error, retryFailed, positions, onOpe
   const ready = report?.state === 'ready' && !pending && !error
   if (part === 'line') {
     const toggle = (v: Exclude<ResearchView, null>) => setShow(show === v ? null : v)
+    const links = report?.state === 'ready' ? [
+      count('matched') > 0 && <MetaLink key="m" pressed={show === 'matched'} onClick={() => toggle('matched')}><span className="num">{count('matched')}</span> {count('matched') === 1 ? 'match' : 'matches'}</MetaLink>,
+      count('suggested') > 0 && <MetaLink key="s" pressed={show === 'suggested'} onClick={() => toggle('suggested')}><span className="num">{count('suggested')}</span> web {count('suggested') === 1 ? 'suggestion' : 'suggestions'}</MetaLink>,
+      unresolved > 0 && <MetaLink key="u" pressed={show === 'unresolved'} onClick={() => toggle('unresolved')}><span className="num">{unresolved}</span> without a match</MetaLink>,
+    ].filter(Boolean) : []
+    const label = error || (report?.state === 'failed' ? 'Catalogue matching failed' :
+      !report || report.state === 'queued' || report.state === 'unstarted' ? 'Matching positions to the catalogue…' :
+        pending ? `Catalogue research: ${pending} positions in progress` : 'Catalogue research')
+    // once results are in, the icon names the group and the counts speak for themselves: the status row stays on one line
+    const quiet = ready && links.length > 0
     return (
       <span className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
-        <Icon name="inventory_2" size={16} className="text-slate-500" />
-        <span role="status">
-          {error || (report?.state === 'failed' ? 'Catalogue matching failed' :
-            !report || report.state === 'queued' || report.state === 'unstarted' ? 'Matching positions to the catalogue…' :
-              pending ? `Catalogue research: ${pending} positions in progress` : 'Catalogue research')}
-        </span>
-        {report?.state === 'ready' && (
-          <>
-            {count('matched') > 0 && <><span aria-hidden>·</span><MetaLink pressed={show === 'matched'} onClick={() => toggle('matched')}><span className="num">{count('matched')}</span> {count('matched') === 1 ? 'match' : 'matches'}</MetaLink></>}
-            {count('suggested') > 0 && <><span aria-hidden>·</span><MetaLink pressed={show === 'suggested'} onClick={() => toggle('suggested')}><span className="num">{count('suggested')}</span> web {count('suggested') === 1 ? 'suggestion' : 'suggestions'}</MetaLink></>}
-            {unresolved > 0 && <><span aria-hidden>·</span><MetaLink pressed={show === 'unresolved'} onClick={() => toggle('unresolved')}><span className="num">{unresolved}</span> open</MetaLink></>}
-            {ready && !count('matched') && !count('suggested') && !unresolved && <span>· nothing found</span>}
-          </>
-        )}
+        <span title={quiet ? 'Catalogue research' : undefined} className="inline-flex"><Icon name="inventory_2" size={16} className="text-slate-500" /></span>
+        <span role="status" className={quiet ? 'sr-only' : undefined}>{label}</span>
+        {links.map((l, i) => <Fragment key={i}>{(i > 0 || !quiet) && <span aria-hidden>·</span>}{l}</Fragment>)}
+        {ready && !links.length && !rows.some(({ item }) => hideMatched?.has(item.id)) && <span>· nothing found</span>}
         {(error || report?.state === 'failed' || count('failed') > 0) &&
           <Button size="sm" onClick={() => void retryFailed()}>Retry</Button>}
       </span>
@@ -97,9 +100,10 @@ export function CatalogueDetails({ result, position, onApply }: {
     <section aria-labelledby="drawer-catalogue-h" className="space-y-1.5 text-sm leading-relaxed text-slate-700">
       <h3 id="drawer-catalogue-h" className="text-[15px] font-semibold text-slate-900">Catalogue research</h3>
       <p>
-        <span className="font-medium text-slate-800">{labels[result.state]}.</span>
-        {result.state === 'needs_description' && ' The imported row has no description to search for.'}
-        {result.state === 'no_evidence' && ' No matching product found online.'}
+        {result.state === 'no_evidence' ? 'No matching product found online.' : <>
+          <span className="font-medium text-slate-800">{labels[result.state]}.</span>
+          {result.state === 'needs_description' && ' The imported row has no description to search for.'}
+        </>}
       </p>
       {result.recovered?.source && <p>Missing description recovered from the companion offer PDF.</p>}
       {result.product && <p><strong>{result.product.name}</strong> · {result.product.category}</p>}

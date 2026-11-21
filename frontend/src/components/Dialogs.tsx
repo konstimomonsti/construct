@@ -1,7 +1,7 @@
 import { lazy, Suspense, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button, Dialog, Field, inputCls, toast } from './ui'
-import { folderPath, useModel, useStore } from '../lib/store'
+import { folderPath, selectModel, useModel, useStore } from '../lib/store'
 import { int, money, parseNumber } from '../lib/format'
 import { useUi, type DialogState } from '../lib/ui-store'
 import { makeListDoc, pickAndImport } from '../lib/import'
@@ -31,6 +31,23 @@ export function Dialogs() {
   )
 }
 
+/**
+ * everything an Undo of a new project would purge: its record and patches, its lists (trashed ones too), its documents
+ * and sub-projects. Any change here means the project holds later work and Undo must not delete it
+ */
+function projectFootprint(s: ReturnType<typeof useStore.getState>, id: string) {
+  const folder = s.userFolders.find((f) => f.id === id)
+  if (!folder) return 'gone'
+  const { folders } = selectModel(s)
+  const view = folders.find((f) => f.id === id)
+  const lists = s.userLists.filter((l) => (s.listPatch[l.id]?.folderId ?? l.folderId) === id).length
+  const children = folders.filter((f) => f.parentId === id).length
+  return JSON.stringify([
+    folder.name, folder.description, folder.parentId ?? null, folder.lists.length, folder.documents.length,
+    s.folderPatch[id] ?? null, lists, view?.listMetas.length ?? 0, view?.documents.length ?? 0, children,
+  ])
+}
+
 function NewFolder({ open, parent, initialName, onClose }: { open: boolean; parent?: string; initialName?: string; onClose: () => void }) {
   const navigate = useNavigate()
   const { folders } = useModel()
@@ -49,12 +66,26 @@ function NewFolder({ open, parent, initialName, onClose }: { open: boolean; pare
     const n = name.trim()
     if (!n) return
     const id = useStore.getState().createFolder(n, desc.trim(), parent)
-    toast(parent ? `Created sub-project "${n}"` : `Created project "${n}"`, 'ok', {
+    const created = projectFootprint(useStore.getState(), id)
+    const untouched = () => projectFootprint(useStore.getState(), id) === created
+    const noun = parent ? 'sub-project' : 'project'
+    const note = toast(`Created ${noun} "${n}"`, 'ok', {
       label: 'Undo',
+      ariaLabel: `Undo creation of ${n}`,
+      // checked again on activation, so a stale Undo can never purge work added since
+      stale: () => (untouched() ? undefined : `"${n}" has new content since it was created, so it was kept`),
       run: () => {
         useStore.getState().purgeFolder(id)
-        navigate(parent ? `/folder/${parent}` : '/')
+        // only leave the page if it is the one that just went away
+        if (window.location.pathname === `/folder/${id}`) navigate(parent ? `/folder/${parent}` : '/')
       },
+    }, { dismissLabel: `Dismiss ${noun} creation notification` })
+    // the first list, document, sub-project or edit retires the Undo; it then leaves like any plain message
+    const unsubscribe = useStore.subscribe(() => {
+      if (!note.active()) return unsubscribe()
+      if (untouched()) return
+      note.retire()
+      unsubscribe()
     })
     setName('')
     setDesc('')

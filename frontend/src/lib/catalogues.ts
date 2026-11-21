@@ -125,8 +125,30 @@ export function formatCataloguePrice(entry: CatalogueEntry) {
   }).format(Number(entry.unit_price))
 }
 
-/** a price date the German way (25.11.2024); the API sends plain ISO dates, read as UTC so they never shift a day */
-export const catalogueDate = (iso: string) => new Intl.DateTimeFormat('de-DE', { timeZone: 'UTC' }).format(new Date(iso))
+/** a typed unit price ("14,50" or "14.50", as the API accepts it: no thousands separators), or null when it isn't one */
+export function parseCataloguePrice(text: string) {
+  const clean = text.trim()
+  return /^\d{1,14}(?:[.,]\d{1,6})?$/.test(clean) ? Number(clean.replace(',', '.')) : null
+}
+
+/** an amount in a currency the catalogue way (14,50 €), with "/ m²" once there is a unit */
+export function catalogueAmount(amount: number | string, currency: string, unit?: string | null) {
+  const money = new Intl.NumberFormat('de-DE', { style: 'currency', currency, maximumFractionDigits: 6 }).format(Number(amount))
+  return unit ? `${money} / ${unit}` : money
+}
+
+/** a typed date (21.11.2026) as ISO (2026-11-21), or null when it isn't a real date */
+export function isoFromGerman(text: string) {
+  const match = text.trim().match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/)
+  if (!match) return null
+  const [day, month, year] = [Number(match[1]), Number(match[2]), Number(match[3])]
+  const date = new Date(Date.UTC(year, month - 1, day))
+  if (date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) return null
+  return `${match[3]}-${match[2].padStart(2, '0')}-${match[1].padStart(2, '0')}`
+}
+
+/** a price date the German way (25.11.2024, 01.01.2027); the API sends plain ISO dates, read as UTC so they never shift a day */
+export const catalogueDate = (iso: string) => new Intl.DateTimeFormat('de-DE', { timeZone: 'UTC', day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(iso))
 
 export function cataloguePriceSource(entry: CatalogueEntry) {
   if (!entry.valid_from) return ''

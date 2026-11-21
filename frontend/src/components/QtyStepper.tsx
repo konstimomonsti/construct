@@ -2,11 +2,11 @@ import { useEffect, useState } from 'react'
 import { parseNumber, qty } from '../lib/format'
 
 /**
- * editable numbers (Menge, EP) share one cue: a dotted rule under the field at rest, a field outline while the
- * row is hovered or focused, and always outlined on touch screens where there is no hover.
+ * editable numbers (Menge, Einheitspreis) always read as fields: a filled box with an outline, so what can be
+ * typed into stands apart from the read-only text around it. A hovered row lifts its fields to white.
  */
 export const editableCls =
-  'num h-9 rounded-md border border-dotted border-transparent px-2 text-right text-sm transition-colors group-hover:border-solid group-hover:border-slate-500 group-hover:bg-white group-focus-within:border-solid group-focus-within:border-slate-500 hover:border-slate-600 focus:border-solid focus:bg-white max-lg:border-solid max-lg:border-slate-400 [@media(pointer:coarse)]:border-solid [@media(pointer:coarse)]:border-slate-400'
+  'num h-9 rounded-md border border-slate-300 bg-slate-100 px-2 text-right text-sm transition-colors group-hover:bg-white hover:border-slate-600 hover:bg-white focus:bg-white'
 
 const round = (n: number) => Math.round(n * 1000) / 1000
 
@@ -42,7 +42,7 @@ export function QtyInput({ value, onChange, label, edited, muted }: { value: num
         }
       }}
       onFocus={(e) => e.currentTarget.select()}
-      className={`${editableCls}${edited ? ' font-semibold text-brand-700' : muted ? ' text-slate-500' : ' text-slate-900'} w-16 outline-none focus:border-transparent focus:bg-white focus:ring-2 focus:ring-brand-700 lg:w-full`}
+      className={`${editableCls}${edited ? ' font-semibold text-brand-700' : muted ? ' text-slate-600' : ' text-slate-900'} w-16 pb-px outline-none focus:border-transparent focus:bg-white focus:ring-2 focus:ring-brand-700 lg:w-full`}
     />
   )
 }

@@ -1,0 +1,223 @@
+{
+ "member": "visual",
+ "screens": {
+  "S1": {
+   "scores": {
+    "hierarchy": 9,
+    "density": 9,
+    "typography": 9,
+    "consistency": 9,
+    "clarity": 9,
+    "interaction": 9,
+    "accessibility": 9,
+    "responsive": 9,
+    "wise": 9
+   },
+   "issues": []
+  },
+  "S2": {
+   "scores": {
+    "hierarchy": 9,
+    "density": 9,
+    "typography": 9,
+    "consistency": 9,
+    "clarity": 9,
+    "interaction": 9,
+    "accessibility": 9,
+    "responsive": 9,
+    "wise": 9
+   },
+   "issues": []
+  },
+  "S3": {
+   "scores": {
+    "hierarchy": 9,
+    "density": 9,
+    "typography": 8,
+    "consistency": 8,
+    "clarity": 9,
+    "interaction": 9,
+    "accessibility": 9,
+    "responsive": 9,
+    "wise": 9
+   },
+   "issues": [
+    "Consistency (04 expanded): the OZ column now has three left edges. Section OZ '1' starts at x≈364, sub-section OZ '1.1' at x≈388 (after its chevron), and the positions under it ('1.1.1') at x≈360, 28px left of their parent and 4px left of the top level. The titles step in per depth but the codes zigzag. Indent the position OZ cell with the same --ind step as its parent (LedgerTable.tsx row OZ td, pl-[calc(var(--ind)*28px)]), or put every OZ code on one column and let only the chevron and title indent.",
+    "Typography (04): sub-section subtotals ('24.890,00', '21.150,00', '206.345,72') are regular slate-600, while every position GP beneath them is semibold ink, so the rolled-up number is the weakest figure in its group. Make depth ≥1 subtotals font-semibold text-slate-900 (one step below the bold top-level total), or drop position GPs to font-medium, so weight follows the tree.",
+    "Typography (nitpick): the mono sub-section OZ ('1.1', '4.1', '8.1') sits about 1px below its bold title's baseline. Align the section row on baselines (items-baseline) as the position rows are."
+   ]
+  },
+  "S4": {
+   "scores": {
+    "hierarchy": 9,
+    "density": 9,
+    "typography": 9,
+    "consistency": 9,
+    "clarity": 9,
+    "interaction": 9,
+    "accessibility": 9,
+    "responsive": 9,
+    "wise": 9
+   },
+   "issues": []
+  },
+  "S5": {
+   "scores": {
+    "hierarchy": 9,
+    "density": 9,
+    "typography": 9,
+    "consistency": 9,
+    "clarity": 9,
+    "interaction": 9,
+    "accessibility": 9,
+    "responsive": 9,
+    "wise": 9
+   },
+   "issues": []
+  },
+  "S6": {
+   "scores": {
+    "hierarchy": 9,
+    "density": 9,
+    "typography": 9,
+    "consistency": 9,
+    "clarity": 9,
+    "interaction": 9,
+    "accessibility": 9,
+    "responsive": 9,
+    "wise": 9
+   },
+   "issues": []
+  },
+  "S8": {
+   "scores": {
+    "hierarchy": 9,
+    "density": 9,
+    "typography": 9,
+    "consistency": 9,
+    "clarity": 9,
+    "interaction": 9,
+    "accessibility": 9,
+    "responsive": 9,
+    "wise": 9
+   },
+   "issues": []
+  },
+  "S9": {
+   "scores": {
+    "hierarchy": 9,
+    "density": 9,
+    "typography": 9,
+    "consistency": 9,
+    "clarity": 9,
+    "interaction": 9,
+    "accessibility": 9,
+    "responsive": 9,
+    "wise": 9
+   },
+   "issues": []
+  },
+  "S10": {
+   "scores": {
+    "hierarchy": 9,
+    "density": 9,
+    "typography": 9,
+    "consistency": 9,
+    "clarity": 9,
+    "interaction": 9,
+    "accessibility": 9,
+    "responsive": 9,
+    "wise": 8
+   },
+   "issues": [
+    "Wise: on the default view the first page reads 'None priced on this page' and every row's right half is empty, while the 17 priced products, the reason to open the catalogue, are pages away. Turn the hint into an action ('None priced on this page · Show the 17 priced', which sets the Priced facet), or sort priced products first within the alphabetical view."
+   ]
+  },
+  "S11": {
+   "scores": {
+    "hierarchy": 9,
+    "density": 9,
+    "typography": 9,
+    "consistency": 9,
+    "clarity": 9,
+    "interaction": 9,
+    "accessibility": 9,
+    "responsive": 9,
+    "wise": 9
+   },
+   "issues": []
+  },
+  "S12": {
+   "scores": {
+    "hierarchy": 9,
+    "density": 9,
+    "typography": 9,
+    "consistency": 9,
+    "clarity": 9,
+    "interaction": 9,
+    "accessibility": 9,
+    "responsive": 9,
+    "wise": 9
+   },
+   "issues": []
+  },
+  "S13": {
+   "scores": {
+    "hierarchy": 8,
+    "density": 9,
+    "typography": 9,
+    "consistency": 9,
+    "clarity": 9,
+    "interaction": 9,
+    "accessibility": 9,
+    "responsive": 9,
+    "wise": 9
+   },
+   "issues": [
+    "Hierarchy: the only divider in the form (CatalogueEditor.tsx:237, border-t) puts Product name together with Unit and Unit price, and puts Description, Category and Supplier below the rule, so the three required identity fields are split across two groups. Group by meaning: Name, Description, Category; then the rule; then Unit, Unit price (and Effective from), Supplier, Supplier item code. Or add a second rule under Product name so pricing reads as its own block."
+   ]
+  },
+  "S14": {
+   "scores": {
+    "hierarchy": 9,
+    "density": 9,
+    "typography": 9,
+    "consistency": 9,
+    "clarity": 9,
+    "interaction": 9,
+    "accessibility": 9,
+    "responsive": 9,
+    "wise": 9
+   },
+   "issues": []
+  },
+  "S15": {
+   "scores": {
+    "hierarchy": 9,
+    "density": 8,
+    "typography": 9,
+    "consistency": 8,
+    "clarity": 9,
+    "interaction": 8,
+    "accessibility": 9,
+    "responsive": 9,
+    "wise": 9
+   },
+   "issues": [
+    "Interaction: the quick-confirm control left of each dashed EP box is a bare bronze check icon with no fill at rest (LedgerTable.tsx:111). Next to a pending price it reads as a 'confirmed' status tick rather than a button. Give it a resting tint (bg-slate-100, same 32px square as the other icon buttons) and the tooltip 'Confirm price', or draw it as an outlined check-circle, so it looks like an action.",
+    "Consistency: the GP column says 'Pending' on the 'Site setup' section row but '1 pending' on 'Insulation' (both have one pending position). Always show the count ('1 pending'), or always show the word, on section rows.",
+    "Density: the status row now holds eight items (Nothing priced yet · Catalogue research · 1 web suggestion | 3 positions · 1 not priced · 2 pending confirmation · 1 edited · Cost by section), and the left and right groups are only about 30px apart at 1440, so it will wrap well before 1280. Drop '3 positions' (the ledger shows it) or make the 'Catalogue research' label icon-only with a tooltip, so the two groups keep a gap of at least 48px.",
+    "Density (drawer, unit acknowledgment, from source): when the unit is unknown, PriceSuggestionNote nests two ringed white cards ('Catalogue unit' / 'Position unit') inside the dashed note, which is a box inside a box inside the drawer. Show them as a plain two-column <dl> (label slate-600 above value) with no ring or bg-white."
+   ]
+  }
+ },
+ "global_issues": [
+  "Nested ledger: OZ codes zigzag (section 364, sub-section 388, positions 360) while titles step in per depth. Indent the OZ with --ind too, or keep all codes on one column.",
+  "Weight inversion in the nested ledger: sub-section subtotals are regular slate-600 and lighter than the semibold position GPs under them.",
+  "Pending-price quick confirm is a bare check icon that reads as a status tick. Give it a resting button fill.",
+  "Section-row pending wording is inconsistent ('Pending' vs '1 pending').",
+  "List status rows on catalogue-researched lists (S14, S15) carry 7–8 chips and will wrap below 1440. Trim one item ('N positions' or the 'Catalogue research' label text).",
+  "Catalogue editor groups Name with pricing and splits it from Description and Category by the form's only rule.",
+  "Nitpick: on list pages, 'Select' and 'Collapse all' drop their labels below 1400px (ListPage.tsx:732/737), while other pages keep a labelled 'Select' at 1280. That is acceptable for fit, but it is the one place the same control changes form."
+ ]
+}

@@ -1,0 +1,247 @@
+{
+ "member": "visual",
+ "screens": {
+  "S1": {
+   "scores": {
+    "hierarchy": 9,
+    "density": 9,
+    "typography": 9,
+    "consistency": 9,
+    "clarity": 8,
+    "interaction": 9,
+    "accessibility": 9,
+    "responsive": 9,
+    "wise": 8
+   },
+   "issues": [
+    "Clarity: the hero status row still opens with a yellow 'On track' chip, and the orange '1 project almost at cap · 2 near cap' follows it, so the first word you read is the opposite of the warning. When children are flagged, drop the 'On track' chip, or relabel it 'Total on track' so it is clearly about the total and not the portfolio.",
+    "Wise: unpriced projects (Ausbildungszentrum, Tiefbau) show 'Not priced', '0 of 1.131 priced' and an empty grey meter track, which reads like a 0% budget bar. Leave out the meter when nothing is priced and keep the two text lines."
+   ]
+  },
+  "S2": {
+   "scores": {
+    "hierarchy": 9,
+    "density": 9,
+    "typography": 9,
+    "consistency": 9,
+    "clarity": 9,
+    "interaction": 9,
+    "accessibility": 9,
+    "responsive": 9,
+    "wise": 9
+   },
+   "issues": []
+  },
+  "S3": {
+   "scores": {
+    "hierarchy": 9,
+    "density": 9,
+    "typography": 9,
+    "consistency": 8,
+    "clarity": 9,
+    "interaction": 8,
+    "accessibility": 9,
+    "responsive": 9,
+    "wise": 9
+   },
+   "issues": [
+    "Consistency/Interaction: in the ledger toolbar, 'Select' shows only its checklist icon below 2xl (ListPage.tsx:729, max-2xl:sr-only). At 1440 it is the one unlabelled control between labelled 'Categories', 'Expand all' and 'Sort', while All Projects, Folder and Active Budgets show a labelled 'Select' at the same width. Show the label from xl up (the row has room at 1440), or make Select icon-only on every page.",
+    "Typography (04 expanded): Menge digits ('1', '200', '10') still sit about 1px below the baselines of the Kurztext, Einheit and EP cells. Give QtyInput's button the same line-height as the text cells (leading-5), or align the cells on their baselines."
+   ]
+  },
+  "S4": {
+   "scores": {
+    "hierarchy": 9,
+    "density": 9,
+    "typography": 9,
+    "consistency": 9,
+    "clarity": 9,
+    "interaction": 9,
+    "accessibility": 8,
+    "responsive": 9,
+    "wise": 8
+   },
+   "issues": [
+    "Accessibility: the 24px scroll fade (DetailDrawer.tsx:468) still covers a visible Langtext line at the drawer's bottom edge (y≈895), and that text drops below 4.5:1. Reserve 24px of bottom padding inside the scroll area (pb-6), so the fade only ever covers padding, not text.",
+    "Wise: the GP hero still gives no sense of whether 5.700,00 € is normal for this position. When a catalogue match exists, add the reference price under '1 psch × 5.700,00 €' in slate-600 ('Catalogue 5.200,00 € · +9,6%')."
+   ]
+  },
+  "S5": {
+   "scores": {
+    "hierarchy": 9,
+    "density": 9,
+    "typography": 9,
+    "consistency": 9,
+    "clarity": 8,
+    "interaction": 9,
+    "accessibility": 9,
+    "responsive": 9,
+    "wise": 8
+   },
+   "issues": [
+    "Clarity/Wise: as on S1, the yellow 'On track' chip leads the hero status while '1 list almost at cap · 2 near cap' sits next to it in orange. When lists are flagged, drop the leading 'On track' chip or relabel it 'Total on track'."
+   ]
+  },
+  "S6": {
+   "scores": {
+    "hierarchy": 9,
+    "density": 9,
+    "typography": 9,
+    "consistency": 9,
+    "clarity": 9,
+    "interaction": 9,
+    "accessibility": 9,
+    "responsive": 9,
+    "wise": 9
+   },
+   "issues": []
+  },
+  "S8": {
+   "scores": {
+    "hierarchy": 9,
+    "density": 8,
+    "typography": 9,
+    "consistency": 9,
+    "clarity": 9,
+    "interaction": 9,
+    "accessibility": 9,
+    "responsive": 9,
+    "wise": 8
+   },
+   "issues": [
+    "Density/Wise: every position meta line still repeats 'in Rohbau (Ausbildungszentrum und Bürogebäude)', and every list meta line repeats 'Ausbildungszentrum und Bürogebäude'. When all results in a group share a project, move it into the group header ('Positions 106 · 38 priced · all in Ausbildungszentrum und Bürogebäude') and keep only '· in Rohbau' on each row."
+   ]
+  },
+  "S9": {
+   "scores": {
+    "hierarchy": 9,
+    "density": 9,
+    "typography": 9,
+    "consistency": 9,
+    "clarity": 9,
+    "interaction": 9,
+    "accessibility": 9,
+    "responsive": 9,
+    "wise": 9
+   },
+   "issues": []
+  },
+  "S10": {
+   "scores": {
+    "hierarchy": 9,
+    "density": 8,
+    "typography": 9,
+    "consistency": 8,
+    "clarity": 9,
+    "interaction": 9,
+    "accessibility": 9,
+    "responsive": 9,
+    "wise": 8
+   },
+   "issues": [
+    "Consistency: the products search has a slate-400 ring at rest (CataloguePage.tsx:451), while the ledger search (ListPage.tsx:690) and the drawer fields are borderless tints that show the ring only on hover and focus. Use ring-transparent at rest here too, so the app has one search style.",
+    "Density/Wise: 'Not priced' fills the right column on 1.294 of 1.311 rows and adds nothing, since the 'Not priced 1.294' filter already says it. Apply the palette's rule: leave the cell empty, or show the unit in slate-600 ('per m²'), and print only real prices.",
+    "Density: the 'Products' heading above the list repeats the page title 40px above it. Drop the word and keep '1–50 of 1.311' with the pager, or write 'Showing 1–50 of 1.311'."
+   ]
+  },
+  "S11": {
+   "scores": {
+    "hierarchy": 9,
+    "density": 9,
+    "typography": 9,
+    "consistency": 8,
+    "clarity": 9,
+    "interaction": 9,
+    "accessibility": 9,
+    "responsive": 9,
+    "wise": 8
+   },
+   "issues": [
+    "Consistency: the suppliers search has the same slate-400 ring at rest as Products (CataloguePage.tsx:451), unlike the borderless ledger search. Remove the ring at rest.",
+    "Wise: a single row on a 1056×580 blank page. Under the name, add a muted line with the supplier's top categories ('Insulation · Pipes · Waterproofing') so the row says what the supplier sells without opening it."
+   ]
+  },
+  "S12": {
+   "scores": {
+    "hierarchy": 9,
+    "density": 9,
+    "typography": 9,
+    "consistency": 9,
+    "clarity": 9,
+    "interaction": 9,
+    "accessibility": 9,
+    "responsive": 9,
+    "wise": 8
+   },
+   "issues": [
+    "Wise/Theo: Archived (S6) and the empty folder (S9) now end with 'or press ⌘K …', but this empty state has no keyboard path. Bind N to 'Add subcontractor' on catalogue tabs and add the same muted Kbd line under the button ('or press N')."
+   ]
+  },
+  "S13": {
+   "scores": {
+    "hierarchy": 9,
+    "density": 9,
+    "typography": 9,
+    "consistency": 8,
+    "clarity": 9,
+    "interaction": 9,
+    "accessibility": 9,
+    "responsive": 9,
+    "wise": 8
+   },
+   "issues": [
+    "Consistency: the editor fields use inputClass with ring-1 ring-slate-400 at rest (ui.tsx:345), while the drawer's Menge, EP and Kategorie fields are borderless tints (DetailDrawer.tsx:20). Use one field style: ring-transparent at rest, ring on hover and focus.",
+    "Consistency: Category is a free-text input with a datalist (CatalogueEditor.tsx:203), while the drawer uses a category picker with a chevron. Reuse the picker, or at least give the field the same chevron affordance, so it reads as a choice and not free typing.",
+    "Wise: the Unit price field shows only '€'. Once a unit is chosen, make the suffix '€ / m²', matching the drawer's pending note ('64,80 € / m²')."
+   ]
+  },
+  "S14": {
+   "scores": {
+    "hierarchy": 8,
+    "density": 8,
+    "typography": 9,
+    "consistency": 8,
+    "clarity": 8,
+    "interaction": 9,
+    "accessibility": 9,
+    "responsive": 7,
+    "wise": 8
+   },
+   "issues": [
+    "Hierarchy: the 'Catalogue research · 1 web suggestion · 4 open' line sits between the hero figure and the jib. It pushes Used/Left down by about 26px compared with S3 and splits the number from its meter. Move the research chips into the status row under the jib (right side, before '5 positions'), so the hero block has the same geometry on every list.",
+    "Density: two rows of tinted chip-buttons now frame the meter (research above, '1 edited' / 'Cost by section' below). Merging them into the one status row, as above, also removes a band.",
+    "Consistency: the 'Upload check' count is an amber ring-outlined badge (RiskAssessment.tsx:102), while every other toolbar and filter count ('Needs attention 3', 'Not priced 4') is a plain slate-600 numeral. Use the plain numeral, and let the flag icon and the row rules carry the colour.",
+    "Clarity: '4 open' under the list total doesn't say what is open (positions without a catalogue result?), and the drawer also uses 'open' for findings ('Upload check 2 open'). Write '4 not researched' (or '4 without a match'). In the drawer, 'No reliable web evidence. No matching product found online.' says the same thing twice: keep only the second sentence.",
+    "Responsive: with 'Upload check' present, the toolbar needs about 980px (search 288 + Categories + Upload check + Select | Collapse all + Sort). That fits at 1440 but wraps in the 896px column at 1280. Move 'Upload check' into the Categories menu as a 'Flagged' section, or make Collapse all icon-only below 1440."
+   ]
+  },
+  "S15": {
+   "scores": {
+    "hierarchy": 8,
+    "density": 8,
+    "typography": 9,
+    "consistency": 8,
+    "clarity": 8,
+    "interaction": 9,
+    "accessibility": 9,
+    "responsive": 9,
+    "wise": 8
+   },
+   "issues": [
+    "Hierarchy: the left hero column stacks four lines ('List total', '0,00 €', '+ 2.627,60 € pending…', 'Catalogue research…'), so Used/Left sit at y≈265–320 here, against y≈213 on S3, and the jib starts 50px lower. Keep the pending line under the total and move the research chips below the jib (see S14), so every list hero has the same height.",
+    "Density/Clarity: 'Catalogue research · 2 matches' and the status chip '2 pending confirmation' describe the same two positions in two chip rows 85px apart. Once matches have become pending prices, hide 'N matches' from the research line and keep only the status chip.",
+    "Wise: the jib is fully dashed with the hook at 0, so 2.627,60 € of waiting prices does not show on the screen's one bold element. Draw the pending amount as a slate dashed ghost segment from 0 to 5% on the jib, unlit, with no hook move, so 'what if I confirm' is visible at a glance.",
+    "Consistency: the dashed pending EP boxes end at x≈1236, about 8px past the EP column edge (1228) where 'Set price', the 'EP (€)' header and priced EPs end. Drop the box's horizontal padding on the right (pr-0 with a 6px inner gap), or pull the button in with -mr-2, so the digits and the box both stay inside the column.",
+    "Consistency (drawer): the Langtext hover outline uses -mx-2 and extends 8px beyond the drawer's content column (x≈945 to 1424, against 953 to 1416), so it is the only box in the drawer that breaks the column. Inset it to the column (mx-0, px-2 inside a padded box), as the Kategorie and EP fields are."
+   ]
+  }
+ },
+ "global_issues": [
+  "Two input styles at rest: the catalogue search fields and editor fields have a slate-400 ring (CataloguePage.tsx:451, ui.tsx:345), while the ledger search and drawer fields are borderless tints (ListPage.tsx:690, DetailDrawer.tsx:20). Make borderless-at-rest the one style.",
+  "On lists with catalogue research (S14, S15), the research chips sit between the hero figure and the jib, which changes hero height from list to list and adds a second chip row. Fold them into the status row under the meter.",
+  "S1/S5 hero status still leads with 'On track' while children are flagged in orange beside it. Lead with the worst state, or say 'Total on track'.",
+  "Ledger 'Select' is icon-only below 2xl, while every other page shows 'Select' with its label at 1440.",
+  "Count badges: the Upload check count is an amber outlined badge, while all other counts are plain numerals.",
+  "Toolbar still wraps at 1280 when Upload check is present (S14). The pending and unpriced toolbar pills are gone, so S15 now fits on one row."
+ ]
+}
