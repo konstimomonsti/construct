@@ -476,6 +476,32 @@ def generate_outline_duplicates(out):
         })
 
 
+def generate_written_quantities(out):
+    """Exercise direct quantities, hire products, and non-comparable descriptions."""
+    out.mkdir(parents=True, exist_ok=True)
+    for name, quantity, unit, detail, expected, baseline in (
+        ("written-length-clean", 10, "m", "Abrechnungsmenge: 1000 cm.", False, "written-length-clean"),
+        ("written-length-conflict", 10, "m", "Abrechnungsmenge: 12 m.", True, "written-length-clean"),
+        ("written-hire-clean", 12, "mWo", "Positionsmenge = Produkt aus 3 m (Vorhaltemenge) mal 4 Wochen.", False,
+         "written-hire-clean"),
+        ("written-hire-conflict", 12, "mWo", "Positionsmenge = Produkt aus 3 m (Vorhaltemenge) mal 5 Wochen.", True,
+         "written-hire-clean"),
+        ("written-per-part", 10, "m", "Gesamtmenge: 7 m je Abschnitt.", False, "written-per-part"),
+        ("written-part-dimension", 10, "m", "Bauteillänge 7 m.", False, "written-part-dimension"),
+    ):
+        heading = "Bauteil vorhalten" if "hire" in name else "Leitplanke montieren"
+        item = Item("01.0010", heading, quantity, unit, detail=detail)
+        locators = _write_text_case(out, name, "Leistungsverzeichnis Baustelle", item, "quantity")
+        locators.update(_write_offer_tables(out, name, item))
+        for ext, locator in locators.items():
+            label = {"control": not expected, "layers": [1], "expect": []}
+            if expected:
+                label.update(match="line", expect=["L1.QTY.WRITTEN_CONFLICT"], target={
+                    "line_codes": [item.code], "severity": "error", "source_locator": locator,
+                })
+            write_fixture_labels(out / f"{name}.{ext}", f"{baseline}.{ext}", label)
+
+
 def generate_grade_scope(out):
     """Test concrete grade conflicts, legitimate component differences and unclear attribution."""
     out.mkdir(parents=True, exist_ok=True)
@@ -587,7 +613,8 @@ if __name__ == "__main__":
               "exposure-scope": generate_exposure_scope, "dependency-scope": generate_dependency_scope,
               "product-offer": generate_product_offer, "product-position": generate_product_position,
               "product-requirements": generate_product_requirements, "written-stiffness": generate_written_stiffness,
-              "action-spelling": generate_action_spelling, "outline-duplicates": generate_outline_duplicates}
+              "action-spelling": generate_action_spelling, "outline-duplicates": generate_outline_duplicates,
+              "written-quantities": generate_written_quantities}
     parser.add_argument("--suite", choices=suites, default="tabular")
     args = parser.parse_args()
     suites[args.suite](args.out)

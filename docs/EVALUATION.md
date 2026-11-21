@@ -100,6 +100,16 @@ The repository Word outline repeats position 3.1.90 in paragraphs 36 and 39. Par
 
 The `outline-duplicates` suite exercises the same repeat with `oder`, a repeat joined by `mit`, and different work carrying the same code. The first calls for a scope review. The other two retain duplicate-code errors. All three expected classifications were found with guidance through the normal Word upload and repeated with all three layers using local Qwen. The tests also cover repeats within the same branch or across a new heading.
 
+### Quantities written into position descriptions
+
+Layer 1 compares explicit position quantities and hire formulas with the quantity column when the units are comparable. It quotes the original statement, shows both values, and asks the reviewer to confirm the takeoff or hire schedule before recalculating the amount. A confirmed conflict makes the position quantity unreliable for Layer 2, so the system withholds a measured dependency fix. Per-part wording, ranges, ambiguous numbers, and incomplete or dimensionally different formulas stay outside the comparison.
+
+The `written-quantities` suite caught all 16 planted conflicts with guidance across PDF, Word, GAEB X83, JSON, CSV, TSV, XLSX, and XLS. All 32 controls were clear. The local three-layer PDF and X83 replay caught all four expected findings and cleared all eight controls.
+
+Across four repository exports, all 56 comparable formulas agreed with their quantity columns. Some exports represent the same tender. In temporary X83 and D86 copies, changing 840 to 800 while keeping the written hire formula produced a conflict at the original position and cited source item I4 and record 395 respectively. The two copies also passed through the workspace uploader.
+
+Generate with `--suite written-quantities` and replay `written-*.{pdf,docx,X83,json,csv,tsv,xlsx,xls}`.
+
 ## Dependency responsibility and cross-reference replay
 
 Layer 2 distinguishes counted coverage from explicit responsibility statements. A dependency stated as client-supplied, excluded, conditional, or in another position is not counted from that mention. A position reference can be verified when it resolves uniquely to a firm matching line within the assessed scope. That target counts once at its recorded quantity. An unresolved reference is visible even when other quantities look sufficient. Findings quote the source statement and ask the reviewer to confirm the responsible position and quantity before adding work.
