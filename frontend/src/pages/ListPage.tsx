@@ -25,7 +25,7 @@ import { RiskSummary } from '../components/risk/RiskSummary'
 import { WarningsPanel, type WarningEntry } from '../components/risk/WarningsPanel'
 import { runSteps, type FixPlan } from '../lib/apply-fix'
 import { partialAnalysis } from '../lib/risk-labels'
-import { BidderQuestions, openQuestions } from '../components/risk/BidderQuestions'
+import { openQuestions } from '../components/risk/BidderQuestions'
 import { RiskPrint } from '../components/risk/RiskPrint'
 import { AddSectionDialog, PricingLegend, PricingBreakdown, pricingSections } from '../components/PricingSummary'
 import { useActions } from '../lib/actions'
@@ -375,7 +375,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   const decisionMap = useStore((s) => s.listPatch[doc.id]?.findingDecisions)
   const decisions = useMemo(() => decisionsOf({ findingDecisions: decisionMap, reviewedFindings: reviewedIds }), [decisionMap, reviewedIds])
   const reviewed = useMemo(() => new Set(Object.keys(decisions)), [decisions])
-  const [questionTexts, setQuestionTexts] = useState<Record<string, string>>({})
+  const questionTexts: Record<string, string> = {}
   const questions = useMemo(() => openQuestions(uploadReport?.questions ?? [], decisions), [uploadReport, decisions])
   const codes = useMemo(() => new Map(imported.positions.map((p) => [p.id, p.oz])), [imported.positions])
   const { byRow: findingsByRow, listWide } = useMemo(
@@ -793,7 +793,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
     ...(editedCount ? [{ label: 'Reset all edits', icon: 'restart_alt', onSelect: resetAll }] : []),
     ...(live ? [{ label: 'Move to another project…', icon: 'drive_file_move', onSelect: () => openDialog({ kind: 'folder-target', action: 'move-list', listId: doc.id }) }] : []),
     ...(attached.length
-      ? (['sep' as const, ...attached.map((d) => ({ label: d.name, icon: 'attach_file', onSelect: () => openDialog({ kind: 'doc', doc: d }) }))] as (MenuItem | 'sep')[])
+      ? (['sep' as const, ...[...attached].sort((a, b) => Number(b === original) - Number(a === original)).map((d) => ({ label: d === original ? `Original ${d.name.split('.').pop()?.toUpperCase() ?? 'file'}` : d.name, icon: d === original ? 'description' : 'attach_file', onSelect: () => openDialog({ kind: 'doc', doc: d }) }))] as (MenuItem | 'sep')[])
       : []),
     ...(uploadReport && risk ? [
       'sep' as const,
@@ -862,47 +862,30 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
           </div>
         )}
         meta={
-          <span className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
-            <span className="num">{plural(st.positionsCount, 'position', 'positions')}</span>
-            {unpriced > 0 && (
-              <span className="inline-flex items-center gap-x-1.5">
-                <span aria-hidden className="max-sm:hidden">·</span>
-                <MetaLink onClick={() => only('unpriced')} pressed={onlyUnpriced}><span className="num">{int(unpriced)}</span> not priced</MetaLink>
+          <div className="flex flex-wrap items-center gap-x-1 gap-y-1">
+            <span className="inline-flex w-[5.5rem] shrink-0 items-center gap-1.5 text-[13px] font-medium text-slate-500">
+              <Icon name="sell" size={16} />Pricing
+            </span>
+            <span className="num px-2"><span className="font-semibold text-slate-900">{int(st.positionsCount)}</span> {st.positionsCount === 1 ? 'position' : 'positions'}</span>
+            {unpriced > 0 && <MetaLink onClick={() => only('unpriced')} pressed={onlyUnpriced}><span className="num">{int(unpriced)}</span> not priced</MetaLink>}
+            {pendingCount > 0 && <MetaLink onClick={() => only('pending')} pressed={onlyPending}><span className="num">{int(pendingCount)}</span> pending confirmation</MetaLink>}
+            {zeroQty > 0 && <MetaLink onClick={() => only('zero')} pressed={onlyZero}><span className="num">{int(zeroQty)}</span> priced with quantity 0</MetaLink>}
+            {editedCount > 0 && <MetaLink onClick={() => only('edited')} pressed={onlyEdited}><span className="num">{int(editedCount)}</span> edited</MetaLink>}
+            {(sections.length > 1 || largest) && (
+              <span className="flex items-center gap-1 sm:ml-auto">
+                {sections.length > 1 && (
+                  <button type="button" aria-expanded={showSections} aria-controls="pricing-legend" onClick={() => setShowSections((v) => !v)} className="inline-flex h-8 items-center gap-1 rounded-md px-2.5 font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900 aria-expanded:bg-slate-100 aria-expanded:text-slate-900">
+                    <Icon name="donut_small" size={16} className="text-slate-500" />Cost by section<Icon name="expand_more" size={18} className={clsx('text-slate-500 transition-transform', showSections && 'rotate-180')} />
+                  </button>
+                )}
+                {largest && (
+                  <button type="button" onClick={review} className="inline-flex h-8 items-center gap-1 rounded-md px-2.5 font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900">
+                    <Icon name="trending_up" size={16} className="text-slate-500" />Review the biggest positions
+                  </button>
+                )}
               </span>
             )}
-            {pendingCount > 0 && (
-              <span className="inline-flex items-center gap-x-1.5">
-                <span aria-hidden className="max-sm:hidden">·</span>
-                <MetaLink onClick={() => only('pending')} pressed={onlyPending}><span className="num">{int(pendingCount)}</span> pending confirmation</MetaLink>
-              </span>
-            )}
-            {zeroQty > 0 && (
-              <span className="inline-flex items-center gap-x-1.5">
-                <span aria-hidden className="max-sm:hidden">·</span>
-                <MetaLink onClick={() => only('zero')} pressed={onlyZero}><span className="num">{int(zeroQty)}</span> priced with quantity 0</MetaLink>
-              </span>
-            )}
-            {editedCount > 0 && (
-              <span className="inline-flex items-center gap-x-1.5">
-                <span aria-hidden className="max-sm:hidden">·</span>
-                <MetaLink onClick={() => only('edited')} pressed={onlyEdited}><span className="num">{int(editedCount)}</span> edited</MetaLink>
-              </span>
-            )}
-            {sections.length > 1 && (
-              <span className="inline-flex items-center gap-x-1.5">
-                <span aria-hidden className="max-sm:hidden">·</span>
-                <button type="button" aria-expanded={showSections} aria-controls="pricing-legend" onClick={() => setShowSections((v) => !v)} className="relative inline-flex h-7 items-center gap-0.5 rounded-md pr-1 pl-2 font-medium after:absolute after:inset-x-0 after:-inset-y-2 after:content-[''] text-slate-900 bg-slate-100 hover:bg-slate-200">
-                  <span>Cost by section</span><Icon name="expand_more" size={18} className={clsx('text-slate-500 transition-transform', showSections && 'rotate-180')} />
-                </button>
-              </span>
-            )}
-            {largest && (
-              <span className="inline-flex items-center gap-x-1.5">
-                <span aria-hidden className="max-sm:hidden">·</span>
-                <MetaLink onClick={review}>Review the biggest positions</MetaLink>
-              </span>
-            )}
-          </span>
+          </div>
         }
       />
 
@@ -923,7 +906,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
       <div ref={heroEnd} aria-hidden />
       <div ref={tableRef} className="scroll-mt-20">
         <div className="mb-3 flex flex-wrap items-center gap-2">
-          <div className="relative w-full sm:w-56 min-[1400px]:w-72">
+          <div className="relative w-full sm:w-auto sm:min-w-56 sm:flex-1 lg:max-w-sm">
             <Icon name="search" size={20} className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-slate-600" />
             <input
               ref={searchRef}
@@ -934,7 +917,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Search positions"
-              className="peer h-10 w-full rounded-md bg-slate-100 pr-10 pl-11 text-sm text-slate-900 ring-1 ring-transparent transition-[background-color,box-shadow] outline-none ring-inset placeholder:text-slate-600 hover:bg-slate-200/70 hover:ring-slate-400 focus:bg-white focus:ring-2 focus:ring-brand-700"
+              className="peer h-10 w-full rounded-md bg-white pr-10 pl-11 text-sm text-slate-900 shadow-[0_1px_0_var(--color-slate-200)] ring-1 ring-slate-300 transition-[background-color,box-shadow] outline-none ring-inset placeholder:text-slate-600 hover:ring-slate-400 focus:ring-2 focus:ring-brand-700"
             />
             {!q && <kbd aria-hidden className={clsx(kbdCls, 'pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 peer-focus:hidden [@media(hover:none)]:hidden')}>/</kbd>}
           </div>
@@ -983,20 +966,16 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
               {editedCount > 0 && <button type="button" onClick={resetAll} className="h-10 rounded-md px-3 text-sm font-semibold text-slate-800 hover:bg-slate-100">Reset all</button>}
             </>
           )}
-          <button
-            type="button"
-            aria-pressed={selectMode || selected.size > 0}
-            title="Select positions"
-            onClick={() => { if (selectMode) setSelected(new Set()); setSelectMode((v) => !v) }}
-            className={pillCls(selectMode || selected.size > 0)}
-          >
-            <Icon name="checklist" size={18} /><span className="max-[1399px]:sr-only">Select</span>
-          </button>
-          <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
-            {original && (
-              <ToolButton icon="description" onClick={() => openDialog({ kind: 'doc', doc: original })}>Original {original.name.split('.').pop()?.toUpperCase() ?? 'file'}</ToolButton>
-            )}
-            <ToolButton icon="engineering" onClick={() => setSending(true)}>Send to subcontractor…</ToolButton>
+          <div className="flex items-center gap-2 sm:ml-auto">
+            <button
+              type="button"
+              aria-pressed={selectMode || selected.size > 0}
+              title="Select positions"
+              onClick={() => { if (selectMode) setSelected(new Set()); setSelectMode((v) => !v) }}
+              className={pillCls(selectMode || selected.size > 0)}
+            >
+              <Icon name="checklist" size={18} /><span className="max-[1399px]:sr-only">Select</span>
+            </button>
             {sort === 'oz' && !filtered && ledgerTree.length > 0 && (
               <ToolButton icon={sectionsOpen ? 'unfold_less' : 'unfold_more'} aria-expanded={sectionsOpen} aria-keyshortcuts="e" title={`${sectionsOpen ? 'Collapse' : 'Expand'} all sections (E)`} onClick={() => setSectionsOpen((v) => !v)} className="max-[1399px]:w-10 max-[1399px]:justify-center max-[1399px]:px-0">
                 <span className="max-[1399px]:sr-only">{sectionsOpen ? 'Collapse all' : 'Expand all'}</span>
@@ -1097,9 +1076,6 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
         </section>
       )}
 
-      {uploadReport?.questions && (
-        <BidderQuestions title={title} questions={questions} texts={questionTexts} onEdit={(id, text) => setQuestionTexts((prev) => ({ ...prev, [id]: text }))} />
-      )}
       {doc.notes && (
         <section className="mt-8 rounded-lg bg-slate-50">
           <button
