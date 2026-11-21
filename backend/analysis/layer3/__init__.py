@@ -40,9 +40,11 @@ def run(analysis_input: AnalysisInput, prior_findings: list[Finding], errors: li
             provider = provider_from_env()
         except ProviderUnavailable as exc:
             errors.append(f"layer 3: {exc}")
+            errors.append("layer 3 coverage: 0/0 batches")
             return []
         if provider is None:
             errors.append("layer 3: disabled (ANALYSIS_L3_PROVIDER=none)")
+            errors.append("layer 3 coverage: 0/0 batches")
             return []
         if audit_provider is None:
             try:
@@ -63,5 +65,5 @@ def run(analysis_input: AnalysisInput, prior_findings: list[Finding], errors: li
         findings = run_layer(LAYER, analysis_input, prior_findings, errors)
     finally:
         reset_session(token)
-    session.report()
+        session.report()
     return findings

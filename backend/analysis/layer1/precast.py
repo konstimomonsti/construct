@@ -4,6 +4,7 @@ from decimal import Decimal
 import re
 
 from ..registry import rule
+from ..units import normalize
 from .common import label, text_of
 from .textvalues import MEASURE, centimetres
 
@@ -14,6 +15,27 @@ ITEM_TYPES = (
     ("embedded_part", r"\b(?:Halfen\w*|Ankerschiene\w*|Einbauteil\w*)", ("ea", "m")),
     ("sandwich_plinth", r"\b(?:Sandwich\w*|FT-Sockel\w*)", ("ea", "m²", "m")),
 )
+ITEM_NAMES = {
+    "opening_surcharge": "Zulage für Aussparungen/Öffnungen",
+    "shop_drawings": "Werkstatt- und Montagepläne",
+    "rebar": "Betonstahl",
+    "embedded_part": "Einbauteile/Ankerschienen",
+    "sandwich_plinth": "Sandwichsockel/Fertigteil",
+}
+
+
+def tender_unit(unit: str, raw: str | None = None) -> str:
+    if unit == "ea":
+        return "St"
+    if unit == "lump_sum":
+        return "psch"
+    if unit in {"m²", "m³"}:
+        if raw and normalize(raw) == unit and any(ch in raw for ch in "23"):
+            return unit.replace("²", "2").replace("³", "3")
+        return unit
+    return raw if raw and normalize(raw) == unit else unit
+
+
 LAYERS = {
     "facing_shell_cm": re.compile(rf"\b(?:Dicke\s+)?Vorsatzschale\s*[:=]?\s*{MEASURE}", re.I),
     "structural_shell_cm": re.compile(rf"\b(?:Dicke\s+)?Tragschale\s*[:=]?\s*{MEASURE}", re.I),
@@ -70,7 +92,9 @@ def trade_mismatch(ctx):
             continue
         name, allowed = classified
         if line.unit not in allowed:
+            actual = tender_unit(line.unit, line.unit_raw)
+            expected = ", ".join(tender_unit(unit, line.unit_raw) for unit in allowed)
             yield ctx.finding(line=line, field="unit",
-                message=f"{label(line)}: {line.unit} is unusual for {name}; expected {', '.join(allowed)}.",
+                message=f"{label(line)}: {actual} is unusual for {ITEM_NAMES[name]}; expected {expected}.",
                 evidence={"item_type": name, "unit": line.unit, "allowed_units": list(allowed),
-                          "bieterfrage_de": f"Zu Pos. {line.code}: Ist die Abrechnung in {line.unit_raw or line.unit} beabsichtigt? Bitte bestätigen Sie die Abrechnungseinheit (üblich: {', '.join(allowed)})."})
+                          "bieterfrage_de": f"Zu Pos. {line.code}: Ist die Abrechnung der {ITEM_NAMES[name]} in {actual} beabsichtigt? Bitte bestätigen Sie die Abrechnungseinheit (üblich: {expected})."})

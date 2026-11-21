@@ -53,4 +53,6 @@ skipped: `layer 3 coverage: 31/31 batches`. Emit it whenever layer 3 ran. Keep t
 
 ## Notes / blockers (fill in)
 
--
+- Live Anthropic run: **unverified** (no `ANTHROPIC_API_KEY` in the local environment; the user asked to record it as unverified). Live duration, API call count, and cost are therefore unverified. The blocker was reported in this task chat immediately; no team-chat connector is available here.
+- Offline FakeProvider check on `data/demo/building_hall_planted.X83`: **16/16 batches**, none skipped. A 197-line tender used 29/29 batches and a 249-line tender 42/42. The production default is now 48 calls; the 75-second deadline and concurrency remain unchanged. These call counts are offline request counts, not measured Anthropic usage or cost.
+- Tests: `backend/analysis/tests` passed (386 passed, 4 skipped, 66 subtests). `python -m analysis.eval fp` exited 0 and reported 0 files checked / 0 false alarms in this checkout; that result does not measure false-positive accuracy.
