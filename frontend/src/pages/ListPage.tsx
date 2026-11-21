@@ -115,7 +115,7 @@ function TabsBar({ activeId, folderId }: { activeId: string; folderId: string })
 const pillCls = (on: boolean) =>
   clsx(
     'inline-flex h-10 shrink-0 items-center gap-2 rounded-md px-3.5 text-sm whitespace-nowrap transition-colors',
-    on ? 'bg-slate-900 font-semibold text-white hover:bg-slate-800' : 'bg-slate-100 font-medium text-slate-800 hover:bg-slate-200',
+    on ? 'bg-slate-900 font-semibold text-white hover:bg-slate-800' : 'bg-white font-medium text-slate-800 ring-1 ring-slate-400 ring-inset hover:bg-slate-100',
   )
 
 /** toggles one quick filter; the pressed state is the filter's only visible state */
@@ -206,7 +206,7 @@ function CategoryFilter({ tree, stats, value, onChange }: { tree: CategoryNode[]
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, transition: { duration: 0.1 } }}
             transition={{ duration: 0.16, ease: [0.16, 1, 0.3, 1] }}
-            className="absolute left-0 z-40 mt-2 w-[26rem] max-w-[calc(100vw-2rem)] rounded-2xl bg-white p-2 shadow-[0_8px_30px_-4px_rgba(15,23,42,0.18)] ring-1 ring-slate-200"
+            className="absolute left-0 z-40 mt-2 w-[26rem] max-w-[calc(100vw-2rem)] rounded-lg bg-white p-2 shadow-[0_8px_20px_-8px_var(--pop-shadow)] ring-1 ring-slate-300"
           >
             <div className="flex items-center gap-2 px-1.5 py-1.5">
               <input ref={search} aria-label="Search categories" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search categories…" className="h-10 min-w-0 flex-1 rounded-md bg-white px-4 text-sm ring-1 ring-slate-500 outline-none ring-inset placeholder:text-slate-500 hover:ring-slate-600 focus:ring-2 focus:ring-brand-600" />
@@ -361,6 +361,19 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   const [splitMounted, setSplitMounted] = useState(false)
   const [movePids, setMovePids] = useState<string[] | null>(null)
   const tableRef = useRef<HTMLDivElement>(null)
+  const searchRef = useRef<HTMLInputElement>(null)
+  // "/" jumps to position search from anywhere on the page, as in most keyboard-first tools
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== '/' || e.metaKey || e.ctrlKey || e.altKey) return
+      const t = e.target as HTMLElement
+      if (t.closest('input,textarea,select,[contenteditable=true],[role=dialog],[role=menu]')) return
+      e.preventDefault()
+      searchRef.current?.focus()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
   const focusId = params.get('pos')
 
   useEffect(() => {
@@ -539,8 +552,8 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
             {sections.length > 1 && (
               <>
                 <span aria-hidden>·</span>
-                <button type="button" aria-expanded={showSections} aria-controls="pricing-legend" onClick={() => setShowSections((v) => !v)} className="group inline-flex items-center gap-0.5 rounded font-medium text-slate-800">
-                  <span className="underline decoration-slate-400 underline-offset-4 group-hover:decoration-slate-900">Cost by section</span><Icon name="expand_more" size={18} className={clsx('text-slate-500 transition-transform', showSections && 'rotate-180')} />
+                <button type="button" aria-expanded={showSections} aria-controls="pricing-legend" onClick={() => setShowSections((v) => !v)} className="inline-flex h-7 items-center gap-0.5 rounded-md pr-1 pl-2 font-medium text-slate-900 ring-1 ring-slate-400 ring-inset hover:bg-slate-100">
+                  <span>Cost by section</span><Icon name="expand_more" size={18} className={clsx('text-slate-500 transition-transform', showSections && 'rotate-180')} />
                 </button>
               </>
             )}
@@ -572,13 +585,16 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
           <div className="relative w-full sm:w-72">
             <Icon name="search" size={20} className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-slate-600" />
             <input
+              ref={searchRef}
               type="search"
               aria-label="Search positions"
+              aria-keyshortcuts="/"
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Search positions"
-              className="h-10 w-full rounded-md bg-slate-100 pr-4 pl-11 text-sm text-slate-900 transition-[background-color,box-shadow] outline-none ring-inset placeholder:text-slate-600 hover:bg-slate-200 focus:bg-white focus:ring-2 focus:ring-brand-700"
+              className="peer h-10 w-full rounded-md bg-slate-100 pr-10 pl-11 text-sm text-slate-900 ring-1 ring-slate-400 transition-[background-color,box-shadow] outline-none ring-inset placeholder:text-slate-600 hover:bg-slate-200/70 focus:bg-white focus:ring-2 focus:ring-brand-700"
             />
+            {!q && <kbd aria-hidden className="pointer-events-none absolute top-1/2 right-3 hidden -translate-y-1/2 rounded border border-slate-300 px-1.5 font-mono text-xs text-slate-600 peer-focus:hidden [@media(hover:hover)]:block">/</kbd>}
           </div>
           <CategoryFilter tree={tree} stats={catStats} value={cats} onChange={setCats} />
           {(unpriced > 0 || onlyUnpriced) && (
@@ -590,7 +606,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
           {onlyEdited && (
             <>
               <FilterPill on onClick={() => setOnlyEdited(false)}>Edited <span className="num">{int(editedCount)}</span></FilterPill>
-              {editedCount > 0 && <button type="button" onClick={resetAll} className="h-10 rounded-md px-3 text-sm font-semibold text-slate-800 underline decoration-slate-400 underline-offset-4 hover:decoration-slate-900">Reset all</button>}
+              {editedCount > 0 && <button type="button" onClick={resetAll} className="h-10 rounded-md px-3 text-sm font-semibold text-slate-800 hover:bg-slate-100">Reset all</button>}
             </>
           )}
           <button
@@ -637,7 +653,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
               <button type="button" onClick={removeSelected} className="inline-flex h-10 items-center gap-1.5 rounded-md px-3 font-medium text-rose-700 hover:bg-rose-50">
                 <Icon name="delete" size={18} />Remove
               </button>
-              <button type="button" onClick={() => { setSelected(new Set()); setSelectMode(false) }} className="ml-auto inline-flex h-10 items-center rounded-md bg-slate-100 px-4 font-semibold text-slate-900 hover:bg-slate-200">Clear</button>
+              <button type="button" onClick={() => { setSelected(new Set()); setSelectMode(false) }} className="ml-auto inline-flex h-10 items-center rounded-md bg-white px-4 font-semibold text-slate-900 ring-1 ring-slate-400 ring-inset hover:bg-slate-100">Clear</button>
             </div>
           ) : (
             <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-sm text-slate-600">

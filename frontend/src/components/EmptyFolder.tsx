@@ -1,4 +1,3 @@
-import { clsx } from 'clsx'
 import { Button } from './ui'
 import { EmptyState, PageFrame, PageHeader, RowMenu } from './Kit'
 import { pickAndImport } from '../lib/import'
@@ -27,16 +26,9 @@ export function EmptyFolder({ folder: f, ancestors, dragging }: { folder: Folder
         aside={<RowMenu items={menu} label={`More actions for ${f.name}`} />}
       />
 
-      <div
-        className={clsx(
-          // the dashed outline only appears while files are dragged over the page
-          // negative margins keep the content on the title's left edge while the outline extends past it
-          '-mx-[22px] rounded-3xl border-2 border-dashed px-5 transition-colors sm:-mx-[34px] sm:px-8',
-          dragging ? 'border-brand-600 bg-brand-50' : 'border-transparent',
-        )}
-      >
-        <EmptyState
-          icon="upload_file"
+      <EmptyState
+        active={dragging}
+        icon="upload_file"
           title="Add your first list"
           text={
             <>
@@ -49,7 +41,6 @@ export function EmptyFolder({ folder: f, ancestors, dragging }: { folder: Folder
           <Button variant="primary" size="lg" icon="upload" onClick={pick}>Import files</Button>
           <Button size="lg" icon="add" onClick={() => openDialog({ kind: 'blank-list', folderId: f.id })}>New list</Button>
         </EmptyState>
-      </div>
     </PageFrame>
   )
 }

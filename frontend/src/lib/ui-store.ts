@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import type { DocMeta } from './types'
 
 export type DialogState =
-  | { kind: 'new-folder'; parent?: string }
+  | { kind: 'new-folder'; parent?: string; name?: string }
   | { kind: 'rename-folder'; id: string }
   | { kind: 'rename-list'; id: string }
   | { kind: 'doc'; doc: DocMeta }

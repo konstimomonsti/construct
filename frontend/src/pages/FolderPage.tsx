@@ -160,7 +160,7 @@ export function FolderPage() {
           {lists.length ? (
             <ListGrid lists={lists} tone={f.tone} selectMode={selectMode} selected={sel} onToggle={toggle} />
           ) : (
-            <EmptyState icon="check_circle" title="Nothing needs attention" text="Every list is below 75% of its cap." />
+            <EmptyState compact icon="check_circle" title="Nothing needs attention" text="Every list is below 75% of its cap." />
           )}
         </Section>
       )}

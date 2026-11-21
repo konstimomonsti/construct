@@ -2,11 +2,11 @@ import { useEffect, useState } from 'react'
 import { parseNumber, qty } from '../lib/format'
 
 /**
- * editable numbers (Menge, EP) share one cue: a dotted underline at rest, a field outline while the
+ * editable numbers (Menge, EP) share one cue: a dotted rule under the field at rest, a field outline while the
  * row is hovered or focused, and always outlined on touch screens where there is no hover.
  */
 export const editableCls =
-  'num h-9 rounded-md border border-transparent px-2 text-right text-sm underline decoration-slate-400 decoration-dotted underline-offset-[5px] transition-colors group-hover:border-slate-500 group-hover:bg-white group-hover:no-underline group-focus-within:border-slate-500 group-focus-within:no-underline hover:border-slate-600 focus:border-brand-600 focus:bg-white max-lg:border-slate-400 max-lg:no-underline [@media(pointer:coarse)]:border-slate-400 [@media(pointer:coarse)]:no-underline'
+  'num h-9 rounded-md border border-dotted border-transparent border-b-slate-400 px-2 text-right text-sm transition-colors group-hover:border-solid group-hover:border-slate-500 group-hover:bg-white group-focus-within:border-solid group-focus-within:border-slate-500 hover:border-slate-600 focus:border-solid focus:bg-white max-lg:border-solid max-lg:border-slate-400 [@media(pointer:coarse)]:border-solid [@media(pointer:coarse)]:border-slate-400'
 
 const round = (n: number) => Math.round(n * 1000) / 1000
 
@@ -42,7 +42,7 @@ export function QtyInput({ value, onChange, label, edited, muted }: { value: num
         }
       }}
       onFocus={(e) => e.currentTarget.select()}
-      className={`${editableCls}${edited ? ' font-semibold text-brand-700' : muted ? ' text-slate-500' : ' text-slate-900'} w-16 outline-none focus:border-brand-600 focus:bg-white focus:ring-1 focus:ring-brand-600 lg:w-full`}
+      className={`${editableCls}${edited ? ' font-semibold text-brand-700' : muted ? ' text-slate-500' : ' text-slate-900'} w-16 outline-none focus:border-transparent focus:bg-white focus:ring-2 focus:ring-brand-700 lg:w-full`}
     />
   )
 }

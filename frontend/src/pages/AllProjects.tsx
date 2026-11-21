@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { Button, toast } from '../components/ui'
 import { Chips, EmptyState, PageFrame, PageHeader, PillLink, RowMenu, Section, SortMenu, Summary, ToolButton, heroStatus, worstTone } from '../components/Kit'
 import { FolderGrid } from '../components/FolderCard'
@@ -29,16 +29,18 @@ export function sortFolders(folders: FolderView[], sort: SortKey): FolderView[] 
 }
 
 export function FolderCollection({
-  title, subtitle, filter, emptyTitle, emptyText, emptyIcon, withOpenAll,
+  title, subtitle, filter, emptyTitle, emptyText, emptyIcon, withOpenAll, archive,
 }: {
   title: string
   subtitle?: string
   crumb?: string
   filter: (f: FolderView) => boolean
   emptyTitle: string
-  emptyText: string
+  emptyText: ReactNode
   emptyIcon: string
   withOpenAll?: boolean
+  /** this collection is the Archive, so the dock restores instead of archiving */
+  archive?: boolean
 }) {
   const { folders: all } = useModel()
   const sort = useStore((s) => s.sort)
@@ -148,7 +150,7 @@ export function FolderCollection({
           {folders.length ? (
             <FolderGrid folders={folders} selectMode={selectMode} selected={sel} onToggle={toggle} />
           ) : (
-            <EmptyState icon="check_circle" title={view === 'unpriced' ? 'Every project is priced' : 'Nothing needs attention'} text={view === 'unpriced' ? undefined : 'Every project is below 75% of its cap.'} />
+            <EmptyState compact icon="check_circle" title={view === 'unpriced' ? 'Every project is priced' : 'Nothing needs attention'} text={view === 'unpriced' ? undefined : 'Every project is below 75% of its cap.'} />
           )}
         </Section>
       ) : (
@@ -167,11 +169,13 @@ export function FolderCollection({
         noun="project"
         moveItems={[
           {
-            label: 'Move to Archive',
-            icon: 'archive',
+            label: archive ? 'Restore from Archive' : 'Move to Archive',
+            icon: archive ? 'unarchive' : 'archive',
             onSelect: () => {
-              sel.forEach((id) => useStore.getState().patchFolder(id, { archived: true }))
-              toast(`Archived ${plural(sel.size, 'project', 'projects')}`)
+              const ids = [...sel]
+              const set = (archived: boolean) => ids.forEach((id) => useStore.getState().patchFolder(id, { archived }))
+              set(!archive)
+              toast(`${archive ? 'Restored' : 'Archived'} ${plural(ids.length, 'project', 'projects')}`, 'ok', { label: 'Undo', run: () => set(!!archive) })
               done()
             },
           },

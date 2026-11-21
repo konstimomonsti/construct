@@ -11,16 +11,17 @@ const parseNum = (s: string) => parseNumber(s) ?? NaN
 /** GAEB long texts arrive hard-wrapped; join single line breaks, keep paragraphs */
 const reflow = (t: string) => t.replace(/\r/g, '').split(/\n{2,}/).map((para) => para.replace(/\s*\n\s*/g, ' ').trim()).filter(Boolean)
 /** "Baustelleneinrichtung - Montagepläne - I" → "Baustelleneinrichtung - Montagepläne" (a dangling one-letter segment reads like a cut-off string) */
-const cleanLabel = (s: string) => s.replace(/(?:\s+[-–—]\s*\p{L}\.?)+$/u, '').trim() || s
+/* category labels are shown verbatim, suffixes like "- I" included, so they match the ledger */
+const cleanLabel = (s: string) => s.trim()
 const pctFmt = new Intl.NumberFormat(LOCALE, { maximumFractionDigits: 1 })
 const sharePct = (v: number) => (v > 0 && v < 0.05 ? `< ${pctFmt.format(0.1)}%` : `${pctFmt.format(v)}%`)
 
 /* text fields: white with a ≥3:1 slate-500 boundary and a brand focus ring (no padding/height, so callers never stack conflicting classes) */
 const fieldCls =
-  'w-full rounded-xl border border-slate-500 bg-white text-sm text-slate-900 outline-none transition-[border-color,box-shadow] placeholder:text-slate-500 hover:border-slate-600 focus:border-brand-700 focus:ring-2 focus:ring-brand-700/25'
+  'w-full rounded-md bg-slate-100 text-sm text-slate-900 ring-1 ring-slate-400 outline-none ring-inset transition-[background-color,box-shadow] placeholder:text-slate-500 hover:bg-slate-200/70 focus:bg-white focus:ring-2 focus:ring-brand-700 aria-invalid:ring-2 aria-invalid:ring-rose-600'
 /* header icon buttons: 44px hit area on the phone sheet, 40px on desktop */
 const headBtn =
-  'inline-flex size-11 shrink-0 items-center justify-center rounded-md text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 active:scale-[0.94] disabled:pointer-events-none disabled:opacity-30 sm:size-10'
+  'inline-flex size-11 shrink-0 items-center justify-center rounded-md text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 active:scale-[0.94] disabled:pointer-events-none disabled:text-slate-400 disabled:opacity-60 sm:size-10'
 /* hover pencil cue shared by Kurztext and Langtext (always visible on touch) */
 const pencilCls = 'opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 [@media(pointer:coarse)]:opacity-100'
 
@@ -74,6 +75,8 @@ export function DetailDrawer({
   const [editLongId, setEditLongId] = useState<string | null>(null)
   const [editUnitId, setEditUnitId] = useState<string | null>(null)
   const [savedAt, setSavedAt] = useState(0)
+  const [err, setErr] = useState<{ id: string; field: 'qty' | 'up' } | null>(null)
+  const errOn = (field: 'qty' | 'up') => !!p && err?.id === p.id && err.field === field
   const open = !!p
   useInertRoot(open)
   const editLong = !!p && editLongId === p.id
@@ -105,10 +108,16 @@ export function DetailDrawer({
   }, [open])
   useEffect(() => {
     if (!p) return
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && !document.querySelector('[role=dialog][aria-labelledby]:not([aria-label]),[role=menu]') && onClose()
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !document.querySelector('[role=dialog][aria-labelledby]:not([aria-label]),[role=menu]')) return onClose()
+      const t = e.target as HTMLElement
+      if (e.metaKey || e.ctrlKey || e.altKey || t.closest('input,textarea,select,[contenteditable=true],[role=menu]')) return
+      if (e.key === 'j' && onNext) { e.preventDefault(); onNext() }
+      if (e.key === 'k' && onPrev) { e.preventDefault(); onPrev() }
+    }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [p?.id, onClose]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [p?.id, onClose, onNext, onPrev]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const upStr = (v: number | null) => (v == null ? '' : amount(v))
   const st = listTotal != null && cap ? budgetStatus(listTotal, cap) : null
@@ -143,7 +152,7 @@ export function DetailDrawer({
             animate={isDesktop ? { x: 0 } : { y: 0 }}
             exit={{ ...(isDesktop ? { x: '100%' } : { y: '100%' }), transition: { duration: 0.16 } }}
             transition={{ duration: 0.26, ease: [0.16, 1, 0.3, 1] }}
-            className="absolute inset-x-0 bottom-0 flex max-h-[90dvh] w-full flex-col rounded-t-3xl bg-white shadow-2xl ring-1 ring-slate-200 sm:top-0 sm:left-auto sm:h-full sm:max-h-none sm:max-w-lg sm:rounded-tr-none sm:rounded-bl-3xl"
+            className="absolute inset-x-0 bottom-0 flex max-h-[90dvh] w-full flex-col rounded-t-lg border-t border-slate-300 bg-white sm:top-0 sm:left-auto sm:h-full sm:max-h-none sm:max-w-lg sm:rounded-none sm:border-t-0 sm:border-l"
           >
             <div aria-hidden className="mx-auto mt-2 h-1 w-9 shrink-0 rounded-full bg-slate-300 sm:hidden" />
             <div className="flex shrink-0 items-center gap-1 px-4 pt-2 sm:px-6 sm:pt-4">
@@ -152,11 +161,11 @@ export function DetailDrawer({
               </button>
               <div className="ml-auto flex items-center gap-0.5 sm:gap-1">
                 {navCounter('px-1')}
-                <button type="button" aria-label="Previous position" title="Previous position" onClick={onPrev} disabled={!onPrev} className={headBtn}>
-                  <Icon name="keyboard_arrow_up" size={22} />
+                <button type="button" aria-label="Previous position" aria-keyshortcuts="k" title="Previous position (k)" onClick={onPrev} disabled={!onPrev} className={`${headBtn} sm:w-auto sm:px-2`}>
+                  <Icon name="keyboard_arrow_up" size={22} /><kbd aria-hidden className="ml-0.5 hidden rounded border border-slate-300 px-1 font-mono text-[11px] leading-4 text-slate-600 [@media(hover:hover)]:inline">k</kbd>
                 </button>
-                <button type="button" aria-label="Next position" title="Next position" onClick={onNext} disabled={!onNext} className={headBtn}>
-                  <Icon name="keyboard_arrow_down" size={22} />
+                <button type="button" aria-label="Next position" aria-keyshortcuts="j" title="Next position (j)" onClick={onNext} disabled={!onNext} className={`${headBtn} sm:w-auto sm:px-2`}>
+                  <Icon name="keyboard_arrow_down" size={22} /><kbd aria-hidden className="ml-0.5 hidden rounded border border-slate-300 px-1 font-mono text-[11px] leading-4 text-slate-600 [@media(hover:hover)]:inline">j</kbd>
                 </button>
               </div>
               <Menu
@@ -195,7 +204,7 @@ export function DetailDrawer({
                         if (v !== p.short && !(v === '' && p.short === '(ohne Kurztext)')) { onPatch({ short: v }); didSave() }
                       }}
                       onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur() } }}
-                      className="block w-full resize-none rounded-xl border border-transparent bg-transparent py-1 pr-8 pl-2 font-heading text-[22px] leading-7 font-semibold tracking-tight text-slate-900 transition-colors outline-none [field-sizing:content] placeholder:font-normal placeholder:text-slate-500 placeholder:italic hover:border-slate-400 focus:border-brand-600 focus:bg-white focus:ring-1 focus:ring-brand-600"
+                      className="block w-full resize-none rounded-xl border border-transparent bg-transparent py-1 pr-8 pl-2 font-heading text-[22px] leading-7 font-semibold tracking-tight text-slate-900 transition-colors outline-none [field-sizing:content] [overflow-wrap:anywhere] whitespace-pre-wrap min-h-9 placeholder:font-normal placeholder:text-slate-500 placeholder:italic hover:border-slate-400 focus:border-brand-600 focus:bg-white focus:ring-1 focus:ring-brand-600"
                     />
                     <Icon
                       name="edit"
@@ -212,7 +221,7 @@ export function DetailDrawer({
                 </div>
                 {catalogue}
                 <div className="border-y border-slate-200 py-4">
-                  <div className="text-sm font-medium text-slate-600">GP</div>
+                  <div className="text-sm font-medium text-slate-600">Gesamtpreis (GP)</div>
                   <div className="num display mt-1 text-[32px] leading-tight text-slate-900">{p.up == null ? 'Not priced yet' : money(total)}</div>
                   <div className="num mt-1 text-sm text-slate-600">{qty(p.qty)} {p.unit} × {p.up == null ? 'no unit price' : money(p.up)}</div>
                   {changed && delta !== 0 && (
@@ -224,8 +233,8 @@ export function DetailDrawer({
                       {share != null && headroom != null && <span aria-hidden>·</span>}
                       {headroom != null && st && (
                         headroom >= 0
-                          ? <span className={st.tone === 'ok' ? '' : `font-semibold ${statusText[st.tone]}`}>{money(headroom)} left in cap</span>
-                          : <span className={`font-semibold ${statusText.over}`}>{money(-headroom)} over cap</span>
+                          ? <span className={st.tone === 'ok' ? '' : `font-semibold ${statusText[st.tone]}`}>{money(headroom)} left in the list cap</span>
+                          : <span className={`font-semibold ${statusText.over}`}>{money(-headroom)} over the list cap</span>
                       )}
                     </div>
                   )}
@@ -240,16 +249,21 @@ export function DetailDrawer({
                           id={`${uid}-qty`}
                           key={`q-${p.qty}`}
                           inputMode="decimal"
-                          aria-describedby={`${uid}-unit`}
-                          className={`${fieldCls} num h-10 pl-3 text-right`}
+                          aria-describedby={`${uid}-unit${errOn('qty') ? ` ${uid}-qty-err` : ''}`}
+                          aria-invalid={errOn('qty') || undefined}
+                          className={`${fieldCls} num h-11 pl-3 text-right`}
                           style={{ paddingRight: editUnit ? '5.75rem' : `calc(${Math.min(Math.max((p.unit || '–').length, 1), 6)}ch + 2.25rem)` }}
                           defaultValue={qty(p.qty)}
                           onBlur={(e) => {
                             const n = parseNum(e.target.value)
-                            if (Number.isFinite(n) && n >= 0 && n !== p.qty) { onQty(Math.round(n * 1000) / 1000); didSave() }
-                            else e.target.value = qty(p.qty)
+                            if (!Number.isFinite(n) || n < 0) { setErr({ id: p.id, field: 'qty' }); return }
+                            if (errOn('qty')) setErr(null)
+                            if (n !== p.qty) { onQty(Math.round(n * 1000) / 1000); didSave() }
                           }}
-                          onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') e.currentTarget.blur()
+                            if (e.key === 'Escape' && errOn('qty')) { e.stopPropagation(); e.currentTarget.value = qty(p.qty); setErr(null) }
+                          }}
                         />
                         <span id={`${uid}-unit`} hidden>{`Einheit ${p.unit || '–'}`}</span>
                         {editUnit ? (
@@ -260,7 +274,7 @@ export function DetailDrawer({
                               autoFocus
                               maxLength={12}
                               defaultValue={p.unit}
-                              className="absolute top-1 right-1 bottom-1 w-20 rounded-lg border border-slate-500 bg-white px-2 text-sm text-slate-900 outline-none hover:border-slate-600 focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20"
+                              className="absolute top-1 right-1 bottom-1 w-20 rounded-md bg-white px-2 text-sm text-slate-900 ring-2 ring-brand-700 outline-none"
                               onBlur={(e) => {
                                 const v = e.target.value.trim()
                                 if (v !== p.unit) { onPatch({ unit: v }); didSave() }
@@ -276,35 +290,42 @@ export function DetailDrawer({
                           <button
                             type="button"
                             title="Change Einheit"
+                            aria-label={`Einheit ${p.unit || 'not set'}. Change unit`}
                             onClick={() => setEditUnitId(p.id)}
-                            className="absolute top-1 right-1 bottom-1 flex max-w-[50%] items-center gap-0.5 rounded-lg pr-1 pl-2 text-sm text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900"
+                            className="absolute top-0 right-0 bottom-0 flex min-w-11 max-w-[50%] items-center justify-end gap-0.5 rounded-r-md pr-1.5 pl-2 text-sm text-slate-700 transition-colors hover:bg-slate-200 hover:text-slate-900"
                           >
-                            <span className="sr-only">Einheit </span>
                             <span className="min-w-0 truncate">{p.unit || '–'}</span>
                             <Icon name="expand_more" size={16} className="shrink-0 text-slate-600" />
                           </button>
                         )}
                       </span>
+                      {errOn('qty') && <p id={`${uid}-qty-err`} className="text-[13px] font-medium text-rose-700">Enter a number of 0 or more, like 12,5</p>}
                     </div>
-                    <Labeled label="EP">
+                    <Labeled label="Einheitspreis (EP)">
                       <span className="relative block">
                         <input
                           key={`e-${p.up}`}
                           inputMode="decimal"
-                          className={`${fieldCls} num h-10 pr-8 pl-3 text-right`}
+                          aria-invalid={errOn('up') || undefined}
+                          className={`${fieldCls} num h-11 pr-8 pl-3 text-right`}
                           defaultValue={upStr(p.up)}
                           placeholder="Not priced"
                           onBlur={(e) => {
                             const t = e.target.value.trim()
                             if (t === '') { if (p.up !== null) { onUp(null); didSave() } return }
                             const n = parseNum(t)
-                            if (Number.isFinite(n) && n >= 0 && Math.round(n * 100) / 100 !== p.up) { onUp(Math.round(n * 100) / 100); didSave() }
-                            else e.target.value = upStr(p.up)
+                            if (!Number.isFinite(n) || n < 0) { setErr({ id: p.id, field: 'up' }); return }
+                            if (errOn('up')) setErr(null)
+                            if (Math.round(n * 100) / 100 !== p.up) { onUp(Math.round(n * 100) / 100); didSave() }
                           }}
-                          onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') e.currentTarget.blur()
+                            if (e.key === 'Escape' && errOn('up')) { e.stopPropagation(); e.currentTarget.value = upStr(p.up); setErr(null) }
+                          }}
                         />
                         <span aria-hidden className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-sm text-slate-600">€</span>
                       </span>
+                      {errOn('up') && <span className="block text-[13px] font-medium text-rose-700">Enter a price in euros, like 1.250,00</span>}
                     </Labeled>
                   </div>
                   {changed && imported && (
@@ -393,17 +414,18 @@ export function DetailDrawer({
               {/* fade the scroll edge so text never stops mid-glyph at the footer */}
               <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-6 bg-linear-to-t from-white to-transparent" />
             </div>
-            <div className="shrink-0 border-t border-slate-100 px-5 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-6 sm:py-4">
-              <div className="flex min-h-10 items-center gap-2">
-                <span role="status" className="sr-only">{savedAt ? 'Saved' : ''}</span>
-                {savedAt ? (
-                  <span aria-hidden className="flex min-w-0 items-center gap-1.5 text-sm font-medium text-emerald-700"><Icon name="check_circle" size={18} className="shrink-0 text-emerald-600" fill />Saved</span>
-                ) : (
-                  <span className="flex min-w-0 items-center gap-1.5 text-sm text-slate-600"><Icon name="check_circle" size={18} className="shrink-0 text-emerald-600" />Changes save automatically</span>
-                )}
-                {edited && <Button size="lg" variant="ghost" icon="restart_alt" onClick={onReset} className="ml-auto">Undo my changes</Button>}
+            <span role="status" className="sr-only">{savedAt ? 'Saved' : ''}</span>
+            {(edited || savedAt > 0) && (
+              <div className="shrink-0 border-t border-slate-200 px-5 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:px-6 sm:py-2">
+                <div className="flex min-h-10 items-center gap-2">
+                  <span aria-hidden className="flex min-w-0 items-center gap-1.5 text-sm font-medium text-slate-700">
+                    <Icon name="check_circle" size={18} className="shrink-0 text-emerald-600" fill={savedAt > 0} />
+                    {savedAt ? 'Saved' : 'Changes saved'}
+                  </span>
+                  {edited && <Button variant="ghost" icon="restart_alt" onClick={onReset} className="ml-auto">Undo my changes</Button>}
+                </div>
               </div>
-            </div>
+            )}
           </motion.aside>
         </div>
       )}

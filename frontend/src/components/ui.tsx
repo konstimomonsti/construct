@@ -27,7 +27,7 @@ type Size = 'sm' | 'md' | 'lg'
 
 const variants: Record<Variant, string> = {
   primary: 'bg-brand-600 hover:bg-brand-500 text-ink font-semibold',
-  secondary: 'bg-slate-100 hover:bg-slate-200 text-slate-900 font-semibold',
+  secondary: 'bg-white ring-1 ring-inset ring-slate-400 hover:bg-slate-100 text-slate-900 font-semibold',
   ghost: 'text-slate-700 hover:text-slate-900 hover:bg-slate-100 font-medium',
   danger: 'bg-rose-600 hover:bg-rose-700 text-white font-semibold',
   soft: 'bg-brand-50 text-brand-700 hover:bg-brand-100 font-semibold',
@@ -107,7 +107,7 @@ export function Meter({ value, tone, height = 'h-1.5', className, label }: { val
       aria-valuenow={Math.round(w)}
       aria-valuetext={`${Math.round(value)}%`}
       aria-label={label ?? 'Budget used'}
-      className={clsx('relative flex-1 overflow-hidden rounded-[2px] bg-slate-300', height, className)}
+      className={clsx('relative flex-1 overflow-hidden rounded-[2px] bg-slate-400/60', height, className)}
     >
       <motion.div
         className={clsx('h-full rounded-[2px]', toneBar[tone] ?? toneBar.brand)}
@@ -204,7 +204,7 @@ export function Menu({
                 translate: `${align === 'end' ? '-100%' : '0'} ${pos.up ? '-100%' : '0'}`,
                 transformOrigin: `${align === 'end' ? 'right' : 'left'} ${pos.up ? 'bottom' : 'top'}`,
               }}
-              className={clsx('z-[85] rounded-2xl border border-slate-200/70 bg-white p-1.5 shadow-[0_12px_32px_-8px_rgba(15,23,42,0.18)]', width)}
+              className={clsx('z-[85] rounded-lg border border-slate-300 bg-white p-1.5 shadow-[0_8px_20px_-8px_var(--pop-shadow)]', width)}
             >
               {items.map((it, i) =>
                 it === 'sep' ? (
@@ -302,7 +302,7 @@ export function Dialog({
             exit={{ opacity: 0, scale: 0.98, y: 4, transition: { duration: 0.12 } }}
             transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
             className={clsx(
-              'relative w-full rounded-t-3xl bg-white shadow-[0_24px_48px_-12px_var(--pop-shadow)] ring-1 ring-slate-200 sm:rounded-3xl',
+              'relative w-full rounded-t-lg bg-white ring-1 ring-slate-300 sm:rounded-lg',
               width,
             )}
           >
@@ -334,7 +334,7 @@ export function Field({ label, hint, children }: { label: string; hint?: string;
 }
 
 export const inputCls =
-  'w-full h-10 px-3.5 rounded-xl bg-white border border-slate-500 hover:border-slate-600 text-slate-900 placeholder:text-slate-500 text-sm outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20 transition-[border-color,box-shadow]'
+  'w-full h-10 px-3.5 rounded-md bg-slate-100 ring-1 ring-inset ring-slate-400 hover:bg-slate-200/70 text-slate-900 placeholder:text-slate-500 text-sm outline-none focus:bg-white focus:ring-2 focus:ring-brand-700 transition-[background-color,box-shadow]'
 
 /* ------------------------------------------------------------------ */
 /* Toasts                                                              */
@@ -366,14 +366,14 @@ function ToastItem({ t, drop }: { t: Toast; drop: (id: number) => void }) {
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, x: 24, transition: { duration: 0.15 } }}
       transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-      className="pointer-events-auto flex w-full items-center gap-2.5 rounded-lg bg-[#1a0c01] py-2 pr-2 pl-4 text-sm text-[#fffaf2] shadow-[0_8px_24px_var(--pop-shadow)] ring-1 ring-white/10"
+      className="pointer-events-auto flex w-full items-center gap-2.5 rounded-lg border-l-2 border-[#edb03e] bg-[#1a0c01] py-2 pr-2 pl-4 text-sm text-[#fffaf2] shadow-[0_8px_24px_var(--pop-shadow)] ring-1 ring-[#7a6649]/60"
     >
       <Icon
         name={t.tone === 'error' ? 'error' : t.tone === 'info' ? 'info' : 'check_circle'}
         size={17}
         className={t.tone === 'error' ? 'text-[#ff7a6e]' : 'text-[#edb03e]'}
       />
-      <span className="flex-1 py-1.5 font-medium">{t.text}</span>
+      <span className="min-w-0 flex-1 py-1.5 font-medium">{t.text}</span>
       {t.action && (
         <button type="button" className="h-9 rounded-md px-3 font-semibold text-[#f3c160] hover:bg-white/10" onClick={() => { t.action!.run(); drop(t.id) }}>
           {t.action.label}
@@ -409,7 +409,7 @@ export function Toaster() {
     <>
       <div className="sr-only" aria-live="polite" aria-atomic="true">{polite ? `${polite.text}${polite.action ? `. ${polite.action.label} is available.` : ''}` : ''}</div>
       <div className="sr-only" aria-live="assertive" aria-atomic="true">{urgent?.text ?? ''}</div>
-      <div className="pointer-events-none fixed right-4 bottom-24 z-[90] flex w-[calc(100%-2rem)] max-w-sm flex-col items-end gap-2 sm:bottom-20">
+      <div className="pointer-events-none fixed right-4 bottom-24 z-[90] flex w-[calc(100%-2rem)] max-w-md flex-col items-end gap-2 sm:bottom-20">
         <AnimatePresence initial={false}>
           {toasts.map((t) => <ToastItem key={t.id} t={t} drop={drop} />)}
         </AnimatePresence>

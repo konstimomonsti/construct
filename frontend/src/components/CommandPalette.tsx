@@ -6,7 +6,6 @@ import { useNavigate } from 'react-router-dom'
 import { Icon, useInertRoot } from './ui'
 import { loadList } from '../lib/data'
 import { int, money, plural } from '../lib/format'
-import { toneTile } from './Kit'
 import { listLabel, phaseLabel } from './ListCard'
 import { positionTotal } from '../lib/money'
 import { folderDescription, useModel, useStore, type ListView } from '../lib/store'
@@ -33,6 +32,8 @@ interface Result {
   tile?: string
   title: string
   sub: string
+  /** a position's OZ, set in the code face ahead of `sub` */
+  oz?: string
   /** right column; empty for unpriced items */
   right?: string
   /** smaller muted line under `right` (the GP under a position's EP) */
@@ -57,6 +58,8 @@ interface GroupView {
 const CAP = 3
 /** most positions listed when the group is expanded */
 const POS_MAX = 50
+/** every result tile is neutral; yellow is kept for the selection bar and the match highlight */
+const NEUTRAL = 'bg-slate-100 text-slate-700 ring-1 ring-inset ring-slate-300'
 const GROUP_ORDER: Group[] = ['Actions', 'Projects', 'Lists', 'Positions']
 const NOUN: Record<Group, [string, string]> = { Actions: ['action', 'actions'], Projects: ['project', 'projects'], Lists: ['list', 'lists'], Positions: ['position', 'positions'] }
 
@@ -86,7 +89,6 @@ export function CommandPalette() {
   const [expanded, setExpanded] = useState<Set<Group>>(() => new Set())
   const [index, setIndex] = useState<PosIndexEntry[] | null>(null)
   // the position index is built once, on first open
-  const loadStarted = useRef(false)
   const loading = open && index === null
   // the results overflow below the visible area: show the bottom fade
   const [fade, setFade] = useState(false)
@@ -108,8 +110,8 @@ export function CommandPalette() {
 
   // lazily load all lists for position search
   useEffect(() => {
-    if (!open || index || loadStarted.current) return
-    loadStarted.current = true
+    if (!open || index) return
+    let live = true
     const ids = lists.filter((l) => !l.trashedAt).map((l) => l.id)
     Promise.allSettled(ids.map((id) => loadList(id))).then((rs) => {
       const out: PosIndexEntry[] = []
@@ -119,8 +121,9 @@ export function CommandPalette() {
           out.push({ listId: ids[i], id: p.id, oz: p.oz, short: p.short, category: p.category, total: positionTotal(p), priced: p.up != null, up: p.up, unit: p.unit ?? '' })
         }
       })
-      setIndex(out)
+      if (live) setIndex(out)
     })
+    return () => { live = false }
   }, [open, index, lists])
 
   // start each opening with a fresh query (state adjusted during render, not in an effect)
@@ -131,10 +134,18 @@ export function CommandPalette() {
       setQ('')
       setActiveKey(null)
       setExpanded(new Set())
+      // rebuild the position index so prices and new imports are current
+      setIndex(null)
     }
   }
 
   const close = () => setOpen(false)
+  // focus returns to whatever opened the palette (a button, or the page for ⌘K)
+  useEffect(() => {
+    if (!open) return
+    const opener = document.activeElement as HTMLElement | null
+    return () => { requestAnimationFrame(() => { if (opener?.isConnected && !document.querySelector('[role=dialog]')) opener.focus() }) }
+  }, [open])
 
   const results = useMemo<Result[]>(() => {
     const t = q.trim().toLowerCase()
@@ -154,26 +165,25 @@ export function CommandPalette() {
         .map((x) => ({ x, s: score(title(x)) }))
         .sort((a, b) => a.s - b.s)
     const folderName = new Map(folders.map((f) => [f.id, f.name]))
-    const folderTile = new Map(folders.map((f) => [f.id, toneTile[f.tone] ?? toneTile.indigo]))
     const live = lists.filter((l) => !l.trashedAt)
     const listById = new Map(live.map((l) => [l.id, l]))
     const displayName = (l: ListView) => listLabel(l, live.filter((x) => x.folderId === l.folderId)).title
     const fRes: Result[] = rank(folders.filter((f) => !f.trashedAt), (f) => f.name, (f) => f.description ?? '')
       .map(({ x: f, s }) => ({
-        key: `f-${f.id}`, group: 'Projects', icon: f.icon, tile: toneTile[f.tone] ?? toneTile.indigo, title: f.name,
+        key: `f-${f.id}`, group: 'Projects', icon: f.icon, tile: NEUTRAL, title: f.name,
         sub: [plural(f.listMetas.length, 'list', 'lists'), folderDescription(f)].filter(Boolean).join(' · '),
         right: f.total ? money(f.total) : undefined, priced: !!f.total, score: s,
         go: go(`/folder/${f.id}`),
       }))
     const lRes: Result[] = rank(live, displayName, (l) => `${l.title} ${folderName.get(l.folderId) ?? ''} ${l.projectLabel ?? ''}`)
       .map(({ x: l, s }) => ({
-        key: `l-${l.id}`, group: 'Lists', icon: 'request_quote', tile: folderTile.get(l.folderId) ?? toneTile.indigo, title: displayName(l),
+        key: `l-${l.id}`, group: 'Lists', icon: 'request_quote', tile: NEUTRAL, title: displayName(l),
         sub: [folderName.get(l.folderId), phaseLabel(l) ?? plural(l.positionsCount, 'position', 'positions')].filter(Boolean).join(' · '),
         right: l.total ? money(l.total) : undefined, priced: !!l.total, score: s, go: go(`/list/${l.id}`, l.id),
       }))
     // commands: all of them on an empty query, otherwise the ones whose name matches
     const act = (key: string, icon: string, title: string, sub: string, run: () => void): Result => ({
-      key: `a-${key}`, group: 'Actions', icon, tile: 'bg-slate-100 text-slate-700', title, sub, priced: false, score: t ? score(title) : 1,
+      key: `a-${key}`, group: 'Actions', icon, tile: NEUTRAL, title, sub, priced: false, score: t ? score(title) : 1,
       go: () => { setOpen(false); run() },
     })
     const aRes = [
@@ -184,6 +194,8 @@ export function CommandPalette() {
       act('trash', 'delete', 'Go to Trash', 'Restore or delete forever', go('/trash')),
       act('theme', theme === 'dark' ? 'light_mode' : 'dark_mode', theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode', 'Remembered on this device', () => setTheme(theme === 'dark' ? 'light' : 'dark')),
     ].filter((a) => !t || a.title.toLowerCase().includes(t))
+    // a query that names no command can still become one
+    if (t && !aRes.length) aRes.push({ ...act('new-named', 'create_new_folder', `New project “${q.trim()}”`, 'Create a project with this name', () => openDialog({ kind: 'new-folder', name: q.trim() })), score: 3 })
     let pRes: Result[] = []
     if (t.length >= 2 && index) {
       const hit: { e: PosIndexEntry; s: number }[] = []
@@ -204,8 +216,9 @@ export function CommandPalette() {
           icon: 'tag',
           title: e.short,
           // category first, then the list it lives in, so the two don't read alike
-          sub: [`OZ ${e.oz}`, e.category, where].filter(Boolean).join(' · '),
-          tile: 'bg-slate-100 text-slate-700',
+          oz: e.oz,
+          sub: [e.category, where].filter(Boolean).join(' · '),
+          tile: NEUTRAL,
           right: !e.priced ? undefined : ep ?? money(e.total),
           rightSub: e.priced && ep ? `GP ${money(e.total)}` : undefined,
           priced: e.priced,
@@ -311,10 +324,10 @@ export function CommandPalette() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -4, transition: { duration: 0.1 } }}
             transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-            className="relative flex h-full w-full flex-col overflow-hidden bg-white sm:h-auto sm:max-w-2xl sm:rounded-3xl sm:shadow-[0_24px_60px_-12px_var(--pop-shadow)] sm:ring-1 sm:ring-slate-200"
+            className="relative flex h-full w-full flex-col overflow-hidden bg-white sm:h-auto sm:max-w-2xl sm:rounded-lg sm:ring-1 sm:ring-slate-400"
             onKeyDown={onKey}
           >
-            <div className="flex shrink-0 items-center gap-3 border-b border-slate-100 px-5 pt-[env(safe-area-inset-top)] sm:pt-0">
+            <div className="flex shrink-0 items-center gap-3 border-b-2 border-brand-600 px-5 pt-[env(safe-area-inset-top)] sm:pt-0">
               <Icon name="search" size={22} className="text-slate-500" />
               <input
                 ref={inputRef}
@@ -330,7 +343,7 @@ export function CommandPalette() {
                 className="h-16 flex-1 bg-transparent text-base text-slate-900 outline-none placeholder:text-slate-500"
               />
               {loading && <Icon name="progress_activity" size={18} className="animate-spin text-slate-500" />}
-              <button ref={closeRef} type="button" onClick={close} aria-label="Close search (Esc)" className="h-9 rounded-md bg-slate-100 px-3 text-[13px] font-medium text-slate-700 hover:bg-slate-200">
+              <button ref={closeRef} type="button" onClick={close} aria-label="Close search (Esc)" className="h-9 rounded-md bg-white px-3 text-[13px] font-medium text-slate-700 ring-1 ring-slate-400 ring-inset hover:bg-slate-100">
                 <span className="max-sm:hidden">Esc</span><span className="sm:hidden">Cancel</span>
               </button>
             </div>
@@ -348,6 +361,7 @@ export function CommandPalette() {
                     <div id={headingId} aria-hidden="true" className="flex items-baseline gap-2 px-3 pt-5 pb-2 text-xs text-slate-600">
                       <span className="font-semibold text-slate-800">{g.group}</span>
                       {g.group !== 'Actions' && <span className="num font-medium">{int(g.count)}</span>}
+                      {g.group === 'Positions' && g.count > POS_MAX && !g.capped && <span className="font-medium">· top {int(POS_MAX)} listed when expanded</span>}
                     </div>
                     <div role="group" aria-labelledby={headingId}>
                       {g.options.map(({ o, i }) => {
@@ -395,13 +409,19 @@ export function CommandPalette() {
                             </span>
                             <span className="min-w-0 flex-1">
                               <span className="block truncate text-[15px] font-medium text-slate-900"><Hl text={r.title} q={needle} /></span>
-                              <span className="block truncate text-sm text-slate-600">{r.sub}</span>
+                              <span className="block truncate text-sm text-slate-600 max-sm:line-clamp-2 max-sm:whitespace-normal">
+                                {r.oz && <span className="font-mono text-[13px] text-slate-700">{r.oz}</span>}
+                                {r.oz && r.sub && <span aria-hidden> · </span>}
+                                {r.sub}
+                              </span>
                             </span>
-                            {r.right && (
+                            {r.right ? (
                               <span className="flex shrink-0 flex-col items-end">
                                 <span className="num text-sm font-semibold text-slate-900">{r.right}</span>
                                 {r.rightSub && <span className="num text-xs text-slate-600">{r.rightSub}</span>}
                               </span>
+                            ) : r.group !== 'Actions' && (
+                              <span className="shrink-0 text-sm text-slate-600">Not priced</span>
                             )}
                           </button>
                         )
@@ -418,11 +438,13 @@ export function CommandPalette() {
                 )
               })}
             </div>
-            <div aria-hidden="true" className={clsx('pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-white to-transparent transition-opacity', fade ? 'opacity-100' : 'opacity-0')} />
+            <div aria-hidden="true" className={clsx('pointer-events-none absolute inset-x-0 bottom-0 h-px bg-slate-300 transition-opacity', fade ? 'opacity-100' : 'opacity-0')} />
             </div>
-            <div className="flex items-center gap-4 border-t border-slate-100 px-5 py-3 text-[13px] text-slate-600 max-sm:hidden [@media(pointer:coarse)]:hidden">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-slate-200 px-5 py-3 text-[13px] text-slate-600 max-sm:hidden [@media(pointer:coarse)]:hidden">
               <span className="flex items-center gap-1.5"><Kbd label="Up arrow">↑</Kbd><Kbd label="Down arrow">↓</Kbd> to move</span>
               <span className="flex items-center gap-1.5"><Kbd label="Enter">↵</Kbd> to open</span>
+              <span className="ml-auto flex items-center gap-1.5"><Kbd label="Slash">/</Kbd> search a list</span>
+              <span className="flex items-center gap-1.5"><Kbd label="j">j</Kbd><Kbd label="k">k</Kbd> next or previous position</span>
             </div>
           </motion.div>
         </div>

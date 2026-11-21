@@ -14,7 +14,7 @@ export function Dialogs() {
   const close = useUi((s) => s.closeDialog)
   return (
     <>
-      <NewFolder open={d?.kind === 'new-folder'} parent={d?.kind === 'new-folder' ? d.parent : undefined} onClose={close} />
+      <NewFolder open={d?.kind === 'new-folder'} parent={d?.kind === 'new-folder' ? d.parent : undefined} initialName={d?.kind === 'new-folder' ? d.name : undefined} onClose={close} />
       {d?.kind === 'rename-folder' && <Rename key={d.id} kind="folder" id={d.id} onClose={close} />}
       {d?.kind === 'rename-list' && <Rename key={d.id} kind="list" id={d.id} onClose={close} />}
       {d?.kind === 'blank-list' && <BlankList folderId={d.folderId} onClose={close} />}
@@ -31,12 +31,19 @@ export function Dialogs() {
   )
 }
 
-function NewFolder({ open, parent, onClose }: { open: boolean; parent?: string; onClose: () => void }) {
+function NewFolder({ open, parent, initialName, onClose }: { open: boolean; parent?: string; initialName?: string; onClose: () => void }) {
   const navigate = useNavigate()
   const { folders } = useModel()
   const parentName = folders.find((folder) => folder.id === parent)?.name
   const [name, setName] = useState('')
   const [desc, setDesc] = useState('')
+  // opened from search with a typed name: start from it (adjusted during render, not in an effect)
+  const [seeded, setSeeded] = useState<string | undefined>()
+  if (open && initialName && seeded !== initialName) {
+    setSeeded(initialName)
+    setName(initialName)
+  }
+  if (!open && seeded) setSeeded(undefined)
   const submit = (e: FormEvent) => {
     e.preventDefault()
     const n = name.trim()

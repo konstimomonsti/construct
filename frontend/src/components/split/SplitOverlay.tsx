@@ -302,7 +302,7 @@ function Panel({ onClose, doc, title, positions, tree, folders, folderId, presel
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 24, transition: { duration: 0.16 } }}
         transition={{ duration: 0.22, ease }}
-        className="absolute inset-0 flex flex-col overflow-hidden bg-white shadow-2xl md:inset-6 md:rounded-2xl md:border md:border-slate-200 lg:inset-8"
+        className="absolute inset-0 flex flex-col overflow-hidden bg-white md:inset-6 md:rounded-lg md:border md:border-slate-300 lg:inset-8"
       >
         <header className="flex items-center gap-3 border-b border-slate-200 px-4 py-3 sm:px-5">
           <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-700"><Icon name="call_split" size={20} /></span>

@@ -3,7 +3,7 @@ import { Fragment, useId, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { Icon, Menu, Meter, type MenuItem } from './ui'
 import { Page } from './Page'
-import { budgetStatus, money, moneyWhole } from '../lib/format'
+import { budgetStatus, money, moneyCompact, moneyWhole } from '../lib/format'
 
 /* ------------------------------------------------------------------ */
 /* Page frame + header                                                 */
@@ -73,7 +73,7 @@ export const toneTile: Record<string, string> = {
   blue: 'bg-brand-50 text-brand-700',
   sky: 'bg-brand-50 text-brand-700',
   violet: 'bg-brand-50 text-brand-700',
-  slate: 'bg-slate-100 text-slate-600',
+  slate: 'bg-brand-50 text-brand-700',
 }
 
 export function Avatar({ icon, tone = 'slate', size = 'md' }: { icon: string; tone?: string; size?: 'md' | 'lg' | 'sm' }) {
@@ -164,7 +164,7 @@ export function BudgetMini({ total, cap, label }: { total: number; cap: number; 
   if (!cap) return <span className="text-sm text-slate-600">No cap set</span>
   return (
     <span className="flex items-center justify-end gap-2 text-sm whitespace-nowrap text-slate-600">
-      <span className="num">{Math.round(st.pct)}%<span className="max-sm:hidden"> of {moneyWhole(cap)}</span></span>
+      <span className="num">{Math.round(st.pct)}%<span className="sm:hidden"> of {moneyCompact(cap).replace(/,0+(?=\u00a0)/, '')}</span><span className="max-sm:hidden"> of {moneyWhole(cap)}</span></span>
       <Meter value={st.pct} tone={st.tone} className="w-12 flex-none sm:w-14" label={label} />
     </span>
   )
@@ -222,15 +222,21 @@ export function Summary({
   const left = cap - total
   const pill = status ?? { tone: st.tone, word: st.word }
   return (
-    <section aria-label={label} className={actions ? 'mb-10' : 'mb-8'}>
+    <section aria-label={label} className={compact ? 'mb-6' : actions ? 'mb-10' : 'mb-8'}>
       {/* the figure on the left, the two numbers it is judged by on the right, the jib across the full width */}
       <div className="flex flex-wrap items-end justify-between gap-x-10 gap-y-4">
         <div className="min-w-0">
           <div className="text-sm font-medium text-slate-600">{label}</div>
           <BigMoney value={amount} className={clsx('num display mt-1 block leading-[1.05] text-slate-900', compact ? 'text-[30px] sm:text-[44px]' : 'text-[34px] sm:text-[54px]')} />
+          {/* on phones a compact hero states the two judging numbers in one line, so the work starts sooner */}
+          {compact && cap > 0 && (
+            <p className="num mt-1 text-sm text-slate-600 sm:hidden">
+              {Math.round(st.pct)}% of {moneyWhole(cap)} · <span className={left < 0 ? 'font-semibold text-rose-700' : undefined}>{money(Math.abs(left))} {left >= 0 ? 'left' : 'over'}</span>
+            </p>
+          )}
         </div>
         {cap > 0 && (
-          <dl className="flex gap-x-10 gap-y-2 pb-1 sm:text-right">
+          <dl className={clsx('flex gap-x-10 gap-y-2 pb-1 sm:text-right', compact && 'max-sm:hidden')}>
             <div>
               <dt className="text-sm text-slate-600">Used</dt>
               <dd className="num mt-0.5 text-xl font-semibold text-slate-900 sm:text-2xl">{Math.round(st.pct)}%</dd>
@@ -257,7 +263,7 @@ export function Summary({
       </div>
       {cap ? (
         <>
-          <div className="mt-5">{bar ?? <TrussMeter total={total} cap={cap} tone={st.tone} label={`${label}: share of ${capLabel} used`} />}</div>
+          <div className={compact ? 'mt-3 sm:mt-4' : 'mt-5'}>{bar ?? <TrussMeter total={total} cap={cap} tone={st.tone} label={`${label}: share of ${capLabel} used`} />}</div>
           <div className="mt-2 flex flex-wrap items-center justify-between gap-x-6 gap-y-2 text-sm text-slate-600">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
               <StatusTag tone={pill.tone} word={pill.word} hint />
@@ -271,14 +277,14 @@ export function Summary({
           <div className="flex flex-wrap items-center gap-3">
             <StatusTag tone="none" word="No cap set" />
             {onEditCap && (
-              <button type="button" onClick={onEditCap} className="h-9 rounded-md bg-slate-100 px-3 font-medium text-slate-900 hover:bg-slate-200">Set a cap</button>
+              <button type="button" onClick={onEditCap} className="h-9 rounded-md bg-white px-3 font-medium text-slate-900 ring-1 ring-slate-400 ring-inset hover:bg-slate-100">Set a cap</button>
             )}
           </div>
           {meta && <div>{meta}</div>}
         </div>
       )}
       {extra}
-      {actions && <div className={clsx('flex flex-wrap items-center gap-2', compact ? 'mt-5' : 'mt-6')}>{actions}</div>}
+      {actions && <div className={clsx('flex flex-wrap items-center gap-2', compact ? 'mt-4' : 'mt-6')}>{actions}</div>}
     </section>
   )
 }
@@ -330,7 +336,7 @@ export function TrussMeter({ total, cap, tone, label }: { total: number; cap: nu
             <rect x="0" y="-2" height="22" className="transition-[width] duration-700 ease-out-expo motion-reduce:transition-none" style={{ width: `${fill}%` }} />
           </clipPath>
         </defs>
-        <g className="text-slate-400" stroke="currentColor">{jib('rest')}</g>
+        <g className="text-slate-300" stroke="currentColor" strokeDasharray="4 3">{jib('rest')}</g>
         <g className={trussInk[tone] ?? trussInk.none} stroke="currentColor" clipPath={`url(#${id}-clip)`}>{jib('lit')}</g>
         <rect x={`${capAt}%`} y="-5" width="3" height="28" className="fill-slate-700" transform="translate(-1.5 0)" />
       </svg>
@@ -373,7 +379,7 @@ export function worstTone(own: { total: number; cap: number }, children: { total
 /** a filter link inside hero meta: only the action words are underlined */
 export function MetaLink({ children, onClick, pressed }: { children: ReactNode; onClick: () => void; pressed?: boolean }) {
   return (
-    <button type="button" aria-pressed={pressed} onClick={onClick} className="rounded font-medium text-slate-900 underline decoration-slate-400 underline-offset-4 hover:decoration-slate-900">
+    <button type="button" aria-pressed={pressed} onClick={onClick} className="inline-flex h-7 items-center gap-1 rounded-md px-2 font-medium text-slate-900 ring-1 ring-slate-400 ring-inset hover:bg-slate-100 aria-pressed:bg-slate-900 aria-pressed:text-white">
       {children}
     </button>
   )
@@ -497,7 +503,7 @@ export function ToolButton({ icon, children, className, active, ...rest }: React
       type="button"
       className={clsx(
         'inline-flex h-10 shrink-0 items-center gap-1.5 rounded-md px-3.5 text-sm font-medium whitespace-nowrap transition-colors',
-        active ? 'bg-slate-900 text-white hover:bg-slate-800' : 'bg-slate-100 text-slate-800 hover:bg-slate-200',
+        active ? 'bg-slate-900 text-white hover:bg-slate-800' : 'bg-white text-slate-800 ring-1 ring-inset ring-slate-400 hover:bg-slate-100',
         className,
       )}
       {...rest}
@@ -538,7 +544,7 @@ export function Chips<K extends string>({ value, options, onChange, label }: { v
             onClick={() => onChange(o.key)}
             className={clsx(
               'inline-flex h-10 items-center gap-2 rounded-md px-4 text-sm font-medium transition-colors',
-              on ? 'bg-slate-900 font-semibold text-white' : 'bg-slate-100 text-slate-800 hover:bg-slate-200',
+              on ? 'bg-slate-900 font-semibold text-white' : 'bg-white text-slate-800 ring-1 ring-inset ring-slate-400 hover:bg-slate-100',
             )}
           >
             {o.label}
@@ -551,18 +557,30 @@ export function Chips<K extends string>({ value, options, onChange, label }: { v
 }
 
 /** calm empty state, left-aligned with the page title so every page has one axis */
-export function EmptyState({ icon, title, text, children, hint, className }: { icon?: string; title: string; text?: ReactNode; children?: ReactNode; hint?: ReactNode; className?: string }) {
+/**
+ * the empty panel: a dashed frame the width of the content, message centred inside it,
+ * so an empty page still reads as a place where things will appear.
+ * `active` lights the frame (files dragged over an empty project); `compact` for use inside a section.
+ */
+export function EmptyState({ icon, title, text, children, hint, className, active, compact }: { icon?: string; title: string; text?: ReactNode; children?: ReactNode; hint?: ReactNode; className?: string; active?: boolean; compact?: boolean }) {
   return (
-    <div className={clsx('max-w-xl pt-6 pb-12 sm:pt-8', className)}>
+    <div
+      className={clsx(
+        'flex flex-col items-center rounded-lg border-2 border-dashed px-5 text-center transition-colors',
+        compact ? 'py-10' : 'py-14 sm:py-20',
+        active ? 'border-brand-600 bg-brand-50' : 'border-slate-300 bg-slate-50',
+        className,
+      )}
+    >
       {icon && (
-        <span className="mb-4 flex size-14 items-center justify-center rounded-md bg-slate-100 text-slate-500">
-          <Icon name={icon} size={28} />
+        <span className={clsx('flex items-center justify-center rounded-full bg-white text-brand-700 ring-1 ring-slate-300 ring-inset', compact ? 'mb-3 size-12' : 'mb-5 size-16')}>
+          <Icon name={icon} size={compact ? 24 : 30} />
         </span>
       )}
-      <h2 className="font-heading text-xl font-bold tracking-tight text-balance text-slate-900">{title}</h2>
-      {text && <p className="mt-2 text-[15px] leading-relaxed text-pretty text-slate-600">{text}</p>}
-      {children && <div className="mt-7 flex flex-col gap-2 sm:flex-row sm:flex-wrap [&>*]:max-sm:w-full">{children}</div>}
-      {hint && <p className="mt-5 text-[13px] leading-relaxed text-slate-500">{hint}</p>}
+      <h2 className={clsx('font-heading font-bold tracking-tight text-balance text-slate-900', compact ? 'text-lg' : 'text-xl sm:text-2xl')}>{title}</h2>
+      {text && <p className="mt-2 max-w-md text-[15px] leading-relaxed text-pretty text-slate-600">{text}</p>}
+      {children && <div className="mt-7 flex w-full flex-col items-stretch justify-center gap-2 sm:w-auto sm:flex-row sm:flex-wrap">{children}</div>}
+      {hint && <p className="mt-6 max-w-md text-sm leading-relaxed text-pretty text-slate-500">{hint}</p>}
     </div>
   )
 }
@@ -570,7 +588,7 @@ export function EmptyState({ icon, title, text, children, hint, className }: { i
 /** secondary pill as a link ("Go to All Projects") */
 export function PillLink({ to, icon, children }: { to: string; icon?: string; children: ReactNode }) {
   return (
-    <Link to={to} className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-slate-100 px-5 text-sm font-semibold text-slate-900 hover:bg-slate-200">
+    <Link to={to} className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-white px-5 text-sm font-semibold text-slate-900 ring-1 ring-slate-400 ring-inset hover:bg-slate-100">
       {icon && <Icon name={icon} size={18} />}
       {children}
     </Link>

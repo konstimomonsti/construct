@@ -5,8 +5,16 @@ import { QtyInput, editableCls } from './QtyStepper'
 import { amount, nbHyphen, parseNumber } from '../lib/format'
 import { positionTotal } from '../lib/money'
 import { useStore } from '../lib/store'
-import { leafOz, treeStats } from '../lib/resolve'
+import { leafOz, treeStats, type CatStat } from '../lib/resolve'
 import type { CategoryNode, Position } from '../lib/types'
+
+/** why a section adds up to nothing, in the words the rows use */
+function zeroWhy(s: CatStat) {
+  if (s.zero === s.count) return 'All quantities 0'
+  if (s.unpriced === s.count) return 'Not priced'
+  if (s.zero + s.unpriced === s.count) return 'Not priced or quantity 0'
+  return '0,00 €'
+}
 
 function EditDot({ on }: { on: boolean }) {
   if (!on) return null
@@ -47,7 +55,7 @@ function PriceCell({ value, onSave, oz, edited, muted, className }: { value: num
             setEdit(false)
           }
         }}
-        className={clsx('num h-9 rounded-lg border border-brand-600 bg-white px-2 text-right text-sm text-slate-900 ring-1 ring-brand-600 outline-none', className ?? 'w-full')}
+        className={clsx('num h-9 rounded-md border border-transparent bg-white px-2 text-right text-sm text-slate-900 ring-2 ring-brand-700 outline-none', className ?? 'w-full')}
       />
     )
   }
@@ -108,7 +116,7 @@ const Row = memo(function Row({ listId, p, showCategory, selected, flash, edited
           <input type="checkbox" className="checkbox" checked={selected} onChange={() => onToggle(p.id)} aria-label={`Select ${p.oz} ${p.short}`} />
         </label>
       </td>
-      <td data-a="hide" className="num w-[88px] px-2 py-1 text-sm whitespace-nowrap text-slate-600">{p.oz}</td>
+      <td data-a="hide" className="w-[88px] px-2 py-1 font-mono text-[13px] whitespace-nowrap text-slate-600 tabular-nums">{p.oz}</td>
       <td data-a="title" className="min-w-0 px-2 py-1">
         <button
           type="button"
@@ -119,7 +127,7 @@ const Row = memo(function Row({ listId, p, showCategory, selected, flash, edited
           className={clsx('block max-w-full text-left text-[15px] underline-offset-4 hover:underline max-lg:line-clamp-2 max-lg:font-medium lg:truncate', zero ? 'text-slate-500' : 'text-slate-900')}
         >
           {/* cards lead with the OZ, the way the group headers do */}
-          <span className="num mr-1.5 font-normal text-slate-600 lg:hidden">{p.oz}</span>
+          <span className="mr-1.5 font-mono text-[13px] font-normal text-slate-600 lg:hidden">{p.oz}</span>
           {hasShort ? nbHyphen(p.short) : <span className="text-slate-600 italic">(ohne Kurztext)</span>}
           <span className="sr-only">, open details</span>
         </button>
@@ -262,7 +270,7 @@ export function LedgerTable({
     <div>
       <table className="ledger group/table w-full table-fixed border-collapse text-left" data-selecting={selecting || selectMode ? '' : undefined}>
         <thead className="[&_th]:sticky [&_th]:top-16 [&_th]:z-10 [&_th]:bg-white">
-          <tr className="text-[13px] font-medium text-slate-600 [&_th]:border-b [&_th]:border-slate-200">
+          <tr className="text-sm font-medium text-slate-600 [&_th]:border-b [&_th]:border-slate-200">
             <th scope="col" className="w-10 py-2 pl-2">
               <label className="cb-reveal flex size-9 cursor-pointer items-center justify-center rounded-md hover:bg-slate-100">
                 <input
@@ -303,7 +311,7 @@ EP (€)
             <tbody key={cat ? `c-${cat.oz}` : 'loose'}>
               {cat && (
                 <tr data-group className={clsx('border-b', top ? 'border-slate-300' : 'border-slate-200')}>
-                  <th scope="rowgroup" colSpan={6} className={clsx('py-0 pr-2 text-left', top ? 'pt-6 text-[15px] font-bold text-slate-900' : 'pt-3 text-sm font-semibold text-slate-800')}>
+                  <th scope="rowgroup" colSpan={6} className={clsx('py-0 pr-2 text-left', top ? 'display pt-6 text-base text-slate-900' : 'pt-3 text-sm font-semibold text-slate-800')}>
                     <button
                       type="button"
                       aria-expanded={open}
@@ -312,15 +320,15 @@ EP (€)
                       style={{ marginLeft: b.depth * 20 }}
                     >
                       <Icon name="expand_more" size={20} className={clsx('shrink-0 text-slate-500 transition-transform', !open && '-rotate-90')} />
-                      <span className="num shrink-0 font-semibold text-slate-600">{cat.oz}</span>
-                      <span className="line-clamp-2 lg:line-clamp-1">{cat.label || cat.oz}</span>
+                      <span className="shrink-0 font-mono text-[13px] font-medium text-slate-600">{cat.oz}</span>
+                      <span className="truncate">{cat.label || cat.oz}</span>
                     </button>
                   </th>
-                  <td colSpan={2} className={clsx('num px-2 pr-[3.25rem] text-right whitespace-nowrap', top ? 'pt-6 text-base font-bold text-slate-900' : 'pt-3 text-sm font-semibold text-slate-800')}>
+                  <td colSpan={2} className={clsx('num px-2 pr-[3.25rem] text-right whitespace-nowrap', top ? 'display pt-6 text-base text-slate-900' : 'pt-3 text-sm font-semibold text-slate-800')}>
                     {!stats.has(cat.oz) ? (
                       <span className="text-sm font-normal text-slate-600">No positions yet</span>
                     ) : stats.get(cat.oz)!.total === 0 ? (
-                      <span className="text-sm font-normal text-slate-600">All quantities 0</span>
+                      <span className="text-sm font-normal text-slate-600">{zeroWhy(stats.get(cat.oz)!)}</span>
                     ) : (
                       <>{amount(stats.get(cat.oz)!.total)}<span className="lg:hidden">&nbsp;€</span></>
                     )}

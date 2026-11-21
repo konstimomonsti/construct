@@ -55,11 +55,15 @@ export function useActions() {
     { label: 'Move…', icon: 'drive_file_move', onSelect: () => openDialog({ kind: 'folder-target', action: 'move-folder', folderId: f.id }) },
     { label: 'Edit budget cap…', icon: 'savings', onSelect: () => openDialog({ kind: 'edit-cap', target: 'folder', id: f.id }) },
     {
-      label: f.archived ? 'Unarchive' : 'Archive',
+      label: f.archived ? 'Restore from Archive' : 'Archive',
       icon: f.archived ? 'unarchive' : 'archive',
       onSelect: () => {
-        useStore.getState().patchFolder(f.id, { archived: !f.archived })
-        toast(f.archived ? `"${f.name}" restored from archive` : `"${f.name}" archived`)
+        const was = !!f.archived
+        useStore.getState().patchFolder(f.id, { archived: !was })
+        toast(was ? `Restored "${f.name}" from Archive` : `Archived "${f.name}"`, 'ok', {
+          label: 'Undo',
+          run: () => useStore.getState().patchFolder(f.id, { archived: was }),
+        })
       },
     },
     'sep',

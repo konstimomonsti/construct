@@ -53,7 +53,7 @@ export function Trash() {
 
   return (
     <PageFrame>
-      <PageHeader title="Trash" subtitle="Restore items, or delete them forever, from the ••• menu on each row." />
+      <PageHeader title="Trash" subtitle={tf.length || tl.length ? "Items stay here until you restore them or delete them forever." : undefined} />
       {!tf.length && !tl.length ? (
         <EmptyState icon="delete" title="Trash is empty" text="Projects and lists you move to Trash show up here.">
           <PillLink to="/" icon="arrow_back">Go to All Projects</PillLink>
@@ -71,8 +71,9 @@ export function Trash() {
                     sub={plural(f.listMetas.length, 'list', 'lists')}
                     when={f.trashedAt}
                     onRestore={() => {
+                      const at = f.trashedAt
                       useStore.getState().patchFolder(f.id, { trashedAt: undefined })
-                      toast(`Restored "${f.name}"`)
+                      toast(`Restored "${f.name}"`, 'ok', { label: 'Undo', run: () => useStore.getState().patchFolder(f.id, { trashedAt: at }) })
                     }}
                     onPurge={() => purgeFolder(f.id, f.name)}
                   />
@@ -88,11 +89,12 @@ export function Trash() {
                     key={l.id}
                     icon="request_quote"
                     title={l.title}
-                    sub={[phaseLabel(l), plural(l.positionsCount, 'position', 'positions')].join(' · ')}
+                    sub={[folders.find((f) => f.id === l.folderId)?.name, phaseLabel(l), plural(l.positionsCount, 'position', 'positions')].filter(Boolean).join(' · ')}
                     when={l.trashedAt}
                     onRestore={() => {
+                      const at = l.trashedAt
                       useStore.getState().patchList(l.id, { trashedAt: undefined })
-                      toast(`Restored "${l.title}"`)
+                      toast(`Restored "${l.title}"`, 'ok', { label: 'Undo', run: () => useStore.getState().patchList(l.id, { trashedAt: at }) })
                     }}
                     onPurge={() => purgeList(l.id, l.title)}
                   />

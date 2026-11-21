@@ -102,7 +102,7 @@ export function ActiveBudgets() {
             )}
             <p className="sr-only" aria-live="polite">{view === 'attention' ? `Showing ${plural(rows.length, 'list', 'lists')} that need attention` : ''}</p>
             {rows.length === 0 ? (
-              <EmptyState icon="check_circle" title="Nothing needs attention" text="Every list is below 75% of its cap." />
+              <EmptyState compact icon="check_circle" title="Nothing needs attention" text="Every list is below 75% of its cap." />
             ) : (
               <RowList>
                 {rows.map((l) => {
