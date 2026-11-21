@@ -9,6 +9,7 @@ from typing import Literal
 from ..contracts import (
     AddLine, AnalysisInput, Distribution, Finding, Fix, Line, NewLine, Target, finding_key,
 )
+from ..units import Dimension, dimension as shared_dimension
 from .quantities import convert
 from .schema import DependencySpec, RuleSpec, compile_regex, load_rules
 
@@ -47,7 +48,16 @@ def _is_trigger(text: str, trigger: re.Pattern, exclude: re.Pattern | None) -> b
     return bool(trigger.search(text)) and not (exclude and exclude.search(text))
 
 
+# PDF item flags meaning "not a firm part of the order": Bedarfsposition ohne/mit GB, Wahlposition.
+# adapter.derive_pricing reads only the GAEB names (Provis, AltItem, ...) so far, which leaves these
+# lines at total_rule "include" (NEXT_FEATURES_IMPLEMENTATION_PLAN.md §0.2). Such a line must neither trigger a
+# check nor count as covering a dependency.
+_NOT_FIRM_FLAGS = ("unit_price_only", "provisional_included", "alternative_item")
+
+
 def _active(line: Line) -> bool:
+    if any(str(line.gaeb_flags.get(flag, "")).casefold() == "true" for flag in _NOT_FIRM_FLAGS):
+        return False
     return (line.total_rule == "include" and line.alternative_for is None
             and (line.quantity is None or line.quantity > 0))
 
@@ -115,11 +125,28 @@ def _blocked_lines(prior_findings: list[Finding]) -> set[str]:
             and finding.target.field in {"quantity", "unit"}}
 
 
-def _quantity(entries: list[Entry], unit: str, blocked: set[str]) -> tuple[Decimal, list[dict]]:
+# Dimensions a quantity can be measured in. A matched line measured in another one of these is a
+# different kind of item (insulation shells in pieces next to insulation in metres, stair treads in
+# pieces next to tiles in m²) and is left out of the comparison. Lump sums, composite and unknown
+# units may still cover the whole quantity, so they keep making the check "not assessable".
+_MEASURED = {Dimension.COUNT, Dimension.LENGTH, Dimension.AREA, Dimension.VOLUME, Dimension.MASS,
+             Dimension.TIME}
+
+
+def _other_dimension(line_unit: str | None, unit: str) -> bool:
+    line_dimension = shared_dimension(line_unit)
+    return line_dimension in _MEASURED and line_dimension != shared_dimension(unit)
+
+
+def _quantity(entries: list[Entry], unit: str, blocked: set[str]) -> tuple[Decimal, list[dict], list[dict]]:
     total = Decimal(0)
     problems = []
+    skipped = []
     for entry in entries:
         reason = None
+        if _other_dimension(entry.line.unit, unit):
+            skipped.append({"line_id": entry.line.id, "unit": entry.line.unit})
+            continue
         if entry.line.id in blocked:
             reason = "layer1_quantity_or_unit_error"
         elif entry.allocation_unreliable:
@@ -133,7 +160,7 @@ def _quantity(entries: list[Entry], unit: str, blocked: set[str]) -> tuple[Decim
             problems.append({"line_id": entry.line.id, "unit": entry.line.unit, "reason": reason})
         else:
             total += converted
-    return total, problems
+    return total, problems, skipped
 
 
 def finding_id(rule_id: str, target: Target) -> str:
@@ -199,8 +226,8 @@ def _evaluate(input: AnalysisInput, rule: RuleSpec, dep: DependencySpec, trigger
         evidence["unreliable_trigger_line_ids"] = [entry.line.id for entry in triggers
                                                     if entry.line.id in blocked or entry.allocation_unreliable]
     else:
-        trigger_qty, trigger_problems = _quantity(triggers, dep.quantity_unit, blocked)
-        dependency_qty, dependency_problems = _quantity(matches, dep.quantity_unit, blocked)
+        trigger_qty, trigger_problems, trigger_skipped = _quantity(triggers, dep.quantity_unit, blocked)
+        dependency_qty, dependency_problems, dependency_skipped = _quantity(matches, dep.quantity_unit, blocked)
         threshold = trigger_qty * (Decimal(1) - tolerance)
         evidence.update({
             "quantity_unit": dep.quantity_unit, "tolerance_pct": str(tolerance),
@@ -211,7 +238,11 @@ def _evaluate(input: AnalysisInput, rule: RuleSpec, dep: DependencySpec, trigger
             "variance_pct": str((dependency_qty - trigger_qty) / trigger_qty * 100) if trigger_qty else None,
             "trigger_quantity_problems": trigger_problems,
             "dependency_quantity_problems": dependency_problems,
+            "skipped_trigger_lines": trigger_skipped,
+            "skipped_dependency_lines": dependency_skipped,
         })
+        if not trigger_qty and not trigger_problems:
+            return None  # every trigger is measured in another dimension: nothing to compare
         if trigger_problems or dependency_problems:
             reason = "quantity_not_assessable"
             severity = "info"
@@ -220,7 +251,8 @@ def _evaluate(input: AnalysisInput, rule: RuleSpec, dep: DependencySpec, trigger
         elif dependency_qty >= threshold:
             return None
         else:
-            reason = "missing" if not matches else "quantity_shortfall"
+            # Matches in another dimension were skipped: they don't make the dependency present.
+            reason = "missing" if len(dependency_skipped) == len(matches) else "quantity_shortfall"
             if unassigned_candidates:
                 severity = "info"
             message = (f"{dep.name}: {dependency_qty} {dep.quantity_unit} found for "
@@ -231,7 +263,13 @@ def _evaluate(input: AnalysisInput, rule: RuleSpec, dep: DependencySpec, trigger
     if unassigned_candidates:
         message += " Matching unassigned items may cover this area; confirm their allocation."
     evidence["reason"] = reason
-    if severity == "warning":
+    evidence["dependency_severity"] = dep.severity
+    proposal_eligible = severity == "warning" and not trigger_unreliable
+    if severity == "warning" and dep.severity == "info":
+        severity = "info"
+        message += (" This is often tendered in another package; ask whether it is included elsewhere "
+                    "or provided by others.")
+    elif severity == "warning":
         message += " Confirm this work is included in the reviewed package."
     title = (f"Quantity cannot be verified: {dep.name}" if reason.endswith("not_assessable") else
              f"{'Missing' if reason == 'missing' else 'Insufficient'} {dep.name.lower()}")
@@ -240,8 +278,7 @@ def _evaluate(input: AnalysisInput, rule: RuleSpec, dep: DependencySpec, trigger
         id=finding_id(rule_id, target), layer=2, rule_id=rule_id,
         category="dependency", severity=severity, scope=context.scope, target=target,
         related_line_ids=related, title=title, message=message, evidence=evidence,
-        suggested_fix=_proposal(dep, triggers, context, proposed_quantity,
-                                severity == "warning" and not trigger_unreliable),
+        suggested_fix=_proposal(dep, triggers, context, proposed_quantity, proposal_eligible),
     )
 
 

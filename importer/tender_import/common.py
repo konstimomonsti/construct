@@ -10,7 +10,8 @@ from lxml import etree
 MAX_FILE_BYTES = 128 * 1024 * 1024
 MAX_ARCHIVE_BYTES = 512 * 1024 * 1024
 MAX_ARCHIVE_ENTRIES = 5000
-PARSER_VERSION = "1.0.2"
+PARSER_VERSION = "1.0.3"
+BOM_PDF_ATTACHMENT = "bom-workspace-v1.json"
 
 
 @dataclass

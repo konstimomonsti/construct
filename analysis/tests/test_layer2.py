@@ -95,9 +95,9 @@ class AdapterTests(unittest.TestCase):
 
 
 class RuleTests(unittest.TestCase):
-    def test_all_five_groups_and_sixteen_registered_checks(self):
-        self.assertEqual(len(load_rules()), 5)
-        self.assertEqual(len(rule_metadata()), 16)
+    def test_all_groups_and_registered_checks(self):
+        self.assertEqual(len(load_rules()), 15)
+        self.assertEqual(len(rule_metadata()), 46)
         self.assertEqual(run(input_for(), []), [])
 
     def test_all_five_groups_detect_missing_dependencies(self):
@@ -128,7 +128,17 @@ class RuleTests(unittest.TestCase):
         self.assertEqual(selected(input, "FLOOR_COVERING"), [])
 
     def test_incompatible_units_never_summed(self):
-        input = input_for(line("s", "Estrich"), line("v", "Vinyl", "100", "kg"))
+        # A match measured in another dimension is skipped, not summed and not "not assessable".
+        input = input_for(line("s", "Estrich"), line("v", "Grundierung", "100", "kg"))
+        finding = selected(input, "PRIMER_AND_LEVELING")[0]
+        self.assertEqual(finding.severity, "warning")
+        self.assertEqual(finding.evidence["reason"], "missing")
+        self.assertEqual(Decimal(finding.evidence["dependency_quantity"]), 0)
+        self.assertEqual([item["line_id"] for item in finding.evidence["skipped_dependency_lines"]],
+                         [input.lines[1].id])
+
+    def test_lump_sum_match_still_not_assessable(self):
+        input = input_for(line("s", "Estrich"), line("v", "Vinyl", "1", "psch"))
         finding = selected(input, "FLOOR_COVERING")[0]
         self.assertEqual(finding.severity, "info")
         self.assertEqual(finding.evidence["reason"], "quantity_not_assessable")
@@ -175,14 +185,14 @@ class RuleTests(unittest.TestCase):
         self.assertEqual(proposal.after_line_id, "p")
 
     def test_prior_layer1_errors_downgrade_quantities(self):
-        input = input_for(line("s", "Estrich"), line("v", "Vinyl", "50"))
+        input = input_for(line("s", "Estrich"), line("v", "Grundierung", "50"))
         for line_id in ("s", "v"):
             findings = run(input, [prior_error(line_id)])
-            finding = next(f for f in findings if f.rule_id.endswith("FLOOR_COVERING"))
+            finding = next(f for f in findings if f.rule_id.endswith("PRIMER_AND_LEVELING"))
             self.assertEqual(finding.severity, "info")
             self.assertIsNone(finding.suggested_fix)
         findings = run(input, [prior_error("s", severity="warning")])
-        self.assertEqual(next(f for f in findings if f.rule_id.endswith("FLOOR_COVERING")).severity, "warning")
+        self.assertEqual(next(f for f in findings if f.rule_id.endswith("PRIMER_AND_LEVELING")).severity, "warning")
 
     def test_stable_finding_id_and_pure_repeated_runs(self):
         input = input_for(line("s", "Estrich"))
@@ -281,7 +291,7 @@ class PipelineIntegrationTests(unittest.TestCase):
         result = pipeline_analyze(input, layers=[1, 2])
         self.assertEqual(result.layers_run, [1, 2])
         self.assertEqual(result.errors, [])
-        self.assertEqual(len(rules_for(2)), 16)
+        self.assertEqual(len(rules_for(2)), 46)
         dependency_findings = [finding for finding in result.findings if finding.layer == 2]
         self.assertEqual(len(dependency_findings), 1)
         self.assertEqual(dependency_findings[0].target.area_id, "office-b")
@@ -320,7 +330,7 @@ class CliTests(unittest.TestCase):
         self.assertIn("office", output.lower())
         code, output, _ = self.call_cli("--list-rules")
         self.assertEqual(code, 0)
-        self.assertEqual(len(json.loads(output)), 16)
+        self.assertEqual(len(json.loads(output)), 46)
 
     def test_invalid_input_is_clean_error(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -438,6 +448,171 @@ class FalsePositiveTests(unittest.TestCase):
                 result = run_pipeline(from_file(path), [1, 2])
                 warnings = [f.rule_id for f in result.findings if f.layer == 2 and f.severity == "warning"]
                 self.assertEqual(warnings, [])
+
+
+class EngineTweakTests(unittest.TestCase):
+    """NEXT_FEATURES_IMPLEMENTATION_PLAN.md §2.4: per-dependency severity, dimension skipping, PDF item flags."""
+
+    def test_info_dependency_is_info_but_keeps_its_proposal(self):
+        findings = selected(input_for(line("s", "UP-Schuko-Steckdose", "10", "St")), "RCD_PROTECTION")
+        self.assertEqual(len(findings), 1)
+        self.assertEqual(findings[0].severity, "info")
+        self.assertEqual(findings[0].evidence["dependency_severity"], "info")
+        self.assertIsNotNone(findings[0].suggested_fix)
+        meta = {item["rule_id"]: item for item in rule_metadata()}
+        self.assertEqual(meta["L2.ELEC.INSTALLATION_NEEDS_RCD_PROTECTION"]["default_severity"], "info")
+        self.assertEqual(meta["L2.ELEC.INSTALLATION_NEEDS_DEVICE_BOXES"]["default_severity"], "warning")
+
+    def test_severity_must_be_warning_or_info(self):
+        with self.assertRaises(ValueError):
+            RuleSpec.model_validate({"RuleID": "L2.TEST.SEV", "Category": "Test", "TriggerRegex": "x",
+                                     "Required_Dependencies": [{"DependencyName": "Y", "Regex": "y",
+                                                                "CheckType": "Boolean", "Severity": "error"}]})
+
+    def test_match_in_other_dimension_is_skipped_not_blocking(self):
+        # LV_14: insulation shells in pieces next to pipe insulation in metres.
+        input = input_for(line("p", "TW-Rohrleitung, Edelstahl 15x1", "100", "m"),
+                          line("i", "Isolierung TW-Rohr DN 12", "100", "m"),
+                          line("d", "Dämmschale DN 15", "4", "St"))
+        self.assertEqual(selected(input, "PIPE_INSULATION"), [])
+        short = input_for(line("p", "TW-Rohrleitung, Edelstahl 15x1", "100", "m"),
+                          line("i", "Isolierung TW-Rohr DN 12", "50", "m"),
+                          line("d", "Dämmschale DN 15", "4", "St"))
+        finding = selected(short, "PIPE_INSULATION")[0]
+        self.assertEqual(finding.severity, "warning")
+        self.assertEqual(finding.evidence["reason"], "quantity_shortfall")
+        self.assertEqual(Decimal(finding.evidence["dependency_quantity"]), 50)
+        self.assertEqual([s["line_id"] for s in finding.evidence["skipped_dependency_lines"]], [short.lines[2].id])
+
+    def test_triggers_all_in_other_dimension_give_no_comparison(self):
+        input = input_for(line("t", "Treppenbelag Feinsteinzeug", "12", "St"))
+        self.assertEqual(selected(input, "TILE.COVERING_NEEDS_PRIMER"), [])
+
+    def test_pdf_optional_items_neither_trigger_nor_cover(self):
+        optional = {"unit_price_only": "True", "provisional_included": "False", "alternative_item": "False"}
+        firm = {"unit_price_only": "False", "provisional_included": "False", "alternative_item": "False"}
+        trigger_only_optional = input_for(line("s", "Zementestrich CT-C25-F4", gaeb_flags=optional))
+        self.assertEqual(run(trigger_only_optional, []), [])
+        cover_only_optional = input_for(
+            line("s", "Zementestrich CT-C25-F4", gaeb_flags=firm),
+            line("r", "*** Bedarfsposition ohne GB", "40", "m", long_text="Randdämmstreifen", gaeb_flags=optional))
+        self.assertEqual(len(selected(cover_only_optional, "EDGE_INSULATION")), 1)
+
+
+class NewTradeTests(unittest.TestCase):
+    """The ten groups added from NEXT_FEATURES_IMPLEMENTATION_PLAN.md §2.4, with texts from the LV_xx PDFs in Data/."""
+
+    def hits(self, *lines):
+        return {f.rule_id: f for f in run(input_for(*lines), [])}
+
+    def test_each_new_group_detects_its_gaps(self):
+        cases = [
+            (line("a", "UP-Schuko-Steckdose Standard", "215", "St"), "L2.ELEC.INSTALLATION_NEEDS_INSTALLATION_CABLE"),
+            (line("a", "Einbauleuchte 3200 R300-1200", "98", "St"), "L2.ELEC.LIGHTING_NEEDS_EMERGENCY_LIGHTING"),
+            (line("a", "Energiekabel NYCWY 4 x 50/25mm²", "80", "m"), "L2.ELEC.CABLING_NEEDS_CABLE_ROUTING"),
+            (line("a", "Blitzschutz-Stahlband 20x2,5mm", "100", "m"), "L2.ELEC.LIGHTNING_PROTECTION_NEEDS_EARTHING"),
+            (line("a", "Tiefspül-WC, 4,5/6 l, EN 997", "11", "St"), "L2.SANITARY.WC_NEEDS_WC_SEAT"),
+            (line("a", "TW-Rohrleitung, Sanpress INOX 15x1", "130", "m"), "L2.SANITARY.POTABLE_WATER_NEEDS_PRESSURE_TEST"),
+            (line("a", "Bodenfliesen,30x30cm, Feinsteinzeug", "63", "m²"), "L2.TILE.COVERING_NEEDS_PRIMER"),
+            (line("a", "T 30 RS - Stahltürelement, 1010 x 2135 mm", "1", "St"), "L2.DOOR.STEEL_NEEDS_DOOR_CLOSER"),
+            (line("a", "Sektionaltor mit elektr. Antrieb, ca. 4000 x 4000 mm", "2", "St"),
+             "L2.DOOR.INDUSTRIAL_NEEDS_SAFETY_EDGE_OR_LIGHT_BARRIER"),
+            (line("a", "Kunststofffenster, 2-flügelig, 1250 x 1500 mm", "8", "St"),
+             "L2.WINDOW_NEEDS_INSTALLATION_JOINT_SEALING"),
+        ]
+        for item, rule_id in cases:
+            with self.subTest(rule=rule_id):
+                self.assertIn(rule_id, self.hits(item))
+
+    def test_lv14_wc_group_is_complete(self):
+        # 11 + 1 WCs against 11 + 1 seats, flush releases and frames: no finding (0% tolerance).
+        found = self.hits(
+            line("w1", "Tiefspül-WC, 4,5/6 l, EN 997, DIN-EN 38", "11", "St"),
+            line("s1", "WC-Sitz mit Deckel", "11", "St"),
+            line("f1", "Installationselement für Wand-WC 112 cm mit UP-Spk.", "11", "St"),
+            line("p1", "Samba Betätigungsplatte für 2-Mengen-Spülung", "11", "St"),
+            line("w2", "Tiefspül-WC, CE, EN 997 6 A/C, EN 38,", "1", "St"),
+            line("s2", "WC-Sitz ohne Deckel", "1", "St"),
+            line("f2", "Montageelement Wand-WC 112 cm mit UP-Spülkasten", "1", "St"),
+            line("p2", "Automatikspülung für WC", "1", "St"))
+        self.assertFalse([rule for rule in found if rule.startswith("L2.SANITARY.WC")])
+
+    def test_one_missing_wc_seat_is_a_shortfall(self):
+        found = self.hits(line("w", "Wand-WC Tiefspüler", "12", "St"), line("s", "WC-Sitz mit Deckel", "11", "St"))
+        finding = found["L2.SANITARY.WC_NEEDS_WC_SEAT"]
+        self.assertEqual(finding.evidence["reason"], "quantity_shortfall")
+        self.assertEqual(finding.suggested_fix.operations[0].line.quantity, Decimal(1))
+
+    def test_floor_standing_wc_needs_no_frame(self):
+        found = self.hits(line("w", "Stand-WC Tiefspüler", "2", "St"))
+        self.assertIn("L2.SANITARY.WC_NEEDS_WC_SEAT", found)
+        self.assertNotIn("L2.SANITARY.WC_NEEDS_MOUNTING_FRAME", found)
+
+    def test_wet_room_waterproofing_only_for_wet_rooms(self):
+        self.assertNotIn("L2.TILE.COVERING_NEEDS_WET_ROOM_WATERPROOFING",
+                         self.hits(line("t", "Wandfliesen WC,20/50cm, Dünnbett weiß", "104", "m²")))
+        self.assertIn("L2.TILE.COVERING_NEEDS_WET_ROOM_WATERPROOFING",
+                      self.hits(line("t", "Bodenfliesen Dusche, rutschhemmend R10", "12", "m²")))
+
+    def test_lv19_gaps(self):
+        # Doors "PZ-Vorgerichtet" with an OTS but no cylinder; a powered gate with safety edge but no power supply.
+        door = line("d", "T 30 RS - Stahltürelement, 1010 x 2135 mm", "1", "St",
+                    long_text="OTS mit Gleitschiene\nBodendichtung\nPZ-Vorgerichtet\nBeschlagsteile und Türgriffgarnituren")
+        gate = line("g", "Sektionaltor mit elektr. Antrieb, ca. 4000 x 4000 mm", "2", "St",
+                    long_text="E-Drehstrommotor, Lichtschranke, Schließkantensicherung")
+        found = self.hits(door, gate)
+        self.assertEqual(found["L2.DOOR.STEEL_NEEDS_LOCK_CYLINDER"].severity, "info")
+        self.assertEqual(found["L2.DOOR.INDUSTRIAL_NEEDS_DRIVE_POWER_SUPPLY"].severity, "info")
+        for rule in ("L2.DOOR.STEEL_NEEDS_DOOR_CLOSER", "L2.DOOR.STEEL_NEEDS_DOOR_HARDWARE",
+                     "L2.DOOR.INDUSTRIAL_NEEDS_SAFETY_EDGE_OR_LIGHT_BARRIER"):
+            self.assertNotIn(rule, found)
+
+    def test_escape_route_in_another_long_text_is_not_emergency_lighting(self):
+        found = self.hits(line("l", "Anbauleuchte Rund 1000", "32", "St"),
+                          line("b", "Brandschott S90 - 800cm²", "10", "St",
+                               long_text="Abschottung in Fluchtwegen und notwendigen Fluren"))
+        self.assertIn("L2.ELEC.LIGHTING_NEEDS_EMERGENCY_LIGHTING", found)
+
+    def test_outdoor_luminaires_need_no_emergency_lighting(self):
+        found = self.hits(line("l", "Pollerleuchte 2255lm", "4", "St"))
+        self.assertNotIn("L2.ELEC.LIGHTING_NEEDS_EMERGENCY_LIGHTING", found)
+
+    def test_floating_screed_needs_no_primer(self):
+        found = self.hits(line("s", "Zementestrich auf TSD/WD,CT, 65mm", "85", "m²"))
+        self.assertNotIn("L2.FLOOR.SCREED_NEEDS_PRIMER_AND_LEVELING", found)
+        self.assertIn("L2.FLOOR.SCREED_NEEDS_EDGE_INSULATION", found)
+
+    def test_real_texts_that_are_not_triggers(self):
+        for text, unit in [
+            ("Messung Estrichfeuchte", "psch"), ("Aussparung,< 0,1m2,Estrich", "St"),
+            ("Plattenbelag Beton 30x30x4cm durchgefärbt", "m²"),
+            ("Thermische Steckdose für PE-Xa Rohr 20x2,3", "St"),
+            ("Verstärkung für Einbauleuchten", "St"), ("Schutz Mastleuchte Bestand H 2m herstellen", "St"),
+            ("Böschungspflaster Naturstein", "m²"),
+            ("Isolierung TW-Rohr DN 12", "m"), ("WC-Trennw,Melamin,Vollspanpl.", "St"),
+            ("Blitzschutz Fundamente und Ringerder", "m"), ("Innenfensterbank,MDF/HPL,30x195mm", "m"),
+            ("Fensteröffnung anlegen,bis 2,0m2", "St"), ("Sockelleiste,Fliesen,H=10cm", "m"),
+            ("Warnleuchte vorhalten", "St"), ("Zul.GKBI-Platten statt GKB,2lg", "m²"),
+        ]:
+            with self.subTest(text=text):
+                self.assertEqual(self.hits(line("a", text, "10", unit)), {})
+
+    def test_concrete_facing_shell_is_concrete_not_drywall(self):
+        rules = set(self.hits(line("a", "Vorsatzschale Beton Stützwand Ost", "10", "m²")))
+        self.assertIn("L2.CONCRETE.STRUCTURE_NEEDS_FORMWORK", rules)
+        self.assertFalse([rule for rule in rules if rule.startswith("L2.DRYWALL.")])
+
+    def test_painting_on_concrete_or_doors_is_painting_only(self):
+        for text, unit in [("Dispersionsfarbe,Decken Beton,NAB3", "m²"), ("Lackierung Stahltüren", "St")]:
+            with self.subTest(text=text):
+                rules = set(self.hits(line("a", text, "10", unit)))
+                self.assertTrue(rules)
+                self.assertTrue(all(rule.startswith("L2.PAINT.") for rule in rules))
+
+    def test_pulled_or_buried_cables_need_no_trays(self):
+        for text in ("Kabel 0.6/1 kV einziehen NYY 3x1.5", "Erdverbindungskabel NYY 7 x 1,5 mm²"):
+            with self.subTest(text=text):
+                self.assertNotIn("L2.ELEC.CABLING_NEEDS_CABLE_ROUTING", self.hits(line("c", text, "50", "m")))
 
 
 if __name__ == "__main__":

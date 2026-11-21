@@ -50,5 +50,41 @@ services:
       PGUSER: construction_app
       PGPASSWORD: ${POSTGRES_APP_PASSWORD:?Run ./db/ops.sh up to set POSTGRES_APP_PASSWORD}
 
+  # API + built-in data tools, and (for local work) the frontend from ./frontend.
+  # docker compose --profile app up -d --build backend   ->  http://localhost:8080
+  backend:
+    profiles: ["app"]
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    read_only: true
+    tmpfs: ["/tmp"]
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      PGHOST: db
+      PGDATABASE: ${POSTGRES_DB:-construction}
+      PGUSER: construction_app
+      PGPASSWORD: ${POSTGRES_APP_PASSWORD:?Run ./db/ops.sh up to set POSTGRES_APP_PASSWORD}
+      FRONTEND_DIR: /frontend/${FRONTEND_DIST:-dist}
+      # Origins of a separate frontend dev server, e.g. http://localhost:5173 (comma separated).
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-}
+      ANALYSIS_L3_PROVIDER: ${ANALYSIS_L3_PROVIDER:-none}
+      ANALYSIS_L3_MODEL: ${ANALYSIS_L3_MODEL:-}
+      OLLAMA_HOST: ${OLLAMA_HOST:-http://host.docker.internal:11434}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ANALYSIS_L3_CACHE: /tmp/layer3
+    ports:
+      - "127.0.0.1:${BACKEND_PORT:-8080}:8080"
+    volumes:
+      - ./frontend:/frontend:ro
+      - ./schema-dashboard.html:/app/schema-dashboard.html:ro
+    restart: unless-stopped
+
 volumes:
   postgres_data:

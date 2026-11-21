@@ -2,15 +2,15 @@
   {
     "RuleID": "L2.FLOOR.SCREED",
     "Category": "Floor screed and finishes",
-    "TriggerRegex": "(?i)\\b([a-zäöüß]*estrich[a-zäöüß]*|hohlraumboden|doppelboden)\\b",
+    "TriggerRegex": "(?i)\\b([a-zäöüß]*estrich[a-zäöüß]*|hohlraumboden|doppelboden|(?:ct|ca|caf|ma|as)\\s*,\\s*\\d+\\s*mm)\\b",
     "TriggerIn": "short_text",
-    "ExcludeRegex": "(?i)\\b(abbrechen|abbruch\\w*|rückbau\\w*|zurückbauen|ausbauen|demontage|demontieren|entfernen|entsorg\\w*|aufnehmen|abtragen|stemmen|fräsen)\\b",
+    "ExcludeRegex": "(?i)\\b(abbrechen|abbruch\\w*|rückbau\\w*|zurückbauen|ausbauen|demontage|demontieren|entfernen|entsorg\\w*|aufnehmen|abtragen|stemmen|fräsen|messung\\w*|\\w*feuchte\\w*|aussparung\\w*|zul|zulage\\w*)\\b",
     "Required_Dependencies": [
       {"DependencyName": "Edge insulation", "Regex": "(?i)\\b(randdämmstreifen)\\b", "CheckType": "Boolean", "SuggestedText": "Randdämmstreifen", "SuggestedUnit": "m"},
       {"DependencyName": "Underlays and insulation", "Regex": "(?i)\\b(?:trittschall)?dämmung\\b|\\b(?:eps|xps)\\b", "CheckType": "Boolean", "SuggestedText": "Trittschalldämmung unter Estrich", "SuggestedUnit": "m²"},
-      {"DependencyName": "Primer and leveling", "Regex": "(?i)\\b(?:tief|haft)?grund(?:ierung)?\\b|\\b(?:spachtel|nivellier|ausgleichs)masse\\b|\\bnivellierausgleich\\b", "CheckType": "QuantityMatch", "QuantityUnit": "m²", "SuggestedText": "Untergrundvorbereitung / Grundierung / Ausgleichsmasse"},
-      {"DependencyName": "Floor covering", "Regex": "(?i)\\b(?:pvc|vinyl|kautschuk(?:boden)?|laminat(?:böden|bodenbeläge)?|teppich(?:boden)?|kugelgarn|bodenfliesen?|naturstein(?:belag)?)\\b", "CheckType": "QuantityMatch", "QuantityUnit": "m²", "SuggestedText": "Bodenbelag, Ausführung durch Fachplanung festzulegen"},
-      {"DependencyName": "Skirting", "Regex": "(?i)\\b([a-zäöüß]*sockel(?:leiste|fliese)?(?:n|s)?)\\b", "CheckType": "Boolean", "SuggestedText": "Sockelleisten", "SuggestedUnit": "m"}
+      {"DependencyName": "Primer and leveling", "Regex": "(?i)\\b(?:tief|haft)?grund(?:ierung)?\\b|\\b(?:spachtel|nivellier|ausgleichs)masse\\b|\\bnivellierausgleich\\b", "CheckType": "QuantityMatch", "QuantityUnit": "m²", "ExcludeRegex": "(?i)(\\bauf\\s+(?:tsd|wd|tsd/wd|dämm\\w*|trennlage\\w*|trittschall\\w*)\\b|schwimmend\\w*)", "SuggestedText": "Untergrundvorbereitung / Grundierung / Ausgleichsmasse"},
+      {"DependencyName": "Floor covering", "Regex": "(?i)\\b(?:pvc|vinyl|kautschuk(?:boden)?|laminat(?:böden|bodenbeläge)?|teppich(?:boden)?|kugelgarn|bodenfliesen?|naturstein(?:belag)?)\\b", "CheckType": "QuantityMatch", "QuantityUnit": "m²", "SuggestedText": "Bodenbelag, Ausführung durch Fachplanung festzulegen", "Severity": "info"},
+      {"DependencyName": "Skirting", "Regex": "(?i)\\b([a-zäöüß]*sockel(?:leiste|fliese)?(?:n|s)?)\\b", "CheckType": "Boolean", "SuggestedText": "Sockelleisten", "SuggestedUnit": "m", "Severity": "info"}
     ]
   },
   {
@@ -18,7 +18,7 @@
     "Category": "Concrete structures",
     "TriggerRegex": "(?i)\\b(beton|ortbeton|stahlbeton\\w*|bodenplatte|fundamentplatte|stb(?:-\\w+)?|streifenfundament\\w*|einzelfundament\\w*)\\b",
     "TriggerIn": "short_text",
-    "ExcludeRegex": "(?i)\\b(abbrechen|abbruch\\w*|rückbau\\w*|zurückbauen|ausbauen|demontage|demontieren|entfernen|entsorg\\w*|aufnehmen|abtragen|stemmen|fräsen|\\w*fertigteil\\w*|bordstein\\w*|pflaster\\w*|\\w*rohr\\w*|\\w*schacht\\w*|sauberkeitsschicht|magerbeton|füllbeton|unterbeton|betonstahl|behelf\\w*|vorhalt\\w*|\\w*bohr\\w*|sägen|\\w*schnitt\\w*|durchbr\\w*|sanier\\w*|instandsetz\\w*)\\b",
+    "ExcludeRegex": "(?i)\\b(abbrechen|abbruch\\w*|rückbau\\w*|zurückbauen|ausbauen|demontage|demontieren|entfernen|entsorg\\w*|aufnehmen|abtragen|stemmen|fräsen|\\w*fertigteil\\w*|bordstein\\w*|pflaster\\w*|\\w*rohr\\w*|\\w*schacht\\w*|sauberkeitsschicht|magerbeton|füllbeton|unterbeton|betonstahl|behelf\\w*|vorhalt\\w*|\\w*bohr\\w*|sägen|\\w*schnitt\\w*|durchbr\\w*|sanier\\w*|instandsetz\\w*|dispersion\\w*|\\w*farbe\\w*|\\w*anstrich\\w*|\\w*belag\\w*|zul|zulage\\w*|matri[tz]\\w*|mehrmenge\\w*|\\w*mast\\w*|\\w*pfahl\\w*|\\w*pfähle)\\b",
     "Required_Dependencies": [
       {"DependencyName": "Formwork", "Regex": "(?i)\\b(schalung|randschalung|deckenschalung)\\b", "CheckType": "Boolean", "SuggestedText": "Schalung für Ortbetonbauteile", "SuggestedUnit": "m²"},
       {"DependencyName": "Reinforcement steel", "Regex": "(?i)\\b(betonstahl|baustahl|bewehrung|matten|bst\\s*500)\\b", "CheckType": "Boolean", "SuggestedText": "Betonstahl / Bewehrung gemäß Statik", "TriggerRegex": "(?i)\\b(stahlbeton\\w*|stb(?:-\\w+)?|ortbeton|bodenplatte|fundamentplatte|bewehrt\\w*)\\b", "ExcludeRegex": "(?i)\\b(unbewehrt\\w*|c\\s?8/10|c\\s?12/15)\\b", "SuggestedUnit": "t"},
@@ -30,7 +30,7 @@
     "Category": "Drywall partitions",
     "TriggerRegex": "(?i)\\b(metallständerwand|gkb|gkf|trockenbauwand|vorsatzschale)\\b",
     "TriggerIn": "short_text",
-    "ExcludeRegex": "(?i)\\b(abbrechen|abbruch\\w*|rückbau\\w*|zurückbauen|ausbauen|demontage|demontieren|entfernen|entsorg\\w*|aufnehmen|abtragen|stemmen|fräsen)\\b",
+    "ExcludeRegex": "(?i)\\b(abbrechen|abbruch\\w*|rückbau\\w*|zurückbauen|ausbauen|demontage|demontieren|entfernen|entsorg\\w*|aufnehmen|abtragen|stemmen|fräsen|beton\\w*|stützwand\\w*|zul|zulage\\w*)\\b",
     "Required_Dependencies": [
       {"DependencyName": "Insulation and acoustics", "Regex": "(?i)\\b(mineralwolle|trennwandplatte|dämmung)\\b", "CheckType": "QuantityMatch", "QuantityUnit": "m²", "SuggestedText": "Mineralwolle / Trennwanddämmung"},
       {"DependencyName": "Joint filling", "Regex": "(?i)\\b(spachtelung|fugen|verspachtelt)\\b", "CheckType": "QuantityMatch", "QuantityUnit": "m²", "SuggestedText": "Fugenverspachtelung der Trockenbauwände"},
@@ -58,6 +58,126 @@
       {"DependencyName": "Vapor barrier", "Regex": "(?i)\\b(dampfsperre|dampfbremse)\\b", "CheckType": "QuantityMatch", "QuantityUnit": "m²", "SuggestedText": "Dampfsperre / Dampfbremse für Flachdach"},
       {"DependencyName": "Thermal insulation", "Regex": "(?i)\\b(wärmedämmung|gefälledämmung|eps|pur)\\b", "CheckType": "QuantityMatch", "QuantityUnit": "m²", "SuggestedText": "Wärme- / Gefälledämmung für Flachdach"},
       {"DependencyName": "Roof drainage", "Regex": "(?i)\\b(dachgully|notüberlauf|speier)\\b", "CheckType": "Boolean", "SuggestedText": "Dachentwässerung / Notüberlauf gemäß Planung", "SuggestedUnit": "ea"}
+    ]
+  },
+  {
+    "RuleID": "L2.ELEC.INSTALLATION",
+    "Category": "Electrical installation devices",
+    "TriggerRegex": "(?i)\\b(\\w*steckdose\\w*|(?:wechsel|aus|serien|kreuz)schalter\\w*|\\w*taster\\w*|bewegungsmelder\\w*|präsenzmelder\\w*)\\b",
+    "TriggerIn": "short_text",
+    "ExcludeRegex": "(?i)\\b(abbrechen|abbruch\\w*|rückbau\\w*|zurückbauen|ausbauen|demontage|demontieren|entfernen|entsorg\\w*|aufnehmen|abtragen|stemmen|fräsen|baustrom\\w*|baustellen\\w*|vorhalt\\w*|provisori\\w*|\\w*verteiler\\w*|thermisch\\w*|adapterstecker\\w*)\\b",
+    "Required_Dependencies": [
+      {"DependencyName": "Installation cable", "Regex": "(?i)\\b(nym(?:-[ji])?|\\w*mantelleitung\\w*|installationsleitung\\w*|\\w*installationskabel\\w*|nhxmh(?:-[ji])?|nyy(?:-[ji])?|nycwy|n2xh(?:-[ji])?)\\b", "CheckType": "Boolean", "SuggestedText": "Installationsleitung NYM-J, Verlegung gemäß Planung", "SuggestedUnit": "m"},
+      {"DependencyName": "Device boxes", "Regex": "(?i)\\b(geräte(?:einbau)?dosen?|schalterdosen?|hohlwanddosen?|unterputzdosen?|up-dosen?|einbaudosen?|abzweigdosen?|verbindungsdosen?|abzweigkästen|abzweigkasten)\\b", "CheckType": "Boolean", "SuggestedText": "Schalter- und Gerätedosen", "SuggestedUnit": "ea"},
+      {"DependencyName": "RCD protection", "Regex": "(?i)\\b(fehlerstrom\\w*|fi-?\\s*schutzschalter\\w*|fi/ls\\w*|fi-ls\\w*|rcd|rcbo|differenzstrom\\w*)\\b", "CheckType": "Boolean", "Severity": "info", "SuggestedText": "Fehlerstrom-Schutzeinrichtung (RCD) für Steckdosenstromkreise", "SuggestedUnit": "ea"},
+      {"DependencyName": "Initial verification", "Regex": "(?i)\\b(erstprüfung\\w*|(?:din\\s*)?vde\\s*0100[- ]?600|prüfprotokoll\\w*|messprotokoll\\w*|me(?:ss|ß)-?\\s*und\\s*prüf\\w*|e-check|isolationsmessung\\w*)", "CheckType": "Boolean", "SuggestedText": "Erstprüfung nach DIN VDE 0100-600 mit Prüfprotokoll", "SuggestedUnit": "ea"},
+      {"DependencyName": "As-built documents", "Regex": "(?i)\\b(revisionsunterlagen|revisionspläne?|bestandsunterlagen|bestandspläne?|ausführungsunterlagen|dokumentation\\w*)\\b", "CheckType": "Boolean", "SuggestedText": "Revisions- und Bestandsunterlagen", "SuggestedUnit": "lump_sum"}
+    ]
+  },
+  {
+    "RuleID": "L2.ELEC.LIGHTING",
+    "Category": "Lighting",
+    "TriggerRegex": "(?i)\\b(\\w*leuchten?|lichtband\\w*|flutlicht\\w*|downlights?)\\b",
+    "TriggerIn": "short_text",
+    "ExcludeRegex": "(?i)\\b(abbrechen|abbruch\\w*|rückbau\\w*|zurückbauen|ausbauen|demontage|demontieren|entfernen|entsorg\\w*|aufnehmen|abtragen|stemmen|fräsen|\\w*warnleuchte\\w*|baustellen\\w*|baustrom\\w*|vorhalt\\w*|absperr\\w*|\\w*notleuchte\\w*|sicherheitsleuchte\\w*|rettungszeichen\\w*|verstärkung\\w*|schutz|\\w*bestand\\w*|aussparung\\w*|ausschnitt\\w*)\\b",
+    "Required_Dependencies": [
+      {"DependencyName": "Emergency lighting", "Regex": "(?i)\\b(notbeleuchtung\\w*|sicherheitsbeleuchtung\\w*|\\w*notleuchten?|sicherheitsleuchten?|rettungszeichen\\w*|fluchtweg(?:leuchte|zeichen|beleuchtung)\\w*|notlicht\\w*|zentralbatterie\\w*|einzelbatterie\\w*)", "CheckType": "Boolean", "Severity": "info", "ExcludeRegex": "(?i)\\b(au(?:ß|ss)en\\w*|poller\\w*|flutlicht\\w*|\\w*mast\\w*|aufsatzleuchte\\w*|fassade\\w*|wegeleuchte\\w*)", "SuggestedText": "Sicherheitsbeleuchtung / Rettungszeichenleuchten nach DIN EN 1838 und DIN VDE V 0108-100", "SuggestedUnit": "ea"},
+      {"DependencyName": "Lighting control", "Regex": "(?i)\\b(\\w*schalter\\w*|\\w*taster\\w*|bewegungsmelder\\w*|präsenzmelder\\w*|lichtsteuer\\w*|lichtmanagement\\w*|dali|knx|dämmerungs\\w*|zeitschalt\\w*)", "CheckType": "Boolean", "SuggestedText": "Schalter / Präsenzmelder für die Beleuchtung", "SuggestedUnit": "ea"}
+    ]
+  },
+  {
+    "RuleID": "L2.ELEC.CABLING",
+    "Category": "Power cables and wiring",
+    "TriggerRegex": "(?i)\\b(energiekabel\\w*|\\w*mantelleitung\\w*|installationsleitung\\w*|nym(?:-[ji])?|nyy(?:-[ji])?|nycwy|nhxmh(?:-[ji])?|n2xh(?:-[ji])?|erdkabel\\w*)\\b",
+    "TriggerIn": "short_text",
+    "ExcludeRegex": "(?i)\\b(abbrechen|abbruch\\w*|rückbau\\w*|zurückbauen|ausbauen|demontage|demontieren|entfernen|entsorg\\w*|aufnehmen|abtragen|stemmen|fräsen|baustrom\\w*|baustellen\\w*|vorhalt\\w*|\\w*anschluss\\w*)\\b",
+    "Required_Dependencies": [
+      {"DependencyName": "Cable routing", "Regex": "(?i)\\b(kabel(?:rinnen?|pritschen?|kanal\\w*|leiter\\w*|tragsystem\\w*|schutzrohr\\w*|halter\\w*|bahn\\w*)|installationskanal\\w*|brüstungs\\w*kanal\\w*|geräteeinbaukanal\\w*|steigeleiter\\w*|sammelhalter\\w*|leerrohr\\w*|installationsrohr\\w*|\\w*instarohr\\w*|\\w*wellrohr\\w*|isolierrohr\\w*)", "CheckType": "Boolean", "SuggestedText": "Kabeltragsysteme / Installationsrohre", "SuggestedUnit": "m", "ExcludeRegex": "(?i)\\b(\\w*einziehen|\\w*eingezogen|erd\\w*|\\w*erdverleg\\w*)"},
+      {"DependencyName": "Cable termination", "Regex": "(?i)\\b(anschluss\\s+bis|anschlie(?:ß|ss)en\\s+(?:von\\s+)?(?:kabel|leitung)\\w*|kabelanschluss\\w*|leitungsanschluss\\w*|endverschl(?:uss|üsse)\\w*|anklemmen)", "CheckType": "Boolean", "Severity": "info", "SuggestedText": "Anschluss der Kabel und Leitungen", "SuggestedUnit": "ea"}
+    ]
+  },
+  {
+    "RuleID": "L2.ELEC.LIGHTNING_PROTECTION",
+    "Category": "Lightning protection",
+    "TriggerRegex": "(?i)\\b(blitzschutz-?\\s*anlage\\w*|äu(?:ß|ss)erer\\s+blitzschutz|blitzschutz-?\\s*(?:stahlband|draht|leitung|seil|runddraht)\\w*|fangstangen?|fangleitung\\w*|fangeinrichtung\\w*)\\b",
+    "TriggerIn": "short_text",
+    "ExcludeRegex": "(?i)\\b(abbrechen|abbruch\\w*|rückbau\\w*|zurückbauen|ausbauen|demontage|demontieren|entfernen|entsorg\\w*|aufnehmen|abtragen|stemmen|fräsen|fundament\\w*|\\w*erder\\w*)\\b",
+    "Required_Dependencies": [
+      {"DependencyName": "Earthing", "Regex": "(?i)\\b(fundamenterder\\w*|ringerder\\w*|tiefenerder\\w*|staberder\\w*|erderanschl\\w*|erdungs\\w*|erdung|trennstellen?|erdeinführung\\w*)\\b", "CheckType": "Boolean", "SuggestedText": "Erdungsanlage / Anschluss an Fundament- oder Ringerder mit Trennstellen", "SuggestedUnit": "m"},
+      {"DependencyName": "Equipotential bonding", "Regex": "(?i)\\b(potential-?\\s*ausgleich\\w*|\\w*potentialausgleich\\w*|\\w*potenzialausgleich\\w*|haupt-?\\s*potential\\w*|haupterdungsschiene\\w*|pa-schiene\\w*)", "CheckType": "Boolean", "SuggestedText": "Blitzschutz-Potentialausgleich", "SuggestedUnit": "ea"},
+      {"DependencyName": "Inspection", "Regex": "(?i)\\b(prüfung\\s+(?:der\\s+)?blitzschutz\\w*|blitzschutzprüfung\\w*|abnahmeprüfung\\w*|prüfbericht\\w*|62305|vde\\s*0185\\w*)", "CheckType": "Boolean", "SuggestedText": "Abnahmeprüfung der Blitzschutzanlage nach DIN EN 62305-3 mit Prüfbericht", "SuggestedUnit": "ea"}
+    ]
+  },
+  {
+    "RuleID": "L2.SANITARY.WC",
+    "Category": "WC fixtures",
+    "TriggerRegex": "(?i)\\b((?:tiefspül|flachspül|wand|stand|hänge|absaug)-?\\s*wc|wc-(?:becken|anlage|keramik|schüssel)|klosett\\w*)\\b",
+    "TriggerIn": "short_text",
+    "ExcludeRegex": "(?i)\\b(abbrechen|abbruch\\w*|rückbau\\w*|zurückbauen|ausbauen|demontage|demontieren|entfernen|entsorg\\w*|aufnehmen|abtragen|stemmen|fräsen|\\w*sitz\\w*|\\w*trennw\\w*|\\w*deckel\\w*|steuerung\\w*|\\w*element\\w*|\\w*spülung\\w*|\\w*betätigung\\w*|schallschutz\\w*)\\b",
+    "Required_Dependencies": [
+      {"DependencyName": "WC seat", "Regex": "(?i)\\b(wc-sitz\\w*|klosettsitz\\w*|wc-deckel\\w*|sitz\\s+(?:mit|ohne)\\s+deckel)", "CheckType": "QuantityMatch", "QuantityUnit": "ea", "TolerancePct": "0", "SuggestedText": "WC-Sitz mit Deckel"},
+      {"DependencyName": "Flush plate", "Regex": "(?i)\\b(betätigungsplatten?|drückerplatten?|\\w*spülauslösung\\w*|automatikspülung\\w*|spülkastenbetätigung\\w*)", "CheckType": "QuantityMatch", "QuantityUnit": "ea", "TolerancePct": "0", "SuggestedText": "Betätigungsplatte für 2-Mengen-Spülung"},
+      {"DependencyName": "Mounting frame", "Regex": "(?i)(up-?\\s*sp(?:ü|ue)lkasten|\\bup-?\\s*spk\\b|unterputz-?\\s*sp(?:ü|ue)lkasten|aufputz-?\\s*sp(?:ü|ue)lkasten|wc-(?:montage|vorwand|installations)?element|(?:installations|montage|vorwand)element\\s+(?:für\\s+)?(?:wand-?\\s*)?wc\\b)", "CheckType": "QuantityMatch", "QuantityUnit": "ea", "TolerancePct": "0", "ExcludeRegex": "(?i)\\b(stand-?\\s*wc|bodenstehend\\w*)", "SuggestedText": "Vorwand-Installationselement für Wand-WC mit UP-Spülkasten"}
+    ]
+  },
+  {
+    "RuleID": "L2.SANITARY.POTABLE_WATER",
+    "Category": "Potable water pipework",
+    "TriggerRegex": "(?i)\\b((?:tw|trinkwasser|kaltwasser|warmwasser|zirkulation)s?-?\\s*(?:rohr|leitung)\\w*)",
+    "TriggerIn": "short_text",
+    "ExcludeRegex": "(?i)\\b(abbrechen|abbruch\\w*|rückbau\\w*|zurückbauen|ausbauen|demontage|demontieren|entfernen|entsorg\\w*|aufnehmen|abtragen|stemmen|fräsen|isolier\\w*|\\w*dämm\\w*|ummantelung\\w*|spülen|spülung\\w*|druckprüfung\\w*|desinfi\\w*|\\w*schelle\\w*|befestig\\w*)\\b",
+    "Required_Dependencies": [
+      {"DependencyName": "Pipe insulation", "Regex": "(?i)\\b(isolierung\\s+(?:der\\s+)?(?:tw|trinkwasser|kaltwasser|warmwasser|zirkulation)\\w*|(?:tw|trinkwasser)\\S*\\s*-?\\s*(?:isolierung|dämmung)|rohrisolierung\\w*|rohrdämmung\\w*|\\w*rohrdämmschalen?|dämmschalen?|dämmschl(?:a|ä)uch\\w*|wärmedämmung\\s+(?:der\\s+)?(?:tw|trinkwasser|rohr)\\w*)", "CheckType": "QuantityMatch", "QuantityUnit": "m", "SuggestedText": "Rohrdämmung der Trinkwasserleitungen nach GEG / DIN 1988-200"},
+      {"DependencyName": "Pressure test", "Regex": "(?i)\\b(druckprüfung\\w*|druckprobe\\w*|dichtheitsprüfung\\w*|dichtigkeitsprüfung\\w*)", "CheckType": "Boolean", "SuggestedText": "Druckprüfung der Trinkwasserinstallation nach DIN EN 806-4", "SuggestedUnit": "ea"},
+      {"DependencyName": "Flushing and disinfection", "Regex": "(?i)\\b(spülen\\s+der\\s+(?:rohr)?leitung\\w*|spülung\\s+der\\s+(?:rohr)?leitung\\w*|(?:rohrnetz|leitungs)spülung\\w*|desinfi\\w*)", "CheckType": "Boolean", "SuggestedText": "Spülen und ggf. Desinfizieren der Trinkwasserleitungen", "SuggestedUnit": "ea"},
+      {"DependencyName": "Water sampling", "Regex": "(?i)\\b(wasseranalyse\\w*|wasserprobe\\w*|probenahme\\w*|beprobung\\w*|trinkwasseruntersuchung\\w*|mikrobiologisch\\w*|hygienische\\s+untersuchung\\w*)", "CheckType": "Boolean", "Severity": "info", "SuggestedText": "Trinkwasserprobenahme und Untersuchung vor Inbetriebnahme", "SuggestedUnit": "ea"}
+    ]
+  },
+  {
+    "RuleID": "L2.TILE.COVERING",
+    "Category": "Tiling and stone coverings",
+    "TriggerRegex": "(?i)\\b(\\w*fliesen?|\\w*fliesenbelag\\w*|feinsteinzeug\\w*|\\w*steinzeug\\w*|\\w*mosaik\\w*|naturstein\\w*)\\b",
+    "TriggerIn": "short_text",
+    "ExcludeRegex": "(?i)\\b(abbrechen|abbruch\\w*|rückbau\\w*|zurückbauen|ausbauen|demontage|demontieren|entfernen|entsorg\\w*|aufnehmen|abtragen|stemmen|fräsen|\\w*sockel\\w*|zul|zulage\\w*|\\w*profil\\w*|\\w*schiene\\w*|\\w*stufen?|treppen\\w*|reinig\\w*|\\w*fensterbank\\w*|\\w*abdeckung\\w*|\\w*verfugung\\w*|\\w*pflaster\\w*|\\w*böschung\\w*|\\w*bordstein\\w*|\\w*mauerwerk\\w*|\\w*mauer|\\w*rinne\\w*|\\w*schotter\\w*|wasserbau\\w*)\\b",
+    "Required_Dependencies": [
+      {"DependencyName": "Primer", "Regex": "(?i)\\b(tiefgrund\\w*|\\w*grundierung\\w*|haftgrund\\w*|voranstrich\\w*|haftbrücke\\w*|\\w*primer)", "CheckType": "QuantityMatch", "QuantityUnit": "m²", "SuggestedText": "Untergrundvorbereitung / Grundierung"},
+      {"DependencyName": "Wet room waterproofing", "Regex": "(?i)\\b(\\w*abdichtung\\w*|dichtschlämme\\w*|\\w*dichtband\\w*|flüssigkunststoff\\w*)", "CheckType": "Boolean", "TriggerRegex": "(?i)\\b(dusch\\w*|nassr(?:a|ä)um\\w*|feuchtr(?:a|ä)um\\w*|bad|bäder|badezimmer\\w*|bodenablauf\\w*|duschrinne\\w*)\\b", "SuggestedText": "Verbundabdichtung nach DIN 18534 im Nassbereich", "SuggestedUnit": "m²"},
+      {"DependencyName": "Elastic joints", "Regex": "(?i)\\b(dauerelast\\w*|\\w*silikon\\w*|\\w*wartungsfuge\\w*|elastisch\\w*\\s+(?:verfug|fug)\\w*|anschlussfuge\\w*|bewegungsfuge\\w*|trennfuge\\w*)", "CheckType": "Boolean", "SuggestedText": "Elastische Anschluss- und Bewegungsfugen", "SuggestedUnit": "m"},
+      {"DependencyName": "Skirting and edge profiles", "Regex": "(?i)\\b(\\w*sockel\\w*|\\w*abschlussprofil\\w*|\\w*abschlussschiene\\w*|\\w*kantenprofil\\w*|eckschutzprofil\\w*|\\w*fliesenschiene\\w*|bodenschiene\\w*|übergangsprofil\\w*)", "CheckType": "Boolean", "SuggestedText": "Sockel / Abschluss- und Kantenprofile", "SuggestedUnit": "m"}
+    ]
+  },
+  {
+    "RuleID": "L2.DOOR.STEEL",
+    "Category": "Steel and fire-rated doors",
+    "TriggerRegex": "(?i)\\b(stahl-?\\s*tür\\w*|\\w*stahltür\\w*|(?:feuer|rauch|brand)schutz-?\\s*tür\\w*|stahlzargentür\\w*)",
+    "TriggerIn": "short_text",
+    "ExcludeRegex": "(?i)\\b(abbrechen|abbruch\\w*|rückbau\\w*|zurückbauen|ausbauen|demontage|demontieren|entfernen|entsorg\\w*|aufnehmen|abtragen|stemmen|fräsen|lackier\\w*|anstrich\\w*|beschicht\\w*|wartung\\w*|\\w*öffnung\\w*|reinig\\w*)\\b",
+    "Required_Dependencies": [
+      {"DependencyName": "Door closer", "Regex": "(?i)\\b(\\w*türschlie(?:ß|ss)er\\w*|ots|gleitschiene\\w*|schlie(?:ß|ss)folgeregelung\\w*|feststellanlage\\w*)\\b", "CheckType": "Boolean", "TriggerRegex": "(?i)\\b(t\\s?(?:30|60|90)|rs|ei2?\\s?(?:30|60|90)\\w*|feuerschutz\\w*|rauchschutz\\w*|brandschutz\\w*)\\b", "SuggestedText": "Obentürschließer mit Gleitschiene nach DIN EN 1154", "SuggestedUnit": "ea"},
+      {"DependencyName": "Lock cylinder", "Regex": "(?i)\\b((?:profil|schlie(?:ß|ss)|doppel|halb|knauf)zylinder\\w*(?!\\s*[-,]?\\s*vorgerichtet)|schlie(?:ß|ss)anlage\\w*)", "CheckType": "Boolean", "Severity": "info", "SuggestedText": "Profilzylinder / Einbindung in die Schließanlage", "SuggestedUnit": "ea"},
+      {"DependencyName": "Door hardware", "Regex": "(?i)\\b(drücker\\w*|\\w*drückergarnitur\\w*|\\w*beschlag\\w*|türgriff\\w*|knauf\\w*|panik\\w*|\\w*garnitur\\w*)", "CheckType": "Boolean", "SuggestedText": "Drückergarnitur / Türbeschläge", "SuggestedUnit": "set"}
+    ]
+  },
+  {
+    "RuleID": "L2.DOOR.INDUSTRIAL",
+    "Category": "Industrial doors",
+    "TriggerRegex": "(?i)\\b(se(?:k|c)tionaltor\\w*|\\w*rolltor\\w*|schnelllauftor\\w*|industrietor\\w*|deckenlauftor\\w*|rollgitter\\w*|falttor\\w*)\\b",
+    "TriggerIn": "short_text",
+    "ExcludeRegex": "(?i)\\b(abbrechen|abbruch\\w*|rückbau\\w*|zurückbauen|ausbauen|demontage|demontieren|entfernen|entsorg\\w*|aufnehmen|abtragen|stemmen|fräsen|lackier\\w*|anstrich\\w*|wartung\\w*|\\w*öffnung\\w*|reinig\\w*)\\b",
+    "Required_Dependencies": [
+      {"DependencyName": "Safety edge or light barrier", "Regex": "(?i)\\b(schlie(?:ß|ss)kantensicherung\\w*|sicherheitskontaktleiste\\w*|\\w*kontaktleiste\\w*|\\w*lichtschranke\\w*|lichtgitter\\w*|lichtvorhang\\w*|optosensor\\w*)", "CheckType": "Boolean", "TriggerRegex": "(?i)(antrieb\\w*|elektr\\w*|motor\\w*|automat\\w*|kraftbetätigt\\w*)", "SuggestedText": "Schließkantensicherung / Lichtschranke nach DIN EN 12453", "SuggestedUnit": "ea"},
+      {"DependencyName": "Drive power supply", "Regex": "(?i)\\b(stromversorgung\\w*|elektroanschluss\\w*|elektrische[nr]?\\s+anschluss\\w*|\\w*zuleitung\\w*|cee-?\\s*steckdose\\w*|netzanschluss\\w*|anschluss\\s+(?:des\\s+|der\\s+)?(?:tor)?antrieb\\w*)", "CheckType": "Boolean", "Severity": "info", "TriggerRegex": "(?i)(antrieb\\w*|elektr\\w*|motor\\w*|automat\\w*|kraftbetätigt\\w*)", "SuggestedText": "Elektrische Zuleitung bis zur Torsteuerung", "SuggestedUnit": "ea"}
+    ]
+  },
+  {
+    "RuleID": "L2.WINDOW",
+    "Category": "Windows",
+    "TriggerRegex": "(?i)\\b([\\w-]*fenster(?:element\\w*|tür\\w*|anlage\\w*)?)\\b",
+    "TriggerIn": "short_text",
+    "ExcludeRegex": "(?i)\\b(abbrechen|abbruch\\w*|rückbau\\w*|zurückbauen|ausbauen|demontage|demontieren|entfernen|entsorg\\w*|aufnehmen|abtragen|stemmen|fräsen|\\w*fensterbank\\w*|\\w*fensterbänke|\\w*öffnung\\w*|reinig\\w*|lackier\\w*|anstrich\\w*|wartung\\w*|\\w*brüstung\\w*|leibung\\w*|laibung\\w*|abdeck\\w*|sonnenschutz\\w*|jalousie\\w*|raffstore\\w*|rollladen\\w*|fliegengitter\\w*|insektenschutz\\w*)\\b",
+    "Required_Dependencies": [
+      {"DependencyName": "Window sills", "Regex": "(?i)\\b(\\w*fensterbank\\w*|\\w*fensterbänke\\w*|sohlbank\\w*)", "CheckType": "Boolean", "Severity": "info", "SuggestedText": "Innen- und Außenfensterbänke", "SuggestedUnit": "m"},
+      {"DependencyName": "Installation joint sealing", "Regex": "(?i)\\b(\\w*anschlussfuge\\w*|fugendichtband\\w*|\\w*kompriband\\w*|\\w*dichtband\\w*|\\w*anschlussfolie\\w*|ral-?\\s*montage\\w*|\\w*quellband\\w*|komprimierband\\w*|dampfbremsband\\w*)", "CheckType": "Boolean", "SuggestedText": "Abdichtung der Bauanschlussfuge (RAL-Montage, innen luftdicht, außen schlagregendicht)", "SuggestedUnit": "m"}
     ]
   }
 ]

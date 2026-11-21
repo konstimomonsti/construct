@@ -2,7 +2,7 @@
 set -eu
 
 caller_dir=$PWD
-project_dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+project_dir=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
 cd "$project_dir"
 umask 077
 

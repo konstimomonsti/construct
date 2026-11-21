@@ -1,0 +1,15 @@
+**
+!backend/
+!backend/*.py
+!backend/admin/
+!backend/admin/*
+!importer/
+!importer/requirements.txt
+!importer/tender_import/
+!importer/tender_import/*.py
+!requirements.txt
+!analysis/
+!analysis/**/*.py
+!analysis/**/*.json
+analysis/tests/
+!schema-dashboard.html

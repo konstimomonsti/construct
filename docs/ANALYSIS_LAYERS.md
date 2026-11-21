@@ -104,8 +104,12 @@ tested on synthetic data, because the pricing phase doesn't exist yet.
 and **required dependencies**. A dependency is either `Boolean` (something must exist) or
 `QuantityMatch` (it must cover the trigger's area, within 10%).
 
-- Five groups and 16 checks so far: screed and floor finishes, in-situ concrete, drywall, painting,
-  flat roofs.
+- 15 groups and 46 checks: screed and floor finishes, in-situ concrete, drywall, painting, flat roofs,
+  and (from NEXT_FEATURES_IMPLEMENTATION_PLAN.md §2.4) electrical installation, lighting, cabling, lightning
+  protection, WCs, drinking water, tiling, steel doors, industrial doors and windows. Tested on the
+  `LV_xx` building PDFs in `Data/`; see DEPENDENCY_VALIDATOR.md for what they find.
+- A dependency can be `"Severity": "info"` for items usually in another package (RCD protection,
+  emergency lighting, floor covering under a screed package).
 - Triggers are matched on the short text (the long text mentions materials in passing), and
   `ExcludeRegex` drops demolition, precast, pipe, temporary and existing-concrete items.
 - Scope can be the whole BoQ, each trade (top-level section), each section, or each room when

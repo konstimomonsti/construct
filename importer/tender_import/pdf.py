@@ -1,6 +1,7 @@
 from base64 import b64encode
 from collections.abc import Mapping
 from io import BytesIO
+import json
 from pathlib import Path
 import re
 from subprocess import run
@@ -10,7 +11,7 @@ from pypdf import PdfReader
 from pypdf.errors import PdfReadError
 from pypdf.generic import ByteStringObject, IndirectObject, NullObject
 
-from .common import Result, german_decimal, local_name, parse_xml, xml_element
+from .common import BOM_PDF_ATTACHMENT, Result, decimal_text, german_decimal, local_name, parse_xml, xml_element
 
 _NUMBER = r"[+\-−]?(?:\d{1,3}(?:\.\d{3})+|\d+)(?:,\d+)?"
 _CODE = re.compile(r"^(?P<indent> *)(?P<code>\d+(?:\.\d+)*\.?|\.\d+)[ \t]{2,}(?P<body>\S.*)$")
@@ -135,8 +136,45 @@ def pdf(data: bytes) -> Result:
             word_boxes=xml_element(bbox_pages[number - 1]) if number <= len(bbox_pages) else None,
             structure=structures[number - 1] if number <= len(structures) else None,
         )
-    extract_pdf_tables(layout, result)
+    if not extract_workspace_attachment(data, result):
+        extract_pdf_tables(layout, result)
     return result
+
+
+def extract_workspace_attachment(data, result):
+    try:
+        reader = PdfReader(BytesIO(data))
+        if reader.is_encrypted or BOM_PDF_ATTACHMENT not in reader.attachments:
+            return False
+        attachments = reader.attachments[BOM_PDF_ATTACHMENT]
+        if len(attachments) != 1 or len(attachments[0]) > 4 * 1024 * 1024:
+            raise ValueError("Unexpected BOM attachment size or count")
+        draft = json.loads(attachments[0])
+        rows = draft["lines"]
+        if not isinstance(rows, list) or not 0 < len(rows) <= 10_000 or not re.fullmatch(r"[A-Z]{3}", draft["currency"]):
+            raise ValueError("Invalid BOM attachment structure")
+        strings = ("line_code", "short_description", "long_description", "unit_code")
+        decimals = ("quantity", "draft_unit_price", "line_amount")
+        if any(not isinstance(row, dict) or not isinstance(row.get("short_description"), str)
+               or any(row.get(field) is not None and not isinstance(row[field], str) for field in (*strings, *decimals))
+               or row.get("total_rule") not in {"include", "conditional", "unit_price_only"}
+               or row.get("pricing_basis") not in {"lump_sum", "unit_rate"}
+               for row in rows):
+            raise ValueError("Invalid BOM attachment positions")
+    except (PdfReadError, ValueError, TypeError, KeyError, UnicodeError) as error:
+        result.warn("invalid_workspace_attachment", {"part": BOM_PDF_ATTACHMENT}, str(error))
+        return False
+    result.metadata["currency"] = draft["currency"]
+    for index, row in enumerate(rows, 1):
+        result.add("item_candidate", {"part": BOM_PDF_ATTACHMENT, "row": index},
+                   code=row.get("line_code"), short_description=row["short_description"],
+                   long_description=row.get("long_description"), unit=row.get("unit_code"),
+                   quantity=decimal_text(row.get("quantity")), unit_price=decimal_text(row.get("draft_unit_price")),
+                   line_amount=decimal_text(row.get("line_amount")), confidence="review",
+                   flags={"LumpSumItem": "Yes" if row["pricing_basis"] == "lump_sum" else "No",
+                          "unit_price_only": row["total_rule"] == "unit_price_only",
+                          "alternative_item": row["total_rule"] == "conditional"})
+    return True
 
 
 def read_quantity(body):

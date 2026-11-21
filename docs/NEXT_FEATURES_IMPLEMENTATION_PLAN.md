@@ -2,7 +2,7 @@
 
 Date: 21 November 2026. Seven read-only research passes produced this plan, one per roadmap feature. Each pass read the code and docs and measured its proposals on the real files in `Data/`. Nothing in the code was changed. The order follows the roadmap deck ("Construct: Next Steps"): error detection first because the brief marks it as the priority, then risk and change orders, the risk report, proof on known-error BoQs, Excel, and prices/what-if. The pitch (step 5) is not a code feature and is not covered here.
 
-Start with [ANALYSIS_LAYERS.md](ANALYSIS_LAYERS.md) and [SESSION_SUMMARY.md](SESSION_SUMMARY.md) if you are new to the code.
+Start with [ANALYSIS_LAYERS.md](ANALYSIS_LAYERS.md) and [ANALYSIS_PHASE_SUMMARY.md](ANALYSIS_PHASE_SUMMARY.md) if you are new to the code.
 
 ## 0. Read this first: findings that affect several features
 

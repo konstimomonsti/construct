@@ -41,8 +41,8 @@ code, kbd { font-family: var(--mono); }
 .topbar-divider { width: 1px; height: 20px; background: var(--border); }
 .topbar-context { color: var(--muted); }
 .section-nav { display: flex; gap: 4px; margin-left: auto; }
-.section-nav button { background: transparent; border: 1px solid transparent; border-radius: 7px; color: var(--muted); padding: 7px 12px; font-weight: 650; white-space: nowrap; }
-.section-nav button:hover { background: var(--page); }
+.section-nav :is(button, a) { background: transparent; border: 1px solid transparent; border-radius: 7px; color: var(--muted); padding: 7px 12px; font-weight: 650; white-space: nowrap; text-decoration: none; }
+.section-nav :is(button, a):hover { background: var(--page); }
 .section-nav button[aria-pressed="true"] { background: var(--mint); color: var(--teal); border-color: #cbe6dc; }
 .workflow-page { background: var(--page); padding: 30px clamp(16px, 3vw, 42px) 42px; }
 .workflow-inner { max-width: 1320px; margin-inline: auto; }
@@ -269,6 +269,7 @@ main { padding: 25px 24px 36px; min-width: 0; }
         <button type="button" data-workspace-view="workflow" aria-controls="workflow-view" aria-pressed="true">Workflow</button>
         <button type="button" data-workspace-view="schema" aria-controls="schema-view" aria-pressed="false">Schema</button>
         <button type="button" data-workspace-view="plan" aria-controls="plan-view" aria-pressed="false">Build plan</button>
+        <a href="/admin/tables" id="live-tables-link" hidden>Data tables</a>
       </nav>
     </div>
   </header>
@@ -569,6 +570,8 @@ title | text
 phase | text | ? | Source stage, such as tender or award.
 review_status | text | | Draft, in review, or approved.
 scope_notes | text | ? | BOM-wide preamble or scope summary.
+edit_revision | integer | | Changes when the draft editor saves a revision.
+draft_currency | char(3) | ? | Currency detected in the source or assigned to the draft.
 `);
 define("bom_source", "sources", "Connects a BOM version to its original schedule, companion printout, or annex.", `
 bom_version_id | uuid | PK bom_version.id
@@ -592,7 +595,7 @@ line_code | text | ? | Original tender item number, including punctuation and ze
 sort_order | integer
 short_description | text
 long_description | text | ?
-quantity | numeric | ? | Original BOM quantity. Zero is an explicit value.
+quantity | numeric | ? | Draft BOM quantity. Zero is an explicit value. Original values remain in source evidence.
 unit_code | text | ? | Normalized unit of measure, such as m².
 raw_unit | text | ? | Unit as shown in the source.
 pricing_basis | text | | Unit rate or lump sum.
@@ -601,6 +604,7 @@ alternative_for_line_id | uuid | ? bom_line.id | Base line in the same version f
 classification_status | text | | Pending or reviewed split into material and activity items.
 source_document_id | uuid | ? source_document.id
 source_locator | jsonb | ? | PDF page and region, XML path, legacy record, or Word paragraph.
+draft_unit_price | numeric | ? | Rate used in draft exports.
 `);
 define("bom_line_distribution", "bom", "Records the share of a BOM line assigned to one project area so the work can be split across rooms.", `
 id | uuid | PK
@@ -1440,6 +1444,10 @@ for (const button of flowButtons) {
   });
 }
 showFlowStep("6");
+if (location.protocol.startsWith("http") && location.pathname === "/schema-dashboard.html") {
+  document.getElementById("live-tables-link").hidden = false;
+}
+if (location.hash === "#schema") document.querySelector('[data-workspace-view="schema"]').click();
 </script>
 </body>
 </html>
