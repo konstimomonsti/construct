@@ -283,6 +283,9 @@ def from_import(result: Any, *, document: SourceDocument | None = None, boq_inde
         records = [r for r in records if r.payload.get("boq_index", boq_index) == boq_index]
     boq_title = next((r.payload.get("boq_title") for r in records if r.kind == "boq_header"), None)
     metadata = getattr(result, "metadata", {}) or {}
+    if ocr_pages := metadata.get("ocr_pages"):
+        document = document.model_copy(update={"ocr_pages": ocr_pages})
+
 
     sections, section_keys = _sections_from_records(records, doc_key)
     lines = _lines_from_records(records, doc_key, sections, section_keys)

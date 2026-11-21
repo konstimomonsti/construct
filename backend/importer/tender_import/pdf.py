@@ -6,8 +6,9 @@ import os
 from pathlib import Path
 import re
 import shutil
-from subprocess import run
+from subprocess import TimeoutExpired, run
 from tempfile import TemporaryDirectory
+import time
 import warnings
 
 from pypdf import PdfReader
@@ -31,6 +32,7 @@ _MARKER_LINE = re.compile(r"^\*{2,}\s*(?:Bedarfs|Wahl|Grund|Eventual|Alternativ)
 _QUANTITY = re.compile(
     rf"^(?P<quantity>{_NUMBER})\s+(?P<unit>\S+)(?P<tail>(?:(?:[ \t]{{2,}}|[ \t]+(?=\.{{3,}}))\S.*)?)$"
 )
+_OCR_BLANK_UNIT = re.compile(rf"^({_NUMBER})[ \t]{{2,}}({_NUMBER})[ \t]{{2,}}({_NUMBER})$")
 _JOINED_QUANTITY = re.compile(rf"^(?P<quantity>{_NUMBER})(?P<unit>[^\s\d]\S*)(?P<tail>[ \t]+EP\b.*)$", re.I)
 _UNIT = re.compile(r"^(?:m(?:[²³23])?(?:wo|d)?|cm[²23]?|mm|km[²2]?|kg|t|to|l|kwh|st(?:k|ck)?\.?|stwo|satz|set|pau|psch\.?|h|std\.?|wo\.?|mt\.?|mo\.?|d|j(?:r|ahre?)|lfm)$", re.I)
 _TOTAL = re.compile(rf"^\s*(?P<label>(?:Summe|Gesamt(?:betrag|summe|preis)|Angebotssumme|Übertrag|MwSt|USt|zzgl\. Mehrwertsteuer|Mehrwertsteuer|Nachlass)[^\n]*?)[ \t]{{2,}}(?:EUR\s+)?(?P<amount>{_NUMBER})\s*(?:EUR|€)?\s*$", re.I)
@@ -147,6 +149,64 @@ def split_layout(raw: bytes) -> list[str]:
     return pages
 
 
+OCR_PAGE_LIMIT = 8
+OCR_SECONDS = 60
+OCR_RASTER_SIZE = 2400
+
+
+def _ocr_layout(source, pages, result):
+    """Use optional local OCR on a bounded set of raster-only pages."""
+    if not pages or os.environ.get("PDF_OCR", "").strip().casefold() in {"0", "off", "false"}:
+        return {}
+    tesseract = shutil.which("tesseract")
+    if not tesseract:
+        return {}
+    deadline = time.monotonic() + OCR_SECONDS
+
+    def execute(arguments, *, data=None):
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise TimeoutExpired(arguments, OCR_SECONDS)
+        completed = run(arguments, input=data, capture_output=True, timeout=min(remaining, 20), check=False,
+                        env={**os.environ, "OMP_THREAD_LIMIT": "1"})
+        if completed.returncode:
+            raise ValueError("Local OCR tool did not complete")
+        return completed.stdout
+
+    try:
+        languages = set(execute([tesseract, "--list-langs"]).decode("utf-8", errors="replace").splitlines())
+        language = "+".join(name for name in ("deu", "eng") if name in languages)
+        rasterizer = poppler_program("pdftoppm")
+        text_extractor = poppler_program("pdftotext")
+    except (OSError, ValueError, TimeoutExpired):
+        return {}
+    if not language:
+        return {}
+
+    found = {}
+    for number in pages[:OCR_PAGE_LIMIT]:
+        try:
+            image = execute([rasterizer, "-f", str(number), "-l", str(number), "-scale-to",
+                             str(OCR_RASTER_SIZE), "-singlefile", "-png", str(source)])
+            searchable = execute([tesseract, "stdin", "stdout", "-l", language, "--dpi", "240", "pdf"],
+                                 data=image)
+            layouts = split_layout(execute([text_extractor, "-enc", "UTF-8", "-layout", "-", "-"],
+                                           data=searchable))
+        except TimeoutExpired:
+            result.warn("pdf_ocr_incomplete", {"page": number}, "The local OCR time limit was reached.")
+            break
+        except (OSError, ValueError):
+            result.warn("pdf_ocr_incomplete", {"page": number}, "The page could not be read by local OCR.")
+            continue
+        if len(layouts) == 1 and layouts[0].strip():
+            found[number] = layouts[0]
+            result.add("pdf_ocr_page", {"page": number, "ocr_pages": [number]}, layout=layouts[0], language=language)
+    if len(pages) > OCR_PAGE_LIMIT:
+        result.warn("pdf_ocr_page_limit", {"page": pages[OCR_PAGE_LIMIT]},
+                    f"Only the first {OCR_PAGE_LIMIT} raster-only pages are eligible for local OCR in one import.")
+    return found
+
+
 def pdf(data: bytes) -> Result:
     result = Result("pdf", needs_review=True)
     with TemporaryDirectory() as directory:
@@ -171,6 +231,7 @@ def pdf(data: bytes) -> Result:
         except (PdfReadError, ValueError, TypeError, KeyError) as exc:
             structures = []
             result.warn("pdf_structure_review", {"part": "catalog"}, str(exc))
+        raster_pages = set()
         for program, args, record_kind in [
             ("pdfinfo", ("-isodates", "-box", source), "pdf_info"),
             ("pdfinfo", ("-meta", source), "pdf_xmp"),
@@ -180,24 +241,33 @@ def pdf(data: bytes) -> Result:
             try:
                 content = poppler(program, *args).decode("utf-8", errors="replace")
                 result.add(record_kind, {"part": record_kind}, text=content)
+                if record_kind == "pdf_image_inventory":
+                    raster_pages = {int(page) for page in re.findall(r"^\s*(\d+)\s+\d+\s+image\b", content, re.M)}
             except ValueError as exc:
                 result.warn("pdf_inventory_review", {"part": record_kind}, str(exc))
 
-    page_count = max(len(layout), len(bbox_pages), len(structures))
-    result.metadata["pages"] = page_count
-    if len(layout) != len(bbox_pages) or (structures and len(structures) != page_count):
-        result.warn("pdf_page_count_mismatch", {"part": "document"}, "PDF representations returned different page counts")
-    for number in range(1, page_count + 1):
-        raw_page = layout[number - 1] if number <= len(layout) else ""
-        if not raw_page.strip():
-            result.warn("page_has_no_extractable_text", {"page": number}, "Inspect the page image or run OCR")
-        result.add(
-            "pdf_page", {"page": number}, layout=raw_page,
-            word_boxes=xml_element(bbox_pages[number - 1]) if number <= len(bbox_pages) else None,
-            structure=structures[number - 1] if number <= len(structures) else None,
-        )
-    if not extract_workspace_attachment(data, result):
-        extract_pdf_tables(layout, result)
+        page_count = max(len(layout), len(bbox_pages), len(structures))
+        result.metadata["pages"] = page_count
+        if len(layout) != len(bbox_pages) or (structures and len(structures) != page_count):
+            result.warn("pdf_page_count_mismatch", {"part": "document"}, "PDF representations returned different page counts")
+        native = [layout[index] if index < len(layout) else "" for index in range(page_count)]
+        for number, raw_page in enumerate(native, 1):
+            result.add(
+                "pdf_page", {"page": number}, layout=raw_page,
+                word_boxes=xml_element(bbox_pages[number - 1]) if number <= len(bbox_pages) else None,
+                structure=structures[number - 1] if number <= len(structures) else None,
+            )
+        if not extract_workspace_attachment(data, result):
+            scanned = [number for number, raw_page in enumerate(native, 1)
+                       if not raw_page.strip() and number in raster_pages]
+            ocr = _ocr_layout(source, scanned, result)
+            if ocr:
+                result.metadata["ocr_pages"] = sorted(ocr)
+            for number, raw_page in enumerate(native, 1):
+                if number not in ocr and not raw_page.strip():
+                    result.warn("page_has_no_extractable_text", {"page": number}, "Inspect the page image or run OCR")
+            extract_pdf_tables([ocr.get(number, raw_page) for number, raw_page in enumerate(native, 1)],
+                               result, ocr_pages=ocr.keys())
     return result
 
 
@@ -237,8 +307,15 @@ def extract_workspace_attachment(data, result):
     return True
 
 
-def read_quantity(body):
+def read_quantity(body, *, ocr=False):
     stripped = body.strip()
+    if ocr and (missing_unit := _OCR_BLANK_UNIT.fullmatch(stripped)):
+        quantity, *prices = missing_unit.groups()
+        return {
+            "quantity_raw": quantity, "quantity": german_decimal(quantity), "unit": None,
+            "unit_price": german_decimal(prices[0]), "line_amount": german_decimal(prices[1]),
+            "price_cells_raw": prices, "unit_price_only": False,
+        }
     match = _QUANTITY.fullmatch(stripped) or _JOINED_QUANTITY.fullmatch(stripped)
     if not match:
         return None
@@ -357,7 +434,7 @@ def detached_note_title(line, following):
     return False
 
 
-def extract_pdf_tables(pages, result):
+def extract_pdf_tables(pages, result, *, ocr_pages=()):
     current = None
     note = None
     section_paths = []
@@ -368,6 +445,9 @@ def extract_pdf_tables(pages, result):
         if current is None:
             return
         locator = current.pop("locator")
+        pages_read_by_ocr = sorted(page for page in ocr_pages if locator["page"] <= page <= locator["end_page"])
+        if pages_read_by_ocr:
+            locator["ocr_pages"] = pages_read_by_ocr
         body = "\n".join(current.pop("description_lines")).strip()
         numbers = current.pop("amounts")
         flags = item_flags(body)
@@ -482,7 +562,10 @@ def extract_pdf_tables(pages, result):
             if current is not None:
                 if raw.strip().startswith(("Nr.)", "in EUR", "Alle Einzelbeträge", "Betrag in EUR")):
                     continue
-                numbers = read_quantity(raw)
+                numbers = read_quantity(
+                    raw, ocr=page_number in ocr_pages
+                    and bool(re.search(r"\bMenge\s+ME\s+Einheitspreis\s+Gesamtbetrag\b", header.string, re.I)),
+                )
                 if numbers and len(raw) - len(raw.lstrip()) >= indent + 5:
                     previous = current["amounts"]
                     if previous is None or quantity_rank(numbers) > quantity_rank(previous):

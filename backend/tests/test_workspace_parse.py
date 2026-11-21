@@ -138,3 +138,73 @@ def test_legacy_xls_upload_keeps_sheet_amounts_and_has_independent_dependency_sc
     assert total["source_locator"] == {"sheet": "Boden", "row": 5}
     assert Decimal(total["evidence"]["difference"]) == Decimal("20")
     assert by_rule["L2.FLOOR.SCREED_NEEDS_EDGE_INSULATION"]["target"]["section_id"] == "S2"
+
+
+def test_mixed_pdf_upload_marks_scanned_positions_and_arithmetic_evidence(tmp_path, monkeypatch):
+    import shutil
+    from subprocess import check_output
+
+    from pypdf import PdfWriter
+
+    from analysis.eval.documents import Item, pdf_file
+    from analysis.eval.scans import rasterize
+    from tender_import.pdf import poppler
+    import workspace_analysis
+
+    try:
+        check_poppler()
+    except (OSError, ValueError) as exc:
+        pytest.skip(str(exc))
+    tesseract = shutil.which("tesseract")
+    if not tesseract:
+        pytest.skip("Local Tesseract is unavailable")
+    languages = check_output([tesseract, "--list-langs"], text=True).splitlines()
+    if not {"deu", "eng"}.intersection(languages):
+        pytest.skip("Install German or English Tesseract data")
+
+    native, original_scan, scanned, combined = (tmp_path / f"{name}.pdf" for name in (
+        "native", "original-scan", "scanned", "combined",
+    ))
+    pdf_file(native, [Item("01.0010", "Kabelkanal liefern", 3, "m")])
+    pdf_file(original_scan, [Item("02.0010", "Leerrohre liefern", 5, "m", amount=85)])
+    rasterize(original_scan, scanned)
+    assert not poppler("pdftotext", scanned, "-").strip()
+
+    pdf = PdfWriter()
+    pdf.append(native)
+    pdf.append(scanned)
+    pdf.write(combined)
+    data = combined.read_bytes()
+    monkeypatch.setenv("PDF_OCR", "off")
+    partial = preview(combined.name, data)
+    assert [position["oz"] for position in partial["positions"]] == ["01.0010"]
+    assert partial["warnings"] == ["Inspect the page image or run OCR"]
+
+    monkeypatch.delenv("PDF_OCR")
+    source = read_document(combined.name, data).snapshots[0]
+    assert source.project.source_document.ocr_pages == [2]
+    assert [line.code for line in source.lines] == ["01.0010", "02.0010"]
+    assert "ocr_pages" not in source.lines[0].source_locator
+    assert source.lines[1].source_locator["ocr_pages"] == [2]
+
+    document = {**preview(combined.name, data), "fileName": combined.name, "source": {"kind": "pdf"}}
+    monkeypatch.setenv("ANALYSIS_L3_PROVIDER", "none")
+    monkeypatch.setattr(workspace_analysis, "_source", lambda *_: source)
+    report = workspace_analysis.run(_uploaded_input(document), object(), filename=combined.name, original_upload=True)
+    assert report["used_source"]
+    assert "OCR on page(s) 2" in report["source_notice"]
+    finding = next(f for f in report["findings"] if f["rule_id"] == "L1.ARITH.LINE_AMOUNT")
+    assert finding["source_locator"]["page"] == 2
+    assert finding["source_locator"]["ocr_pages"] == [2]
+    assert finding["evidence"]["stated_amount"] == "85.00"
+    assert finding["evidence"]["expected_amount"] == "50.00"
+
+
+def test_ocr_preserves_quantity_and_prices_when_the_unit_column_is_empty():
+    from tender_import.pdf import read_quantity
+
+    row = "5,000      10,00    50,00"
+    assert read_quantity(row) is None
+    extracted = read_quantity(row, ocr=True)
+    assert (extracted["quantity"], extracted["unit"]) == ("5.000", None)
+    assert (extracted["unit_price"], extracted["line_amount"]) == ("10.00", "50.00")

@@ -128,7 +128,7 @@ The same PostgreSQL replay also ran Layers 1 through 3 on JSON uploads converted
 
 ## Ordinary PDF and Word workspace upload replay
 
-The workspace picker sends documents without embedded workspace data through the preview endpoint. Text-based tender PDFs and Word documents with recognized item tables or numbered position paragraphs produce editable rows. The upload worker checks the original file and retains the source position IDs, written rates and amounts, and page, table row, or paragraph references. Documents without identifiable positions can still be attached. Image-only PDFs require OCR before this path can extract their items.
+The workspace picker sends documents without embedded workspace data through the preview endpoint. Text-based tender PDFs and Word documents with recognized item tables or numbered position paragraphs produce editable rows. The upload worker checks the original file and retains the source position IDs, written rates and amounts, and page, table row, or paragraph references. Documents without identifiable positions can still be attached. Image-only pages can use the optional local OCR path described below.
 
 The labelled replay used six ordinary PDF files and six ordinary Word files without embedded workspace payloads. Layers 1 and 2 caught all ten planted defects with guidance. The two clean controls produced zero findings. The defects cover a blank quantity, a blank unit, an explicit zero, a wrong written line amount, and a missing edge-insulation position. The PDF with an omitted measurement line also raised an extraction review note. The amount test links the written €85.00 and calculated €50.00 to the affected row or page.
 
@@ -144,6 +144,25 @@ WORKSPACE_PARSE_ORIGIN=http://127.0.0.1:8080 \
   frontend/node_modules/.bin/tsx frontend/tests/risk-upload-fixtures.ts \
   "$fixture_dir"/*.pdf "$fixture_dir"/*.docx \
   data/tenders/LV_18_Estrich.pdf data/tenders/LV-Positionen.docx \
+  | python -m analysis.eval.uploads
+```
+
+### Scanned PDF replay
+
+Poppler and local Tesseract can transcribe raster pages that have no extractable text. Tesseract uses the installed German and English language data. BillBuild tries at most eight raster pages within a 60-second OCR budget per import. Set `PDF_OCR=off` to skip transcription. The assessment marks OCR page numbers on findings linked to transcribed positions and asks the reviewer to check quantities and specifications against the original scan. Embedded structured BOM data takes precedence when present. [Tesseract language data](https://tesseract-ocr.github.io/tessdoc/Data-Files.html)
+
+The six image-only copies of the ordinary PDF suite linked all 35 positions. Layers 1 and 2 caught all five planted defects with guidance. The clean control produced four false alarms. OCR misread three square-metre units, and the unreadable area unit also triggered a floor-covering dependency warning. A separate two-file replay caught the copper versus titanium-zinc contradiction with local Qwen 2.5 7B, linked the finding to OCR page 1, and left the clean counterpart without findings. These rasterized copies exercise the scan workflow. Independently labelled scans of different quality are still needed to measure OCR-induced errors.
+
+Run with the local preview server and replay database. The replay returns a nonzero status when the clean scan triggers false alarms.
+
+```sh
+export PYTHONPATH=backend:backend/importer
+native_dir=$(mktemp -d)
+scan_dir=$(mktemp -d)
+python -m analysis.eval.documents "$native_dir"
+python -m analysis.eval.scans "$native_dir" "$scan_dir"
+WORKSPACE_PARSE_ORIGIN=http://127.0.0.1:8080 \
+  frontend/node_modules/.bin/tsx frontend/tests/risk-upload-fixtures.ts "$scan_dir"/*.pdf \
   | python -m analysis.eval.uploads
 ```
 

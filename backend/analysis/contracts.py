@@ -30,6 +30,7 @@ class SourceDocument(_Model):
     id: str | None = None
     filename: str | None = None
     format: str | None = None
+    ocr_pages: list[int] = Field(default_factory=list)
 
 
 class ProjectProfile(_Model):

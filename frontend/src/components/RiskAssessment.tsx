@@ -38,7 +38,7 @@ function FindingEvidence({ finding }: { finding: Finding }) {
   const requirement = finding.rule_id === 'L1.PRODUCT.DECLARED_PROPERTY' ? finding.evidence?.requirement : undefined
   const extracted = Object.entries(finding.evidence?.extracted ?? {})
   const locator = finding.source_locator
-  const source = locator?.page ? `Source page ${locator.page}`
+  const source = locator?.page ? `Source page ${locator.page}${locator.ocr_pages?.length ? ` · OCR on page ${locator.ocr_pages.join(', ')}` : ''}`
     : locator?.table && locator.row ? `Table ${locator.table} · Row ${locator.row}`
     : locator?.paragraph ? `Source paragraph ${locator.paragraph}`
     : locator?.row ? (locator.sheet ? `${locator.sheet} · Row ${locator.row}` : `Source row ${locator.row}`)

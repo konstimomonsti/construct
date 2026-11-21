@@ -186,6 +186,9 @@ def run(payload, connection=None, workspace=None, list_id=None, file_id=None, fi
                     used_source = _attach_source(snapshot, source, original_codes)
                 if used_source and source.project.source_document.format in {"xls", "pdf", "docx"}:
                     snapshot.import_warnings = source.import_warnings
+            if used_source and (pages := source.project.source_document.ocr_pages):
+                listed = ", ".join(map(str, pages))
+                source_notice = f"Read by OCR on page(s) {listed}. Verify transcribed quantities and specifications against the original."
             snapshot = snapshot.with_hash()
     evidence_files = add_to_snapshot(connection, workspace, list_id, snapshot) if connection is not None and list_id else []
     if evidence_files:
