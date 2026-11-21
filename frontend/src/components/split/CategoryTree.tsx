@@ -75,6 +75,7 @@ export interface CategoryTreeProps {
   className?: string
   /** hide the aggregated priced totals */
   hideTotals?: boolean
+  showCategoryCode?: boolean
 }
 
 const ck = (n: CategoryNode) => `c:${n.oz}`
@@ -96,7 +97,7 @@ function Box({ state }: { state: CheckState }) {
 }
 
 export function CategoryTree(props: CategoryTreeProps) {
-  const { tree, stats, positions, expanded, onToggleExpand, mode, label, checkState, onToggle, selectedOz, onPick, onRename, onDropPositions, dragIds, className, hideTotals } = props
+  const { tree, stats, positions, expanded, onToggleExpand, mode, label, checkState, onToggle, selectedOz, onPick, onRename, onDropPositions, dragIds, className, hideTotals, showCategoryCode = true } = props
   const q = (props.query ?? '').trim().toLowerCase()
   const root = useRef<HTMLDivElement>(null)
   const [focusKey, setFocusKey] = useState<string | null>(null)
@@ -242,7 +243,7 @@ export function CategoryTree(props: CategoryTreeProps) {
             aria-expanded={isCat && r.expandable ? r.isOpen : undefined}
             aria-selected={mode === 'pick' ? selected : undefined}
             aria-checked={mode === 'check' ? (state === 'mixed' ? 'mixed' : state === 'on') : undefined}
-            aria-label={isCat ? `${n!.oz} ${n!.label}, ${st?.count ?? 0} positions` : `${r.pos!.oz} ${r.pos!.short}`}
+            aria-label={isCat ? `${showCategoryCode ? n!.oz + ' ' : ''}${n!.label}, ${st?.count ?? 0} positions` : `${r.pos!.oz} ${r.pos!.short}`}
             tabIndex={isActive ? 0 : -1}
             draggable={!isCat && !!dragIds}
             onDragStart={(e) => {
@@ -290,7 +291,7 @@ export function CategoryTree(props: CategoryTreeProps) {
               <span className="size-5 shrink-0" />
             )}
             {mode === 'check' ? <Box state={state} /> : selected ? <Icon name="radio_button_checked" size={16} className="text-brand-700" /> : isCat ? <Icon name="radio_button_unchecked" size={16} className="text-slate-300" /> : null}
-            <span className="shrink-0 font-mono text-xs text-slate-500">{isCat ? n!.oz : r.pos!.oz}</span>
+            {(!isCat || showCategoryCode) && <span className="shrink-0 font-mono text-xs text-slate-500">{isCat ? n!.oz : r.pos!.oz}</span>}
             {isCat && renaming === n!.oz ? (
               <input
                 data-rename

@@ -277,7 +277,7 @@ const EMPTY = new Set<string>()
 const SEVERITY_RANK: Record<Severity, number> = { error: 0, warning: 1, info: 2 }
 
 export function LedgerTable({
-  listId, rows, tree, showEmpty, selected, setSelected, focusId, onOpen, onMove, editedIds, qtyEdited, upEdited, risks, pending, onConfirmPrice, sortActive, selectMode, sectionsOpen = false,
+  listId, rows, tree, byOz, showEmpty, selected, setSelected, focusId, onOpen, onMove, editedIds, qtyEdited, upEdited, risks, pending, onConfirmPrice, sortActive, selectMode, sectionsOpen = false,
 }: {
   /** catalogue prices waiting for confirmation, by position id */
   pending?: ReadonlyMap<string, PriceSuggestion>
@@ -286,6 +286,7 @@ export function LedgerTable({
   sectionsOpen?: boolean
   /** category tree; rows are grouped under it unless a sort is active */
   tree: CategoryNode[]
+  byOz: boolean
   /** show categories with no positions (only when nothing is filtered) */
   showEmpty: boolean
   /** touch layouts hide the checkboxes until the user turns on selection */
@@ -469,7 +470,7 @@ Einheitspreis (€)
                         <span className="flex w-10 shrink-0 justify-center pl-2 max-lg:w-7 max-lg:justify-start max-lg:pl-0">
                           <Icon name="chevron_right" size={18} className={clsx('text-slate-600 transition-transform', open && 'rotate-90')} />
                         </span>
-                        <span className={clsx('w-[88px] shrink-0 px-2 font-mono text-[13px] tabular-nums max-lg:w-auto max-lg:pr-2 max-lg:pl-0', top ? 'font-semibold text-slate-900' : 'text-slate-700')}>{cat.oz}</span>
+                        {!byOz && <span className={clsx('w-[88px] shrink-0 px-2 font-mono text-[13px] tabular-nums max-lg:w-auto max-lg:pr-2 max-lg:pl-0', top ? 'font-semibold text-slate-900' : 'text-slate-700')}>{cat.oz}</span>}
                         <span className="flex min-w-0 flex-1 items-baseline gap-2.5 px-2 max-lg:flex-col max-lg:items-start max-lg:gap-0 max-lg:pl-0">
                           <span lang="de" className={clsx('min-w-0 hyphens-auto max-lg:line-clamp-2 max-lg:break-words lg:line-clamp-2 2xl:truncate', top ? 'text-[15px] font-bold text-slate-900' : 'text-sm font-semibold text-slate-900')}>{cat.label || cat.oz}</span>
                           {!open && st && (
