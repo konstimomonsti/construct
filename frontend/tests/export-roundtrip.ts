@@ -1,4 +1,4 @@
-// npx tsx tests/export-roundtrip.ts [pdf]   — export verification (see docs in the brief)
+// npm test [-- pdf] — export verification (requires Poppler)
 import { readFileSync, readdirSync, writeFileSync, mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { execFileSync } from 'node:child_process'
@@ -14,7 +14,7 @@ const root = decodeURIComponent(new URL('..', import.meta.url).pathname).replace
 const lists = readdirSync(join(root, 'public/data/lists')).map((f) => JSON.parse(readFileSync(join(root, 'public/data/lists', f), 'utf8')) as ListDoc)
 const gaeb = lists.filter((d) => /\.(x83|d83|d84|d86)$/i.test(d.fileName))
 const ws = (t: string) => t.replace(/\s+/g, ' ').trim()
-const orig = (d: ListDoc) => async () => new Uint8Array(readFileSync(join(root, 'public/files', d.fileName)))
+const orig = (d: ListDoc) => async () => new Uint8Array(readFileSync(join(root, '../data/tenders', d.fileName)))
 const layout = (d: ListDoc) => async () => {
   try {
     return JSON.parse(readFileSync(join(root, 'public/data/layout', d.id + '.json'), 'utf8')) as LayoutFile

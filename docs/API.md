@@ -5,8 +5,8 @@ Use relative URLs such as `/api/mvp/workspace` for browser requests.
 
 | Environment | Who serves the frontend | Who serves `/api`, `/admin`, `/healthz` |
 | --- | --- | --- |
-| Production (`compose.prod.yaml`) | Caddy in the `web` container (`/srv`) | Caddy proxies to `backend:8080` |
-| Dev stack (`compose.yaml`, `--profile app`) | the backend, from `FRONTEND_DIR` | the backend, on `127.0.0.1:8080` |
+| Production (`backend/deploy/compose.prod.yaml`) | Caddy in the `web` container (`/srv`) | Caddy proxies to `backend:8080` |
+| Dev stack (`backend/deploy/compose.yaml`, `--profile app`) | the backend, from `FRONTEND_DIR` | the backend, on `127.0.0.1:8080` |
 | Frontend dev server (Vite etc.) | the dev server | the dev server proxies `/api` and `/admin` to `127.0.0.1:8080` |
 
 ## Conventions
@@ -183,7 +183,7 @@ catalogue links and keep different units and scopes separate.
 
 ## Analysis (plausibility checks)
 
-These endpoints run the `analysis/` pipeline on a stored BOM:
+These endpoints run the `backend/analysis/` pipeline on a stored BOM:
 
 - Layer 1: arithmetic, completeness, pricing and consistency checks.
 - Layer 2: GAEB dependency rules, such as concrete that needs formwork.

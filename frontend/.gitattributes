@@ -1,4 +1,3 @@
-public/files/** -text
 public/data/** -text
 *.D8* -text
 *.X8* -text

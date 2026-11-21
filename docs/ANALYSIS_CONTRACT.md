@@ -1,6 +1,6 @@
 # Analysis pipeline: shared contract (v0.1)
 
-Implemented in `analysis/` on branch `analysis/layer1-contract`.
+Implemented in `backend/analysis/` on branch `analysis/layer1-contract`.
 
 Context document for everyone building an analysis layer. Paste it into prompts as-is.
 
@@ -8,7 +8,7 @@ Context document for everyone building an analysis layer. Paste it into prompts 
 
 ```
 upload (GAEB X83/D83/D84/D86, PDF, DOCX)
-  -> importer/tender_import        raw evidence in source_extract
+  -> backend/importer/tender_import        raw evidence in source_extract
   -> draft.py                       normalized BOM: bom_version / bom_section / bom_line
   -> pricing phase                  catalogue + reference prices, AI search for the rest
   -> ADAPTER                        builds one AnalysisInput object        <- this contract
@@ -25,7 +25,7 @@ same shape. A layer never reads the database and never changes the input.
 ## 2. Code layout and ownership
 
 ```
-analysis/
+backend/analysis/
   contracts.py      shared Pydantic models (this document). Changes need both owners' OK.
   units.py          shared canonical unit vocabulary + dimension of each unit.
   registry.py       shared @rule decorator, RuleContext.finding(), run_layer().
@@ -35,7 +35,7 @@ analysis/
   layer1/           deterministic rules                                             (layer 1 owner)
   layer2/           dependency rules + knowledge base (rooms, trades)               (layer 2 owner)
   layer3/           LLM checks                                                      (later)
-  tests/fixtures/   AnalysisInput JSON files, real GAEB files from Data/ plus injected errors
+  tests/fixtures/   AnalysisInput JSON files, real GAEB files from data/tenders/ plus injected errors
 db/migrations/009_analysis.sql   analysis_run, analysis_finding, line_pricing        (layer 1 owner)
 ```
 
@@ -52,7 +52,7 @@ run(input: AnalysisInput, prior_findings: list[Finding], errors: list[str]) -> l
 `errors` collects rules that crashed. One broken rule never stops the others. The runner skips a
 layer package that doesn't exist yet and notes it in `AnalysisResult.errors`.
 
-Writing a rule (`analysis/registry.py`):
+Writing a rule (`backend/analysis/registry.py`):
 
 ```python
 from analysis.registry import rule
@@ -66,16 +66,17 @@ def washbasin_pipes(ctx):              # ctx.input, ctx.prior_findings
 
 `ctx.finding(...)` fills in `id`, `rule_id`, `layer`, `category`, default `severity`, `scope`,
 `target` and `source_locator`. The layer's `__init__.py` imports its rule modules and
-calls `registry.run_layer(N, input, prior_findings, errors)`. See `analysis/layer1/__init__.py`.
+calls `registry.run_layer(N, input, prior_findings, errors)`. See `backend/analysis/layer1/__init__.py`.
 
-Command line:
+From the repository root, install the analysis package with `python -m pip install -e "./backend[test]"`.
+Then run:
 
 ```
-python -m analysis input "Data/file.X83" --out input.json   # AnalysisInput as JSON
-python -m analysis run   "Data/file.X83" --layers 1,2       # AnalysisResult as JSON
+python -m analysis input "data/tenders/file.X83" --out input.json   # AnalysisInput as JSON
+python -m analysis run   "data/tenders/file.X83" --layers 1,2       # AnalysisResult as JSON
 python -m analysis run   input.json                          # same, from a fixture
 python -m analysis rules                                     # every registered rule
-python -m pytest analysis/tests
+python -m pytest backend/analysis/tests
 ```
 
 - Layer 1 gets `prior_findings = []`.
@@ -309,8 +310,8 @@ An unknown unit keeps its raw text and gets dimension `unknown`. That's a layer 
 
 ## 7. Layer 1 rule catalogue
 
-Implemented in `analysis/layer1/` (`completeness.py`, `consistency.py`, `arithmetic.py`, `pricing.py`).
-Thresholds are in `analysis/layer1/common.py` (`Thresholds`). `python -m analysis rules` lists them all.
+Implemented in `backend/analysis/layer1/` (`completeness.py`, `consistency.py`, `arithmetic.py`, `pricing.py`).
+Thresholds are in `backend/analysis/layer1/common.py` (`Thresholds`). `python -m analysis rules` lists them all.
 
 Severity depends on the GAEB phase where it makes sense: in a tender (83) the bidder blanks are
 expected (info), while in a bid or award (84/86) they're a defect (warning).
@@ -352,7 +353,7 @@ expected (info), while in a bid or award (84/86) they're a defect (warning).
 | `L1.PRICE.STALE` | info | price older than 3 years | - |
 | `L1.IMPORT.WARNING` | warning | importer could not read part of the file | - |
 
-### What the real files in `Data/` show
+### What the real files in `data/tenders/` show
 
 | File | Findings |
 |---|---|

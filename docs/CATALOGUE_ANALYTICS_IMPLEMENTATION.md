@@ -22,9 +22,9 @@ This plan uses “inventory” to mean the existing materials/product catalogue.
 | `product_price` | Dated commercial information attached to products |
 | `material_group` | Existing hierarchy for material organization |
 | `catalogue_source_line` | Source evidence from the Challenge A catalogue import |
-| `importer/tender_import/challenge_catalogue.py` | Keyword, category and companion-document logic to review for reuse |
-| `analysis/units.py` | Canonical units and supported conversions |
-| `analysis/layer3/provider.py` | Existing provider abstraction to assess for reuse |
+| `backend/importer/tender_import/challenge_catalogue.py` | Keyword, category and companion-document logic to review for reuse |
+| `backend/analysis/units.py` | Canonical units and supported conversions |
+| `backend/analysis/layer3/provider.py` | Existing provider abstraction to assess for reuse |
 
 The current upload path parses documents and returns validation findings. It does not invoke a general catalogue matching service. The Challenge A importer contains dataset-specific filenames and overrides, which need to be isolated when extracting reusable matching logic.
 
@@ -175,6 +175,6 @@ Use one shared service for CLI and application callers. Reuse existing unit logi
 
 Track rule precision, rule coverage, resolution reuse rate, provider calls and usage, LLM suggestion acceptance, unresolved coverage and grouping errors. Retain a held-out set that is independent of rule construction. The first release gate is a complete, reviewed pipe-family workflow with demonstrated persistence and zero repeat calls for saved identical identification requests.
 
-Run `python -m pytest -q -s analysis/tests/test_catalogue_rules.py` for the labelled pilot and held-out metrics. To exercise the workflow with PostgreSQL, migrate a disposable PostgreSQL 18 database, set `CATALOGUE_TEST_DSN` to its application-role connection string, and run `python -m pytest -q analysis/tests/test_catalogue_db.py`. The integration suite writes fixtures and uses a fake provider to verify response persistence, concurrent reservation, retries, review corrections, pending product creation, and grouping.
+Run `python -m pytest -q -s backend/analysis/tests/test_catalogue_rules.py` for the labelled pilot and held-out metrics. To exercise the workflow with PostgreSQL, migrate a disposable PostgreSQL 18 database, set `CATALOGUE_TEST_DSN` to its application-role connection string, and run `python -m pytest -q backend/analysis/tests/test_catalogue_db.py`. The integration suite writes fixtures and uses a fake provider to verify response persistence, concurrent reservation, retries, review corrections, pending product creation, and grouping.
 
 The pilot uses explicitly labelled element quantities when available and the BOM line quantity when a single supplied element can be identified. Multi-element positions with a shared quantity stay visible with unknown per-element quantities. Source context is project-scoped, and an expired worker lease stays visible as uncertain until reconciled or explicitly retried. Use `catalogue history` to inspect saved responses, available provider request IDs and usage, and superseded decisions.

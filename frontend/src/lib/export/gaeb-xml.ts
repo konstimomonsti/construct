@@ -1,8 +1,8 @@
 /**
  * GAEB DA XML writer (3.2 and 2004-07/3.1) and in-place patcher.
  *
- * Generation mirrors the notation found in ../data/8209.003_Leistungsverzeichnis_leer.X83 (3.2, compact)
- * and ../data/501-24-01_GAEB-XML_sas.x83 (2004, indented). Patching works on the original text
+ * Generation mirrors the notation found in ../data/tenders/8209.003_Leistungsverzeichnis_leer.X83 (3.2, compact)
+ * and ../data/tenders/501-24-01_GAEB-XML_sas.x83 (2004, indented). Patching works on the original text
  * (string splicing, no re-serialisation) so every untouched byte stays identical.
  */
 import type { ListDoc, Position } from '../types'

@@ -1,6 +1,6 @@
 # GAEB dependency validator
 
-Python implementation of **layer 2** from `ANALYSIS_CONTRACT.md`: the five trade rule groups from `gaeb_dependency_validator_spec.md` plus the ten groups from `NEXT_FEATURES_IMPLEMENTATION_PLAN.md` §2.4 (15 groups, 46 checks).
+This Python implementation of [layer 2](ANALYSIS_CONTRACT.md) includes 15 trade groups and 46 checks. Section 2.4 of the [implementation plan](archive/NEXT_FEATURES_IMPLEMENTATION_PLAN.md) describes the ten groups added after the original five.
 
 The checker consumes **already parsed JSON**. It returns contract-shaped `Finding` objects and optional `add_line` proposals for human review. It never edits the BoQ or accesses a database. Raw GAEB/PDF extraction, pricing, layer 1, layer 3, and applying accepted fixes belong to the surrounding pipeline. Layer 2 registers all 46 checks with the existing shared registry without replacing shared models, units, adapters, or the runner.
 
@@ -10,13 +10,13 @@ Python 3.10 or newer is required. Set up a virtual environment from the reposito
 
 ```powershell
 python -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe -m pip install -e "./backend[test]"
 ```
 
 Run the included multi-trade example:
 
 ```powershell
-.\.venv\Scripts\python.exe -m analysis.layer2 examples/items.json --scope trade --format table
+.\.venv\Scripts\python.exe -m analysis.layer2 data/examples/items.json --scope trade --format table
 ```
 
 This fixture deliberately produces **8 findings** (6 warnings, 2 info), covering the five original trade groups. Write the complete contract JSON report for your own file with:
@@ -29,29 +29,29 @@ Other useful commands:
 
 ```powershell
 # Room distributions: one shortage in Office B.
-.\.venv\Scripts\python.exe -m analysis.layer2 examples/analysis_input.json --format table
+.\.venv\Scripts\python.exe -m analysis.layer2 data/examples/analysis_input.json --format table
 
 # Set a 5% allowable shortage; 0.05 is a fraction, not the number 5.
-.\.venv\Scripts\python.exe -m analysis.layer2 examples/items.json --scope trade --tolerance 0.05
+.\.venv\Scripts\python.exe -m analysis.layer2 data/examples/items.json --scope trade --tolerance 0.05
 
 # Metadata for all 46 registered dependency checks.
 .\.venv\Scripts\python.exe -m analysis.layer2 --list-rules
 
 # Exit 1 on warnings/errors, useful in a validation job.
-.\.venv\Scripts\python.exe -m analysis.layer2 examples/items.json --scope trade --fail-on warning
+.\.venv\Scripts\python.exe -m analysis.layer2 data/examples/items.json --scope trade --fail-on warning
 
-# Run all analysis tests (layers 1 and 2), configured in pyproject.toml.
-.\.venv\Scripts\python.exe -m pytest
+# Run the analysis tests.
+.\.venv\Scripts\python.exe -m pytest backend/analysis/tests
 ```
 
 Exit codes: `0` = successful run; `1` = the selected finding threshold was met; `2` = invalid input/configuration or an I/O error. Without `--fail-on`, findings do not change exit code 0. JSON is the default output; `--format table` is a compact console view. The output file must differ from all input/configuration files.
 
-Optionally install the package with `python -m pip install .` to use the `gaeb-check` command instead of `python -m analysis.layer2`.
+The package also provides the `gaeb-check` command.
 
 ## Input formats
 
-1. A complete shared `AnalysisInput` object with `project`, `bom`, `areas`, `sections`, and `lines`. See [examples/analysis_input.json](../examples/analysis_input.json).
-2. A JSON array of the specification's `Item` objects, or `{"items": [...]}`. See [examples/items.json](../examples/items.json).
+1. A complete shared `AnalysisInput` object with `project`, `bom`, `areas`, `sections`, and `lines`. See [data/examples/analysis_input.json](../data/examples/analysis_input.json).
+2. A JSON array of the specification's `Item` objects, or `{"items": [...]}`. See [data/examples/items.json](../data/examples/items.json).
 
 ```json
 [
@@ -96,16 +96,16 @@ Numbers are parsed as `Decimal`, including German decimal commas and grouped for
 | `L2.DOOR.INDUSTRIAL` | sectional, roller, high-speed doors | Safety edge or light barrier (powered doors); drive power supply *(info)* |
 | `L2.WINDOW` | windows, window doors | Window sills *(info)*; installation joint sealing (RAL) |
 
-The ten new groups were written against the real `LV_xx` PDFs in `Data/` (one building split by trade). On them layer 2 now reports:
+The ten new groups were written against the real `LV_xx` PDFs in `data/tenders/` (one building split by trade). On them layer 2 now reports:
 
 - **LV_13 ELT**: no RCD protection and no emergency lighting *(info)*;
 - **LV_19 doors**: steel doors "PZ-Vorgerichtet" with no lock cylinder, and a powered sectional door with no power supply *(info)*;
 - **LV_17 drywall**: 100 m² of W628 shaft wall with no insulation mentioned (warning);
 - **LV_18 screed**: skirting is in another package *(info)*.
 
-LV_14 (12 WCs against 12 seats, frames and flush releases; 288 m of pipe against 288 m of insulation) and LV_08 (tiles) correctly give nothing. The GAEB files in `Data/` give no warnings. The PDFs must be read with Poppler's `pdftotext` (see NEXT_FEATURES_IMPLEMENTATION_PLAN.md §0.1).
+LV_14 (12 WCs against 12 seats, frames and flush releases; 288 m of pipe against 288 m of insulation) and LV_08 (tiles) correctly give nothing. The GAEB files in `data/tenders/` give no warnings. The PDFs must be read with Poppler's `pdftotext` (see NEXT_FEATURES_IMPLEMENTATION_PLAN.md §0.1).
 
-**Triggers** are searched in each line's short text and tags (the long text only when there is no short text), and lines matching the rule's `ExcludeRegex` are never triggers. Long texts mention materials in passing ("Dichtmanschette aus EPDM", "Stützen aus Beton werden bauseits erstellt"), and on the real files in `Data/` that made pipe couplings look like roofs and pipe removals look like concrete jobs. The bundled rules exclude demolition and removal (abbrechen, Rückbau, Demontage, ausbauen, entsorgen), and for concrete also precast parts, pipes, manholes, kerbs, lean or blinding concrete, temporary or rental items and work on existing concrete (Kernbohrung, sägen, Sanierung). Reinforcement is only required for reinforced elements (Stahlbeton, StB, Ortbeton, Bodenplatte), not for `unbewehrt`. Each new group excludes what the real files showed: measurements and recesses ("Messung Estrichfeuchte", "Aussparung … Estrich"), surcharges ("Zul.", "Zulage"), painting on concrete or doors, paving and civil-engineering stone, "Thermische Steckdose" (concrete core activation), reinforcement for luminaires, temporary site power, and WC frames, seats and flush plates as WC triggers. Set `"TriggerIn": "all"` on a rule to search long texts again.
+**Triggers** are searched in each line's short text and tags (the long text only when there is no short text), and lines matching the rule's `ExcludeRegex` are never triggers. Long texts mention materials in passing ("Dichtmanschette aus EPDM", "Stützen aus Beton werden bauseits erstellt"), and on the real files in `data/tenders/` that made pipe couplings look like roofs and pipe removals look like concrete jobs. The bundled rules exclude demolition and removal (abbrechen, Rückbau, Demontage, ausbauen, entsorgen), and for concrete also precast parts, pipes, manholes, kerbs, lean or blinding concrete, temporary or rental items and work on existing concrete (Kernbohrung, sägen, Sanierung). Reinforcement is only required for reinforced elements (Stahlbeton, StB, Ortbeton, Bodenplatte), not for `unbewehrt`. Each new group excludes what the real files showed: measurements and recesses ("Messung Estrichfeuchte", "Aussparung … Estrich"), surcharges ("Zul.", "Zulage"), painting on concrete or doors, paving and civil-engineering stone, "Thermische Steckdose" (concrete core activation), reinforcement for luminaires, temporary site power, and WC frames, seats and flush plates as WC triggers. Set `"TriggerIn": "all"` on a rule to search long texts again.
 
 **Dependencies** are searched in each line's short text, long text and tags, case insensitively. A line matching several synonyms in the same dependency is counted once. A bundled description can satisfy a dependency on the same line. Multiple matching lines, including different floor covering types, are summed. Conditional positions, alternatives, unit-price-only positions, and explicitly nonpositive quantities neither trigger nor satisfy these checks. The same applies to PDF items flagged `unit_price_only`, `provisional_included` or `alternative_item` ("*** Bedarfsposition ohne/mit GB", "*** Wahlposition"): the shared adapter does not yet turn those flags into `total_rule` (NEXT_FEATURES_IMPLEMENTATION_PLAN.md §0.2), so layer 2 reads them itself.
 
@@ -151,13 +151,13 @@ result = analyze(input, layer1_findings, scope="trade")
 print(result.model_dump_json(indent=2))
 ```
 
-The existing pipeline also runs both layers with `python -m analysis run path/to/file.X83 --layers 1,2` (install `importer/requirements.txt` for raw GAEB), and `python -m analysis rules` lists their metadata. Existing adapters can pass an `AnalysisInput` directly to `run(input, prior_findings)`. Pydantic models are in [analysis/contracts.py](../analysis/contracts.py). The standalone report wrapper records `layers_run: [2]` because it executes layer 2; supplied layer 1 findings remain in `findings` and summary counts. It does not claim to execute layer 1.
+The existing pipeline also runs both layers with `python -m analysis run path/to/file.X83 --layers 1,2` (install `backend/importer/requirements.txt` for raw GAEB), and `python -m analysis rules` lists their metadata. Existing adapters can pass an `AnalysisInput` directly to `run(input, prior_findings)`. Pydantic models are in [backend/analysis/contracts.py](../backend/analysis/contracts.py). The standalone report wrapper records `layers_run: [2]` because it executes layer 2; supplied layer 1 findings remain in `findings` and summary counts. It does not claim to execute layer 1.
 
 A prior layer 1 `error` targeting a line's `quantity` or `unit` prevents a quantitative claim about that line. Related dependency checks are downgraded to informational findings and receive no fix proposal. For the CLI, use `--prior-findings layer1.json` with either a findings array or an `AnalysisResult` object. A supplied result's `input_hash` must match the normalized current input; findings arrays have no hash envelope, so callers must ensure they belong to this input.
 
 ## Extend the knowledge base
 
-Rules live in [analysis/layer2/rules.json](../analysis/layer2/rules.json); no code changes are needed to add another category. Use `--rules custom-rules.json` to replace the bundled rules. An empty rules array explicitly disables all layer 2 checks.
+Rules live in [backend/analysis/layer2/rules.json](../backend/analysis/layer2/rules.json); no code changes are needed to add another category. Use `--rules custom-rules.json` to replace the bundled rules. An empty rules array explicitly disables all layer 2 checks.
 
 ```json
 [
@@ -183,14 +183,14 @@ Rule-level `TriggerIn` (`short_text` by default, or `all`) chooses where the tri
 
 ## Files
 
-- `analysis/contracts.py`: shared Pydantic input, result, finding, and fix models.
-- `analysis/units.py`: shared canonical vocabulary, dimensions and exact conversions (`convert`).
-- `analysis/layer2/quantities.py`: thin layer 2 wrapper over `analysis/units.py`.
-- `analysis/adapter.py`: shared adapter for GAEB files, the database and JSON. `from_json`/`from_data` accept an AnalysisInput object, an Item array or `{"items": [...]}`, with lenient number parsing.
-- `analysis/layer2/adapter.py`: re-exports the shared JSON loader.
-- `analysis/layer2/schema.py`: validated ruleset and UI rule metadata.
-- `analysis/layer2/engine.py`: deterministic checks and scope handling.
-- `analysis/runner.py`: shared pipeline runner; discovers registered layer 2 checks.
-- `analysis/layer2/report.py`: standalone layer 2 report and result summaries.
-- `analysis/layer2/cli.py`: layer 2 command line (`python -m analysis.layer2`, `gaeb-check`). The full pipeline is `python -m analysis`.
-- `analysis/tests/test_layer2.py`: regression and end-to-end tests.
+- `backend/analysis/contracts.py`: shared Pydantic input, result, finding, and fix models.
+- `backend/analysis/units.py`: shared canonical vocabulary, dimensions and exact conversions (`convert`).
+- `backend/analysis/layer2/quantities.py`: thin layer 2 wrapper over `backend/analysis/units.py`.
+- `backend/analysis/adapter.py`: shared adapter for GAEB files, the database and JSON. `from_json`/`from_data` accept an AnalysisInput object, an Item array or `{"items": [...]}`, with lenient number parsing.
+- `backend/analysis/layer2/adapter.py`: re-exports the shared JSON loader.
+- `backend/analysis/layer2/schema.py`: validated ruleset and UI rule metadata.
+- `backend/analysis/layer2/engine.py`: deterministic checks and scope handling.
+- `backend/analysis/runner.py`: shared pipeline runner; discovers registered layer 2 checks.
+- `backend/analysis/layer2/report.py`: standalone layer 2 report and result summaries.
+- `backend/analysis/layer2/cli.py`: layer 2 command line (`python -m analysis.layer2`, `gaeb-check`). The full pipeline is `python -m analysis`.
+- `backend/analysis/tests/test_layer2.py`: regression and end-to-end tests.

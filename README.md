@@ -1,16 +1,13 @@
-<img src="assets/icon.svg" width="64" height="64" alt="">
+<img src="docs/assets/icon.svg" width="64" height="64" alt="">
 
 # BillBuild
 
-Feature List: 
-- Dashboard with general overview
-- Categorization by type, cost, dependencys of the items(what do the items require?, like chairs for a table)
-- risk assesment, relationships between things/ Fancy mind map
-- importing from different file typed -> edeting the list -> exporting to different file types, also the stuped construction one
+BillBuild is a shared workspace for construction tenders. Import, organize, edit, and export
+bills of quantities, track project budgets, and review catalogue matches and risk findings.
 
 Created in [T3 Code](https://t3.codes).
 
-The database uses PostgreSQL 18 and Docker Compose locally and on a VPS. The [schema dashboard](schema-dashboard.html) shows the application and document-intake tables. The SQL migrations create the schema and its integrity checks.
+The database uses PostgreSQL 18 and Docker Compose locally and on a VPS. The [schema dashboard](backend/admin/schema-dashboard.html) shows the application and document-intake tables and is available at `/admin/schema` when BillBuild is running.
 
 ## Web app
 
@@ -34,7 +31,7 @@ Run this from the checkout on a machine with Docker Engine or Docker Desktop, Do
 
 ```sh
 ./db/ops.sh up
-docker compose ps
+./db/ops.sh compose ps
 ```
 
 | Connection setting | Default |
@@ -51,19 +48,18 @@ The named `postgres_data` volume persists across container restarts and `docker 
 The application user can read and write application rows. The owner account handles migrations, backups, and schema administration. Open an owner session through Docker when needed.
 
 ```sh
-docker compose exec db sh -c 'psql -X -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
+./db/ops.sh compose exec db sh -c 'psql -X -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
 ```
 
 ## Repository layout
 
 | Path | What it is |
 | --- | --- |
-| `db/` | PostgreSQL schema, numbered migrations, runtime role, smoke test |
-| `importer/` | Tender parsing (GAEB XML/90, PDF, DOCX, ZIP) and BOM draft creation, also usable as a CLI |
-| `analysis/` | Plausibility checks: layer 1 (arithmetic, completeness, pricing) and layer 2 (GAEB dependencies) |
-| `backend/` | JSON API over the database, importer and analysis, plus the built-in data tools at `/admin` ([API reference](docs/API.md)) |
-| `frontend/` | The product UI. It is swappable: replace the folder and rebuild ([contract](frontend/README.md)) |
-| `deploy/`, `compose.prod.yaml`, `deploy.sh` | Production stack: Caddy (HTTPS, login, frontend files) in front of the backend |
+| [`frontend/`](frontend/) | React workspace, demo data tooling, and export tests |
+| [`backend/`](backend/) | HTTP API and admin UI, plus the [importer](backend/importer/), [analysis engine](backend/analysis/), and [deployment configuration](backend/deploy/) |
+| [`db/`](db/) | PostgreSQL migrations, runtime role, smoke tests, and local database commands |
+| [`data/`](data/) | Tender originals, CLI examples, and [public test fixtures](data/fixtures/README.md) |
+| [`docs/`](docs/) | [API reference](docs/API.md), analysis documentation, [dependency workbook](docs/reference/LV_Abhaengigkeiten_und_Raumcheckliste_DE_Filter.xlsx), and [archived project notes](docs/archive/) |
 
 ## Run BillBuild locally
 
@@ -72,7 +68,7 @@ Start the database and backend, build the frontend, then open [BillBuild](http:/
 ```sh
 ./db/ops.sh up
 (cd frontend && npm ci && npm run build)
-docker compose --profile app up -d --build backend
+./db/ops.sh compose --profile app up -d --build backend
 ```
 
 Use the [HTTP API](docs/API.md) to upload tender documents, create and price saved drafts,
@@ -84,45 +80,45 @@ The backend binds to localhost. Set `BACKEND_PORT` in `.env` to change its port.
 
 ## Deploy on a VPS
 
-`compose.prod.yaml` runs PostgreSQL, schema migrations, the backend API, Caddy with BillBuild, and nightly backups. Caddy handles HTTPS and the site login. It is the only public service. Every page and API call requires the site login.
+`backend/deploy/compose.prod.yaml` runs PostgreSQL, schema migrations, the backend API, Caddy with BillBuild, and nightly backups. Caddy handles HTTPS and the site login. It is the only public service. Every page and API call requires the site login.
 
 Requirements: a Linux VPS with Docker Engine and the Compose plugin, ports 80 and 443 open, and a DNS name that points at the server. With only an IP address, use `1-2-3-4.sslip.io` (the IP with dashes). It resolves to the server and gets a real certificate.
 
 ```sh
 # In the extracted bundle or checked-out project directory on the VPS
-./deploy.sh init     # asks for the hostname and website login; generates database passwords
-./deploy.sh up       # builds, migrates and starts everything; prints the URL
-./deploy.sh seed     # optional: imports the Challenge A files in Data/ and builds the catalogue
+./backend/deploy/deploy.sh init     # asks for the hostname and website login; generates database passwords
+./backend/deploy/deploy.sh up       # builds, migrates and starts everything; prints the URL
+./backend/deploy/deploy.sh seed     # optional: imports the Challenge A files in data/tenders/ and builds the catalogue
 ```
 
 `init` writes all settings to `.env.prod` with mode 600. The website password is stored only as a bcrypt hash. Leave the password empty to generate one, which `init` prints once. Without a terminal, `init` reads `APP_DOMAIN`, `BASIC_AUTH_USER` and `BASIC_AUTH_PASSWORD` from the environment.
 
 | Command | What it does |
 | --- | --- |
-| `./deploy.sh model` | Start the optional Ollama service and download the configured model |
-| `./deploy.sh status` | Containers and health |
-| `./deploy.sh logs [backend\|web\|db\|backup]` | Follow logs |
-| `./deploy.sh backup` | Write `backups/manual-<time>.dump` now |
-| `./deploy.sh restore backups/FILE.dump` | Back up the current data, then replace it with FILE (asks you to type `restore`) |
-| `./deploy.sh password` | Change the website login |
-| `./deploy.sh update` | `git pull --ff-only`, rebuild and restart; migrations run automatically |
-| `./deploy.sh down` | Stop everything; data volumes stay |
-| `./deploy.sh push user@host [dir]` | Copy this checkout over SSH (without `.git`, `.env*` and `backups/`) and run `init` and `up` there |
+| `./backend/deploy/deploy.sh model` | Start the optional Ollama service and download the configured model |
+| `./backend/deploy/deploy.sh status` | Containers and health |
+| `./backend/deploy/deploy.sh logs [backend\|web\|db\|backup]` | Follow logs |
+| `./backend/deploy/deploy.sh backup` | Write a manual backup |
+| `./backend/deploy/deploy.sh restore FILE` | Back up the current data, then replace it with FILE (asks you to type `restore`) |
+| `./backend/deploy/deploy.sh password` | Change the website login |
+| `./backend/deploy/deploy.sh update` | `git pull --ff-only`, rebuild and restart; migrations run automatically |
+| `./backend/deploy/deploy.sh down` | Stop everything; data volumes stay |
+| `./backend/deploy/deploy.sh push user@host [dir]` | Copy this checkout over SSH (without `.git`, `.env*` and `backups/`) and run `init` and `up` there |
 
-The `backup` service writes a `pg_dump` archive to `./backups` once a day and deletes archives older than `BACKUP_KEEP_DAYS` (14 by default). Archives contain the uploaded originals. Copy them off the server regularly, for example with `rsync user@your-vps:tenderdesk/backups/ ./vps-backups/`.
+The `backup` service writes a `pg_dump` archive once a day and deletes archives older than `BACKUP_KEEP_DAYS` (14 by default). New deployments store backups in `data/backups/`. Deployments with an existing top-level `backups/` directory continue to use it. Archives contain the uploaded originals.
 
-Optional `.env.prod` settings: `SITE_ADDRESS` overrides the Caddy address (for example `:80` for plain HTTP behind another proxy), `HTTP_PORT` and `HTTPS_PORT` change the published ports, `BACKUP_KEEP_DAYS` sets backup retention, and `FRONTEND_DIST` names the build output folder when `frontend/` has a `package.json` (default `dist`). After replacing `frontend/`, `./deploy.sh up` rebuilds only what changed. The app accepts requests only for `APP_DOMAIN`. Uploads are limited to 128 MiB.
+Optional `.env.prod` settings: `SITE_ADDRESS` overrides the Caddy address (for example `:80` for plain HTTP behind another proxy), `HTTP_PORT` and `HTTPS_PORT` change the published ports, `BACKUP_KEEP_DAYS` sets backup retention, and `FRONTEND_DIST` names the build output folder when `frontend/` has a `package.json` (default `dist`). After replacing `frontend/`, `./backend/deploy/deploy.sh up` rebuilds only what changed. The app accepts requests only for `APP_DOMAIN`. Uploads are limited to 128 MiB.
 
 ### Enable layer 3
 
 Production starts with layers 1–2 enabled. For local inference, add `ANALYSIS_L3_PROVIDER=ollama`
-and optionally `ANALYSIS_L3_MODEL` to `.env.prod`, then run `./deploy.sh model` and
-`./deploy.sh up`. The default model is `qwen2.5:7b-instruct`. Choose a model sized for the VPS.
+and optionally `ANALYSIS_L3_MODEL` to `.env.prod`, then run `./backend/deploy/deploy.sh model` and
+`./backend/deploy/deploy.sh up`. The default model is `qwen2.5:7b-instruct`. Choose a model sized for the VPS.
 Ollama and its model storage run inside Docker with no published port. For a separately hosted
-Ollama instance, set `OLLAMA_HOST` and run `./deploy.sh up`.
+Ollama instance, set `OLLAMA_HOST` and run `./backend/deploy/deploy.sh up`.
 
 For hosted inference, set `ANALYSIS_L3_PROVIDER=anthropic`, `ANTHROPIC_API_KEY`, and optionally
-`ANALYSIS_L3_MODEL`, then run `./deploy.sh up`. In this mode the provider receives the text needed
+`ANALYSIS_L3_MODEL`, then run `./backend/deploy/deploy.sh up`. In this mode the provider receives the text needed
 for each requested AI check. The UI keeps the two-layer run available and reports model failures
 or skipped batches. Production defaults to four model calls per run and a 45-second per-call timeout.
 Use `ANALYSIS_L3_MAX_CALLS` and `ANALYSIS_L3_TIMEOUT` to tune those limits. Responses are cached
@@ -134,18 +130,18 @@ Use a separate Compose project and settings file:
 
 ```sh
 export ENV_FILE=.env.prodtest COMPOSE_PROJECT_NAME=tenderdesk-test
-APP_DOMAIN=localhost BASIC_AUTH_USER=tester BASIC_AUTH_PASSWORD=choose-a-password ./deploy.sh init
+APP_DOMAIN=localhost BASIC_AUTH_USER=tester BASIC_AUTH_PASSWORD=choose-a-password ./backend/deploy/deploy.sh init
 printf "SITE_ADDRESS=':80'\nHTTP_PORT='8088'\nHTTPS_PORT='8443'\n" >> .env.prodtest
-./deploy.sh up       # http://localhost:8088
+./backend/deploy/deploy.sh up       # http://localhost:8088
 ```
 
-For database administration on the VPS, use `docker compose --env-file .env.prod -f compose.prod.yaml exec db psql -U construction construction`.
+For database administration on the VPS, use `./backend/deploy/deploy.sh compose exec db psql -U construction construction`.
 
 ## Back up and restore (development stack)
 
 ```sh
-./db/ops.sh backup backups/construction.dump
-./db/ops.sh restore backups/construction.dump construction_restored
+./db/ops.sh backup data/backups/construction.dump
+./db/ops.sh restore data/backups/construction.dump construction_restored
 ```
 
 The backup is a PostgreSQL custom-format archive. Use a new filename for each backup. Restore creates a new database and checks that the target name is available. It applies any pending migrations and grants access with the destination deployment's application credentials. To use the restored copy as the default, verify it, set `POSTGRES_DB` to its name in `.env`, rerun `./db/ops.sh up`, and update the application connection. Keep a copy of backups off the VPS.
@@ -155,7 +151,7 @@ The backup is a PostgreSQL custom-format archive. Use a new filename for each ba
 Add subsequent numbered SQL files under `db/migrations/` and register them in `db/migrate.sql`. The migration service applies new steps transactionally and skips versions already recorded in the database.
 
 ```sh
-docker compose exec -T db sh -c 'psql -X -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < db/smoke.sql
+./db/ops.sh compose exec -T db sh -c 'psql -X -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < db/smoke.sql
 ```
 
 The smoke test creates a tender with two room distributions and issues a consolidated quote. It checks that duplicate pricing and edits to issued inputs are rejected, then rolls back the sample rows.
@@ -166,7 +162,7 @@ The smoke test creates a tender with two room distributions and issues a consoli
 
 | Job | What it checks |
 | --- | --- |
-| Python tests | `backend/tests` and `analysis/tests` (with `PYTHONPATH=backend:importer:.`), then `importer/tests` |
+| Python tests | `backend/tests` and `backend/analysis/tests` (with `PYTHONPATH=backend:backend/importer`), then `backend/importer/tests` |
 | Database and API smoke test | On a fresh PostgreSQL 18 it applies `db/migrate.sql` twice (the second run must change nothing) and runs `db/smoke.sql`. It then starts the backend as `construction_app` and runs `.github/scripts/api-smoke.sh`, which uploads a public GAEB file, builds a draft, saves a price, rejects a stale save, runs the analysis and downloads every export format. |
 | Frontend lint and build | `npm ci`, `npm run lint` and `npm run build` in `frontend/` |
 | Docker images and deploy config | Builds the backend, web and importer images, validates both compose files and runs shellcheck on the shell scripts |
@@ -203,7 +199,7 @@ In GitHub under **Settings → Secrets and variables → Actions**, configure th
 
 Verify the host key against a trusted server fingerprint before adding it to GitHub. The workflow
 synchronizes the tested Git revision into the app directory and removes stale source files.
-It preserves server env files, backups and Docker volumes. The deploy job runs `./deploy.sh up`
+It preserves server env files, backups and Docker volumes. The deploy job runs `./backend/deploy/deploy.sh up`
 to build the images, apply migrations and wait for the services to become healthy.
 
 If the VPS only accepts private SSH connections, use a deploy runner on the private network with
@@ -214,8 +210,8 @@ Set `VPS_HOST` after the other settings are ready to enable the deploy job.
 
 ```sh
 ./db/ops.sh up
-docker compose build importer
-docker compose run --rm -T \
+./db/ops.sh compose build importer
+./db/ops.sh compose run --rm -T \
   -v "/absolute/path/to/dataset.zip:/input/dataset.zip:ro" \
   importer import /input/dataset.zip --project "Tender intake review"
 ```
@@ -234,19 +230,19 @@ The importer records the ZIP and all member files in `source_file`. PostgreSQL c
 The exact original is retained even when a field cannot be normalized or a parser fails. Inspect the findings and evidence with the IDs returned by the import command:
 
 ```sh
-docker compose run --rm -T importer report DOCUMENT_UUID
-docker compose run --rm -T importer records IMPORT_UUID --kind item_candidate --limit 10
-docker compose run --rm -T importer original DOCUMENT_UUID > restored-upload.pdf
+./db/ops.sh compose run --rm -T importer report DOCUMENT_UUID
+./db/ops.sh compose run --rm -T importer records IMPORT_UUID --kind item_candidate --limit 10
+./db/ops.sh compose run --rm -T importer original DOCUMENT_UUID > restored-upload.pdf
 ```
 
 After reviewing the source, choose a document to create a draft BOM or copy submitted rates into `reference_price`. These are explicit steps because a companion PDF, GAEB file, or excerpt may describe the same work. Reference prices start without a BOM match. Draft scope retains the source locator for each item. Material and activity classification starts as pending review.
 
 ```sh
-docker compose run --rm -T importer draft DOCUMENT_UUID --package-code FLOOR
-docker compose run --rm -T importer prices BID_DOCUMENT_UUID --currency EUR
+./db/ops.sh compose run --rm -T importer draft DOCUMENT_UUID --package-code FLOOR
+./db/ops.sh compose run --rm -T importer prices BID_DOCUMENT_UUID --currency EUR
 ```
 
-For a native run, install Python dependencies from `importer/requirements.txt` and Poppler utilities. Set libpq's `PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSER`, and `PGPASSWORD` using the deployment's application connection settings. Run `PYTHONPATH=importer python -m tender_import --help` from the checkout.
+For a native run, install Python dependencies from `backend/importer/requirements.txt` and Poppler utilities. Set libpq's `PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSER`, and `PGPASSWORD` using the deployment's application connection settings. Run `PYTHONPATH=backend/importer python -m tender_import --help` from the checkout.
 
 ## Product catalogue
 
@@ -278,8 +274,8 @@ After importing the dataset into the project `Challenge A import review`, apply 
 
 ```sh
 ./db/ops.sh up
-docker compose build importer
-docker compose run --rm -T importer challenge-catalogue
+./db/ops.sh compose build importer
+./db/ops.sh compose run --rm -T importer challenge-catalogue
 ```
 
 The import groups companion GAEB, Word, and PDF copies by tender position. It also merges exact full specifications with compatible tender units and keeps position-specific variants for review. New materials and equipment go into `product` as pending. The import records classified source positions in `catalogue_source_line`, including activities and headings. Each link carries the tender unit and any observed rate. Unclassified positions and their evidence remain in `source_extract` only.
@@ -343,11 +339,11 @@ Selected totals include supported quantity conversions and preserve paired bases
 Layer 2 now checks 16 dependencies across screed/floor finishes, concrete, drywall, painting, and flat roofing. It uses the shared analysis models, rule registry, and runner alongside layer 1. Findings include source-related line IDs, quantity evidence, stable keys, and reviewable proposals; inputs are never modified.
 
 ```sh
-python -m pip install -r requirements.txt
-python -m analysis run Data/8209.003_Leistungsverzeichnis_leer.X83 --layers 1,2
-python -m analysis.layer2 examples/items.json --scope trade --format table
+python -m pip install -e ./backend
+python -m analysis run data/tenders/8209.003_Leistungsverzeichnis_leer.X83 --layers 1,2
+python -m analysis.layer2 data/examples/items.json --scope trade --format table
 ```
 
 The backend runs both layers on a stored BOM and keeps every run in `analysis_run` / `analysis_finding`. Accept or reject decisions carry over to later runs by finding key. See `POST /api/mvp/analyze`, `GET /api/mvp/analysis` and `POST /api/mvp/finding` in the [API reference](docs/API.md).
 
-See [dependency checker setup and usage](docs/DEPENDENCY_VALIDATOR.md) for parsed JSON input, room/trade scoping, custom rules, and integration details. Importing raw GAEB files also requires the existing dependencies in `importer/requirements.txt`.
+See [dependency checker setup and usage](docs/DEPENDENCY_VALIDATOR.md) for parsed JSON input, room/trade scoping, custom rules, and integration details. Importing raw GAEB files also requires the existing dependencies in `backend/importer/requirements.txt`.

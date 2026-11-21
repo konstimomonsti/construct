@@ -15,13 +15,13 @@ missing work, contradictions. Each error is shown to a person with an optional p
 
 ```
 upload (GAEB / PDF / DOCX)
-  -> importer/tender_import        raw evidence (source_extract)
+  -> backend/importer/tender_import        raw evidence (source_extract)
   -> draft.py                      normalized BOM: bom_version / bom_section / bom_line
   -> pricing phase                 catalogue + reference prices, AI search for the rest   (not built yet)
-  -> analysis/adapter.py           one AnalysisInput object
-  -> layer 1  deterministic checks                 analysis/layer1   DONE
-  -> layer 2  dependency / completeness checks     analysis/layer2   DONE (first version)
-  -> layer 3  LLM checks for the hard cases        analysis/layer3   FIRST VERSION (2 checks, unmeasured)
+  -> backend/analysis/adapter.py           one AnalysisInput object
+  -> layer 1  deterministic checks                 backend/analysis/layer1   DONE
+  -> layer 2  dependency / completeness checks     backend/analysis/layer2   DONE (first version)
+  -> layer 3  LLM checks for the hard cases        backend/analysis/layer3   FIRST VERSION (2 checks, unmeasured)
   -> AnalysisResult: list of Finding -> review UI -> accept / reject
   -> accepted fixes are applied to a NEW bom_version                                       (not built yet)
 ```
@@ -36,19 +36,19 @@ The layers run in order. Each one receives the findings of the previous layers.
 
 ## 2. What every layer shares
 
-All of it lives in `analysis/` and is the same for the three layers.
+All of it lives in `backend/analysis/` and is the same for the three layers.
 
-- **Input:** `AnalysisInput` (`analysis/contracts.py`): project (currency, GAEB phase), sections tree,
+- **Input:** `AnalysisInput` (`backend/analysis/contracts.py`): project (currency, GAEB phase), sections tree,
   lines (OZ code, short/long text, quantity + raw, canonical unit + raw, pricing basis, total rule,
   GAEB flags, prices from the file, prices from the pricing phase, room distributions, tags,
   source locator), import warnings. Money and quantities are `Decimal`.
-- **Units:** `analysis/units.py`: canonical codes (`ea`, `m`, `m²`, `m³`, `kg`, `t`, `h`, `lump_sum`, ...),
+- **Units:** `backend/analysis/units.py`: canonical codes (`ea`, `m`, `m²`, `m³`, `kg`, `t`, `h`, `lump_sum`, ...),
   their dimension, and exact conversions (`convert`).
-- **Layer interface:** a package `analysis/layer<N>/` exposing
-  `run(input, prior_findings, errors) -> list[Finding]`. The runner (`analysis/runner.py`) imports it,
+- **Layer interface:** a package `backend/analysis/layer<N>/` exposing
+  `run(input, prior_findings, errors) -> list[Finding]`. The runner (`backend/analysis/runner.py`) imports it,
   passes the findings of the earlier layers, merges, de-duplicates, sorts and summarizes.
   A layer that doesn't exist is skipped and reported in `AnalysisResult.errors`.
-- **Rules:** registered with `@rule(...)` from `analysis/registry.py`. A rule yields findings built
+- **Rules:** registered with `@rule(...)` from `backend/analysis/registry.py`. A rule yields findings built
   with `ctx.finding(...)`, which fills in the stable id, rule id, layer, category, scope, target and
   source locator. A crashing rule goes into `errors` and never stops the others.
 - **Output:** `Finding`: `id` (stable: the same problem gets the same id on every run, so human
@@ -61,18 +61,19 @@ All of it lives in `analysis/` and is the same for the three layers.
 - **Storage:** migration `db/migrations/009_analysis.sql`: `line_pricing` (pricing hand-off),
   `analysis_run`, `analysis_finding`.
 
-Commands:
+From the repository root, install the analysis package with `python -m pip install -e "./backend[test]"`.
+Then run:
 
 ```
-python -m analysis input  "Data/file.X83" --out input.json   # AnalysisInput as JSON
-python -m analysis run    "Data/file.X83" --layers 1,2,3     # AnalysisResult as JSON
+python -m analysis input  "data/tenders/file.X83" --out input.json   # AnalysisInput as JSON
+python -m analysis run    "data/tenders/file.X83" --layers 1,2,3     # AnalysisResult as JSON
 python -m analysis rules                                      # every registered rule
-python -m pytest analysis/tests                               # all analysis tests
+python -m pytest backend/analysis/tests                               # all analysis tests
 ```
 
 ## 3. Layer 1: deterministic checks (done)
 
-`analysis/layer1/`: 34 rules in four modules, with thresholds in `common.py`. Full catalogue in
+`backend/analysis/layer1/`: 34 rules in four modules, with thresholds in `common.py`. Full catalogue in
 ANALYSIS_CONTRACT.md §7.
 
 - **Completeness** (`completeness.py`): missing, negative or zero quantity (an error when the line has
@@ -90,7 +91,7 @@ ANALYSIS_CONTRACT.md §7.
   mismatch, outliers against reference prices, low-confidence or AI matches, file price vs our price,
   stale prices. Import warnings are surfaced too.
 
-What it found in `Data/`: 38 change-order items priced but with quantity 0 and no unit, a
+What it found in `data/tenders/`: 38 change-order items priced but with quantity 0 and no unit, a
 subtotal off by exactly the amount of an item with a damaged OZ, a duplicate item, empty bidder
 fields in a bid, net totals left at 0.00.
 
@@ -100,14 +101,14 @@ tested on synthetic data, because the pricing phase doesn't exist yet.
 
 ## 4. Layer 2: dependency checks (first version done)
 
-`analysis/layer2/`. The knowledge base is `rules.json`: groups of a **trigger** (what the line is)
+`backend/analysis/layer2/`. The knowledge base is `rules.json`: groups of a **trigger** (what the line is)
 and **required dependencies**. A dependency is either `Boolean` (something must exist) or
 `QuantityMatch` (it must cover the trigger's area, within 10%).
 
 - 15 groups and 46 checks: screed and floor finishes, in-situ concrete, drywall, painting, flat roofs,
-  and (from NEXT_FEATURES_IMPLEMENTATION_PLAN.md §2.4) electrical installation, lighting, cabling, lightning
+  and (from the [implementation plan](archive/NEXT_FEATURES_IMPLEMENTATION_PLAN.md), §2.4) electrical installation, lighting, cabling, lightning
   protection, WCs, drinking water, tiling, steel doors, industrial doors and windows. Tested on the
-  `LV_xx` building PDFs in `Data/`; see DEPENDENCY_VALIDATOR.md for what they find.
+  `LV_xx` building PDFs in `data/tenders/`; see DEPENDENCY_VALIDATOR.md for what they find.
 - A dependency can be `"Severity": "info"` for items usually in another package (RCD protection,
   emergency lighting, floor covering under a screed package).
 - Triggers are matched on the short text (the long text mentions materials in passing), and
@@ -119,7 +120,7 @@ and **required dependencies**. A dependency is either `Boolean` (something must 
 - Proposals are `add_line` with confidence 0.4–0.55.
 
 Known limits: regex heuristics, with no understanding of negations ("ohne Dämmung"), "included in
-another trade" or engineering exceptions. The files in `Data/` are pipeline, plant and civil works with
+another trade" or engineering exceptions. The files in `data/tenders/` are pipeline, plant and civil works with
 no buildings, so they correctly raise nothing; that it detects real problems is only tested on
 synthetic examples. More trades (sanitary, electrical, windows, tiling, ...) are still to add.
 
@@ -150,7 +151,7 @@ and are easy to evaluate.
 
 ### Design rules
 
-1. **Same interface as the other layers.** Package `analysis/layer3/` with
+1. **Same interface as the other layers.** Package `backend/analysis/layer3/` with
    `run(input, prior_findings, errors)`, and rules registered with `@rule(..., layer=3, ...)`.
    Findings are built with `ctx.finding(..., origin="llm", model="<model id>")`.
 2. **The provider is pluggable.** One small interface (`complete_json(prompt, schema) -> dict`) with
@@ -180,7 +181,7 @@ and are easy to evaluate.
 ### Suggested layout
 
 ```
-analysis/layer3/
+backend/analysis/layer3/
   __init__.py        run(); imports the check modules
   provider.py        LLMProvider protocol, LocalProvider, ApiProvider, FakeProvider, cache
   prompts.py         versioned prompt templates
@@ -189,12 +190,12 @@ analysis/layer3/
     contradictions.py
     l2_confirm.py
     ...
-analysis/tests/test_layer3.py
+backend/analysis/tests/test_layer3.py
 ```
 
 ## 5a. Layer 3: what is built
 
-`analysis/layer3/`, following the design rules above. Two checks so far, the ones recommended to start with:
+`backend/analysis/layer3/`, following the design rules above. Two checks so far, the ones recommended to start with:
 
 - **`L3.TEXT.SHORT_LONG_CONTRADICTION`** (`checks/contradictions.py`). Sends lines that have both texts,
   differing texts, and a value in the short text (a number or a material word); skips lines with a
@@ -234,7 +235,7 @@ Configuration (environment variables):
 The API provider needs `pip install -e ".[llm-api]"` and credentials the SDK can resolve
 (`ANTHROPIC_API_KEY`). Layer 3 is not in the runner's default layers: ask for it with `--layers 1,2,3`.
 
-On the files in `Data/`, the contradiction check needs 4–32 calls per file (≈ 11 000–137 000 prompt
+On the files in `data/tenders/`, the contradiction check needs 4–32 calls per file (≈ 11 000–137 000 prompt
 characters); the layer 2 review sends nothing there, because layer 2 raises nothing on those files.
 
 Known limits: **precision has not been measured yet**, since no model was available while building it.
@@ -265,4 +266,4 @@ still to build; fix validation (`set_field` on allowed fields only) comes with `
 
 Working agreements: one branch per person; `contracts.py`, `units.py`, `registry.py` and `runner.py`
 are shared, so agree before changing them; the next migration number is `010`; tests go in
-`analysis/tests/`.
+`backend/analysis/tests/`.

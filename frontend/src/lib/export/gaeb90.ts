@@ -1,8 +1,8 @@
 /**
  * GAEB 90 (D83 / D84 / D86) writer and in-place patcher.
  * 80-column fixed records: cols 1-2 record type, cols 3-74 content, cols 75-80 running line counter.
- * Layout mirrors ../data/8209.003_Leistungsverzeichnis_leer.D83, ../data/[ORT_024] LV24069.D86 and
- * ../data/Angebot AN24-0305.D84 (cp437 / cp1252 like the originals).
+ * Layout mirrors ../data/tenders/8209.003_Leistungsverzeichnis_leer.D83, ../data/tenders/[ORT_024] LV24069.D86 and
+ * ../data/tenders/Angebot AN24-0305.D84 (cp437 / cp1252 like the originals).
  */
 import type { ListDoc, Position } from '../types'
 import { type OzMask, buildCats, deDate, diffList, foldText, gp, inferMask, maskString, round2, walk } from './util'

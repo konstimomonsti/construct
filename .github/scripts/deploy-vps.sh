@@ -48,7 +48,7 @@ ssh -F "$work/ssh_config" construct-vps bash -s -- "$VPS_PATH" <<'REMOTE'
 set -euo pipefail
 cd -- "$1"
 if [[ ! -s .env.prod ]]; then
-    echo "Run ./deploy.sh init once in the VPS deployment directory." >&2
+    echo "Run ./backend/deploy/deploy.sh init once in the VPS deployment directory." >&2
     exit 1
 fi
 command -v rsync >/dev/null
@@ -59,12 +59,12 @@ REMOTE
 mkdir -m 755 "$work/release"
 git archive HEAD | tar -xpf - -C "$work/release"
 rsync -rlt --executability --delay-updates --delete-delay \
-    --exclude='/.git' --exclude='/.env' --exclude='/.env.*' --exclude='/backups/' \
+    --exclude='/.git' --exclude='/.env' --exclude='/.env.*' --exclude='/backups/' --exclude='/data/backups/' --exclude='/data/dist/' \
     -e "ssh -F $work/ssh_config" "$work/release/" "construct-vps:$VPS_PATH/"
 
 ssh -F "$work/ssh_config" construct-vps bash -s -- "$VPS_PATH" <<'REMOTE'
 set -euo pipefail
 cd -- "$1"
-ENV_FILE=.env.prod ./deploy.sh up
-ENV_FILE=.env.prod ./deploy.sh status
+ENV_FILE=.env.prod ./backend/deploy/deploy.sh up
+ENV_FILE=.env.prod ./backend/deploy/deploy.sh status
 REMOTE

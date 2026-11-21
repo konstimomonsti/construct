@@ -15,7 +15,7 @@ From the repo root, start PostgreSQL and the API:
 
 ```sh
 ./db/ops.sh up
-docker compose --profile app up -d --build backend
+./db/ops.sh compose --profile app up -d --build backend
 cd frontend
 npm ci
 npm run dev
@@ -24,3 +24,13 @@ npm run dev
 Open http://localhost:5173. Vite proxies `/api`, `/admin` and `/healthz` to the backend on port 8080.
 For a static production build, run `npm run build` from this directory. The VPS build runs this
 automatically. See the [deployment guide](../README.md#deploy-on-a-vps).
+
+## Demo data and export tests
+
+The original tender files live in [data/tenders](../data/tenders/). The dev and build
+commands copy them into the generated `public/files/` directory for viewing and download.
+To rebuild the committed list data in `public/data/`, run `npm run data` with Poppler installed.
+Run `npm run layout` with PyMuPDF installed to refresh the PDF layout metadata.
+
+Run `npm test` to check GAEB, PDF, CSV, XLSX, and DOCX exports. The PDF checks require Poppler.
+The PDF layout measurements are in [docs/pdf-templates](docs/pdf-templates/).

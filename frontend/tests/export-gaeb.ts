@@ -23,7 +23,6 @@ const check = (ok: boolean, msg: string) => {
 }
 
 for (const d of gaeb) {
-  const orig = new Uint8Array(readFileSync(join(root, 'public/files', d.fileName)))
   console.log(d.fileName, d.positions.length)
   const dxml = (v: XmlVariant) => generateGaebXml({ doc: d, positions: d.positions, variant: v, longTexts: true, prices: false, now: new Date('2026-01-01T10:00:00Z') })
   for (const v of ['3.2', '2004'] as XmlVariant[]) {
@@ -55,7 +54,6 @@ for (const d of gaeb) {
     })
     check(m === 0, `D${ph} mismatches ${m}`)
   }
-  void orig
   void patchGaebXml
   void patchGaeb90
 }

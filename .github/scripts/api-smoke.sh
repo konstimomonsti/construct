@@ -5,7 +5,7 @@
 set -euo pipefail
 
 base=${1:-http://localhost:8080}
-file=test-data/dbinfrago/spgk/SPGK.X83
+file=data/fixtures/dbinfrago/spgk/SPGK.X83
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 
