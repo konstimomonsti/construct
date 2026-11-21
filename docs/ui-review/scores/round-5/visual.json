@@ -1,0 +1,195 @@
+{
+  "member": "visual",
+  "screens": {
+    "S1": {
+      "scores": {
+        "hierarchy": 8,
+        "density": 8,
+        "typography": 8,
+        "consistency": 8,
+        "clarity": 8,
+        "interaction": 8,
+        "accessibility": 8,
+        "responsive": 7,
+        "wise": 8
+      },
+      "issues": [
+        "Hierarchy/density: the hero still has two muted lines between the status line and the pills ('Measured against project caps. List caps are on Active Budgets.' and '4 of 13 projects priced'). Move the caps note into a tooltip or info icon on '4.350.000 €', and append '· 4 of 13 priced' to the status line, so only the chip line sits under the bar.",
+        "Responsive (11-mobile-home): the hero meta takes four lines below the chip on mobile (status, the caps note wrapping to 2 lines, the priced line). Applying the fix above makes it one line.",
+        "Responsive (11-mobile-home): rows without a status chip indent the subtitle by about 8px ('3 lists · Neubau Technische Chemie' starts right of the title edge). In Kit.tsx Row, the mobile `{badge && <span className=\"shrink-0 sm:hidden\">}` renders an empty span plus gap-2 when the badge element renders null. Pass badge only when a status exists (or add empty:hidden to the span).",
+        "Clarity/typography: the 'Site' row's rolled-up warning '1 list almost at cap' is plain slate-600 subtitle text, while 'Fernleitung' gets a coloured chip. Render the rollup segment with the same tone and icon as StatusTag (red-orange triangle + text), so both flagged rows read as flagged at a glance.",
+        "Consistency: the page-header ⋯ (x≈1348) and the row ⋯ (x≈1352) still have different glyph centres. Give both kebab buttons the same size (size-9) and the same right edge (also on S2, S5).",
+        "Interaction: unpriced rows show an empty grey meter under '0 of 1.131 priced', which reads like a 0% budget bar. Drop the bar when nothing is priced, and keep the text only.",
+        "Accessibility: row StatusTags use the small variant (text-xs, 12px, Kit.tsx StatusTag small) for 'Near cap' / 'Almost at cap'. Use 13px (the regular variant) on rows, so the only status text on the row is not the smallest text on the page."
+      ]
+    },
+    "S2": {
+      "scores": {
+        "hierarchy": 8,
+        "density": 8,
+        "typography": 8,
+        "consistency": 8,
+        "clarity": 8,
+        "interaction": 8,
+        "accessibility": 8,
+        "responsive": 8,
+        "wise": 8
+      },
+      "issues": [
+        "Hierarchy/density: two muted lines again sit between the status line and the pills ('List caps add up to 2.100.000 €, 100.000 € over the project cap.' and '314 positions'). Merge '314 positions' into the subtitle under the H1 ('Projekt 2024-001 · Angebot … · 314 positions') and leave a single note line.",
+        "Clarity: 'List caps add up to … over the project cap' is a real warning but is set in neutral slate-600 like a footnote. Give it the amber tone with the warning icon (or turn it into a second chip), so it does not read as metadata.",
+        "Typography: the cap '2.000.000 €' has a dotted underline (editable) while the links on S3's hero use solid underlines. Use one underline style for in-hero actions, or show a pencil on hover for the editable cap instead of a dotted rule.",
+        "Consistency: header ⋯ and row ⋯ glyph centres differ by about 4px (see S1).",
+        "Responsive: not captured. At 390px check the 24px H1 'Fernleitung – Weinsbach' plus the ⋯ does not wrap mid-word (apply break-normal + hyphens-auto, as on Row titles).",
+        "Interaction: the 'Select' pill sits alone on the right with only 2 rows. Hide Select below 3 rows (as Sort and the filters already are), or move it into the header ⋯ menu.",
+        "Accessibility: row StatusTags use the small variant (text-xs, 12px, Kit.tsx StatusTag small) for 'Near cap' / 'Almost at cap'. Use 13px (the regular variant) on rows, so the only status text on the row is not the smallest text on the page."
+      ]
+    },
+    "S3": {
+      "scores": {
+        "hierarchy": 8,
+        "density": 8,
+        "typography": 7,
+        "consistency": 8,
+        "clarity": 8,
+        "interaction": 8,
+        "accessibility": 8,
+        "responsive": 7,
+        "wise": 8
+      },
+      "issues": [
+        "Typography: level-2 group headers are text-sm (14px) semibold (LedgerTable.tsx:306) while position rows are 15px and level-1 headers are 15px bold, so a sub-group header is smaller than its own rows and level 1 differs from rows by weight only. Use 17px semibold for level 1 and 15px semibold for level 2.",
+        "Typography: rows still miss a shared baseline. Kurztext sits about 1–2px above OZ, Menge and EP (see 1.3.9 and 1.3.10 in the full capture). Give the Kurztext and GP cells the same h-9 / leading-9 box as the input cells, or use align-baseline on every td.",
+        "Consistency: the 'Cost by section' disclosure has two separate underlines (one under the text, one short dash under the chevron, visible on desktop and on mobile). Put the underline on the text span only, or use no underline plus the chevron.",
+        "Responsive (12-mobile-list): level-1 group titles still wrap with a dangling separator ('Baustelleneinrichtung -' / 'Montagepläne - I') and the subtotal sits beside them. Below sm, put the subtotal on its own right-aligned line under the title, and give the title the full width with text-balance.",
+        "Responsive (12-mobile-list): the wrapped position title '-räumung' returns to the left edge under the OZ. Use a hanging indent (grid with the OZ in its own column), so wrapped lines align with the title start.",
+        "Responsive (12-mobile-list): the Menge field is about 128px wide for a 1–4 digit value. Size Menge to w-20 and EP to w-32, so 'psch ×' sits closer to its number.",
+        "Clarity: '197 positions · 38 with quantity 0 · Cost by section' mixes a fact, a filter link and a disclosure on one muted line. Keep '197 positions · 38 with quantity 0' there and move 'Cost by section' to a ghost button in the toolbar row next to Categories.",
+        "Accessibility: the hero links ('38 with quantity 0', 'Cost by section') are only distinguished by an underline in decoration-slate-400 (about 2.6:1 on white). Use decoration-slate-500 or slate-600, so the link affordance meets 3:1.",
+        "Interaction: the row ⋯ menus are visible on every one of 197 rows. Show them at rest only on coarse pointers, and on desktop on row hover/focus-within, which halves the visual noise in the right gutter."
+      ]
+    },
+    "S4": {
+      "scores": {
+        "hierarchy": 9,
+        "density": 8,
+        "typography": 9,
+        "consistency": 9,
+        "clarity": 8,
+        "interaction": 9,
+        "accessibility": 8,
+        "responsive": 8,
+        "wise": 8
+      },
+      "issues": [
+        "Density/clarity: the GP card's second meta line '263.008,35 € left in cap' repeats the page hero, which is visible behind the scrim. Drop it, and keep '1,1% of list' on the formula line ('1 psch × 5.700,00 € · 1,1% of list'), so the card has one muted line.",
+        "Accessibility: the scrim-side page keeps full-contrast content but the drawer footer 'Changes save automatically' is slate-500 at 13px on white. Use slate-600 at 14px, so it passes AA comfortably.",
+        "Responsive: not captured. Make sure the drawer is full-width below sm, with the Menge/EP pair stacking to one column under 360px.",
+        "Wise: the drawer top bar ('1 of 197' and the chevrons) is light slate-400 next to a dark close icon. Use one icon colour (slate-600) for close, prev, next and ⋯, so the bar reads as one toolbar."
+      ]
+    },
+    "S5": {
+      "scores": {
+        "hierarchy": 8,
+        "density": 9,
+        "typography": 9,
+        "consistency": 8,
+        "clarity": 8,
+        "interaction": 8,
+        "accessibility": 8,
+        "responsive": 8,
+        "wise": 8
+      },
+      "issues": [
+        "Hierarchy/clarity: the hero number is what is left (1.460.686,51 €), but the bar fills to what is used (67%, green). Either fill the bar from the right as remaining, or make the hero the used total with '… € left' in the meta (as on S1–S3), so the number and the bar say the same thing.",
+        "Clarity: S1 says '1.409.686,51 € left' and S5 says '1.460.686,51 € left' for the same priced work, with no visible reason. Put the cap base in the label ('Left in list caps · 4.401.000 €'), so the 51.000 € difference to project caps is explained.",
+        "Consistency: header ⋯ and row ⋯ glyph centres differ by about 4px (see S1).",
+        "Interaction: the 'Select' pill is shown with nothing on this page that can be bulk-edited besides archive/trash. Move it into the header ⋯ menu, or keep it only on All Projects / Folder.",
+        "Accessibility: row StatusTags use the small variant (text-xs, 12px, Kit.tsx StatusTag small) for 'Near cap' / 'Almost at cap'. Use 13px (the regular variant) on rows, so the only status text on the row is not the smallest text on the page.",
+        "Responsive: not captured. At 390px, the long subtitles ('Fernleitung – Weinsbach · Word import') and the title + chip must use the mobile Row layout from S1 (chip on the subtitle line). Also fix the empty-badge indent there."
+      ]
+    },
+    "S6": {
+      "scores": {
+        "hierarchy": 9,
+        "density": 9,
+        "typography": 9,
+        "consistency": 8,
+        "clarity": 9,
+        "interaction": 9,
+        "accessibility": 9,
+        "responsive": 8,
+        "wise": 8
+      },
+      "issues": [
+        "Consistency: the subtitle 'Archived projects don't count toward totals' has no final period, while the Trash subtitle ends with one. Use the same punctuation for all page subtitles.",
+        "Responsive: not captured. Check that the body line and the 'Go to All Projects' pill keep 16px gutters at 390px.",
+        "Wise: the 80px slate-100 circle with a slate-700 glyph is still generic. Use a brand-50 circle with a brand-600 glyph for all empty states, so the empty canvas has one confident anchor."
+      ]
+    },
+    "S7": {
+      "scores": {
+        "hierarchy": 9,
+        "density": 9,
+        "typography": 9,
+        "consistency": 9,
+        "clarity": 9,
+        "interaction": 9,
+        "accessibility": 9,
+        "responsive": 8,
+        "wise": 8
+      },
+      "issues": [
+        "Responsive: not captured. Check the 16px gutters at 390px for the body and pill.",
+        "Wise: same as S6. Use a brand-50 circle with a brand-600 glyph for the empty-state icon."
+      ]
+    },
+    "S8": {
+      "scores": {
+        "hierarchy": 9,
+        "density": 9,
+        "typography": 9,
+        "consistency": 8,
+        "clarity": 9,
+        "interaction": 9,
+        "accessibility": 8,
+        "responsive": 8,
+        "wise": 7
+      },
+      "issues": [
+        "Wise: the page behind the palette is still blurred to illegibility in the capture, although CommandPalette.tsx:285 sets backdrop-blur-[2px]. Find the extra filter (a parent blur on the app shell or a second overlay) and remove it, so the page reads through the 20% scrim and the palette feels anchored.",
+        "Consistency: list rows use a brand-lavender doc icon, while the same lists on S2 and S5 use the parent project's tone (magenta, teal, blue, slate). Use the project tone in the palette too.",
+        "Consistency: the active-row indicator is a straight 3px bar on the rounded-xl row's left edge, so its ends look clipped by the corner radius. Drop the bar and rely on the brand-50 fill, or inset it (top-2 bottom-2, rounded-full).",
+        "Accessibility: the subtitles ('OZ 3.1.60 · Ortbetonarbeiten · in Rohbau …') are slate-500 at 13px. Use slate-600, so the muted text reaches AA on the brand-50 active row too.",
+        "Responsive: not captured. At 390px the palette should become a full-width sheet from the top, with the long 'in Rohbau (…)' subtitle truncating to one line."
+      ]
+    },
+    "S9": {
+      "scores": {
+        "hierarchy": 9,
+        "density": 9,
+        "typography": 9,
+        "consistency": 8,
+        "clarity": 9,
+        "interaction": 9,
+        "accessibility": 9,
+        "responsive": 8,
+        "wise": 8
+      },
+      "issues": [
+        "Consistency: the empty-state block starts at x≈346, 34px right of the H1 and breadcrumb (x=312), while S6/S7 align at 312. Remove the drop-zone padding at rest (keep it only while dragging), so the icon, heading and pills share the page's left edge.",
+        "Consistency: the toast wraps the project name mid-quote ('Created project \"Legal &' / 'Compliance\"') and uses straight quotes. Widen the toast to max-w-md, put the name on one line with truncate, and use typographic quotes (“ ”).",
+        "Responsive: not captured. Make the 'Import files' and 'Start a blank list' pills w-full sm:w-auto below sm, and check that the fine print wraps inside 16px gutters.",
+        "Wise: same as S6. Use a brand-50 circle with a brand-600 glyph for the empty-state icon."
+      ]
+    }
+  },
+  "global_issues": [
+    "Fixed since round 4: secondary pills are borderless, the List meter is a single status colour, ledger cells have no resting underline, mobile status chips moved to the subtitle line (no more mid-word splits), mobile OZ leads the title and Menge is right-aligned, drawer precision and '1,1%' are unified, the drawer EP/unit/Kategorie anatomy is fixed, list icons on S2/S5 share project tones, S5 chip copy and the 'all priced' noise are fixed, palette caps and 'Not priced' noise are gone, and the dashed empty-state box is gone.",
+    "Hero anatomy still varies: S1 and S2 stack two muted lines between the status line and the pills, S3 has one, S5 has two. Cap every hero at one status line plus at most one muted line, and move explanatory notes into tooltips.",
+    "Ledger type scale is inverted: level-2 group headers are smaller than position rows, and every row GP is semibold. Use 17/15 semibold for group headers and font-medium for row GP.",
+    "Kebab alignment: page-header ⋯ and row ⋯ have different glyph centres on S1, S2 and S5.",
+    "Command palette: the background blur in the capture is far stronger than the 2px in source; find and remove the extra filter.",
+    "Mobile Row renders an empty badge span (plus gap) when the StatusTag renders null, which indents the subtitle on unflagged rows."
+  ]
+}

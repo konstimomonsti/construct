@@ -1,0 +1,76 @@
+{
+  "member": "estimator",
+  "screens": {
+    "S1": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 8, "consistency": 7, "clarity": 7, "interaction": 8, "accessibility": 8, "responsive": 7, "wise": 8},
+      "issues": [
+        "The worse status is the quieter one. The hero pill says '1 project almost at cap', but the Site row has no badge and only muted grey subtitle text ('1 list almost at cap'), while Fernleitung (a milder 'Near cap') gets an amber badge. In FolderCard.tsx, when listFlag is set and the project's own BudgetBadge is null, pass a list-level badge (warning triangle, 'List almost at cap' / 'List near cap', same tone as the list) as `badge`, so every row the hero pill counts carries a visible badge.",
+        "The hero pill reads '1 project almost at cap' for Site, which is at 2% of its own cap. When the flag comes from a list, word it '1 project with a list almost at cap · 1 near cap' (or '1 list almost at cap · 1 project near cap') so the count matches what the rows show.",
+        "Mobile (11): rows with no status (Ringschluss, Maschinentechnik) indent the subtitle about 8px past the title. Kit.tsx Row wraps `badge` in a span whenever the prop is truthy, but <BudgetBadge> is always a truthy element and renders null when on track, so an empty span plus gap-2 adds the indent. Have FolderCard/ListCard/ActiveBudgets pass `badge` only when budgetStatus(...).tone is not 'ok' (or make Row skip the wrapper when the badge renders nothing).",
+        "Mobile rows and the mobile hero hide the cap ('75%' instead of '75% of 2.000.000 €'; hero '68% · 1.409.686,51 € left' with no 4.350.000 €). The cap is the number an estimator checks. Below sm, drop the meter in row 3 and show '75% of 2.000.000 €' as text, and in the hero show 'of 4.350.000 €' on the second meta line.",
+        "'4 of 13 projects priced' next to the chip 'Not priced 4' suggests 9 unpriced projects; in fact 5 are empty. Change the hero meta to '4 priced · 4 not priced yet · 5 without lists' (the middle part linking to the Not priced filter)."
+      ]
+    },
+    "S2": {
+      "scores": {"hierarchy": 9, "density": 9, "typography": 9, "consistency": 8, "clarity": 8, "interaction": 9, "accessibility": 8, "responsive": 7, "wise": 9},
+      "issues": [
+        "The hero meta says '314 positions' with no zero-quantity count, but the list page reports '38 with quantity 0'. In FolderPage, sum qty-0 priced positions across the project's lists and add '· n with quantity 0' when n > 0, so the project and the list agree on completeness.",
+        "Same empty-badge bug as S1: the on-track row 'Angebot AN24-0305' gets an empty badge span (ListCard passes <BudgetBadge> even when it renders null), which shifts the subtitle by 8px on mobile. Pass `badge` only for non-ok tones.",
+        "Still no 390px capture of this screen. Add one; check that 'LV-Positionen nach Aufmaß-Gruppen' wraps at spaces with the badge on the subtitle row, and that the 'List caps add up to 2.100.000 €…' note wraps cleanly.",
+        "Accessibility: the editable cap '2.000.000 €' is marked only by a dotted underline. Add a pencil icon or 'Edit cap' tooltip on hover/focus, so it's clear this is the control to change the project cap."
+      ]
+    },
+    "S3": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 8, "consistency": 8, "clarity": 9, "interaction": 8, "accessibility": 8, "responsive": 7, "wise": 8},
+      "issues": [
+        "Mobile (12): the hero and controls still fill about 80% of the first screen; the first position (1.1.1) starts at the bottom edge. Below sm, move Add position and Export into the header ⋯ menu (or one row of icon buttons next to the search), and put the search field on the same row as Categories/Select/Sort (search as an icon button that expands).",
+        "Mobile hero hides the cap: '67% · 263.008,35 € left' with no '800.000 €'. Show '67% of 800.000 €' below sm too, and let '263.008,35 € left' wrap to its own line if needed; the cap must also stay tappable to edit on touch.",
+        "Mobile position rows wrap the Kurztext under the OZ ('1.1.1 Baustelleneinrichtung und / -räumung'). Give the Kurztext a hanging indent (OZ in its own fixed-width column, text in a second column) so wrapped lines start under the text, not under the number.",
+        "The 'Cost by section' meta link draws a second, separate underline under its chevron (visible on desktop and mobile). Put the chevron inside the underlined span or remove the underline from the icon wrapper.",
+        "Accessibility: desktop Menge/EP cells have no border at rest (settled), so keyboard users need a strong focus state. Make sure the focused cell gets a 2px brand ring plus the border, and that Tab moves Menge → EP → next row's Menge; add a visible 'Tab to next field' hint in the table header tooltip."
+      ]
+    },
+    "S4": {
+      "scores": {"hierarchy": 9, "density": 9, "typography": 9, "consistency": 9, "clarity": 9, "interaction": 9, "accessibility": 8, "responsive": 8, "wise": 9},
+      "issues": [
+        "The Kategorie path ('1 Baustelleneinrichtung - Montagepläne ›') is set at about 12px muted slate. Raise the first line to 13px text-slate-600 so it meets AA comfortably and reads as part of the path, not as a caption.",
+        "Still no mobile capture of the drawer. Capture it at 390px as a full-height sheet; Menge and EP must be above the fold, the 'Changes save automatically' footer must not cover the Langtext, and the prev/next arrows must be at least 44px."
+      ]
+    },
+    "S5": {
+      "scores": {"hierarchy": 9, "density": 8, "typography": 9, "consistency": 8, "clarity": 9, "interaction": 9, "accessibility": 8, "responsive": 8, "wise": 9},
+      "issues": [
+        "The list count appears twice: subtitle '5 priced lists in 4 projects' and meta '2.940.313,49 € priced across 5 lists'. Shorten the meta to 'Total priced 2.940.313,49 €' (the number an estimator wants beside the headroom).",
+        "ActiveBudgets.tsx passes <BudgetBadge> on every row, so the three on-track rows get an empty badge span and an 8px subtitle indent on mobile (same bug as S1). Pass `badge` only when the tone is not 'ok'.",
+        "No 390px capture. Add one to confirm that 'LV-Positionen nach Aufmaß-Gruppen' + 'Near cap' wraps at spaces and that the row shows '86% of 600.000 €', not just '86%'."
+      ]
+    },
+    "S6": {
+      "scores": {"hierarchy": 9, "density": 9, "typography": 9, "consistency": 9, "clarity": 9, "interaction": 9, "accessibility": 9, "responsive": 9, "wise": 9},
+      "issues": []
+    },
+    "S7": {
+      "scores": {"hierarchy": 9, "density": 9, "typography": 9, "consistency": 9, "clarity": 9, "interaction": 9, "accessibility": 9, "responsive": 9, "wise": 9},
+      "issues": []
+    },
+    "S8": {
+      "scores": {"hierarchy": 9, "density": 9, "typography": 9, "consistency": 9, "clarity": 9, "interaction": 9, "accessibility": 9, "responsive": 8, "wise": 9},
+      "issues": [
+        "No 390px capture of the palette. Capture it as a full-screen sheet and check that position subtitles ('OZ 3.1.60 · Ortbetonarbeiten · in Rohbau (Ausbildungszentrum und Bürogebäude)') truncate at the end instead of wrapping to three lines, and that 'EP … / m³' on the right doesn't squeeze the title."
+      ]
+    },
+    "S9": {
+      "scores": {"hierarchy": 9, "density": 9, "typography": 9, "consistency": 8, "clarity": 9, "interaction": 9, "accessibility": 9, "responsive": 9, "wise": 9},
+      "issues": [
+        "The empty state is inset about 34px from the page title (icon at x≈346 vs title at x≈312), while the Archived and Trash empty states sit flush with their titles. In EmptyFolder.tsx the drag outline wrapper adds 'px-5 sm:px-8' plus a 2px border; cancel it with matching negative margins ('-mx-5 sm:-mx-8'), so the content lines up with the title at rest and the dashed outline still has room while dragging."
+      ]
+    }
+  },
+  "global_issues": [
+    "Empty badge wrapper: Row (Kit.tsx) renders the badge span whenever `badge` is truthy, and every caller passes <BudgetBadge>, which renders null when on track. On mobile this indents the subtitle of every on-track row by 8px (visible on S1; also affects S2 and S5). Pass `badge` only for non-ok tones, or have Row check the status itself.",
+    "List-level warnings roll up as text but not as a badge: Site's list is at 98% of its cap, but its project row shows only muted grey text while a milder 'Near cap' project gets an amber badge. Give the rolled-up flag the same badge treatment, and word the hero pill so it says it counts lists.",
+    "Mobile hides the cap everywhere ('75%', '67%' with no 'of … €') on project rows, list rows and both heroes. Estimators judge headroom against the cap; show it below sm as text and drop the mini meter if space is tight.",
+    "The mobile list page (12) still uses most of the first screen for the hero and controls. Fold Add position/Export into the ⋯ menu or icon buttons below sm and merge the search into the filter row.",
+    "Mobile captures for S2, S4, S5 and S8 are still missing; three rounds of fixes to the mobile Row and drawer can't be verified without them."
+  ]
+}

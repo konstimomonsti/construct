@@ -232,7 +232,7 @@ export function DetailDrawer({
                         if (v !== p.short && !(v === '' && p.short === '(ohne Kurztext)')) { onPatch({ short: v }); didSave() }
                       }}
                       onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur() } }}
-                      className="block w-full resize-none rounded-xl border border-transparent bg-transparent py-1 pr-8 pl-2 font-heading text-[22px] leading-7 font-semibold tracking-tight text-slate-900 transition-colors outline-none [field-sizing:content] [overflow-wrap:anywhere] whitespace-pre-wrap min-h-9 placeholder:font-normal placeholder:text-slate-500 placeholder:italic hover:border-slate-400 focus:border-brand-600 focus:bg-white focus:ring-1 focus:ring-brand-600"
+                      className="block w-full resize-none rounded-lg border border-transparent bg-transparent py-1 pr-8 pl-2 font-heading text-[22px] leading-7 font-semibold tracking-tight text-slate-900 transition-colors outline-none [field-sizing:content] [overflow-wrap:anywhere] whitespace-pre-wrap min-h-9 placeholder:font-normal placeholder:text-slate-500 placeholder:italic hover:border-slate-400 focus:border-brand-600 focus:bg-white focus:ring-1 focus:ring-brand-600"
                     />
                     <Icon
                       name="edit"
@@ -380,7 +380,7 @@ export function DetailDrawer({
                     }}
                     aria-labelledby={`${uid}-cat ${uid}-cat-btn`}
                     title={crumbTitle}
-                    className="flex min-h-11 w-full items-center gap-3 rounded-xl bg-slate-50 px-3.5 py-2 text-left text-sm text-slate-900 transition-colors hover:bg-slate-100"
+                    className="flex min-h-11 w-full items-center gap-3 rounded-md bg-slate-100 px-3.5 py-2 text-left text-sm text-slate-900 ring-1 ring-slate-400 ring-inset transition-colors hover:bg-slate-200/70"
                   >
                     <span className="min-w-0 flex-1">
                       {parents.length > 0 && (
@@ -422,7 +422,7 @@ export function DetailDrawer({
                   ) : (
                     /* click-to-edit like Kurztext: the text itself opens the editor, the pencil button gives keyboard access */
                     <div
-                      className="group relative -mx-2 cursor-text rounded-xl border border-transparent py-1 pr-10 pl-2 transition-colors hover:border-slate-400"
+                      className="group relative -mx-2 cursor-text rounded-lg border border-transparent py-1 pr-10 pl-2 transition-colors hover:border-slate-400"
                       onClick={() => { if (!window.getSelection()?.toString()) setEditLongId(p.id) }}
                     >
                       {p.long?.trim() ? (

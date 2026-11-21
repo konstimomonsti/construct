@@ -1,0 +1,91 @@
+{
+  "member": "ux",
+  "screens": {
+    "S1": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 8, "consistency": 8, "clarity": 7, "interaction": 8, "accessibility": 8, "responsive": 6, "wise": 8},
+      "issues": [
+        "There are still two controls for each filter. The hero pill '1 project near cap' does the same as the 'Needs attention 1' chip, and the hero link '4 projects not priced yet' does the same as the 'Not priced 4' chip. Keep the chips as the only filters: make the pill a plain status (no button) and turn the meta line into plain text '4 of 8 projects priced'.",
+        "'Counts 4 priced projects · …' is awkward and unclear. Change it to 'Includes 4 priced projects' or fold it into the label: 'Total across 4 priced projects'.",
+        "The hero total doesn't match the Site row. Site shows '2% of 50.000 €' and no badge, while its only list 'Estimate' is at 98% of its cap ('Almost at cap' on Active Budgets). When a child list is flagged, put a badge on the project row and append '· 1 list almost at cap' to its subtitle, so the problem shows up on home.",
+        "Mobile (11): the Fernleitung title breaks mid-word ('Fernleit / ung -...') because the 'Near cap' badge and the amount squeeze it. Below sm, move the BudgetBadge from the title line to the cap line (before '75% of 2.000.000 €'), give the title min-w-0 with break-words off, and truncate it at the end only.",
+        "Mobile (11): the hero still takes ~2/3 of the first viewport. Its meta wraps to 3 lines (pill + %, '… left', 'Counts …'). Below sm, put '… left' at the right end of the progress bar and drop the 'Counts' line, so the first project row appears above y≈560pt."
+      ]
+    },
+    "S2": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 8, "consistency": 8, "clarity": 7, "interaction": 8, "accessibility": 8, "responsive": 7, "wise": 8},
+      "issues": [
+        "The 'near cap' status appears three times: the 'Near cap' pill (the project's own cap), the '1 list near its cap' MetaLink, and the 'Needs attention 1' chip. Drop the MetaLink (FolderPage.tsx:116), since the chip already filters. If the project's own status is shown, label it 'Project near cap' so it isn't read as the list count.",
+        "The All / Needs attention chips, 'Sort: Highest amount' and 'Select' are full controls for a 2-item list. Hide the filter chips and Sort below 4 lists (keep Select).",
+        "The project ⋯ menu has 'Import CSV / JSON' (FolderPage.tsx:83), which duplicates the hero 'Import files' button (that already accepts CSV/JSON). Remove the menu item.",
+        "The project ⋯ menu says 'New folder inside'. The product noun is 'project' everywhere else. Rename it to 'New sub-project', or remove it if nesting isn't a supported flow.",
+        "The row subtitles mix two kinds of facts: 'Bid · 274 positions' and 'Word import · 40 positions'. Show the phase for every list (Bid/Award/…) and put the source only in the row ⋯ menu or the list page meta.",
+        "No mobile capture exists for this screen. Check that the badge-on-title-line issue from S1 mobile ('LV-Positionen nach Aufmaß-Gruppen' + 'Near cap') does not break mid-word."
+      ]
+    },
+    "S3": {
+      "scores": {"hierarchy": 8, "density": 7, "typography": 8, "consistency": 7, "clarity": 8, "interaction": 8, "accessibility": 8, "responsive": 6, "wise": 7},
+      "issues": [
+        "On desktop the first position starts at y≈750, under the hero, meta, 'Cost by section', actions and toolbar. Move 'Cost by section' into the hero meta line as a link-button ('197 positions · 38 with quantity 0 · Cost by section ▾'), and drop mt-6 above the actions to mt-4.",
+        "The hero bar here is split into section colours, while on every other screen the bar colour means budget status. This one bar has two meanings. Keep the status-coloured Meter in the hero and show the section split only inside the expanded 'Cost by section' panel.",
+        "Quantity-0 rows show '—' in GP and an empty Einheit, so the user can't tell 'no quantity' from 'not priced'. Render a muted 'No qty' in GP for those rows, and keep the unit visible.",
+        "The GP values sit ~2px above the baseline of the Menge/EP input values in the same row. Align the GP cell with the inputs (same h-9 flex items-center wrapper).",
+        "Mobile (12): the hero still fills the whole first viewport, and only the first position's title appears at the fold. Below sm, collapse 'Cost by section' into ⋯, put Add position/Export as icon+label pills on one row with the search, and merge Categories/Select/Sort into one row with Search as an icon button.",
+        "Mobile (12): each row still has two tall bordered inputs (Menge, EP) on their own line. Below sm, render 'Menge psch × EP' as text with the dotted-underline editable cue and open an inline editor on tap, to roughly halve row height."
+      ]
+    },
+    "S4": {
+      "scores": {"hierarchy": 9, "density": 8, "typography": 8, "consistency": 8, "clarity": 8, "interaction": 8, "accessibility": 8, "responsive": 8, "wise": 8},
+      "issues": [
+        "Number formats differ from the hero. The GP card says '1,1 % of list' (space before %) where the app uses '67%' everywhere else, and '263.008 € left in cap' (rounded) where the hero says '263.008,35 € left'. Use the same pct and money formatters as the hero.",
+        "The EP input shows the unit twice: the label 'EP (€)' and a '€' suffix inside the field. Keep one (label 'EP', suffix '€').",
+        "The two editable texts work differently. Kurztext is edited inline (pencil on hover), but Langtext needs an 'Edit' button. Make Langtext click-to-edit with the same hover pencil, or give both an Edit button.",
+        "The Menge input is ~140px wide for a 1–4 digit value, and 'psch' floats between the two inputs, so it reads as a label for EP. Put the unit as a suffix inside the Menge field ('1  psch'), the way '€' sits inside EP."
+      ]
+    },
+    "S5": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 8, "consistency": 7, "clarity": 7, "interaction": 8, "accessibility": 8, "responsive": 7, "wise": 8},
+      "issues": [
+        "The pill reads '2 lists near cap' with the warning-triangle icon, but the rows show two levels: 'Almost at cap' (triangle, ≥90%) and 'Near cap' (circle, ≥75%). Name the worst level in the pill ('1 almost at cap · 1 near cap'), or use a single level word in the rows.",
+        "The tooltip on every non-ok StatusTag is NEAR_CAP_HINT ('75% or more'), including on 'Almost at cap', which starts at 90%. Give each tone its own hint: 'Near cap: 75–89% used', 'Almost at cap: 90–100% used', 'Over cap: more than 100%'.",
+        "Its numbers disagree with All Projects: here it is 67% of 4.401.000 € and 1.460.686,51 € left, there 68% of 4.350.000 € and 1.409.686,51 € left. The two numbers sit side by side with no explanation. Add one muted line under the hero: 'List caps are set per list; project caps are on All Projects', or reconcile the two cap systems (see global).",
+        "'all priced' repeats on every row of a screen that only holds priced lists. Drop it from the row subtitles here.",
+        "The 'Needs attention 2' chip does little while the default sort is 'Closest to cap', since flagged lists already come first. Keep the chip but drop the separate 'All' chip count logic, or replace both chips with a divider row 'Needs attention' above the first two rows."
+      ]
+    },
+    "S6": {
+      "scores": {"hierarchy": 9, "density": 9, "typography": 9, "consistency": 9, "clarity": 9, "interaction": 9, "accessibility": 9, "responsive": 9, "wise": 9},
+      "issues": []
+    },
+    "S7": {
+      "scores": {"hierarchy": 9, "density": 9, "typography": 9, "consistency": 9, "clarity": 8, "interaction": 9, "accessibility": 9, "responsive": 9, "wise": 9},
+      "issues": [
+        "The subtitle 'Items stay here until you delete them forever.' still doesn't say how (Trash.tsx). Change it to 'Restore or delete items forever from their More options menu.' and drop the restore sentence from the empty-state body, which would then repeat it."
+      ]
+    },
+    "S8": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 8, "consistency": 8, "clarity": 8, "interaction": 8, "accessibility": 8, "responsive": 8, "wise": 8},
+      "issues": [
+        "'Show 50 of 104 positions' is ambiguous, and after expanding, 54 hits are unreachable (POS_MAX cap). Label it 'Show 47 more' (up to the cap). When the cap is hit, end the group with a muted row 'Showing 50 of 104 — type more to narrow down'.",
+        "The position subtitle 'OZ 3.1.60 · Rohbau · Ortbetonarbeiten' puts list name and category in the same style, so 'Rohbau' (list) and 'Ortbetonarbeiten' (category) can't be told apart. Format it as 'OZ 3.1.60 · Ortbetonarbeiten — in Rohbau (Project name)', or prefix the list part with the list icon.",
+        "Every visible result is 'Not priced', which adds weight on the right but tells nothing. When none of a group's results is priced, show the count in the group header ('LISTS 5 · none priced') and leave the right column empty."
+      ]
+    },
+    "S9": {
+      "scores": {"hierarchy": 9, "density": 9, "typography": 9, "consistency": 8, "clarity": 8, "interaction": 9, "accessibility": 8, "responsive": 8, "wise": 9},
+      "issues": [
+        "The new project has no budget cap, and no control anywhere sets one: 'Set a budget cap' was removed, and the ⋯ menu only holds New folder inside / Rename / Move / Archive / Trash. Add 'Set budget cap…' to the ⋯ menu and to the subtitle ('No lists yet · No cap — Set cap').",
+        "The ⋯ menu item 'New folder inside' (EmptyFolder.tsx:16) uses 'folder' where the screen says project. Rename it to 'New sub-project'.",
+        "The format hint 'Supports GAEB, CSV, … Langtext.' is ~12px in light grey. Raise it to text-[13px] text-slate-600 to keep AA contrast at that size.",
+        "Below 400px, the two CTAs 'Import files' / 'Start a blank list' should stack full-width (flex-col sm:flex-row). Check it, since there is no mobile capture of this screen."
+      ]
+    }
+  },
+  "global_issues": [
+    "Budget caps can't be set or edited anywhere in the UI. The project ⋯ menu, the list ⋯ menu and the empty folder have no cap control, and caps are auto-derived (fixedBudget/niceCap), although watching totals against a cap is the product's core job. Add 'Edit budget cap…' to the project and list ⋯ menus, and make the '% of X € cap' text in every hero a button that opens the same dialog. The dialog states the 75% / 90% thresholds.",
+    "Project caps and list caps are two parallel systems that disagree on screen. All Projects shows 68% of 4.350.000 €, 1.409.686,51 € left and '1 project near cap'. Active Budgets shows 67% of 4.401.000 €, 1.460.686,51 € left and '2 lists near cap'. Site is at 2% of its 50.000 € project cap while its only list is at 98%. Either make list caps sub-allocations of the project cap, or roll flagged child lists up into the project row as a badge and a subtitle note, so home never hides a list that is almost at its cap.",
+    "Hero status and filter chips duplicate each other on S1 and S2 (pill/MetaLink plus the 'Needs attention N' / 'Not priced N' chips). One rule: chips are the filters, and the hero shows status only as plain text.",
+    "The severity words are not defined consistently. 'Near cap' (≥75%, circle icon), 'Almost at cap' (≥90%, triangle) and 'Over cap' share one tooltip that says 75%, and the aggregate pill always says 'near'. Give each tone its own hint and make the aggregate pill name the worst tone.",
+    "The noun 'folder' still leaks: the menu says 'New folder inside', and the ListPage crumb falls back to 'Folder'. Use 'project' everywhere.",
+    "Mobile heroes (S1, S3) still take most of the first viewport, and on S1 the title-line badge breaks project names mid-word. Build a compact mobile hero (total, one status line, one action row), and move row badges onto the cap line below sm."
+  ]
+}

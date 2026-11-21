@@ -1,0 +1,122 @@
+{
+  "member": "ux",
+  "screens": {
+    "S1": {
+      "scores": {"hierarchy": 5, "density": 6, "typography": 5, "consistency": 5, "clarity": 5, "interaction": 5, "accessibility": 5, "responsive": 6, "wise": 4},
+      "issues": [
+        "Add a hero number: move the workspace total (€3.84M of €5.30M) from the sidebar footer to the top of the page, large, with 2 pill actions under it (New Folder primary, Upload secondary); delete the sidebar 'Allocated Budget' widget.",
+        "Two competing primaries: 'Upload File' (top bar) and 'Open All 37' (page header) are both filled indigo. Keep one primary; demote 'Open All' to a 'more' menu or remove it (its meaning is unclear).",
+        "Folder card is upside down: the budget bar sits above the name and a big decorative icon tile takes the centre. Put name + subtitle first, then a single 'spent / cap' line; shrink or drop the icon tile.",
+        "Folders without a cap show '€0k ... 0% ... Set cap' with an empty bar. Replace with a muted 'No budget cap · Set cap' text link and hide the bar; render as a real button so it looks clickable.",
+        "Coloured dot before 'N lists inside' (green/orange) is an unexplained status. Drop the dot or label the status in words ('Approaching cap').",
+        "Grid/list view toggle lives in the global top bar while Sort and Select live in the page header. Move the view toggle next to Sort; drop 'Select' into the kebab/long-press so the header has <=3 controls.",
+        "Rename sidebar section 'REPOSITORIES' (dev jargon) or remove the header entirely; breadcrumb 'Home > Workspace > All Projects' is redundant on a top-level page — remove it.",
+        "Count mismatch: desktop says '6 Folders', mobile says '7 Folders'. Fix the count; on mobile collapse header actions into one row with a '+' button and make cards compact list rows so more than 1.5 folders fit per screen."
+      ]
+    },
+    "S2": {
+      "scores": {"hierarchy": 4, "density": 4, "typography": 5, "consistency": 3, "clarity": 4, "interaction": 4, "accessibility": 5, "responsive": 4, "wise": 3},
+      "issues": [
+        "Same actions shown twice: top bar has 'New Subfolder', 'Upload', 'Import CSV' and the page header has 'Upload Files', 'New subfolder', 'New List', 'Open All'. Remove the top-bar duplicates; keep one primary ('New List' or 'Upload') + a 'more' menu for the rest.",
+        "Two filled primaries ('Import CSV' and 'Open All 3'). Keep exactly one primary per screen.",
+        "Folder total card is the right idea but reads like a table row; make '€1,794,610.90 of €2,500,000' the hero (large, top-left), with the bar beneath, and drop the separate bordered box.",
+        "Three lists all titled 'RINGSCHLUSS BRUNNENWASSER, [PERSON_132]'; the only differentiator is a tiny monospace filename. Show the filename/format (D86, D84, X83) as the primary distinguishing subtitle and put the type (GAEB 90 / X83) next to it, not floating mid-footer.",
+        "Documents section repeats the lists' own source files (StBALV23040.D86/.D84, X83) as separate cards. Hide source files that already back a list, or show them only inside the list's 'Documents' panel.",
+        "Every document card links the same folder name in blue ('RINGSCHLUSS BRUNNENWASSER...') which is noise on a page already inside that folder. Remove it.",
+        "First list card has a blue title + raised shadow (hover state captured or inconsistent selection). Make hover/selection a subtle fill and keep titles one colour.",
+        "Seven header controls cannot stack on mobile. Reduce to title + hero total + 1 primary + overflow menu; switch lists/documents to row lists rather than 3-col cards."
+      ]
+    },
+    "S3": {
+      "scores": {"hierarchy": 4, "density": 4, "typography": 5, "consistency": 4, "clarity": 4, "interaction": 5, "accessibility": 5, "responsive": 2, "wise": 3},
+      "issues": [
+        "No hero: the list total (€536,991.65 of €800k) is hidden in the table footer and inside the budget panel. Put it at the top under the list title as the single focal number with the cap bar and status word.",
+        "Budget panel repeats the same fact 4 times ('Within Budget · 67.1%' pill, 'Within budget' heading, '67.1% of cap' chip, sentence). Collapse to one status line next to the hero total; delete the panel.",
+        "Remove demo widgets: the threshold legend 'Caution (75%) / Approaching Cap (90%) / Budget Exceeded (105%)' looks like tabs, the '•••  -/3' pager and the prev/next arrows have no meaning. Thresholds belong in settings.",
+        "'Request Budget Expansion' (filled primary) and 'Review Overages' show while the list is within budget with no overages. Show them only when relevant; there must be one primary on this page ('Add Item').",
+        "Top bar 'Upload File' primary and grid/list toggle are irrelevant on a list ledger. Hide them on this screen.",
+        "Single-tab strip ('[ORT_024] LV24069.D86' + '+') duplicates the breadcrumb's last crumb and leaves a big empty gap. Remove the tab strip; put the list title as an H1.",
+        "Per row both a trash icon and a kebab are shown. Move delete into the kebab (or bulk bar) so each row has one overflow affordance; move 'Einheit' next to 'Menge' (quantity unit belongs with quantity, not after the total).",
+        "Mobile: the table scrolls sideways, titles truncate and no price/total is visible. Render positions as stacked rows (Kurztext + OZ left, Gesamt right, Menge × EP muted beneath) and move Split/Add into a sticky bottom bar."
+      ]
+    },
+    "S4": {
+      "scores": {"hierarchy": 6, "density": 6, "typography": 5, "consistency": 6, "clarity": 6, "interaction": 5, "accessibility": 6, "responsive": 6, "wise": 5},
+      "issues": [
+        "No commit action and an ambiguous persistence note ('Changes are saved in this browser'). Add an explicit 'Done' (or autosave confirmation 'Saved') and state clearly whether edits sync to the team.",
+        "Einheitspreis input shows raw '5700' while Gesamt shows '€5,700.00'. Format the input as currency (de/en locale consistent) and right-align numeric inputs.",
+        "Kurztext appears as the drawer title AND as the first field. Make the title itself editable inline or drop the duplicate field.",
+        "Drawer covers the list total/budget, so the user cannot see the impact of an edit. Show the list's running total vs cap (and delta) in the drawer footer.",
+        "No previous/next position navigation; estimators edit positions in sequence. Add up/down arrows (and J/K shortcuts) in the drawer header.",
+        "Langtext shows hard line breaks from the source ('nach / Ende der ...') and is cut off. Reflow the text and let the field grow; make it read-only-by-default with an 'Edit' toggle since it's contractual text.",
+        "Category breadcrumb under the field ('Baustelleneinrichtung - Montagepläne - I › ...') is noisy and duplicates the picker. Show only the path in the picker.",
+        "'Reset changes' sits in a footer with the same weight as nothing else; make it a text button in a 'more' menu, and give the close X a visible focus ring and 44px target."
+      ]
+    },
+    "S5": {
+      "scores": {"hierarchy": 6, "density": 7, "typography": 6, "consistency": 6, "clarity": 6, "interaction": 6, "accessibility": 6, "responsive": 5, "wise": 6},
+      "issues": [
+        "The sum (Σ €3,836,638.94) is small grey text beside the title. Make it the hero number with total cap and overall usage under it; drop the 'Σ' glyph.",
+        "Two rows are indistinguishable ('RINGSCHLUSS BRUNNENWASSER, [PERSON_132]' twice). Use the file name/format as the distinguishing subtitle and consider grouping by folder.",
+        "'Usage of cap' shows a % but never the cap amount. Show 'of €1.50M' muted next to the bar, and label status in words for orange (>=75%) rows, not colour only.",
+        "Page name 'Active Budgets' is unclear vs 'All Projects' and the subtitle says 'priced lists'. Rename to 'Priced lists' or 'Budgets' and explain inclusion in one line.",
+        "Top-bar grid/list toggle and 'Upload File' do nothing for this view. Hide them here; sortable header is enough.",
+        "Rows have no visible click affordance beyond the kebab. Add hover fill + chevron and make the whole row open the list.",
+        "Five-column table will not fit on mobile. Define the stacked row form (name + folder left, total + mini bar right)."
+      ]
+    },
+    "S6": {
+      "scores": {"hierarchy": 6, "density": 7, "typography": 7, "consistency": 5, "clarity": 7, "interaction": 5, "accessibility": 6, "responsive": 7, "wise": 6},
+      "issues": [
+        "Dead controls on an empty archive: 'New Folder', 'Cost (High to Low)' sort and 'Select'. Remove all three here (creating a folder in Archived makes no sense).",
+        "'0 Folders' badge repeats the empty state. Hide the count badge when zero.",
+        "Empty-state copy references a glyph '(⋮)'. Replace with a link 'Go to All Projects' so the user can act.",
+        "Dashed border box-in-page adds chrome; drop the dashed card and centre the empty state on the page surface.",
+        "Global 'Upload File' primary and view toggle remain the strongest elements on a page with nothing to do. Hide them on Archived."
+      ]
+    },
+    "S7": {
+      "scores": {"hierarchy": 7, "density": 7, "typography": 7, "consistency": 6, "clarity": 7, "interaction": 6, "accessibility": 6, "responsive": 7, "wise": 6},
+      "issues": [
+        "Header pattern differs from Archived (breadcrumb 'Home > Trash' vs 'Home > Workspace > Archived', no count badge). Use one page-header component for all sidebar destinations, or drop breadcrumbs on top-level pages.",
+        "State the retention policy ('Items are deleted permanently after 30 days') and plan an 'Empty trash' action for the non-empty state.",
+        "Global 'Upload File' primary and grid/list toggle are meaningless on Trash. Hide them.",
+        "Dashed bordered empty card adds a box; centre the empty state on the page surface instead."
+      ]
+    },
+    "S8": {
+      "scores": {"hierarchy": 8, "density": 7, "typography": 6, "consistency": 7, "clarity": 7, "interaction": 7, "accessibility": 6, "responsive": 6, "wise": 7},
+      "issues": [
+        "Position results lack context: show the parent list/folder and the Gesamt amount right-aligned so the user can pick the right one.",
+        "No match highlighting for the query ('Beton'). Bold the matched substring in titles.",
+        "Results are cut at the bottom with no 'Show all N results' row or scroll cue; add a count per group and a 'see all' link.",
+        "Pluralisation bug '1 lists'. Fix copy.",
+        "Monospace subtitles (file names, OZ) are visually heavy; use proportional muted text, keep mono only for OZ if at all.",
+        "Top-bar trigger says 'Filter folders, lists, positions' but opens a global search palette. Rename placeholder to 'Search' and make the trigger look like a button on mobile (it already is an icon)."
+      ]
+    },
+    "S9": {
+      "scores": {"hierarchy": 3, "density": 4, "typography": 6, "consistency": 2, "clarity": 4, "interaction": 4, "accessibility": 6, "responsive": 4, "wise": 3},
+      "issues": [
+        "Upload is offered 4 times under 4 names ('Upload', 'Import CSV', '+ Upload Files', 'Import Item Lists & CSVs') and subfolder 3 times ('New Subfolder', '+ Create Subfolder', 'Add Nested Subfolder'). Keep one 'Upload files' primary in the empty state and one secondary 'New list'; remove everything else.",
+        "Three filled primaries compete (Import CSV, + Upload Files, Import Item Lists & CSVs). One primary only.",
+        "Header layout differs from the populated folder (S2): bordered breadcrumb pill, Rename/Delete buttons, different button labels. Use the same folder header as S2; move Rename/Delete into its overflow menu.",
+        "Breadcrumb order is wrong ('All Projects > Workspace > Legal & Compliance' vs 'Home > Workspace > ...' elsewhere). Use one breadcrumb scheme app-wide.",
+        "Box-in-box-in-box: dashed dropzone inside a large card inside the page. Make the whole page the drop target and drop the outer card.",
+        "'Empty' badge repeats the headline 'This folder is currently empty'. Remove the badge; shorten copy to 'Drop GAEB, CSV or PDF files here'.",
+        "'+' glyphs added to labels that already have icons ('+ Upload Files', '+ Create Subfolder'). Remove the '+' text.",
+        "Sidebar footer cap changed (€5.30M → €5.35M) after creating an empty folder with no visible explanation; don't silently alter workspace totals, or show the new folder's cap in the toast."
+      ]
+    }
+  },
+  "global_issues": [
+    "Duplicate actions everywhere: the global top bar carries page-specific actions (Upload File / New Subfolder / Upload / Import CSV / view toggle) that are repeated in page headers. Make the top bar search + account only; each page header owns at most 1 primary + 2 secondary + overflow.",
+    "No hero number on any money screen. Adopt one pattern: title, then large 'spent of cap' figure with a status word and thin bar, then actions. Remove the sidebar 'Allocated Budget' widget once the home hero exists.",
+    "Inconsistent naming for the same verbs: Upload / Upload File / Upload Files / Import CSV / Import Item Lists & CSVs; New Subfolder / New subfolder / Create Subfolder / Add Nested Subfolder. Pick one label per verb and one casing (sentence case).",
+    "Breadcrumbs disagree across screens (Home>Workspace, Home>Repositories, All Projects>Workspace, Home>Trash). One scheme, and drop breadcrumbs on top-level sidebar pages.",
+    "Remove demo/fake widgets: budget threshold legend, '-/3' pager, prev/next arrows, 'Request Budget Expansion' and 'Review Overages' when not applicable, single-tab strip.",
+    "Status is mostly colour (green/orange dots and bars) with % labels drawn inside bars. Add status words (On track / Near cap / Over cap) and move % outside the bar.",
+    "Monospace for money and IDs throughout feels technical; use proportional tabular figures for amounts (Wise-style) and reserve mono for OZ codes only.",
+    "Mobile is an afterthought: list ledger scrolls sideways with no amounts; cards are oversized. Define a stacked row component (title/subtitle left, amount right) reused for folders, lists, positions, budgets and search results."
+  ]
+}

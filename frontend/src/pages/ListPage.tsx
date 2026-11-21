@@ -548,14 +548,14 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
       />
 
       {view?.trashedAt && (
-        <div className="mb-5 flex items-center justify-between gap-3 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-900">
+        <div className="mb-5 flex items-center justify-between gap-3 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-900">
           <span className="flex items-center gap-2"><Icon name="delete" size={18} />This list is in the Trash.</span>
           <button type="button" className="font-semibold underline underline-offset-4" onClick={() => useStore.getState().patchList(doc.id, { trashedAt: undefined })}>Restore</button>
         </div>
       )}
 
       {view?.supersededBy && (
-        <div role="note" className="mb-5 flex items-start gap-2.5 rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-700">
+        <div role="note" className="mb-5 flex items-start gap-2.5 rounded-lg bg-slate-50 px-4 py-3 text-sm text-slate-700">
           <Icon name="info" size={18} className="mt-px text-slate-600" />
           <span>This is an earlier version. The {view.supersededBy} file of the same tender replaces it, so this list doesn't count toward project totals.</span>
         </div>
@@ -571,7 +571,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
         cap={cap}
         onEditCap={live ? () => openDialog({ kind: 'edit-cap', target: 'list', id: doc.id }) : undefined}
         extra={sections.length > 1 && showSections && (
-          <div id="pricing-legend" className="mt-4 max-w-xl rounded-2xl bg-slate-50 p-4">
+          <div id="pricing-legend" className="mt-4 max-w-xl rounded-lg bg-slate-50 p-4">
             <PricingMeter sections={sections} total={st.total} cap={cap || st.total} className="max-w-md" />
             <PricingLegend sections={sections} />
           </div>
@@ -580,42 +580,42 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
           <span className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
             <span className="num">{plural(st.positionsCount, 'position', 'positions')}</span>
             {unpriced > 0 && (
-              <>
+              <span className="inline-flex items-center gap-x-1.5">
                 <span aria-hidden>·</span>
                 <MetaLink onClick={() => only('unpriced')} pressed={onlyUnpriced}><span className="num">{int(unpriced)}</span> still to price</MetaLink>
-              </>
+              </span>
             )}
             {zeroQty > 0 && (
-              <>
+              <span className="inline-flex items-center gap-x-1.5">
                 <span aria-hidden>·</span>
                 <MetaLink onClick={() => only('zero')} pressed={onlyZero}><span className="num">{int(zeroQty)}</span> with quantity 0</MetaLink>
-              </>
+              </span>
             )}
             {flaggedCount > 0 && (
-              <>
+              <span className="inline-flex items-center gap-x-1.5">
                 <span aria-hidden>·</span>
                 <MetaLink onClick={() => { setFindingFilter((f) => (f === 'flagged' ? 'all' : 'flagged')); toTable() }} pressed={findingFilter === 'flagged'}><span className="num">{int(flaggedCount)}</span> flagged by the upload check</MetaLink>
-              </>
+              </span>
             )}
             {editedCount > 0 && (
-              <>
+              <span className="inline-flex items-center gap-x-1.5">
                 <span aria-hidden>·</span>
                 <MetaLink onClick={() => only('edited')} pressed={onlyEdited}><span className="num">{int(editedCount)}</span> edited</MetaLink>
-              </>
+              </span>
             )}
             {sections.length > 1 && (
-              <>
+              <span className="inline-flex items-center gap-x-1.5">
                 <span aria-hidden>·</span>
                 <button type="button" aria-expanded={showSections} aria-controls="pricing-legend" onClick={() => setShowSections((v) => !v)} className="inline-flex h-7 items-center gap-0.5 rounded-md pr-1 pl-2 font-medium text-slate-900 ring-1 ring-slate-400 ring-inset hover:bg-slate-100">
                   <span>Cost by section</span><Icon name="expand_more" size={18} className={clsx('text-slate-500 transition-transform', showSections && 'rotate-180')} />
                 </button>
-              </>
+              </span>
             )}
             {(status.tone === 'warn' || status.tone === 'over') && largest && (
-              <>
+              <span className="inline-flex items-center gap-x-1.5">
                 <span aria-hidden>·</span>
                 <MetaLink onClick={review}>Review the biggest positions</MetaLink>
-              </>
+              </span>
             )}
           </span>
         }
@@ -752,7 +752,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
       </div>
 
       {(listWide.length > 0 || uploadReport?.source_notice || !!uploadReport?.errors.length) && (
-        <section aria-labelledby="list-findings-h" className="mt-8 rounded-lg px-5 py-4 ring-1 ring-slate-300 ring-inset">
+        <section aria-labelledby="list-findings-h" className="mt-8">
           <h2 id="list-findings-h" className="font-heading text-base font-bold text-slate-900">
             Findings for the whole list{listWide.length > 0 && <span className="num ml-2 font-sans text-sm font-medium text-slate-600">{int(listWide.length)}</span>}
           </h2>
@@ -760,20 +760,20 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
             <p className="mt-1 text-sm text-amber-900">{uploadReport?.source_notice || 'Some checks could not finish during the upload.'}</p>
           )}
           {listWide.length > 0 && (
-            <ul className="mt-3 divide-y divide-slate-200">
-              {listWide.map((finding) => <li key={finding.id} className="py-3 first:pt-0 last:pb-0"><FindingText finding={finding} /></li>)}
+            <ul className="mt-3 space-y-4">
+              {listWide.map((finding) => <li key={finding.id}><FindingText finding={finding} /></li>)}
             </ul>
           )}
         </section>
       )}
 
       {doc.notes && (
-        <section className="mt-8 rounded-3xl bg-slate-50">
+        <section className="mt-8 rounded-lg bg-slate-50">
           <button
             type="button"
             aria-expanded={notesOpen}
             onClick={() => setNotesOpen((o) => !o)}
-            className="flex w-full items-center justify-between gap-2 rounded-3xl px-5 py-4 text-left text-[15px] font-semibold text-slate-900"
+            className="flex w-full items-center justify-between gap-2 rounded-lg px-5 py-4 text-left text-[15px] font-semibold text-slate-900"
           >
             <span className="flex items-center gap-2.5"><Icon name="notes" size={20} className="text-slate-500" />Vorbemerkungen</span>
             <Icon name="expand_more" size={20} className={clsx('text-slate-500 transition-transform', notesOpen && 'rotate-180')} />
@@ -806,15 +806,15 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
             onApply={(long) => useStore.getState().patchPosition(doc.id, detail.id, { long })} />
         ) : undefined}
         findings={detailFindings?.length ? (
-          <section aria-labelledby="drawer-findings-h" className="rounded-lg ring-1 ring-slate-300 ring-inset">
-            <h3 id="drawer-findings-h" className="px-4 pt-3.5 text-[15px] font-semibold text-slate-900">Findings from the upload check</h3>
-            <ul className="divide-y divide-slate-200">
+          <section aria-labelledby="drawer-findings-h">
+            <h3 id="drawer-findings-h" className="text-[15px] font-semibold text-slate-900">Findings from the upload check</h3>
+            <ul className="mt-3 space-y-5">
               {detailFindings.map((finding) => {
                 const done = reviewed.has(finding.id)
                 return (
-                  <li key={finding.id} className={clsx('space-y-3 px-4 py-3.5', done && 'opacity-70')}>
-                    <FindingText finding={finding} />
-                    <Button size="sm" icon={done ? 'undo' : 'check'} onClick={() => toggleReviewed(finding.id)}
+                  <li key={finding.id} className="space-y-3">
+                    <FindingText finding={finding} reviewed={done} />
+                    <Button size="sm" className="ml-[15px]" icon={done ? 'undo' : 'check'} onClick={() => toggleReviewed(finding.id)}
                       aria-label={`${done ? 'Reopen' : 'Mark reviewed'}: ${finding.title}`}>
                       {done ? 'Reopen' : 'Mark reviewed'}
                     </Button>

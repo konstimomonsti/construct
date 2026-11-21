@@ -1,0 +1,101 @@
+{
+  "member": "ux",
+  "screens": {
+    "S1": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 8, "consistency": 8, "clarity": 8, "interaction": 8, "accessibility": 8, "responsive": 8, "wise": 8},
+      "issues": [
+        "The hero shows two status statements side by side: a green 'On track' pill and the link '1 project near its cap' on the next line. Merge them into one status line: an amber 'Needs attention' pill when any project is near or over its cap, followed by '1 project near its cap' as the link. Use green 'On track' only when nothing is flagged.",
+        "The count 6 appears three times within about 450px: the subtitle '6 projects · 37 lists', the section header 'Projects 6' and the chip 'All 6'. Remove the count from the 'Projects' section header, since the chips already carry it.",
+        "Mobile (11): the hero meta wraps to three lines ('On track 68% of…' / '1.360.667 € left' / '1 project near its cap'), so the hero fills the first viewport and only about 1.5 rows show. Below sm, put '… left' at the right end of the progress bar and drop 'in project caps' (use '68% of 4.300.000 €').",
+        "Mobile (11): the row amount sits on line 3, left-aligned under the subtitle, and the cap meta is on line 4, so amounts can't be scanned as a column. Put the amount right-aligned on the title line (title wraps beside it) and put the '% of cap' meta right-aligned on the subtitle line.",
+        "Unpriced projects show only 'Not priced yet' in the money column. Add the actionable count, for example 'Not priced yet · 27 lists', or make it a link that opens the first unpriced list."
+      ]
+    },
+    "S2": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 8, "consistency": 7, "clarity": 7, "interaction": 7, "accessibility": 8, "responsive": 7, "wise": 8},
+      "issues": [
+        "The same action has two labels: 'Upload files' here and on the empty folder, but 'Upload' on All Projects. Pick one ('Upload files') and use it in AllProjects.tsx:97 as well.",
+        "Secondary actions are placed inconsistently. Here the ··· menu (Open all, New folder inside, Import CSV/JSON) sits top-right beside the title, while on All Projects the ··· is a pill in the hero action row. Move this ··· into the hero after 'New list' so every hero follows the same pattern (primary, secondary, ···).",
+        "Document rows say 'Linked to Angebot AN24-0305.D84' (the file name), but the list row above is titled 'Angebot AN24-0305', so the user has to match two names. Show the list title as displayed in Lists and style it as a real link (underline on hover, opens the list). It currently reads as bold static text.",
+        "The list caps (1.500.000 € + 600.000 € = 2.100.000 €) exceed the project cap of 2.000.000 € and nothing says so. Add a muted line under the hero meta, 'List caps add up to 2.100.000 € (100.000 € over project cap)', or flag it in the cap dialog.",
+        "The 'Near cap' threshold is never explained: 75% is 'Near cap' here, while 67% elsewhere is 'On track'. Add a tooltip or title on the status pill, 'Near cap: 75% or more of the cap used'.",
+        "Lists still have no 'Select' tool, although project rows on All Projects have one. Add the same Select toggle and Dock (move, trash, open in tabs) to the Lists section header next to Sort.",
+        "No mobile capture of this screen exists. Make sure the two-line list rows use the same stacked narrow-width layout as S1 mobile, with the amount and cap meta right-aligned."
+      ]
+    },
+    "S3": {
+      "scores": {"hierarchy": 7, "density": 7, "typography": 8, "consistency": 7, "clarity": 7, "interaction": 7, "accessibility": 7, "responsive": 6, "wise": 7},
+      "issues": [
+        "The sticky footer duplicates the hero on first load. 'List total 536.991,65 € · 67% of cap · On track' and '197 positions' are both visible directly below the identical hero numbers. Render the footer's total part only after the hero Summary has scrolled out of view (IntersectionObserver on the hero), and keep the footer for the selection toolbar.",
+        "The sticky footer (bg-white/95) covers the last visible row (1.1.5 is hidden under it in 03). Add scroll-padding-bottom equal to the footer height on the scroll container so keyboard focus and scrollIntoView (focusId flash) never land under the footer.",
+        "Menge has no editable affordance in practice. editableCls relies on a dashed text-decoration underline, which browsers don't render on <input>, so Menge '1' looks static while EP '5.700,00' shows a dashed underline. Replace the underline with a dashed border-bottom (for example 'border-b border-dashed border-slate-400') in editableCls so both cells match.",
+        "'197 positions, all priced' is misleading: the Nachtrag 4–6 positions have Menge 0, no Einheit and GP '0,00 €' (bottom of 04). Count them separately ('197 positions · 18 with no quantity'), and show a muted 'No quantity' in GP instead of a bold '0,00 €' for those rows.",
+        "The same list has a different name on every screen: H1 '[ORT_024] LV24069' (file name) here, but 'Maschinentechnik - Anlagenbau' in Active Budgets and search. Define one display-name rule (list title, or file name only when the title equals the project name) and apply it to the H1, tabs, Active Budgets rows and palette results.",
+        "The table still starts at y≈545, leaving 4 positions above the fold. Once the user scrolls past the hero, the footer already carries the total, so shrink the hero: put '197 positions, all priced' and '… left' on the meta line, and move 'Add position' and 'Export' next to Search and Categories in the table toolbar.",
+        "Mobile (12): only one position is visible in the first viewport (hero, search, filters and footer take the rest). Below sm, collapse the hero to the total plus a one-line status, and put Search, Categories and Sort in a single row (search as an icon button that expands).",
+        "Mobile (12): each row spends about 50px on a checkbox column, and its Menge × EP line floats indented in the middle. Hide row checkboxes below sm behind a 'Select' toggle, as on All Projects, and left-align the '1 psch × 5.700,00' line under the OZ."
+      ]
+    },
+    "S4": {
+      "scores": {"hierarchy": 8, "density": 7, "typography": 8, "consistency": 7, "clarity": 8, "interaction": 7, "accessibility": 8, "responsive": 7, "wise": 8},
+      "issues": [
+        "The Kurztext still appears twice: as the H2 'Baustelleneinrichtung und -räumung' and, about 340px below, as the Kurztext input with the same value. Make the H2 the inline-editable Kurztext (click to edit, same commit rules) and remove the separate Kurztext field.",
+        "The drawer has no Remove or Reset action. 'Remove' and 'Move to category…' exist only in the row ··· menu. Add a ··· IconButton in the drawer header, beside the prev/next arrows, with the same items as the row menu.",
+        "'Change' (Kategorie) and 'Edit' (Langtext) are bare text links, while every other action in the app is a pill. Render both as small ghost pill buttons (Button size='sm' variant='ghost').",
+        "The Kategorie card's second line 'Baustelleneinrichtung - Montagepläne - I' looks cut off at '- I'. Show the full category path, wrapping to two lines, or label it ('Section: …') so it reads as intentional.",
+        "Below sm the drawer is a full-width right panel with prev/next in the top-right corner, out of thumb reach. Below sm, render it as a bottom sheet with a drag handle and pin prev/next next to the autosave note in the footer."
+      ]
+    },
+    "S5": {
+      "scores": {"hierarchy": 7, "density": 8, "typography": 8, "consistency": 7, "clarity": 6, "interaction": 7, "accessibility": 8, "responsive": 7, "wise": 7},
+      "issues": [
+        "The hero copies the All Projects hero word for word (2.939.333 €, '68% of 4.300.000 € in project caps', '1.360.667 € left'), so the screen adds nothing at the top. On a lists screen, measure against list caps (the rows sum to 4.400.000 €), or make attention the hero: '1 list near its cap' large, with the total as secondary.",
+        "The cap basis contradicts the rows: the hero says 'in project caps' while every row shows its own list cap. Label the hero with the basis the rows use ('of 4.400.000 € in list caps') so the numbers reconcile.",
+        "The green 'On track' pill sits directly above '1 list near its cap · none over'. Use a single status: an amber pill 'Needs attention' plus that link, and green only when nothing is flagged.",
+        "The Maschinentechnik row shows the same name twice ('Maschinentechnik - Anlagenbau' as title and 'Maschinentechnik – Anlagenbau · Award…' as subtitle), and the same list is titled '[ORT_024] LV24069' on its own page. Apply the shared display-name rule, so a list whose title equals its project name shows its file name as the title.",
+        "The nav says 'Active Budgets', while the page subtitle and hero say 'priced lists' and the content is lists. Pick one noun. Either rename the nav to 'Priced lists', or change the subtitle to '4 budgets in 3 projects' and the hero label to 'Total of active budgets'."
+      ]
+    },
+    "S6": {
+      "scores": {"hierarchy": 9, "density": 8, "typography": 9, "consistency": 9, "clarity": 8, "interaction": 9, "accessibility": 8, "responsive": 9, "wise": 9},
+      "issues": [
+        "The same sentence appears twice: the subtitle says 'Archived projects don't count toward totals' and the body repeats 'It stops counting toward your totals.' Cut the body to 'Archive a project from its ··· menu to set it aside.'",
+        "The literal '···' glyph in the body copy is announced as 'horizontal ellipsis' by screen readers and isn't a recognisable control name. Write 'from its More (···) menu' and wrap the glyph in aria-hidden."
+      ]
+    },
+    "S7": {
+      "scores": {"hierarchy": 9, "density": 9, "typography": 9, "consistency": 9, "clarity": 8, "interaction": 9, "accessibility": 9, "responsive": 9, "wise": 9},
+      "issues": [
+        "The subtitle 'Items stay here until you delete them forever' doesn't say how to delete forever. Add 'from each item's ··· menu, or with Empty trash', and show a disabled 'Empty trash' button in the header so the control is discoverable before it's needed."
+      ]
+    },
+    "S8": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 8, "consistency": 8, "clarity": 7, "interaction": 7, "accessibility": 8, "responsive": 8, "wise": 8},
+      "issues": [
+        "The preselected first result 'Bachdurchlass Neppen' matches 'Beton' only in its description, and that match ('Stahlbetonrohre') isn't highlighted, so it still looks like a wrong hit. Highlight matches in subtitles too, and preselect the first title match across groups (here 'Porenbetonfassade'), not the first row.",
+        "Positions: 8 but only 1 is visible, so the most specific results for an estimator are below the fold. When positions match, cap Projects at 1 and Lists at 3 with a 'Show all N' row, or add group tabs (All / Projects / Lists / Positions) with counts.",
+        "Position results show 'OZ 1.1.70 · Rohbau' with no list or project, so identical OZ codes across lists can't be told apart. Change the subtitle to 'OZ 1.1.70 · <list title> · <project>' and right-align the GP.",
+        "List subtitles repeat the title through the file name ('Porenbetonfassade' / 'LV_04_Porenbetonfassade.pdf'). When the file name contains the title, show only the project name, and right-align the total or a muted 'Not priced' as on All Projects."
+      ]
+    },
+    "S9": {
+      "scores": {"hierarchy": 9, "density": 9, "typography": 9, "consistency": 8, "clarity": 9, "interaction": 8, "accessibility": 8, "responsive": 8, "wise": 9},
+      "issues": [
+        "The upload action is labelled 'Upload files' here but 'Upload' on All Projects. Use one label everywhere.",
+        "'Set a budget cap' floats as a lone link under the format line, detached from both CTAs and from where the cap is shown. Move it to the header subtitle as 'No lists yet · No cap set — Set cap', so it sits where the cap meta appears once lists exist.",
+        "'Set a budget cap' is distinguished from body text only by blue colour, at about 13px. Add an underline (or render it as a ghost pill) so it isn't colour-only.",
+        "No mobile capture exists. Below about 400px, stack 'Upload files' and 'Start a blank list' full-width, and replace 'Drop tender files … anywhere on this page' with 'Choose tender files or price sheets', since drag-and-drop doesn't exist on touch."
+      ]
+    }
+  },
+  "global_issues": [
+    "A list has no stable display name: it is '[ORT_024] LV24069' on its own page and 'Maschinentechnik - Anlagenbau' in Active Budgets and search. Define one rule (title, falling back to the file name when the title equals the project name) in a shared helper and use it for the H1, tabs, rows, palette and document 'Linked to' labels.",
+    "Aggregate heroes (All Projects, Active Budgets) show a green 'On track' pill next to a 'N near its cap' link. Make the pill reflect the worst child status (amber 'Needs attention' when anything is near or over), with the count as the link, so the hero gives one status.",
+    "Secondary-action placement differs between screens: ··· is a pill in the hero row on All Projects, but a bare icon beside the title on Folder, List and Empty folder. Put ··· in the same place everywhere, as the last pill in the hero action row.",
+    "The same action has different labels: 'Upload' (All Projects) and 'Upload files' (Folder, Empty folder). Use one label everywhere.",
+    "Inline edit affordance is broken for Menge. editableCls uses a dashed text-decoration underline, which doesn't render on <input> elements. Switch to a dashed border-bottom so Menge and EP look equally editable at rest.",
+    "On the List page, the sticky total footer duplicates the hero while the hero is visible. Show it only once the hero has scrolled away; this also frees vertical space for rows.",
+    "Mobile heroes take the whole first viewport: the meta wraps to 3 lines and only 1–1.5 rows show on S1 and S3. Make a compact mobile hero (total + one status line + action pills) and keep amounts right-aligned in list rows.",
+    "The detail drawer is still not a complete detail view: it has no Remove or Move action, and it shows Kurztext twice. Add a header ··· menu that mirrors the row menu, and make the title the editable Kurztext."
+  ]
+}

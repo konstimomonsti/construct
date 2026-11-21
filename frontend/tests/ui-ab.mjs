@@ -59,6 +59,28 @@ await step('drawer', async () => {
   await page.keyboard.press('Escape')
 })
 
+// the seeded "Risk Assessment Demo" upload: findings on rows, then the drawer for a flagged row (read-only)
+await step('findings', async () => {
+  await page.goto(base + '/')
+  await settle(900)
+  await page.getByRole('link', { name: /^Demo – Risk Assessment/ }).first().click()
+  await settle(900)
+  await page.getByRole('link', { name: /^Risk Assessment Demo/ }).first().click()
+  await page.waitForSelector('table tbody tr')
+  await page.waitForFunction(() => !document.body.innerText.includes('Checking the uploaded list'), null, { timeout: 15000 }).catch(() => {})
+  const expand = page.getByRole('button', { name: 'Expand all' })
+  if (await expand.count()) { await expand.click() }
+  await settle(1200)
+  await shot('17-list-findings')
+  const flagged = page.locator('tr[data-risk] [data-open-detail], tr.bg-rose-50\\/70 [data-open-detail], tr.bg-amber-50\\/60 [data-open-detail]').first()
+  if (await flagged.count()) {
+    await flagged.click()
+    await settle()
+    await shot('18-drawer-findings')
+    await page.keyboard.press('Escape')
+  }
+})
+
 await step('active', async () => {
   await page.goto(base + '/active')
   await settle(900)
@@ -78,8 +100,8 @@ for (const [n, kind] of [['13', 'products'], ['14', 'suppliers'], ['15', 'subcon
 // opens the editor read-only: it is closed with Escape and never saved
 await step('catalogue editor', async () => {
   await page.goto(base + '/catalogues/products')
-  await page.waitForSelector('main table tbody tr', { timeout: 8000 })
-  await page.locator('main table tbody tr').first().getByRole('button', { name: /^Edit / }).click()
+  await page.waitForSelector('main [data-row=catalogue]', { timeout: 8000 })
+  await page.locator('main [data-row=catalogue]').first().getByRole('button', { name: /^Edit / }).first().click()
   await page.waitForSelector('[role="dialog"] form', { timeout: 8000 })
   await settle(600)
   await shot('16-catalogue-editor')

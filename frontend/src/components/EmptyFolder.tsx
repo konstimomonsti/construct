@@ -22,7 +22,7 @@ export function EmptyFolder({ folder: f, ancestors, dragging }: { folder: Folder
       <PageHeader
         crumbs={crumbs}
         title={f.name}
-        subtitle={folderDescription(f) || undefined}
+        subtitle={folderDescription(f) || "No lists yet"}
         aside={<RowMenu items={menu} label={`More actions for ${f.name}`} />}
       />
 
@@ -36,7 +36,7 @@ export function EmptyFolder({ folder: f, ancestors, dragging }: { folder: Folder
               <span className="hidden [@media(pointer:coarse)]:inline">Choose tender files or price sheets from your device.</span>
             </>
           }
-          hint="Supports GAEB, CSV, TSV, Excel, JSON, Word and PDF. GAEB keeps OZ, Titel and Langtext."
+          hint="GAEB, CSV, TSV, Excel, JSON, Word or PDF"
         >
           <Button variant="primary" size="lg" icon="upload" onClick={pick}>Import files</Button>
           <Button size="lg" icon="add" onClick={() => openDialog({ kind: 'blank-list', folderId: f.id })}>New list</Button>

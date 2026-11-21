@@ -64,7 +64,7 @@ export function ActiveBudgets() {
       ) : (
         <>
           <Summary
-            label="Priced in capped lists"
+            label="Total of lists with a cap"
             amount={money(budget.total)}
             total={budget.total}
             cap={budget.cap}

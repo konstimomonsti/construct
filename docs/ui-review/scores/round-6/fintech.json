@@ -1,0 +1,117 @@
+{
+  "member": "fintech",
+  "screens": {
+    "S1": {
+      "scores": {"hierarchy": 8, "density": 7, "typography": 8, "consistency": 7, "clarity": 6, "interaction": 7, "accessibility": 7, "responsive": 7, "wise": 7},
+      "issues": [
+        "Hero meta stack: merge the three grey lines under the meter ('Measured against project caps…', '4 of 13 projects priced') into one line ('68% of 4.350.000 € · 1.409.686,51 € left · 4 of 13 priced'). Put the caps explanation in a tooltip on 'of 4.350.000 €'. Wise shows one figure and one sub-line.",
+        "Hero status chip: it is red-tinted while the jib below is lit yellow, so the screen gives two signals. Either tint the chip in the colour of the worst state and name it ('1 project almost at cap'), or move the attention summary to the 'Needs attention 2' filter and keep only the hero meter here.",
+        "'Site' row says '1 list · 1 list almost at cap' with no status chip, and its bar shows 2% of 50.000 €. Show the rolled-up 'Almost at cap' chip on the row (the status rolls up from lists), or drop the warning from the subtitle. Right now the row contradicts itself.",
+        "Project icon tiles use unexplained colours (bronze, blue-black, dark). Use one tile treatment for all projects, or tie the tile colour to status, so colour carries no meaning it doesn't have.",
+        "Row amounts: the cap line ('75% of 2.000.000 €') is 13px grey next to a 6px bar. Raise it to the same size as the subtitle and make the bar 4px tall and 72px wide so the meters line up as a calm column.",
+        "Mobile: the hero line drops 'of 4.350.000 €'. Keep the cap ('68% of 4.350.000 €') so the percentage has a reference.",
+        "Mobile: project rows drop the cap amount. Show '75% of 2.000.000 €' under the amount instead of a bare '75%'.",
+        "Mobile: the 'Sort' button loses its current value. Show 'Sort: Amount' or use an icon-only button with an aria-label that states the current sort.",
+        "Page-level ⋯ menu floats alone at the far right of the title row. Align it to the title baseline next to the actions, or fold its items into the ⌘K palette."
+      ]
+    },
+    "S2": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 8, "consistency": 7, "clarity": 7, "interaction": 7, "accessibility": 7, "responsive": 7, "wise": 7},
+      "issues": [
+        "'List caps add up to 2.100.000 €, 100.000 € over the project cap.' is a real warning shown as plain grey text. Give it an amber warning icon and the word 'Over-allocated', and link it to the list caps.",
+        "Project cap '2.000.000 €' is editable but marked only by a dotted underline. Add a pencil icon on hover and an aria-label 'Edit project cap'. Wise marks every editable amount explicitly.",
+        "Hovered list row: the fill bleeds 12px left and right past the content column and the toolbar edges. Inset the hover background to the column edges (or bleed every row and section header the same way).",
+        "Row subtitle mixes document type and import source ('Bid · 274 positions' vs 'Word import · 40 positions'). Use one fixed order: '<type> · <n> positions · <source>'.",
+        "Breadcrumb 'All Projects' is a bare grey link with no chevron, unlike the list page. Use the same breadcrumb component as S3.",
+        "Desktop-only screenshot: the two-column row (name left, amount and cap right) needs the stacked mobile layout from S1. Make sure the cap amount survives there."
+      ]
+    },
+    "S3": {
+      "scores": {"hierarchy": 7, "density": 7, "typography": 8, "consistency": 6, "clarity": 7, "interaction": 7, "accessibility": 7, "responsive": 6, "wise": 7},
+      "issues": [
+        "Toolbar: 'Search positions' has a 1px outline while every other control is a borderless dark fill. Give it the same filled style as the top search.",
+        "Toolbar: 'Sort: Position order' sits alone at the far right, away from 'Categories' and 'Select'. Group all controls left of the search, or right-align them together.",
+        "Above the table, three rows of meta (status line, '197 positions · 38 with quantity 0 · Cost by section', action buttons) push the ledger down to y=550. Fold '38 with quantity 0' into a table filter chip and 'Cost by section' into the toolbar.",
+        "Table header (OZ / Kurztext / Menge / Einheit / EP (€) / GP (€)) scrolls away on a 197-row list. Make the thead sticky under the top bar.",
+        "There is no list total at the end of the ledger. Add a sticky or terminal footer row 'Summe 536.991,65' aligned to the GP column.",
+        "Group rows for all-zero sections show 'All quantities 0' in the GP money column. Show '0,00' in the money column and move the text to a muted chip after the section title.",
+        "Every row carries a ⋯ button (197 identical icons). Show it on row hover/focus only on pointer devices, as the checkboxes already do.",
+        "Zero-quantity rows (section 8) dim the whole row, including Kurztext, to slate-500. Keep Kurztext at slate-700 and dim only the numbers, so the rows stay readable.",
+        "Mobile: the qty and EP inputs ('1 psch × 5.700,00') have no visible labels and look like empty boxes. Add tiny 'Menge' and 'EP' labels above them, or show read-only text and edit in the drawer.",
+        "Mobile: group headers wrap to two lines with the total centred vertically. Clamp titles to one line with ellipsis and baseline-align the total.",
+        "Mobile: the hero line drops 'of 800.000 €'. Keep it."
+      ]
+    },
+    "S4": {
+      "scores": {"hierarchy": 8, "density": 7, "typography": 8, "consistency": 7, "clarity": 7, "interaction": 7, "accessibility": 8, "responsive": 8, "wise": 7},
+      "issues": [
+        "GP summary sits in a filled card inside the drawer (box in a panel). Remove the card background and let '5.700,00 €' lead the drawer as the hero, using the .display cut at a smaller size so it matches the page heroes.",
+        "Label the hero 'Total (GP)' instead of a bare 'GP', and label the inputs 'Quantity (Menge)' and 'Unit price (EP)', or add a tooltip. Wise never shows an unexplained abbreviation next to money.",
+        "Prev/next (chevrons, '1 of 197') have no keyboard shortcut. Bind j/k or ↑/↓ when focus is not in an input, and show the keys in the chevron tooltips.",
+        "'Kategorie' is styled like a card with a breadcrumb and chevron, but it reads as static. Make it look like a select (same field border as Menge and EP) so it is clearly the 'Move to category' control.",
+        "Footer: 'Changes save automatically' takes a full bar for reassurance only. Show 'Saved' with a timestamp after an edit and an Undo link, and collapse the footer when there is nothing to say.",
+        "'1,1% of list · 263.008,35 € left in cap' is cap context unrelated to this position. Keep '1,1% of list' and drop the cap figure, which repeats the page hero."
+      ]
+    },
+    "S5": {
+      "scores": {"hierarchy": 7, "density": 8, "typography": 8, "consistency": 7, "clarity": 6, "interaction": 7, "accessibility": 7, "responsive": 7, "wise": 7},
+      "issues": [
+        "The hero number is 'Left in list caps 1.460.686,51 €' but the jib lights the spent 67%. Either make the hero the spend ('2.940.313,49 € of 4.401.000 €') with 'left' on the sub-line, or invert the meter, so the number and the hook describe the same quantity.",
+        "Two different 'left' figures across the app (S1 1.409.686,51 € against project caps; S5 1.460.686,51 € against list caps) will look like a bug to a finance user. Name them distinctly ('Left in project caps' / 'Left in list caps') everywhere, and show the other figure in a tooltip.",
+        "'Almost at cap' vs 'Near cap' are hard to tell apart in wording. Use the threshold in the label or tooltip (e.g. 'Near cap ≥85%', 'Almost at cap ≥95%'), or rename them to 'Watch' / 'Critical'.",
+        "List icon tiles use three colours (dark, bronze, blue-black) with no legend. Use one neutral tile for all lists; status is already shown by the chip.",
+        "Sub-line '2.940.313,49 € priced across 5 lists' repeats information. Merge it into the single meta line under the meter."
+      ]
+    },
+    "S6": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 8, "consistency": 7, "clarity": 7, "interaction": 7, "accessibility": 8, "responsive": 8, "wise": 7},
+      "issues": [
+        "Subtitle 'Archived projects don't count toward totals' has no full stop while Trash's subtitle has one. Pick one rule for all page subtitles.",
+        "'Archive a project from its More options menu' uses internal naming. Write 'from the ⋯ menu on any project' and render the ⋯ glyph inline.",
+        "The empty-state icon box (80px bronze tile) is decorative weight on an empty page. Shrink it to 48px or drop the tile and keep the line icon."
+      ]
+    },
+    "S7": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 8, "consistency": 7, "clarity": 7, "interaction": 7, "accessibility": 8, "responsive": 8, "wise": 7},
+      "issues": [
+        "The page subtitle 'Restore or delete items forever from their More options menu.' is an instruction for a non-empty state. Hide it while Trash is empty; the empty-state body already explains the page.",
+        "State the retention policy ('Items in Trash are kept until you delete them' or 'deleted after 30 days'). Money-UI users need to know whether deletion is reversible.",
+        "Replace 'More options menu' with the ⋯ glyph, as in S6.",
+        "Shrink or drop the empty-state icon tile, as in S6."
+      ]
+    },
+    "S8": {
+      "scores": {"hierarchy": 8, "density": 7, "typography": 8, "consistency": 7, "clarity": 6, "interaction": 7, "accessibility": 8, "responsive": 7, "wise": 7},
+      "issues": [
+        "Group count says 'Positions 104' but the expander says 'Show 47 more positions' (3 + 47 = 50, the POS_MAX cap). Say 'Show 47 more (of 104)' or 'Show next 47', and offer 'Open all 104 in list search'.",
+        "Group headers say 'none priced'. Move that to a muted trailing note on each row ('Not priced') or drop it; it reads as an error in the header.",
+        "Results carry no money. Right-align the GP or list total on each row (like Wise search shows balances), or 'Not priced' in muted text.",
+        "Every position row repeats 'in Rohbau (Ausbildungszentrum und Bürogebäude)'. Shorten it to the list name and show the project only when results span several projects.",
+        "The palette is search-only. Add a 'Commands' group (New project, Import files, Go to Active Budgets / Archived / Trash, Export current list) with shortcut hints, so ⌘K earns its keyboard-first billing.",
+        "The 'Esc' button is styled as a button but is really a key hint. Style it like the footer kbd chips (↑ ↓ ↵) for consistency.",
+        "There is no mobile behaviour visible. Make sure the palette goes full-screen on narrow widths with the input pinned at the top."
+      ]
+    },
+    "S9": {
+      "scores": {"hierarchy": 8, "density": 7, "typography": 8, "consistency": 6, "clarity": 8, "interaction": 8, "accessibility": 7, "responsive": 7, "wise": 7},
+      "issues": [
+        "The empty-state block is indented 34px (x=346) from the page title (x=312), while Archived/Trash empty states sit flush at x=312. Align it to the content column.",
+        "Subtitle 'No lists yet' duplicates the empty-state heading 'Add your first list'. Remove the subtitle or show the project code there.",
+        "The toast is an inverted cream panel on a dark-only app, the loudest element on screen. Use a slate-100 dark surface with a 1px slate-200 border and yellow accent.",
+        "Toast: the yellow check icon on the cream background fails contrast. Darken it, or keep the icon on a dark toast.",
+        "Toast text uses straight quotes ('Created project \"Legal & Compliance\"'). Use typographic quotes (“…”) or drop the quotes and bold the name.",
+        "Toast sits 16px from the right edge but 80px from the bottom. Pin it to a consistent 24px inset on both axes, and on mobile stack it above the safe area at full width."
+      ]
+    }
+  },
+  "global_issues": [
+    "Mobile hero meta drops the cap ('68%' without 'of 4.350.000 €') on every screen. The percentage needs its reference; keep 'of <cap>' and wrap to two lines if needed.",
+    "Icon tiles on project and list rows use unexplained colours (bronze, blue-black, near-black). Use one neutral tile treatment and let the status chip carry meaning.",
+    "The two 'left' figures (project caps vs list caps) and the two warm statuses ('Near cap' vs 'Almost at cap') need clearly distinct names and threshold tooltips. A finance user must never see two different 'left' numbers without a label that explains the difference.",
+    "Hero meta under the jib is three to four lines of small grey text on S1, S2 and S5. Standardise to one meta line (status chip · % of cap · left) and move explanations into tooltips. That is the Wise rhythm: one number, one line, then the list.",
+    "⌘K is visible but search-only. Add commands (new, import, navigate, export) and j/k row navigation in the ledger and drawer to pass the keyboard-first Theo test.",
+    "Editable money (project cap, list cap, EP, Menge) is marked only by dotted underlines or bare inputs. Use one consistent edit affordance: a pencil on hover/focus, an aria-label 'Edit …', and an inline save confirmation with Undo.",
+    "Inputs are inconsistent: the list search has an outline while all other controls are borderless fills. Pick one field style.",
+    "Copy refers to 'More options menu' in several places. Name the ⋯ menu by its glyph, and keep subtitle punctuation consistent."
+  ]
+}

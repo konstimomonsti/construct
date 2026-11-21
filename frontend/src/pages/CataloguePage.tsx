@@ -1,10 +1,10 @@
-import { clsx } from 'clsx'
 import { useEffect, useState } from 'react'
-import { Link, useParams, useSearchParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { CatalogueEditor } from '../components/CatalogueEditor'
 import { Skeleton } from '../components/Page'
-import { Chips, EmptyState, PageFrame, PageHeader } from '../components/Kit'
-import { Button, Dialog, Icon, IconButton, toast } from '../components/ui'
+import { Chips, EmptyState, PageFrame, PageHeader, Row, RowList, RowMenu, Section } from '../components/Kit'
+import { Button, Dialog, Icon, toast } from '../components/ui'
+import { plural } from '../lib/format'
 import {
   CATALOGUES, cataloguePriceSource, formatCataloguePrice, requestCatalogue, writeCatalogue,
   type CatalogueEntry, type CatalogueKind,
@@ -23,77 +23,64 @@ const EMPTY_TEXT: Record<CatalogueKind, string> = {
 
 type Listing = { rows: CatalogueEntry[]; has_more: boolean }
 
-function CatalogueTable({ kind, entries, onEdit, onDelete, onRestore, busy }: {
+/** the second line of a row: only the details that exist, so empty columns never become a wall of dashes */
+function details(kind: CatalogueKind, entry: CatalogueEntry) {
+  const parts = kind === 'products'
+    ? [entry.category, entry.supplier, entry.sku && `Item code ${entry.sku}`]
+    : [kind === 'subcontractors' ? entry.trade : null, entry.contact_name, entry.email, entry.phone]
+  const shown = parts.filter(Boolean)
+  if (shown.length) return shown.join(' · ')
+  return kind === 'products' ? 'No supplier or item code yet' : 'No contact details yet'
+}
+
+function CatalogueRows({ kind, entries, onEdit, onArchive, onRestore }: {
   kind: CatalogueKind
   entries: CatalogueEntry[]
   onEdit: (entry: CatalogueEntry) => void
-  onDelete: (entry: CatalogueEntry) => void
+  onArchive: (entry: CatalogueEntry) => void
   onRestore: (entry: CatalogueEntry) => void
-  busy: boolean
 }) {
-  const columns = kind === 'products'
-    ? ['Product', 'Category', 'Supplier', 'ID', 'Unit', 'Price', 'Actions']
-    : ['Company', ...(kind === 'subcontractors' ? ['Trade'] : []), 'Contact', 'Email', 'Phone', ...(kind === 'suppliers' ? ['Products'] : []), 'Actions']
-
+  const navigate = useNavigate()
+  const { icon } = CATALOGUES[kind]
   return (
-    <div className="overflow-x-auto rounded-lg ring-1 ring-slate-300 ring-inset">
-      <table className="w-full text-left text-sm whitespace-nowrap">
-        <thead className="border-b border-slate-300 bg-slate-50 text-[13px] font-semibold text-slate-600">
-          <tr>{columns.map((column) => (
-            <th key={column} scope="col" className={clsx('px-4 py-2.5', (column === 'Price' || column === 'Actions') && 'text-right', (column === 'ID' || column === 'Category') && 'max-md:hidden')}>
-              {column === 'Actions' ? <span className="sr-only">Actions</span> : column === 'ID' ? <abbr title="Supplier item code" className="no-underline">Item code</abbr> : column}
-            </th>
-          ))}</tr>
-        </thead>
-        <tbody className="divide-y divide-slate-200">
-          {entries.map((entry) => (
-            <tr key={entry.id} className="text-slate-700 transition-colors hover:bg-slate-100">
-              <th scope="row" className="max-w-80 min-w-48 px-4 py-3 text-[15px] font-semibold whitespace-normal text-pretty wrap-anywhere text-slate-900">{entry.name}</th>
-              {kind === 'products' ? (
-                <>
-                  <td className="px-4 py-3 max-md:hidden"><span className="inline-flex h-6 items-center rounded-md px-2 text-[13px] font-medium text-slate-700 ring-1 ring-slate-300 ring-inset">{entry.category}</span></td>
-                  <td className="px-4 py-3">{entry.supplier ?? '—'}</td>
-                  <td className="num px-4 py-3 text-slate-600 max-md:hidden">{entry.sku ?? '—'}</td>
-                  <td className="px-4 py-3">{entry.unit ?? '—'}</td>
-                  <td className="px-4 py-3 text-right">
-                    <div className="num font-semibold text-slate-900">{formatCataloguePrice(entry)}</div>
-                    {entry.valid_from && <div className="mt-0.5 text-[13px] text-slate-500">{cataloguePriceSource(entry)}</div>}
-                  </td>
-                </>
-              ) : (
-                <>
-                  {kind === 'subcontractors' && <td className="px-4 py-3">{entry.trade}</td>}
-                  <td className="px-4 py-3">{entry.contact_name ?? '—'}</td>
-                  <td className="px-4 py-3">{entry.email ?? '—'}</td>
-                  <td className="px-4 py-3">{entry.phone ?? '—'}</td>
-                  {kind === 'suppliers' && (
-                    <td className="px-4 py-3">
-                      {entry.product_count ? (
-                        <Link className="num font-semibold text-slate-900 underline decoration-slate-400 underline-offset-4 hover:decoration-slate-900" to={`/catalogues/products?supplier=${entry.id}`} aria-label={`View products from ${entry.name}`}>
-                          {entry.product_count}
-                        </Link>
-                      ) : 0}
-                    </td>
-                  )}
-                </>
-              )}
-              <td className="px-4 py-3">
-                <div className="flex items-center justify-end gap-1">
-                  {entry.archived_at ? (
-                    <Button size="sm" icon="restore" disabled={busy} onClick={() => onRestore(entry)} aria-label={`Restore ${entry.name}`}>Restore</Button>
-                  ) : (
-                    <>
-                      <Button size="sm" icon="edit" onClick={() => onEdit(entry)} aria-label={`Edit ${entry.name}`}>Edit</Button>
-                      <IconButton icon="delete" label={`Delete ${entry.name}`} title="Delete" onClick={() => onDelete(entry)} className="hover:bg-rose-50 hover:text-rose-700" />
-                    </>
-                  )}
-                </div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <RowList>
+      {entries.map((entry) => {
+        const archived = !!entry.archived_at
+        const price = kind === 'products' ? formatCataloguePrice(entry) : null
+        const priced = price && price !== '—'
+        const products = kind === 'suppliers' ? entry.product_count ?? 0 : 0
+        return (
+          <Row
+            key={entry.id}
+            dataRow="catalogue"
+            label={archived ? `Restore ${entry.name}` : `Edit ${entry.name}`}
+            onOpen={() => (archived ? onRestore(entry) : onEdit(entry))}
+            icon={icon}
+            title={entry.name}
+            subtitle={details(kind, entry)}
+            amount={kind === 'products'
+              ? (priced ? price : <span className="font-normal text-slate-600">Not priced</span>)
+              : kind === 'suppliers' ? <span className="font-normal text-slate-600">{plural(products, 'product', 'products')}</span> : undefined}
+            meta={kind === 'products' && priced
+              ? <span className="text-sm text-slate-600">{entry.unit ? `per ${entry.unit}` : 'no unit'}{entry.valid_from ? ` · ${cataloguePriceSource(entry)}` : ''}</span>
+              : undefined}
+            menu={(
+              <RowMenu
+                label={`Actions for ${entry.name}`}
+                items={archived ? [
+                  { label: 'Restore', icon: 'restore', onSelect: () => onRestore(entry) },
+                ] : [
+                  { label: 'Edit', icon: 'edit', onSelect: () => onEdit(entry) },
+                  ...(products ? [{ label: `View ${plural(products, 'product', 'products')}`, icon: 'inventory_2', onSelect: () => navigate(`/catalogues/products?supplier=${entry.id}`) }] : []),
+                  'sep' as const,
+                  { label: 'Archive', icon: 'archive', danger: true, onSelect: () => onArchive(entry) },
+                ]}
+              />
+            )}
+          />
+        )
+      })}
+    </RowList>
   )
 }
 
@@ -107,7 +94,7 @@ function Catalogue({ kind }: { kind: CatalogueKind }) {
   const [reload, setReload] = useState(0)
   const [result, setResult] = useState<{ key: string; data?: Listing; error?: string } | null>(null)
   const [editing, setEditing] = useState<CatalogueEntry | null | undefined>(undefined)
-  const [deleting, setDeleting] = useState<CatalogueEntry | null>(null)
+  const [confirm, setConfirm] = useState<{ entry: CatalogueEntry; action: 'archive' | 'restore' } | null>(null)
   const [busy, setBusy] = useState(false)
 
   const params = new URLSearchParams({ q: query.trim(), page: String(page) })
@@ -146,8 +133,8 @@ function Catalogue({ kind }: { kind: CatalogueKind }) {
     setBusy(true)
     try {
       await writeCatalogue(kind, { id: entry.id, action })
-      toast(action === 'archive' ? 'Entry moved to Archived' : 'Entry restored')
-      setDeleting(null)
+      toast(action === 'archive' ? `Archived ${entry.name}` : `Restored ${entry.name}`)
+      setConfirm(null)
       if (current?.data?.rows.length === 1) setPage((n) => Math.max(1, n - 1))
       setReload((n) => n + 1)
     } catch (error) {
@@ -157,15 +144,21 @@ function Catalogue({ kind }: { kind: CatalogueKind }) {
     }
   }
 
+  const searching = !!query.trim() || !!supplier
+  // a brand-new catalogue: one call to action in the empty state, no toolbar over nothing
+  const blank = !!current?.data && !current.data.rows.length && !searching && !archived && page === 1
+  const rows = current?.data?.rows ?? []
+  const count = current?.data && !current.data.has_more && page === 1 ? rows.length : undefined
+
   return (
     <PageFrame>
       <PageHeader
         title={title}
         subtitle={SUBTITLE[kind]}
-        aside={<Button variant="primary" size="lg" icon="add" onClick={() => setEditing(null)}>Add {item}</Button>}
+        aside={!blank && <Button variant="primary" size="lg" icon="add" onClick={() => setEditing(null)} aria-label={`Add ${item}`} className="max-sm:w-11 max-sm:px-0"><span className="max-sm:hidden">Add {item}</span></Button>}
       />
 
-      <div className="mb-4 flex flex-wrap items-center gap-2">
+      {!blank && <div className="mb-6 flex flex-wrap items-center gap-2">
         <div className="relative w-full sm:w-72">
           <Icon name="search" size={20} className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-slate-600" />
           <input
@@ -189,7 +182,7 @@ function Catalogue({ kind }: { kind: CatalogueKind }) {
             One supplier<Icon name="close" size={18} /><span className="sr-only">Clear supplier filter</span>
           </button>
         )}
-      </div>
+      </div>}
 
       {!current && <div role="status" aria-label="Loading catalogue"><Skeleton className="h-40 rounded-lg" /></div>}
       {current?.error && (
@@ -198,19 +191,25 @@ function Catalogue({ kind }: { kind: CatalogueKind }) {
           <Button size="sm" onClick={() => setReload((n) => n + 1)}>Retry</Button>
         </div>
       )}
-      {current?.data && (current.data.rows.length ? (
-        <CatalogueTable kind={kind} entries={current.data.rows} onEdit={setEditing} onDelete={setDeleting}
-          onRestore={(entry) => { void changeArchive(entry, 'restore') }} busy={busy} />
+      {current?.data && (rows.length ? (
+        <Section title={archived ? `Archived ${title.toLowerCase()}` : title} count={count} id="catalogue-rows">
+          <CatalogueRows kind={kind} entries={rows} onEdit={setEditing}
+            onArchive={(entry) => setConfirm({ entry, action: 'archive' })}
+            onRestore={(entry) => setConfirm({ entry, action: 'restore' })} />
+        </Section>
       ) : (
         <EmptyState
           icon={query.trim() || supplier ? 'search_off' : icon}
           title={query.trim() || supplier ? 'No matching entries' : `No ${archived ? 'archived ' : ''}${title.toLowerCase()} yet`}
           text={query.trim() ? 'Try a different search, or clear it to see everything.'
-            : archived ? `Deleted ${title.toLowerCase()} land here, and you can restore them any time.`
+            : archived ? `Archived ${title.toLowerCase()} land here, and you can restore them any time.`
             : EMPTY_TEXT[kind]}
         >
           {query.trim() ? <Button size="lg" onClick={() => setQuery('')}>Clear search</Button>
-            : !archived && !supplier && <Button variant="primary" size="lg" icon="add" onClick={() => setEditing(null)}>Add {item}</Button>}
+            : !archived && !supplier && <>
+              <Button variant="primary" size="lg" icon="add" onClick={() => setEditing(null)}>Add {item}</Button>
+              <Button size="lg" icon="archive" onClick={() => setFilter('view', 'archived')}>Show archived</Button>
+            </>}
         </EmptyState>
       ))}
       {current?.data && (page > 1 || current.data.has_more) && (
@@ -229,12 +228,17 @@ function Catalogue({ kind }: { kind: CatalogueKind }) {
             setReload((n) => n + 1)
           }} />
       )}
-      {deleting && (
-        <Dialog open onClose={() => { if (!busy) setDeleting(null) }} title={`Delete ${item}`} footer={<>
-          <Button disabled={busy} onClick={() => setDeleting(null)}>Cancel</Button>
-          <Button variant="danger" disabled={busy} onClick={() => { void changeArchive(deleting, 'archive') }}>Delete</Button>
+      {confirm && (
+        <Dialog open onClose={() => { if (!busy) setConfirm(null) }} title={`${confirm.action === 'archive' ? 'Archive' : 'Restore'} ${item}`} footer={<>
+          <Button disabled={busy} onClick={() => setConfirm(null)}>Cancel</Button>
+          <Button variant={confirm.action === 'archive' ? 'danger' : 'primary'} disabled={busy} onClick={() => { void changeArchive(confirm.entry, confirm.action) }}>
+            {confirm.action === 'archive' ? 'Archive' : 'Restore'}
+          </Button>
         </>}>
-          <p className="text-sm leading-relaxed text-slate-700"><strong className="text-slate-900">{deleting.name}</strong> moves to Archived, where you can restore it.</p>
+          <p className="text-sm leading-relaxed text-slate-700">
+            <strong className="text-slate-900">{confirm.entry.name}</strong>
+            {confirm.action === 'archive' ? ' moves to Archived and stops showing up when you price positions. You can restore it any time.' : ' moves back to the active catalogue.'}
+          </p>
         </Dialog>
       )}
     </PageFrame>

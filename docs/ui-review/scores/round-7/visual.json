@@ -1,0 +1,128 @@
+{
+  "member": "visual",
+  "screens": {
+    "S1": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 8, "consistency": 7, "clarity": 7, "interaction": 7, "accessibility": 7, "responsive": 7, "wise": 7},
+      "issues": [
+        "Hierarchy: the hero, meta line and two buttons take about 450px, so the first project row starts near y≈560 on desktop and y≈700 (of 844) on mobile. Cut the gap between the meter and the buttons (mt-8 to mt-5), and put Import/New project on the 'Projects 14' header row on desktop, so at least 3 rows show above the fold.",
+        "Consistency: project icon tiles still use two tints. Fernleitung, Ringschluss and Maschinentechnik get the yellow brand-50 tile; Demo and Site get the grey slate-100 tile, with no stated meaning. toneTile still keys on f.tone (Kit.tsx:69). Give every row tile the same brand-50/brand-700 treatment and drop the slate entry for rows.",
+        "Clarity: the meta sentence 'Measured against project caps. List caps are on Active Budgets.' is a footnote in the hero. Move it into an info tooltip on 'Used', and keep only the status chip and '5 of 14 projects priced' on the line.",
+        "Clarity: the row badges mix two grammars, 'Near cap' (the project itself) and '1 list near cap' (roll-up). Give roll-up badges a distinct cue, e.g. a list icon prefix with the text 'List near cap', so the reader can tell at a glance whether the project or one of its lists is hot.",
+        "Interaction: the ⋯ kebab is always visible on every row, which adds 14 identical marks down the right edge. On (hover:hover) devices, show it only on row hover or :focus-within, and keep it visible on touch.",
+        "Accessibility: in light mode the lit jib (emerald-600 #c08712) and the unlit jib (slate-400 #948468) differ by only 1.17:1 in luminance, so in greyscale or with deuteranopia the spend/cap split disappears. Lighten the rest jib to slate-300 at 1.5px with a dashed web, or darken the lit jib to brand-700 #845a0a, to reach at least a 2:1 step between them.",
+        "Accessibility: secondary buttons and filter chips ('New project', 'Needs attention', 'Sort', 'Select') are slate-100 fills at 1.15:1 (light) and 1.06:1 (dark) against the page. Add a 1px slate-400 inset ring (at least 3:1) or move the fill to slate-200 and add the ring, in Button/ToolButton/Chip in ui.tsx and Kit.tsx.",
+        "Accessibility: the row meter track (bg-slate-300) is 1.59:1 on white and 1.48:1 on pit black, so the cap length of each mini bar can't be judged. Use slate-400 for the track (3.6:1 in both themes).",
+        "Responsive: on mobile the row budget line drops the cap ('75%' only, the max-sm:hidden at Kit.tsx:167). Show a compact cap, '75% of 2 Mio €', on the second line instead of hiding it.",
+        "Wise/Theo: there is no visible keyboard layer beyond ⌘K. Add j/k row focus plus Enter to open on project and list rows, and show the keys in the ⌘K footer and in a '?' sheet."
+      ]
+    },
+    "S2": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 8, "consistency": 7, "clarity": 8, "interaction": 7, "accessibility": 7, "responsive": 7, "wise": 8},
+      "issues": [
+        "Consistency: no sidebar item is active on a project page, so the user loses their place. Mark 'All Projects' as the active parent (same selected style, or a lighter 'ancestor' variant) whenever the route is under /folder.",
+        "Consistency: the breadcrumb 'All Projects' is plain slate-600 text with no chevron or hover cue here, but on S3 it has a chevron. Use the same Crumbs component (link colour, underline on hover, trailing chevron) on every page.",
+        "Interaction: the project cap '2.000.000 €' is editable only through a 1px dotted underline. Add a pencil icon on hover/focus and an aria-label 'Edit project cap'. Use the same treatment as the list cap on S3 and EP in the ledger.",
+        "Accessibility: the lit jib and rest jib differ by luminance alone (1.17:1 in light). Same fix as S1: make the rest jib lighter or dashed, so the cap split survives greyscale.",
+        "Accessibility: 'New list' and 'Select' (slate-100 fills) have no perceivable boundary (1.15:1 / 1.06:1). Add a 1px slate-400 inset ring.",
+        "Responsive: list rows hide the cap on mobile ('66%' only). Keep a compact 'of 1,5 Mio €'."
+      ]
+    },
+    "S3": {
+      "scores": {"hierarchy": 7, "density": 7, "typography": 8, "consistency": 7, "clarity": 8, "interaction": 7, "accessibility": 7, "responsive": 6, "wise": 7},
+      "issues": [
+        "Hierarchy: in a ledger the rows are the work, but the first position (1.1.1) sits at y≈712 on a 900px desktop viewport. Shrink the list hero on this page: 48px display total, the meter directly under it, the status chip and meta on one line with the buttons on the right. That brings the toolbar up to about y≈330 and shows 8+ rows.",
+        "Consistency: Menge is inline-editable (QtyInput) but has no resting cue, while EP has a dotted underline. Give both editable columns the same dotted underline (or both none plus a hover field outline), so the editable cells read as one system.",
+        "Consistency: the dotted/solid underline is used for three different things on this screen: the editable cap '800.000 €', the filter link '38 with quantity 0', and the disclosure 'Cost by section'. Keep the underline only for editable values; render the filter and the disclosure as ghost ToolButtons with icons.",
+        "Typography: OZ codes (1.1.1, 5.1.38) are set in Archivo in bronze-grey. The settled brief keeps JetBrains Mono for OZ codes. Use font-mono at text-[13px] with tabular figures so 5.1.4 and 5.1.40 align by segment.",
+        "Typography: group header totals (53.061,00 / 24.890,00) are the same size as position GPs and sit only one weight heavier. Set level-1 group titles and totals in the display cut (wdth 112, 700) at 16px, so the section rhythm reads at a glance on a 197-row list.",
+        "Interaction: keyboard users tab through about 4 stops per row across 197 rows. Make the table a single tab stop with roving focus (↑/↓ or j/k between rows, Enter to open the drawer, e to edit EP), and show those keys in the ⌘K footer.",
+        "Interaction: every row carries an always-visible ⋯ (size-10). On hover-capable pointers, show it only on row hover or :focus-within.",
+        "Accessibility: zero-quantity rows (section 8, Nachträge) dim both text and EP to slate-500. That passes AA for text, but the only cue is colour. Add a quiet 'Qty 0' word or a strike on the GP dash so the state isn't colour-only, and keep the group label 'All quantities 0' (good).",
+        "Accessibility: 'Export', 'Categories', 'Select' and 'Sort' are slate-100 fills at 1.06:1 in dark mode, so they read as text, not buttons. Add a 1px slate-400 inset ring.",
+        "Responsive: on mobile (12-mobile-list) the first position row starts at y≈820 of 844, so the ledger is entirely below the fold. Collapse the mobile hero (total plus one 'Used 67% of 800.000 € · 263.008 € left' line, then the meter), move Export into the page ⋯ menu, and put Categories/Select/Sort in one full-width segmented row.",
+        "Responsive: the mobile toolbar row (Categories, Select, Sort) stops 40px short of the right gutter. Make it a 3-column grid (grid-cols-3) so it aligns with the search field above it.",
+        "Responsive: the mobile group headers wrap to two lines ('Baustelleneinrichtung - / Montagepläne - I') at 20px bold, bigger than the page's money. Drop mobile group titles to 16px semibold and truncate them to one line, with the total kept on the right.",
+        "Wise/Theo: a 197-row ledger has no sticky context. Add a 40px sticky sub-header on scroll with the list name, the live total and the status chip, so the money stays visible while editing deep in section 5."
+      ]
+    },
+    "S4": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 8, "consistency": 7, "clarity": 8, "interaction": 8, "accessibility": 7, "responsive": 7, "wise": 8},
+      "issues": [
+        "Consistency: the drawer's Menge and EP fields are outlined (border-slate-500 on white), while every other control in the app is a borderless slate-100 fill. Pick one field style app-wide. Recommended: a filled slate-100 field with a 1px slate-400 inset ring, plus a brand-700 2px ring on focus.",
+        "Consistency: the drawer uses shadow-2xl and rounded-bl-3xl (DetailDrawer.tsx:146), against the 'no glassy shadows, small radii' brief. Use a 1px slate-300 left border with no shadow, and rounded-none on desktop (rounded-t-lg on the mobile sheet).",
+        "Density: the Menge field is 225px wide for a one-digit value, with the number pushed against the unit dropdown and an empty left half. Left-align the number, or make Menge and EP a single 'Menge × EP = GP' row with auto-width fields.",
+        "Density: the 'Changes save automatically' footer bar spends 72px on a permanent reassurance. Show the message only transiently after an edit ('Saved' with a check that fades), or fold it into the header next to '1 of 197'.",
+        "Accessibility: field focus is a border colour change plus a 25%-alpha ring (focus:ring-brand-700/25). Use a solid 2px brand-700 ring on :focus-visible, matching the global outline.",
+        "Accessibility: the disabled 'previous' chevron in the header is barely visible (slate-300 on white). Use slate-400 for the disabled state with aria-disabled, and label the arrows 'Previous position (k)' / 'Next position (j)'.",
+        "Responsive: the mobile bottom sheet (max-h-90dvh) isn't captured. Make sure the GP hero, Menge/EP and the next/previous controls fit in the first 60% of the sheet, and that the sheet drag handle is visible.",
+        "Wise/Theo: no keyboard hint for next/previous. Bind j/k (or ↑/↓ while not in a field) and show them as kbd chips next to the arrows."
+      ]
+    },
+    "S5": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 8, "consistency": 7, "clarity": 7, "interaction": 8, "accessibility": 7, "responsive": 7, "wise": 8},
+      "issues": [
+        "Consistency: list tiles use two tints for the same 'request_quote' icon. Estimate and Risk Assessment Demo are grey slate-100; the other four are yellow brand-50 (inherited from project?.tone, ActiveBudgets.tsx:118). Use one tile style for every list.",
+        "Clarity: the hero total 2.945.090,49 € is identical to S1, but the cap (4.407.000 vs 4.400.000) and 'Left' (1.461.909,51 vs 1.454.909,51) differ by 7.000 €. A finance user will read that as an error. Either label the hero 'Sum of list caps 4.407.000 €' explicitly, or add a one-line delta note ('List caps total 7.000 € more than project caps').",
+        "Clarity: the hero label 'Priced in capped lists' is jargon. Use 'Total of active lists'.",
+        "Accessibility: secondary fills ('Needs attention', 'Sort', 'Select') have no boundary (1.15:1 / 1.06:1). Add a 1px slate-400 inset ring.",
+        "Accessibility: the row meter tracks are 1.5:1. Use slate-400 for the track.",
+        "Responsive: on mobile, rows drop the cap ('98%' only). Keep a compact 'of 1.000 €'."
+      ]
+    },
+    "S6": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 8, "consistency": 8, "clarity": 8, "interaction": 8, "accessibility": 8, "responsive": 8, "wise": 8},
+      "issues": [
+        "Hierarchy: the page subtitle 'Archived projects don't count toward totals' and the empty-state text both explain the page, so there are two grey sentences before the action. While the page is empty, hide the subtitle and let the empty state carry it ('Nothing archived. Archived projects don't count toward totals.').",
+        "Consistency: the active sidebar item is a raised white card with a border in light mode and a darker hole with a border in dark mode. Use the same selected treatment in both themes: a slate-100 fill, a 2px brand-600 left bar and bold text.",
+        "Accessibility: the empty-state icon tile in dark mode (slate-100 on pit black, 1.06:1) disappears. Use slate-200 or add a slate-300 ring.",
+        "Interaction: the 'Go to All Projects' secondary button has no visible boundary in dark mode. Add a 1px slate-400 inset ring.",
+        "Wise/Theo: the empty page wastes the canvas. Add the shortcut hint '⌘K → Go to All Projects' under the button, or show the 3 most recently edited projects as quick links."
+      ]
+    },
+    "S7": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 8, "consistency": 8, "clarity": 7, "interaction": 8, "accessibility": 8, "responsive": 8, "wise": 8},
+      "issues": [
+        "Clarity: the subtitle 'Restore items, or delete them forever, from the ••• menu on each row.' describes rows that don't exist on the empty state. Show it only when the Trash has items; when empty, say 'Items stay here for 30 days' (or the real retention) so the user knows the policy.",
+        "Hierarchy: the subtitle and the empty-state text are two near-identical grey sentences. Keep one.",
+        "Consistency: same sidebar selected-state mismatch between themes as S6. Unify it.",
+        "Accessibility: the empty-state tile and the secondary button in dark mode have no perceivable boundary (1.06:1). Add slate-300/400 rings.",
+        "Wise/Theo: there is no 'Empty trash' affordance or count in the sidebar. Show a count badge next to 'Trash' when items exist, so the empty state is confirmed from anywhere."
+      ]
+    },
+    "S8": {
+      "scores": {"hierarchy": 9, "density": 8, "typography": 8, "consistency": 7, "clarity": 7, "interaction": 8, "accessibility": 7, "responsive": 7, "wise": 8},
+      "issues": [
+        "Consistency: result tiles use two styles. Positions use a grey slate-100 tile with '#'; lists use the yellow brand-50 tile. The active row adds a yellow left bar and a brand-50 fill. With yellow on the tile, the match highlight and the selection, the selected row stops standing out. Use neutral tiles for all results and keep yellow for the selection bar and match highlight only.",
+        "Clarity: unpriced positions and lists show an empty right column, so a money app shows no figure and no reason. Add a muted 'Not priced' on the right for unpriced results, matching the ledger wording.",
+        "Clarity: the Actions group disappears once you type unless a title matches, so 'Beton' shows no way to act. Always keep one fallback action row ('Search positions for “Beton” in this list').",
+        "Interaction: the footer teaches only ↑↓ and ↵. Add 'Tab to switch group' and '⌘↵ open in new tab' if supported, and show the app's other shortcuts here (Theo test).",
+        "Accessibility: in dark mode the palette surface (#0d0502/#140a03) sits on a dimmed pit-black page, and its 1px border is about 1.2:1, so the dialog edge is hard to find. Use slate-100 for the palette surface in dark mode and a slate-300 border.",
+        "Accessibility: the third list result is clipped by the footer with no scroll affordance. Add a 16px fade or a visible scrollbar inside the results pane.",
+        "Responsive: the mobile palette isn't captured. On less than 640px, make the palette full-screen (inset-0, rounded-none), with the input at the top and the results filling the height."
+      ]
+    },
+    "S9": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 8, "consistency": 7, "clarity": 8, "interaction": 8, "accessibility": 7, "responsive": 8, "wise": 8},
+      "issues": [
+        "Consistency: in dark mode the toast is the dark ink surface on a pit-black page (about 1.1:1), so it nearly vanishes. Keep 'always ink' but add a 1px slate-300 border (or a brand-600 2px left bar) so it separates in both themes.",
+        "Consistency: the toast wraps the project name onto two lines ('Created project \"Legal & / Compliance\"'). Widen it to max-w-md or truncate the name, so the toast is one line plus Undo.",
+        "Accessibility: the helper line 'Supports GAEB, CSV, TSV, Excel...' is 12px slate-500 (4.8:1). That passes, but at 12px it's the faintest text in the app. Use 13px slate-600.",
+        "Accessibility: in dark mode the empty-state tile and the 'New list' button have no boundary (1.06:1). Add slate-300/400 rings.",
+        "Clarity: an empty project page shows no subtitle or project number, while S2 shows 'Projekt … · …'. Show a muted 'No lists yet · 0 €' line under the title, so the header keeps its shape when lists arrive."
+      ]
+    }
+  },
+  "global_issues": [
+    "Non-text contrast of secondary controls: Button/ToolButton/Chip fills are slate-100 at 1.15:1 (light) and 1.06:1 (dark) against the page, so 'New project', 'Export', 'Sort', 'Select', filter chips and empty-state buttons have no perceivable boundary, worst in dark mode. Add a 1px inset ring at slate-400 (3.6:1 in both themes) to every secondary control in ui.tsx and Kit.tsx.",
+    "Meters: the row meter track (slate-300, 1.59:1 / 1.48:1) and the crane jib's rest truss vs lit truss (1.17:1 luminance step in light) make the cap split depend on hue alone. Use slate-400 for tracks and make the rest jib lighter/dashed or the lit jib darker, so the meters read in greyscale.",
+    "Mobile drops the cap on every row budget line (Kit.tsx:167 max-sm:hidden), so '75%' has no reference. Show a compact cap ('of 2 Mio €') instead. The hero cap is now kept (fixed since round 6).",
+    "Ledger first-screen: on S3 the desktop hero pushes the first row to y≈712 and on mobile to y≈820 of 844. Give ledger pages a compact hero variant (smaller total, meta and actions on one line) so rows lead.",
+    "Edit affordance is split: EP has a dotted underline, Menge has none, the cap has a dotted underline, and the filter link and disclosure also use underlines. Reserve one cue (dotted underline plus pencil on hover/focus) for editable values only, and render filters and disclosures as ghost buttons.",
+    "Field styles are mixed: outlined white inputs in the drawer versus borderless slate-100 fills everywhere else (header search, list search, toolbar). Standardise on one field style with a solid 2px brand-700 focus ring. Also replace the drawer's ring-brand-700/25 focus.",
+    "Tile tints: project and list tiles alternate between brand-50 (yellow) and slate-100 (grey) depending on f.tone, with no meaning (S1, S5, S8). The toneTile comment says tiles carry no hue, but the slate branch still does. Use one tile.",
+    "Overlay styling against the brief: the drawer uses shadow-2xl plus rounded-bl-3xl, and the split overlay uses shadow-2xl plus rounded-2xl. Replace them with hairline borders, no shadow, and radius at most 8px.",
+    "Theo test, keyboard-first: ⌘K has actions now, but there's still no j/k or ↑/↓ row navigation, no '/' to focus list search, no '?' shortcut sheet, and no kbd hints on the drawer arrows. Add a small shortcut layer and surface it in the ⌘K footer.",
+    "Sidebar selected state differs by theme (raised white card in light, sunken hole in dark), and no item is active on project or list routes. Use one selected style (fill plus 2px brand-600 bar) and highlight the ancestor section on nested routes.",
+    "Toasts and dark-mode overlays (toast, palette, drawer) sit at about 1.1:1 against pit black. Add slate-300 borders so their edges are visible in dark mode."
+  ]
+}

@@ -1,0 +1,109 @@
+{
+  "member": "fintech",
+  "screens": {
+    "S1": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 8, "consistency": 8, "clarity": 8, "interaction": 8, "accessibility": 8, "responsive": 7, "wise": 8},
+      "issues": [
+        "The hero Summary card runs from y≈178 to 453 on a 900px viewport, so the first project row starts at y≈608. Wise leaves its balance unboxed. Drop the bg-slate-50 fill or use the `compact` Summary padding, and fold the '1 project near its cap' link into the meta line, so at least 4 rows show above the fold.",
+        "The aggregate pill says 'On track' (green) while the line under it says '1 project near its cap'. When any child needs attention, render the hero StatusTag as caution with '1 needs attention', and make the link the pill itself, not a separate underlined line.",
+        "The count appears twice: 'Projects 6' heading and the 'All 6' chip (S5 does the same with 'Lists 4' / 'All 4'). Drop the count from the Section heading wherever Chips with counts sit under it.",
+        "In BudgetMini the status word ends with a floating separator ('Near cap ·  75% of 2.000.000 €'). Remove the ' ·' from the status span and rely on gap-2, or add a matching separator only between real items.",
+        "Mobile (11): the amount drops under the subtitle, left-aligned, and the rows differ: Fernleitung puts the amount and the status on two lines, Ringschluss on one. Use the Wise mobile pattern: amount right-aligned on the title line, and '75% of 2.000.000 €' plus status as a consistent second line under the subtitle.",
+        "Mobile hero meta wraps so that '1.360.667 € left' is orphaned on its own line. On <640px shorten it to '68% of 4.300.000 €' (drop 'in project caps') so the pct and 'left' fit on one line.",
+        "Mobile top bar: the search placeholder truncates to 'Search projects, lists, posit…'. Use 'Search' below sm."
+      ]
+    },
+    "S2": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 8, "consistency": 7, "clarity": 7, "interaction": 8, "accessibility": 8, "responsive": 7, "wise": 8},
+      "issues": [
+        "Document rows say 'Linked to Angebot AN24-0305.D84' and 'Linked to LV-Positionen.docx' (filenames), while the same lists above are titled 'Angebot AN24-0305' and 'LV-Positionen nach Aufmaß-Gruppen'. Use the list title from listLabel() and make it a link to that list.",
+        "The list subtitles use different fields: 'Bid · D84 · 274 positions' and 'LV-Positionen.docx · 40 positions'. When there is no GAEB phase, show a source type ('Word import · 40 positions') instead of falling back to the filename.",
+        "Document rows use the same 44px avatar and 68px row height as the money rows. Use Avatar size='sm' and py-2 for documents so the priced lists dominate the page.",
+        "The hero meta adds a second line, '314 positions, all priced'. Hide it when everything is priced, or append it to the cap line, to save a line in the 275px hero.",
+        "Hero card height matches S1 (~275px). Apply the same unboxed or compact treatment so the Lists section starts above y≈450.",
+        "Responsive: the right-hand 'Linked to …' column on Document rows has no visible truncation rule. On <640px move it under the subtitle and truncate it, the way list rows stack amount/meta."
+      ]
+    },
+    "S3": {
+      "scores": {"hierarchy": 7, "density": 7, "typography": 8, "consistency": 7, "clarity": 8, "interaction": 8, "accessibility": 8, "responsive": 6, "wise": 7},
+      "issues": [
+        "The hero occupies y≈205–462 and only 4 of 197 positions show above the fold on a 900px screen. Use Summary `compact` on ListPage, move '197 positions, all priced' into the cap meta line, and put Add position / Export in the title row, so the table starts at ≈y 380.",
+        "The same list has three names: '[ORT_024] LV24069' here, 'Maschinentechnik - Anlagenbau' on S5, and the project row on S1. Use one listLabel() result for the S3 title, breadcrumbs, S5 rows and palette results.",
+        "Units in the column headers are inconsistent: 'EP (€)' but 'GP', while GP values carry '€' and EP values don't. Either set both headers to '(€)' with bare numbers, or drop '(€)' from EP and suffix '€' on both columns.",
+        "The Nachtrag 4–6 groups are rows with Menge 0, a blank Einheit and '0,00 €' in full-weight black, yet the hero says 'all priced'. Mute GP to slate-500 when qty = 0, show '—' for a missing Einheit, and add 'N at zero quantity' to the meta.",
+        "Kurztext leaves ~240px of dead space before Menge at 1440px. Use it for a muted one-line Langtext preview, or cap the table at ~1000px so the numbers sit closer to the descriptions.",
+        "Mobile (12): the row checkbox is always visible because the opacity-0 rule only applies at xl. Hide checkboxes below xl until a 'Select' ToolButton (as on S1) turns selection mode on.",
+        "Mobile row: the '1  psch ×  5.700,00' line is indented and floats mid-row, with ⋯ alone at the right. Start the qty grid-area at the title column's left edge and put the menu on the title line, next to the GP.",
+        "Mobile hero fills the first screen (the first position is at ≈y 1330 of 1690). On <640px show only the number, one meta line, and the two pills.",
+        "The ledger switches to stacked cards below 1280px (index.css max-width:1279px), so 1024–1279px laptops and iPad landscape lose the table. Move the breakpoint to 1024px and truncate Kurztext."
+      ]
+    },
+    "S4": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 8, "consistency": 8, "clarity": 7, "interaction": 7, "accessibility": 8, "responsive": 8, "wise": 8},
+      "issues": [
+        "Kurztext appears twice: as the h2 title and in the 'Kurztext' input directly below. Make the h2 click-to-edit (with a pencil on hover) and remove the separate input, or drop the h2 and keep the field.",
+        "The EP input pins '€' at the far left while the value is right-aligned ~200px away. Render '€' as a right-side suffix after the number, matching the '5.700,00 €' display format.",
+        "The Kategorie card's second line, 'Baustelleneinrichtung - Montagepläne - I', reads as cut off and sits under the leaf it is a parent of. Show the parent path above the leaf in breadcrumb form ('1 › 1.1'), with a title tooltip, and allow 2 lines instead of truncate.",
+        "The drawer header has no way to remove or move a position, so users have to close the drawer and use the row ⋯. Add a ⋯ menu next to '1 of 197' with Move to category… and Remove (with the existing Undo toast).",
+        "'OZ 1.1.1', the title and the GP card stack three header layers. Put the OZ inline as a muted prefix in the title line and keep the 'Edited' badge on that same line."
+      ]
+    },
+    "S5": {
+      "scores": {"hierarchy": 7, "density": 8, "typography": 8, "consistency": 7, "clarity": 7, "interaction": 8, "accessibility": 8, "responsive": 7, "wise": 7},
+      "issues": [
+        "The hero is a copy of S1's (2.939.333 €, 68% of 4.300.000 €, 1.360.667 € left), so the page has no focal figure of its own. Make the big number headroom ('1.360.667 € left') or the at-risk amount, and set the total as the secondary line.",
+        "The hero compares list totals against '4.300.000 € in project caps', but the four list caps shown in the rows add up to 4.400.000 €. Compute the hero against the list caps on this screen, or label the basis explicitly ('of project caps; list caps total 4.400.000 €').",
+        "Row 3's title 'Maschinentechnik - Anlagenbau' repeats in its subtitle as 'Maschinentechnik – Anlagenbau' (with a different dash), and row 2's all-caps title repeats its project. When a list title equals its project name, show the LV/file id as the title (same rule as S3) and normalise dashes in display.",
+        "The whole string '1 list near its cap · none over' is underlined as one link, but only the first half acts. Link only '1 list near its cap' (it should apply the Needs attention chip) and leave 'none over' as plain text.",
+        "The count appears twice: 'Lists 4' heading and the 'All 4' chip. Drop one.",
+        "Responsive: no mobile capture. Rows inherit the S1 mobile stacking problem (the amount drops left under the subtitle), so apply the same right-aligned amount fix."
+      ]
+    },
+    "S6": {
+      "scores": {"hierarchy": 8, "density": 9, "typography": 8, "consistency": 9, "clarity": 8, "interaction": 8, "accessibility": 8, "responsive": 9, "wise": 8},
+      "issues": [
+        "The body copy repeats the page subtitle ('Archived projects don't count toward totals' and 'It stops counting toward your totals'). Cut the second sentence from the EmptyState text.",
+        "The inline '⋯' glyph in 'from its ⋯ menu' reads as an ellipsis. Write 'from its More menu' or render the more_horiz icon in a small slate-100 chip inline.",
+        "The empty state is centred in the column while the title is left-aligned at x=312, which creates two alignment axes. Left-align the empty state with the page title, or move it lower and centre it optically in the viewport.",
+        "The 'Go to All Projects' pill (slate-100 on white) has almost no visible boundary. Use the outline/secondary Button variant with a slate-300 border, so it reads as a button and the focus ring has an edge to sit on."
+      ]
+    },
+    "S7": {
+      "scores": {"hierarchy": 8, "density": 9, "typography": 8, "consistency": 9, "clarity": 9, "interaction": 9, "accessibility": 8, "responsive": 9, "wise": 8},
+      "issues": [
+        "Same split alignment as S6: the title is left-aligned and the empty state is centred. Pick one axis for all empty-state pages.",
+        "The subtitle 'Items stay here until you delete them forever' has no period while the body sentences do. Use one punctuation rule for page subtitles.",
+        "The 'Go to All Projects' pill is slate-100 on white with no border, so the target edge is nearly invisible. Use the secondary Button variant with a border."
+      ]
+    },
+    "S8": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 8, "consistency": 8, "clarity": 7, "interaction": 8, "accessibility": 8, "responsive": 7, "wise": 8},
+      "issues": [
+        "'Bachdurchlass Neppen' matched on its subtitle ('Stahlbetonrohre'), but only titles get highlighted. Apply the same match highlight to subtitles.",
+        "Results carry no money. Lists show 'project · LV_04_Porenbetonfassade.pdf', and the filename repeats the title. Replace the filename with the total right-aligned (or 'Not priced'), and give positions their GP and list name ('OZ 1.1.70 · <list> · 1.234,00 €').",
+        "'Positions 8' shows only one row above the panel's bottom edge. Cap each group at 3 rows with a 'Show all 4 lists' row, so all three groups fit without scrolling.",
+        "Matches are marked only by indigo text colour. Add a mark background (brand-50) or semibold weight, so the highlight does not rely on colour alone.",
+        "Touch/mobile: the 'Esc' chip means nothing on a phone. Below sm, label it 'Cancel' and make sure the palette goes full-height with the input pinned at the top."
+      ]
+    },
+    "S9": {
+      "scores": {"hierarchy": 8, "density": 9, "typography": 9, "consistency": 8, "clarity": 8, "interaction": 8, "accessibility": 8, "responsive": 9, "wise": 8},
+      "issues": [
+        "The empty state shows three actions at three weights (Upload files, Start a blank list, and the 'Set a budget cap' text link under the format line). Move 'Set a budget cap' into the header subtitle ('No lists yet · Set a budget cap') or the header ⋯, so the empty state has one primary and one secondary.",
+        "The header avatar is a grey generic folder, while every other project has a tinted icon. Assign a tone and icon when the project is created, so the new project looks like its siblings.",
+        "'Drop … anywhere on this page' gives no visual cue. Add a faint dashed rounded-3xl outline around the empty state that strengthens on dragover.",
+        "The 'Created project' toast has no action and a smaller radius (~12px) than the 24px surfaces. Add 'Rename' or 'Undo' and use rounded-2xl.",
+        "'Set a budget cap' is a ~20px-high text link. Give it h-10 px-3 (as the drawer's 'Edit' button has) to meet the 44px touch target on coarse pointers."
+      ]
+    }
+  },
+  "global_issues": [
+    "One list, three names: '[ORT_024] LV24069' (S3 title), 'Maschinentechnik - Anlagenbau' (S5 row) and filenames in S2 'Linked to' and S8 subtitles. Route every list label through listLabel(), because in a money UI one object must have one name.",
+    "The Summary hero is a 260–275px filled card on S1, S2, S3 and S5, and it identically duplicates the S1 numbers on S5. Wise keeps the balance unboxed and short. Default to the compact or unboxed hero, always on S3 (the editing screen) and on mobile, and give S5 a different focal number (headroom or at-risk).",
+    "Aggregate status contradicts the child status: the hero pill says 'On track' while a child is 'Near cap'. The hero pill should reflect the worst child state ('1 needs attention').",
+    "Mobile list rows (S1, and by inheritance S2/S5) drop the amount under the subtitle, left-aligned, and the layout differs from row to row. Keep the amount right-aligned on the title line, with status/pct as one consistent second line.",
+    "Counts appear twice (section heading count plus the 'All N' chip) on S1 and S5. Keep one.",
+    "The ledger stacks into cards below 1280px, which takes the table away from common laptop and tablet widths. Use a 1024px breakpoint.",
+    "Search and document references don't show money or the list's display name. Every money object (list, position) in a result or link should carry its amount, as Wise's search does."
+  ]
+}

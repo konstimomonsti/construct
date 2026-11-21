@@ -113,7 +113,8 @@ const Row = memo(function Row({ listId, p, showCategory, selected, flash, edited
       data-risk={risk?.severity}
       className={clsx(
         'group transition-colors',
-        selected ? 'bg-brand-50/70' : risk ? RISK_UI[risk.severity].row : 'hover:bg-slate-100',
+        selected ? 'bg-brand-50/70' : 'hover:bg-slate-100',
+        risk && RISK_UI[risk.severity].row,
         flash && 'bg-brand-50 outline-2 -outline-offset-2 outline-brand-300',
       )}
     >
@@ -346,11 +347,11 @@ export function LedgerTable({
             </th>
             <th scope="col" className="w-[88px] px-2 py-2 font-medium">OZ</th>
             <th scope="col" className="px-2 py-2 font-medium">Kurztext</th>
-            <th scope="col" className="w-24 py-2 pr-3 pl-2 text-right font-medium">
+            <th scope="col" className={clsx('w-24 py-2 pr-3 pl-2 text-right font-medium', !visible.length && 'text-transparent')}>
 Menge
             </th>
-            <th scope="col" className="w-16 py-2 pr-2 pl-1 font-medium">Einheit</th>
-            <th scope="col" className="w-[120px] py-2 pr-3 pl-2 text-right font-medium">
+            <th scope="col" className={clsx('w-16 py-2 pr-2 pl-1 font-medium', !visible.length && 'text-transparent')}>Einheit</th>
+            <th scope="col" className={clsx('w-[120px] py-2 pr-3 pl-2 text-right font-medium', !visible.length && 'text-transparent')}>
 EP (€)
             </th>
             <th scope="col" className="w-32 px-2 py-2 text-right font-medium">GP (€)</th>
@@ -366,7 +367,7 @@ EP (€)
             <tbody key={cat ? `c-${cat.oz}` : 'loose'}>
               {cat && (
                 <tr data-group className={clsx('border-b', top ? 'border-slate-300' : 'border-slate-200')}>
-                  <th scope="rowgroup" colSpan={6} className={clsx('py-0 pr-2 text-left', top ? 'display pt-6 text-base text-slate-900' : 'pt-3 text-sm font-semibold text-slate-800')}>
+                  <th scope="rowgroup" colSpan={6} className={clsx('py-0 pr-2 text-left', top ? clsx('display text-base text-slate-900', open ? 'pt-6' : 'pt-2') : 'pt-3 text-sm font-semibold text-slate-800')}>
                     <button
                       type="button"
                       aria-expanded={open}
@@ -376,10 +377,13 @@ EP (€)
                     >
                       <Icon name="expand_more" size={20} className={clsx('shrink-0 text-slate-500 transition-transform', !open && '-rotate-90')} />
                       <span className="shrink-0 font-mono text-[13px] font-medium text-slate-600">{cat.oz}</span>
-                      <span className="truncate">{cat.label || cat.oz}</span>
-                      {!open && stats.has(cat.oz) && (
-                        <span className="num ml-1 shrink-0 font-sans text-[13px] font-normal text-slate-600">{plural(stats.get(cat.oz)!.count, 'position', 'positions')}</span>
-                      )}
+                      {/* phones wrap the title to two lines and drop the count under it, so "Baust…" never happens */}
+                      <span className="flex min-w-0 flex-col py-1 sm:flex-row sm:items-baseline sm:gap-2 sm:py-0">
+                        <span lang="de" className="min-w-0 hyphens-auto max-sm:line-clamp-2 sm:truncate">{cat.label || cat.oz}</span>
+                        {!open && stats.has(cat.oz) && (
+                          <span className="num shrink-0 font-sans text-[13px] font-normal text-slate-600">{plural(stats.get(cat.oz)!.count, 'position', 'positions')}</span>
+                        )}
+                      </span>
                     </button>
                     {flagged && (
                       <span className="mt-0.5 mb-1.5 block font-sans text-sm font-normal" style={{ marginLeft: b.depth * 20 + 26 }}>
@@ -387,7 +391,7 @@ EP (€)
                       </span>
                     )}
                   </th>
-                  <td colSpan={2} className={clsx('num px-2 pr-[3.25rem] text-right whitespace-nowrap', top ? 'display pt-6 text-base text-slate-900' : 'pt-3 text-sm font-semibold text-slate-800')}>
+                  <td colSpan={2} className={clsx('num px-2 pr-[3.25rem] text-right whitespace-nowrap', top ? clsx('display text-base text-slate-900', open ? 'pt-6' : 'pt-2') : 'pt-3 text-sm font-semibold text-slate-800')}>
                     {!stats.has(cat.oz) ? (
                       <span className="text-sm font-normal text-slate-600">No positions yet</span>
                     ) : stats.get(cat.oz)!.total === 0 ? (

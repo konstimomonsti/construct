@@ -53,7 +53,7 @@ export function DropOverlay({ show, name }: { show: boolean; name: string }) {
       {show && (
         <motion.div
           aria-hidden
-          className="pointer-events-none fixed inset-3 z-[60] flex items-center justify-center rounded-2xl border-2 border-dashed border-brand-500 bg-brand-50/90"
+          className="pointer-events-none fixed inset-3 z-[60] flex items-center justify-center rounded-lg border-2 border-dashed border-brand-500 bg-brand-50/90"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}

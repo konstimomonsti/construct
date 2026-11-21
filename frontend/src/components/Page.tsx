@@ -26,7 +26,7 @@ export function Skeleton({ className = '' }: { className?: string }) {
 export function GridSkeleton({ n = 6 }: { n?: number }) {
   return (
     <div className="space-y-6" aria-busy="true" aria-label="Loading">
-      <Skeleton className="h-36 w-full rounded-3xl" />
+      <Skeleton className="h-36 w-full rounded-lg" />
       <div className="space-y-1">
         {Array.from({ length: n }, (_, i) => (
           <div key={i} className="flex items-center gap-4 px-3 py-3">
@@ -46,7 +46,7 @@ export function GridSkeleton({ n = 6 }: { n?: number }) {
 export function TableSkeleton() {
   return (
     <div className="space-y-4" aria-busy="true" aria-label="Loading">
-      <Skeleton className="h-32 w-full rounded-3xl" />
+      <Skeleton className="h-32 w-full rounded-lg" />
       <div className="space-y-2">
         {Array.from({ length: 8 }, (_, i) => (
           <Skeleton key={i} className="h-11 w-full" />

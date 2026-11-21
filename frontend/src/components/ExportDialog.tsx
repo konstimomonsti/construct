@@ -92,7 +92,7 @@ export function ExportDialog({
             onClick={() => setFormat(f.id)}
             aria-pressed={format === f.id}
             className={clsx(
-              'flex flex-col items-start gap-1 rounded-xl border p-2.5 text-left transition-colors',
+              'flex flex-col items-start gap-1 rounded-lg border p-2.5 text-left transition-colors',
               format === f.id ? 'border-brand-500 bg-brand-50 ring-1 ring-brand-500' : 'border-slate-200 bg-white hover:bg-slate-50',
             )}
           >

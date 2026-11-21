@@ -1,0 +1,59 @@
+{"member":"ux","screens":{
+"S1":{"scores":{"hierarchy":7,"density":6,"typography":8,"consistency":7,"clarity":6,"interaction":7,"accessibility":7,"responsive":7,"wise":7},"issues":[
+"Hero meta is a 4-line stack (status chip + % + left, 'Measured against project caps. List caps are on Active Budgets.', '4 of 13 projects priced'). Merge it into one stat line: chip · '68% of 4.350.000 €' · '1.409.686,51 € left' · '4 of 13 priced'. Move the 'measured against' note into the cap tooltip.",
+"Status roll-up contradicts itself: the hero says '1 project almost at cap', but no row has an 'Almost at cap' chip. 'Site' shows only the text '1 list almost at cap' next to a 2% yellow bar. Give the Site row the same rolled-up 'Almost at cap' chip (word + icon) beside its title that Fernleitung gets, and colour its bar by the rolled-up tone, or explain it with '(list)'.",
+"'68% of 4.350.000 €' mixes 4 priced projects with 9 unpriced ones. Label the cap as 'of 4.350.000 € (priced projects)', or make 'Not priced 4' filter the unpriced ones so the share is clearly defined.",
+"The page-header ⋯ menu holds a single item ('Open all N lists in tabs'). Drop the menu and expose that item as a ⌘K command. A kebab with one hidden action costs a click and teaches nothing.",
+"Each row's ⋯ button is always visible (13 kebabs in a column). On hover-capable devices, show it only on row hover or focus-within, as the ledger checkboxes already do.",
+"Mobile: the 'of 4.350.000 €' cap is hidden (max-sm:hidden in Kit.tsx), so '68%' has no reference. Keep the cap on a second line on small screens."]},
+"S2":{"scores":{"hierarchy":8,"density":8,"typography":8,"consistency":7,"clarity":7,"interaction":7,"accessibility":7,"responsive":7,"wise":8},"issues":[
+"'List caps add up to 2.100.000 €, 100.000 € over the project cap.' is a real warning but is rendered as grey helper text. Give it the warn tone with an icon and the word 'Over', and make '100.000 € over' a link that opens the cap editor.",
+"The list rows' clickable area is not apparent at rest; the only hint is the hover fill captured on the first row. Add a trailing chevron or show the hover fill on focus-visible as well, and make the whole row one link (not title-only) with the ⋯ excluded.",
+"The project-level ⋯ menu hides 'New sub-project', which is the only way to nest. Add it as a secondary item under 'New list' (split button), or as a ⌘K command, so the sub-project concept is discoverable.",
+"The breadcrumb 'All Projects' has no chevron or 'back' affordance at one level deep, while S3 shows 'All Projects ›'. Render the same crumb component with a trailing separator on every level."]},
+"S3":{"scores":{"hierarchy":7,"density":6,"typography":8,"consistency":6,"clarity":7,"interaction":6,"accessibility":7,"responsive":6,"wise":7},"issues":[
+"Only about 4 positions are visible above the fold at 1440×900. Hero, two meta lines, Add/Export, and a 4-control toolbar take about 600px. Collapse the hero once the user scrolls (make it a sticky compact bar with total · % · left), and move Add position/Export into the toolbar row next to Sort.",
+"Three different behaviours share the same dotted-underline styling: '800.000 €' (edit cap), '38 with quantity 0' (filter) and 'Cost by section ▾' (disclosure). Keep the underline only for the cap edit. Make '38 with quantity 0' a filter chip in the toolbar, and 'Cost by section' a ghost button with a chevron.",
+"'Search positions' is the only bordered control. Every other toolbar control is a borderless dark fill. Use the same filled style plus a '/' key hint, and remove the confusion with the global 'Search projects, lists, positions' box above it.",
+"Menge and EP cells are inline-editable on desktop but look like static text at rest. Add a faint input underline or a hover/focus field outline, and show the pencil cursor/title 'Click to edit'.",
+"197 always-visible row ⋯ buttons add a column of noise. Reveal them on row hover or focus-within (same rule as .cb-reveal).",
+"The table has no keyboard model. Add J/K (or ↑/↓) to move the row focus, Enter to open the drawer, E to edit Menge, '/' to focus position search, and list these in a '?' shortcut sheet and in ⌘K.",
+"'Sort: Position order' sits far right, detached from Categories/Select. Group all list controls together (search · Categories · Sort · Select) so the toolbar reads as one unit.",
+"Mobile: two search fields stack (global 'Search' + 'Search positions'), the cap is hidden and cannot be edited (the onEditCap button is max-sm:hidden), and three rows of controls appear before the first position. On list pages, hide the global search behind an icon, keep the cap tappable, and put Categories/Select/Sort on one scrollable row."]},
+"S4":{"scores":{"hierarchy":8,"density":7,"typography":8,"consistency":7,"clarity":7,"interaction":6,"accessibility":7,"responsive":7,"wise":7},"issues":[
+"Previous/next is button-only ('1 of 197' with chevrons). Bind ↑/↓ or J/K while focus is not in a field, and show the key hint in the chevron tooltips, so an estimator can walk positions without the mouse.",
+"No edited-vs-imported state is shown. When Menge or EP differs from the import, show 'Imported: 5.700,00' under the field with a 'Reset' link, matching the 'Reset all edits' action that is buried in the list ⋯ menu.",
+"The Kategorie row is a filled card with a chevron, so it reads as navigation. If it changes the category, label it 'Move to…' or show a dropdown caret. If it navigates, say 'Show in list'.",
+"Boxes inside a panel: the GP summary is a filled card and Kategorie is a second filled card inside the drawer surface. Drop the GP card fill and use spacing plus a hairline divider, keeping only the inputs as boxed elements.",
+"The drawer header mixes close (left), counter, chevrons and ⋯ (right) with no title context once you scroll the Langtext. Make the OZ + Kurztext header sticky."]},
+"S5":{"scores":{"hierarchy":7,"density":7,"typography":8,"consistency":7,"clarity":6,"interaction":7,"accessibility":7,"responsive":7,"wise":7},"issues":[
+"The hero number is 'Left in list caps 1.460.686,51 €', but the crane meter lights the spent 67%, so the big number describes the unlit part. Either make the hero 'Priced 2.940.313,49 €' with 'x left' in the stat line (as on S1/S3), or label the unlit jib segment with the left amount.",
+"S1 shows '1.409.686,51 € left' and S5 shows '1.460.686,51 € left'. Two 'left' figures 51.000 € apart, one screen apart, erode trust. Name them differently ('Left under project caps' vs 'Left under list caps') and link each one to the other's view.",
+"List icon tiles alternate bronze and blue-black with no legend (it appears to be per project). Use one neutral tile, or show the project colour as a small swatch next to the project name in the subtitle, so colour never looks like status.",
+"The status chip ('Almost at cap', 'Near cap') shows on only 2 rows. Rows that are on track show nothing, which on this status-centric page is ambiguous. Add a quiet 'On track' word or rely on the filter, but be consistent with S3, where 'On track' is shown.",
+"Rows have no inline cap edit. On a page about caps, make '… of 1.000 €' a cap-edit link, as in the S3 hero."]},
+"S6":{"scores":{"hierarchy":8,"density":8,"typography":8,"consistency":8,"clarity":7,"interaction":7,"accessibility":8,"responsive":8,"wise":8},"issues":[
+"Copy 'from its More options menu' uses an aria-label name users never see. Say 'from the ⋯ menu on any project' and render the ⋯ glyph inline.",
+"'Go to All Projects' duplicates the sidebar. Replace it with an action that teaches the flow (e.g. 'Select projects to archive' deep-linking into All Projects with Select mode on), or drop it."]},
+"S7":{"scores":{"hierarchy":8,"density":8,"typography":8,"consistency":8,"clarity":7,"interaction":7,"accessibility":8,"responsive":8,"wise":8},"issues":[
+"The page subtitle 'Restore or delete items forever from their More options menu.' is instructions for a non-empty state, shown above an empty one, and repeats the body text. When empty, replace it with the retention rule (e.g. 'Items stay here until you delete them'), and drop the 'More options menu' jargon in favour of '⋯'.",
+"'Go to All Projects' duplicates the sidebar nav. Remove it, or make it contextual (return to the last visited project)."]},
+"S8":{"scores":{"hierarchy":8,"density":7,"typography":8,"consistency":7,"clarity":6,"interaction":6,"accessibility":7,"responsive":7,"wise":7},"issues":[
+"The ⌘K palette is search-only. Add a Commands group (New project, Import files, Add position, Export list, Go to Active Budgets/Archived/Trash, Open all lists in tabs, Toggle sidebar) that shows first when the query is empty, so it actually earns the keyboard-first claim.",
+"The counts contradict each other: the header says 'Positions 104' but expanding gives 3 + 'Show 47 more' (POS_MAX 50). Say 'Show 47 of 101 more, refine to see all', or raise the cap and virtualise.",
+"'none priced' after the group count is unexplained jargon. Remove it, or show the GP/EP on each position row, right-aligned (an estimator wants the price in the result).",
+"Every Lists subtitle repeats 'Ausbildungszentrum und Bürogebäude · PDF import'. Group results by project, or drop repeated project names once the group context is shown.",
+"The footer hints miss Tab (Tab is handled in code) and any 'open in new tab' modifier. Add '⌘↵ open in new tab' if it is supported, and the Tab behaviour."]},
+"S9":{"scores":{"hierarchy":8,"density":8,"typography":8,"consistency":6,"clarity":8,"interaction":8,"accessibility":7,"responsive":8,"wise":8},"issues":[
+"The empty state is indented about 34px from the page title column (x=346 vs 312), while the S6/S7 empty states align at 312. Remove the extra inset so it sits on the content column.",
+"The secondary action is 'Start a blank list' here and 'New list' on S2 for the same action. Use one label ('New list') everywhere.",
+"The toast is the only light (inverted cream) surface in a dark-only UI, and its yellow check icon on cream is low contrast. Use a dark raised surface with a yellow icon, or darken the icon to brand-800 on cream."]}
+},
+"global_issues":[
+"Keyboard-first is claimed but only ⌘K exists. Add a shortcut layer: '/' focus local search, J/K row and drawer navigation, N new (project/list/position by context), E edit, '?' shortcut sheet. Surface the keys in tooltips and in ⌘K.",
+"Always-visible ⋯ kebabs on every row of every list (projects, lists, 197 positions). Reveal them on hover/focus-within on pointer devices; keep them visible on touch.",
+"Dotted underline is overloaded (cap edit, filter link, disclosure). Reserve it for 'editable value' only, and use chips/ghost buttons for filters and disclosures.",
+"Mobile drops the cap ('of X €' and the cap-edit button are max-sm:hidden) on every hero, so '%' loses its reference and caps cannot be edited on phones. Keep the cap visible and tappable.",
+"Two different 'left' amounts (project caps on S1 vs list caps on S5) and a hero that is 'left' on S5 but 'spent' on S1/S3 make the money model hard to hold in your head. Pick one hero convention (spent, with left in the stat line) across all screens.",
+"Copy refers to the 'More options menu' (the aria-label name). In visible text, call it the '⋯ menu'.",
+"Top-level page kebabs hold one or two hidden actions (Open all lists in tabs, New sub-project). Promote them into visible secondary actions or ⌘K commands."]}

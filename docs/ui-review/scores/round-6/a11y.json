@@ -1,0 +1,58 @@
+{"member":"a11y","screens":{
+"S1":{"scores":{"hierarchy":8,"density":7,"typography":8,"consistency":8,"clarity":7,"interaction":7,"accessibility":7,"responsive":7,"wise":7},"issues":[
+"TrussMeter unlit jib (g.text-slate-300, #3d2a10) is 1.48:1 against the page, so the cap length the spend is measured against barely shows. Draw the rest jib in slate-400 (#7a6649, 3.7:1) or another colour at 3:1 or more (WCAG 1.4.11).",
+"Row Meter track (ui.tsx Meter, bg-slate-300) is 1.48:1. Raise it to 3:1 or more, or give the track a 1px slate-400 outline so the 100% end is visible.",
+"Secondary buttons ('New project', 'Sort: Highest amount', 'Select', inactive chips) are filled bg-slate-100 #1a0c01 on #0d0502, only 1.06:1. Add a 1px inset border at 3:1 or more (slate-400), or raise the fill to slate-200 and add a border, so they read as buttons and not loose text.",
+"Mobile (<640px) hides ' of 4.350.000 €' in the hero and ' of 2.000.000 €' in each row (max-sm:hidden in Kit.tsx HeroTotal and the row budget line). '68%' then has no reference. Keep the cap on mobile, e.g. a shortened form ('of 4,35 Mio €') or the cap on its own line.",
+"Hero status chip says '1 project almost at cap', but the 'Site' row shows 2% of 50.000 € with no chip, and only its subtitle says '1 list almost at cap'. Give that row a small 'List almost at cap' chip so the roll-up can be traced without reading subtitles.",
+"The hero meta stack has four lines (chip line, 'Measured against project caps…', '4 of 13 projects priced'). On mobile it wraps to five lines above the buttons. Merge the two grey notes into one line."]},
+"S2":{"scores":{"hierarchy":8,"density":8,"typography":8,"consistency":8,"clarity":8,"interaction":7,"accessibility":7,"responsive":7,"wise":8},"issues":[
+"The cap amount '2.000.000 €' is the only way to edit the cap, and its only cue is a dotted underline (decoration-slate-400, 3.7:1). On <640px it is hidden completely (max-sm:hidden). Show a small pencil icon next to the cap and keep the control on mobile, or put 'Edit cap' in the page ⋯ menu.",
+"'List caps add up to 2.100.000 €, 100.000 € over the project cap.' is a warning shown as plain slate-600 text. Show it with the caution icon and the word 'Warning', or as an amber StatusTag, so it does not depend on reading grey body copy.",
+"Unlit jib and row meter tracks are 1.48:1, and the secondary 'New list' / 'Select' fill is 1.06:1. Raise them to 3:1 or more as described in S1."]},
+"S3":{"scores":{"hierarchy":8,"density":7,"typography":8,"consistency":7,"clarity":8,"interaction":6,"accessibility":7,"responsive":7,"wise":7},"issues":[
+"On desktop, the editable Menge and EP cells (QtyStepper editableCls) have border-transparent at rest, so nothing marks them as editable until the row is hovered. The code comment promises a dotted underline. Add 'underline decoration-dotted decoration-slate-500 underline-offset-4' at rest.",
+"Each position row has about 4 Tab stops (title button, qty input, EP button, ⋯), so 197 rows take about 800 Tabs. Make the tbody a roving-tabindex grid (one Tab stop; ↑/↓ or j/k between rows, ←/→ between cells, Enter edits) and show the keys in the palette footer.",
+"Mobile cards: the qty and EP inputs use max-lg:bg-slate-50 (#140a03), 1.03:1 against the page, plus only a bottom border. Use a full 1px slate-500 border (6:1) on touch so they read as fields.",
+"Mobile hero drops ' of 800.000 €' (max-sm:hidden), leaving '67% · 263.008,35 € left' with no cap. Keep the cap visible on mobile.",
+"Mobile toolbar wraps 'Categories / Select / Sort' onto a second row under the search field, about 200px of chrome before the first position. Put Select and Sort into one ⋯ or 'View' menu on <640px so the toolbar fits one row.",
+"Row checkboxes are opacity-0 until hover on desktop (cb-reveal), so selection cannot be discovered. Since a 'Select' button exists, that is acceptable, but give the header checkbox a visible resting state when any row is selected.",
+"Unlit jib (slate-300) is 1.48:1. Raise it to 3:1 or more."]},
+"S4":{"scores":{"hierarchy":8,"density":8,"typography":8,"consistency":7,"clarity":8,"interaction":8,"accessibility":7,"responsive":8,"wise":8},"issues":[
+"The Menge and EP fields (fieldCls) use outline-none. Their focus state is a 1px border hue change from slate-500 to brand-600 plus ring-brand-600/20, which is nearly invisible on #0d0502. Use focus-visible:ring-2 focus-visible:ring-brand-600 (full opacity) with ring-offset-0.",
+"The GP summary card is rounded-3xl (16px) and the fields are rounded-xl (10px), which breaks the 'signage, not pills' small-radius rule used by buttons and chips (6px). Use rounded-lg or rounded-md.",
+"'1,1% of list · 263.008,35 € left in cap' is slate-600 13–14px text inside a slate-50 card. Contrast is fine (8:1), but the cap headroom matters, so make '263.008,35 € left in cap' font-medium slate-800.",
+"The Langtext scroll fade hides the last line behind 'Changes save automatically' with no scroll cue. Add a visible 'More ↓' affordance or keep a 1px top border on the footer so it is clear the text continues."]},
+"S5":{"scores":{"hierarchy":8,"density":8,"typography":8,"consistency":8,"clarity":7,"interaction":7,"accessibility":7,"responsive":7,"wise":8},"issues":[
+"The hero number is 'Left in list caps' (1.460.686,51 €), but the jib and hook show the spent share (67%). The meter and the figure point opposite ways. Either label the meter ('67% spent of 4.401.000 €') right under the jib, or make the hero the spent figure and move 'left' into the meta line.",
+"The on-track rows ([ORT_024], Angebot, [PERSON_132]) have no status word, only a yellow bar. Yellow, amber and orange differ by just 1.29–1.31:1 in luminance, so for colour-blind users the bars carry almost no status. Either show a quiet 'On track' word in the row meta, or rely on the % plus chip and use a distinct pattern or end cap for near or over.",
+"The meter track and the unlit jib are 1.48:1, and the 'Sort' / 'Select' / chip fills are 1.06:1. Raise them to 3:1 or more (see S1).",
+"On mobile the row budget line drops 'of 1.000 €'. On a screen about caps, keep the cap amount on mobile."]},
+"S6":{"scores":{"hierarchy":8,"density":8,"typography":8,"consistency":7,"clarity":8,"interaction":8,"accessibility":8,"responsive":8,"wise":8},"issues":[
+"The subtitle 'Archived projects don't count toward totals' has no full stop, but the Trash subtitle does. Use the same punctuation on every page subtitle.",
+"The 'Go to All Projects' button fill (slate-100) is 1.06:1 against the page. Add a 3:1 border so the only action on the page reads as a button.",
+"'More options menu' is jargon. Write 'the ⋯ menu on a project' and render the ⋯ glyph inline so users can find it."]},
+"S7":{"scores":{"hierarchy":8,"density":8,"typography":8,"consistency":7,"clarity":8,"interaction":8,"accessibility":8,"responsive":8,"wise":8},"issues":[
+"The subtitle 'Restore or delete items forever from their More options menu.' repeats the empty-state body and says 'More options' where the UI shows ⋯. Shorten it to 'Items here can be restored or deleted for good.' and refer to the ⋯ menu inline.",
+"The 'Go to All Projects' button fill is 1.06:1. Add a 3:1 border.",
+"There is no retention hint (e.g. 'Items are kept for 30 days'). Add one if the policy exists, since destructive context matters for trust."]},
+"S8":{"scores":{"hierarchy":9,"density":8,"typography":8,"consistency":8,"clarity":8,"interaction":9,"accessibility":8,"responsive":7,"wise":8},"issues":[
+"The 'Esc' close button is h-9 (36px) with a 13px label. Make it at least 40px on desktop (the coarse-pointer rule only lifts it to 44px on touch).",
+"Group headings ('Positions 104 · none priced') are text-xs slate-600 and aria-hidden. The visible size is 12px, so raise it to 13px font-medium so the section counts are readable.",
+"On phones the footer key hints are hidden and the 2-line results carry long German subtitles ('OZ 3.1.60 · Ortbetonarbeiten · in Rohbau (Ausbildungszentrum und Bürogebäude)'). Truncate the subtitle to one line with the project name last, and check at 390px that nothing wraps under the icon.",
+"Match highlighting uses yellow plus semibold, which is fine. Make sure the active option's left bar (yellow) is not the only selected cue for Windows High Contrast: add forced-colors:outline on [aria-selected=true]."]},
+"S9":{"scores":{"hierarchy":8,"density":8,"typography":8,"consistency":6,"clarity":8,"interaction":8,"accessibility":7,"responsive":8,"wise":7},"issues":[
+"The empty-state block (icon, title, buttons, hint) is indented about 34px from the page column (x=346 vs the title at 312), while Archived and Trash align at 312. Remove the extra padding in EmptyFolder so it shares the column edge.",
+"The toast is the only light (cream slate-900) surface in a dark-only UI, and its success icon (emerald-400 #f3c160) is 1.45:1 on it. Make toasts a dark surface (slate-100 with a slate-300 ring) using the brand-600 icon, or darken the icon to brand-200 so it reaches 3:1 or more.",
+"'Start a blank list' secondary button fill is 1.06:1. Add a 3:1 border.",
+"The format hint 'Supports GAEB, CSV, TSV, Excel, JSON, Word and PDF…' is 13px slate-600 placed after the buttons. Move it directly under the description so it is read before choosing."]}
+},
+"global_issues":[
+"Non-text contrast: the TrussMeter rest jib and the Meter track (both slate-300 #3d2a10) are 1.48:1 against #0d0502. Raise them to at least 3:1 (slate-400 #7a6649 = 3.7:1) so the cap extent is perceivable (WCAG 1.4.11).",
+"Secondary buttons, ToolButtons and inactive Chips use a bg-slate-100 fill that is 1.06:1 against the page, so the button shape is effectively invisible. Add a 1px border at 3:1 or more (e.g. ring-1 ring-slate-400/80), or raise the fill and add a border, across Kit.tsx and ui.tsx.",
+"Yellow (on track), amber and orange heat colours are within 1.3:1 luminance of each other, so on-track rows rely on colour alone (no word). Keep words on every non-ok row (done) and add a quiet 'On track' or a shape cue so status survives colour-blindness and greyscale.",
+"Mobile (<640px) hides the cap figure everywhere (max-sm:hidden on ' of {cap}' in HeroTotal and the row budget line, and the cap-edit button). Percentages lose their reference and the cap cannot be edited from the hero on phones. Show a compact cap instead of hiding it.",
+"Field focus states in DetailDrawer use outline-none with a 1px border change and a 20% ring. Replace them with a full-strength 2px brand-600 ring on :focus-visible to match the global outline.",
+"Desktop inline-editable numbers (Menge, EP) have no resting affordance. Add the dotted underline promised in QtyStepper's comment.",
+"Keyboard-first claim: the ledger needs roving focus (one Tab stop plus arrow or j/k navigation) instead of about 4 Tab stops per row across 197 rows.",
+"Radii are inconsistent with the 'signage' rule: Row hover fill and hit areas use rounded-2xl, and the drawer GP card uses rounded-3xl. Bring them down to rounded-md or rounded-lg."]}

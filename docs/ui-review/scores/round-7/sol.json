@@ -1,0 +1,126 @@
+{
+  "member": "sol",
+  "screens": {
+    "S1": {
+      "scores": {"hierarchy": 8, "density": 7, "typography": 9, "consistency": 8, "clarity": 6, "interaction": 7, "accessibility": 7, "responsive": 7, "wise": 7},
+      "issues": [
+        "Hierarchy — Make the portfolio warning a quiet link that takes the user straight to the flagged project rows.",
+        "Density — Remove the repeated project count below the hero and tighten the mobile gap between the actions and project tools.",
+        "Consistency — Derive the header, priced count and project filters from the same project scope, rolling sub-projects into their visible parent where appropriate.",
+        "Clarity — Label the cap comparison as using priced projects and explain which of the other projects are empty versus awaiting prices.",
+        "Interaction — Add a trailing chevron to project links and keep it distinct from the row actions menu.",
+        "Accessibility — Announce warning counts as written. Omit the aggregate tag's generic percentage hint when it describes a child rather than the figure above it.",
+        "Responsive — Retain each project's cap amount below the percentage on phones and let the money and usage lines wrap independently.",
+        "Benchmark — Keep the active sort criterion visible on phones so a budget scan starts with a known ordering."
+      ]
+    },
+    "S2": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 9, "consistency": 8, "clarity": 7, "interaction": 7, "accessibility": 7, "responsive": 7, "wise": 7},
+      "issues": [
+        "Hierarchy — Put the overallocated list caps in a named line below the project status so the warning is visible during a quick scan.",
+        "Density — Tighten the gap between the import buttons and the Lists heading to bring list rows closer to the budget summary.",
+        "Consistency — When a child list triggers the hero warning, give the warning an explicit child count even if the project is at the same warning level.",
+        "Clarity — Label the two values as combined list caps and project cap so the 100.000 € mismatch reads as allocated capacity.",
+        "Interaction — Replace the dotted cap amount as the sole in-context edit cue with a visible Edit project cap action beside the amount.",
+        "Accessibility — Give the cap edit control a 44 px touch target and include the cap mismatch in the accessible budget summary.",
+        "Responsive — Let Used and Left wrap at 320 px and retain each list's cap on a separate line beneath its amount.",
+        "Benchmark — Extend Needs attention filtering to folders with two or three lists so fixing a flagged list follows the same flow as Active Budgets."
+      ]
+    },
+    "S3": {
+      "scores": {"hierarchy": 7, "density": 6, "typography": 8, "consistency": 7, "clarity": 7, "interaction": 6, "accessibility": 6, "responsive": 6, "wise": 6},
+      "issues": [
+        "Hierarchy — Add a compact ledger view that keeps a small running total and brings editable positions into the initial viewport.",
+        "Density — Start long ledgers with top-level section summaries and provide Expand all and Collapse all beside the category filter.",
+        "Typography — Increase the ledger header labels to 14 px and apply the designated code face consistently to OZ values on desktop and mobile.",
+        "Consistency — Give Menge and EP the same visible edit treatment and the same Enter to save and Escape to cancel behavior.",
+        "Clarity — Use All quantities 0 only when the quantities are actually zero. Show Not priced or 0,00 € when those explain the section total.",
+        "Interaction — Keep search and section navigation within reach while scrolling so a 197-position list can be edited without returning to the top.",
+        "Accessibility — Give the light theme's quantity and price focus rings at least 3:1 contrast and expose mobile field labels when the desktop table header is hidden.",
+        "Responsive — Stack the mobile row title above its numbers on narrow screens so long OZ codes, section names and totals can all be read.",
+        "Benchmark — Give the ledger keyboard navigation between editable cells and a discoverable shortcut to focus position search."
+      ]
+    },
+    "S4": {
+      "scores": {"hierarchy": 9, "density": 8, "typography": 8, "consistency": 8, "clarity": 7, "interaction": 6, "accessibility": 7, "responsive": 7, "wise": 7},
+      "issues": [
+        "Density — Reduce the fixed autosave footer height and preserve the space for long-text reading.",
+        "Typography — Set the Kurztext field to wrap at every supported width and provide a height fallback for browsers without field-sizing.",
+        "Consistency — Render the category labels verbatim in the drawer breadcrumb, including suffixes such as ‘- I’ that appear in the ledger.",
+        "Clarity — Label the hero Gesamtpreis (GP), expand Einheitspreis (EP) at the form label and identify the headroom as the list's.",
+        "Interaction — Make both text edit affordances visible at rest and show a field error for invalid quantity or price entries instead of silently restoring the old value.",
+        "Accessibility — Give the inset Einheit control a 44 px target and an accessible name that says it edits the unit.",
+        "Responsive — Use a full-height editor while the on-screen keyboard is open and keep the focused field above it and the save footer.",
+        "Benchmark — Add Previous and Next keyboard shortcuts outside text fields and show their bindings in the drawer controls."
+      ]
+    },
+    "S5": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 9, "consistency": 8, "clarity": 6, "interaction": 7, "accessibility": 7, "responsive": 7, "wise": 7},
+      "issues": [
+        "Hierarchy — Put the warning count next to the Needs attention control and let that count filter the displayed rows.",
+        "Density — Remove the repeated six-list count under the meter and keep it in the title subtitle and filtered list heading.",
+        "Consistency — Apply the same ancestor archive and trash exclusion as All Projects so lists in archived sub-project trees leave both active views.",
+        "Clarity — Label Left as combined headroom across capped lists, state how many lists feed that total, and keep uncapped lists visibly outside the cap comparison.",
+        "Interaction — Surface Edit list cap on the percentage-of-cap line so changing the budget is discoverable from this view.",
+        "Accessibility — Give every row a readable status word, including On track, and omit the generic aggregate percentage hint when the warning refers to individual lists.",
+        "Responsive — Keep the amount, cap, and usage together in the narrow layout and let long list names wrap above them.",
+        "Benchmark — Show euros left or over for each capped list, especially the list closest to its cap, so a user can act without calculating headroom."
+      ]
+    },
+    "S6": {
+      "scores": {"hierarchy": 9, "density": 9, "typography": 9, "consistency": 7, "clarity": 8, "interaction": 6, "accessibility": 7, "responsive": 8, "wise": 7},
+      "issues": [
+        "Consistency — Replace the shared collection dock's Move to Archive action with Restore from Archive when viewing Archived.",
+        "Clarity — In the empty state, name the Archive action and say it lives on each project's options menu in All Projects.",
+        "Interaction — Surface Restore from Archive on populated rows and offer Undo after restoration.",
+        "Accessibility — After a keyboard restore removes a row, move focus to the next row or to Go to All Projects if the collection becomes empty.",
+        "Responsive — Let long project names wrap above row actions at narrow widths so users can identify the archived item before restoring it.",
+        "Benchmark — Show the archived date on populated rows and allow sorting by it so recent archivals are easy to find."
+      ]
+    },
+    "S7": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 9, "consistency": 7, "clarity": 6, "interaction": 7, "accessibility": 7, "responsive": 7, "wise": 7},
+      "issues": [
+        "Hierarchy — Give Restore the visible row action and move Delete forever into a labeled options menu.",
+        "Density — Keep the empty state to a heading, one explanation and a return link. Show the row instructions only once items exist.",
+        "Consistency — Use the shared row grid for populated Trash to align project and list titles, metadata and action targets with collection rows.",
+        "Clarity — Remove the header's reference to a ••• menu while Restore and Delete forever are rendered as inline buttons. If the actions move, update the copy with their actual locations.",
+        "Interaction — Offer Undo after restoration so an accidental click is reversible without hunting for the restored item.",
+        "Accessibility — After a row is restored or deleted, focus the next row action or the empty state's return link and announce the change.",
+        "Responsive — Let the populated row actions wrap on small phones so their labels and 44 px targets fit without clipping.",
+        "Benchmark — Identify a trashed list's parent project and keep its deletion date visible, including on mobile, so similarly named lists can be told apart."
+      ]
+    },
+    "S8": {
+      "scores": {"hierarchy": 9, "density": 7, "typography": 8, "consistency": 8, "clarity": 7, "interaction": 6, "accessibility": 6, "responsive": 7, "wise": 6},
+      "issues": [
+        "Density — Reduce desktop search result tiles and vertical padding so the next group remains visible below the first results.",
+        "Typography — Separate OZ and path into distinct text runs and use the designated monospace for OZ so the identifying code is easy to scan.",
+        "Consistency — Replace the bottom fade and heavy panel shadow with a solid footer divider and a visible scroll indicator in both themes.",
+        "Clarity — Show the capped result count alongside Positions 105 before expansion so users know how many matches the palette can display.",
+        "Interaction — Refresh the position index after imports, edits and removals so the palette opens the current position and quotes current prices.",
+        "Accessibility — Restore focus to the opener after Escape or Cancel and give the focused combobox an explicit, visible focus style.",
+        "Responsive — Allow two lines for the result path on phones and place the price line below it when the keyboard and screen width squeeze the result.",
+        "Benchmark — Add a keyboard-accessible List or Position scope so expanding a large position group keeps other result types one keystroke away."
+      ]
+    },
+    "S9": {
+      "scores": {"hierarchy": 9, "density": 9, "typography": 9, "consistency": 8, "clarity": 8, "interaction": 8, "accessibility": 8, "responsive": 8, "wise": 8},
+      "issues": [
+        "Consistency — Use the shared flat overlay treatment for the creation toast and keep its dark surface in both themes.",
+        "Clarity — Replace price files with pricing spreadsheets and explain that New list starts a blank bill of quantities.",
+        "Interaction — Make the upload icon and instruction block an active file picker with a visible drop boundary on pointer entry and file drag.",
+        "Accessibility — Make the creation Undo reachable from the new page's keyboard sequence and keep its timer paused while focus moves through the toast.",
+        "Responsive — Reserve room for the creation toast on short phone viewports so it cannot cover Import files or New list.",
+        "Benchmark — Put the file-format details behind a compact disclosure and leave the primary import instruction immediately scannable."
+      ]
+    }
+  },
+  "global_issues": [
+    "Make the list budget, project budget and priced coverage explicit and derive counts and archive exclusions from the same scopes.",
+    "Give the ledger a compact, keyboard-operable workflow with section navigation and visible edit states in both themes.",
+    "Refresh position search from current data and return focus when the palette closes.",
+    "Preserve imported category names verbatim and give rejected numeric edits a field-level error.",
+    "Align the recovery actions and copy in Archived and Trash with their actual row controls."
+  ]
+}

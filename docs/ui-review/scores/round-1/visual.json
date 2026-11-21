@@ -1,0 +1,132 @@
+{
+  "member": "visual",
+  "screens": {
+    "S1": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 8, "consistency": 7, "clarity": 7, "interaction": 7, "accessibility": 7, "responsive": 5, "wise": 7},
+      "issues": [
+        "Hierarchy: the progress bar ends at x≈884 and the action pills start at x≈908. The bar and the buttons collide visually. Either drop the actions to their own row under the status line (Wise puts pills directly under the balance), or cap the bar at about 60% of the card width and keep a 48px+ gutter before the pills.",
+        "Density: unpriced folders show a bold '€0' over 'Not priced yet', which reads as a real zero. Replace it with a muted '—', or with just 'Not priced yet' in slate-500 on the amount line, so the three priced rows own the right column.",
+        "Typography/consistency: the 'Near cap' chip sits left of '75% of €2,000,000' on the second line, so the percentage text in that row starts about 90px further left than in the other rows. Move the chip to the title line (after the name) or under the mini-bar, so the right column stays a clean right-aligned stack.",
+        "Consistency: the button casing is mixed. 'New Folder' is Title Case while 'Upload', 'Open all' and the rest of the app ('New list', 'Add item', 'Upload files') use sentence case. Change it to 'New folder'.",
+        "Consistency: the six pastel project-icon colours (blue, amber, green, indigo, violet, cyan) compete with the status colours. The amber Fernleitung icon sits right next to the amber 'Near cap' chip. Use one neutral or brand tint for all folder avatars, or keep the hues but never reuse the status amber or green.",
+        "Clarity: 'Open all' is ambiguous next to 'New Folder' and 'Upload', and it isn't clear what opens. Move it into a ⋯ menu, or rename it to what it does.",
+        "Interaction: 'Cost (High to Low)' and 'Select' are bare text with icons and no container. They read as labels, not controls. Give them the same soft-fill pill (h-9, slate-100) used for the toolbar controls on the List page.",
+        "Responsive (11-mobile-home): the row layout collapses. 'Fernleitung - Weinsbach' renders as a single 'F' with a lone '2', because the 'Near cap' chip and the amount steal the width. All other titles truncate to about 12 characters. On <640px, stack the row: icon + full-width title/subtitle on top, then the amount + % + chip on a second line (or drop the chip to an icon dot), and hide the subtitle's description segment.",
+        "Responsive: in the mobile hero, '€1,463,361 left' wraps onto its own line and 'Open all' is orphaned on a second button row. Put the primary pill and Upload in one row, and move Open all into the ⋯ menu or an icon-only button.",
+        "Responsive: the mobile sort control is icon-only (⇅) and has no label or visible state. Show the current sort as text, or keep the label.",
+        "Accessibility: the progress track (slate-200 on the slate-50 card) is about 1.2:1, so the 'remaining' part of the bar is barely visible. Darken the track to slate-300, or add a 1px inset border."
+      ]
+    },
+    "S2": {
+      "scores": {"hierarchy": 7, "density": 7, "typography": 7, "consistency": 7, "clarity": 6, "interaction": 7, "accessibility": 7, "responsive": 6, "wise": 7},
+      "issues": [
+        "Typography/consistency: money precision differs within one screen. The hero 'Folder total €1,794,611' has no cents, but the list rows show '€897,305.45' and '€0.00'. Pick one rule, for example whole euros on folder/overview surfaces and cents only inside a list ledger, and apply it to the rows too.",
+        "Hierarchy: the hero card carries two meta lines (status line plus '746 positions · 498 priced · 248 still to price') and the action pills are bottom-aligned with the second line. That is three tiers of small grey text competing under the number. Merge the position count into one line, or move it to the 'Lists' section header ('Lists 3 · 248 positions to price').",
+        "Clarity/density: every list subtitle repeats 'RINGSCHLUSS BRUNNENWASSER, [PERSON_132]', and every document subtitle repeats 'Linked to RINGSCHLUSS BRUNNENWASSER, [PERSON_132]'. The folder title already says this, and the all-caps source text shouts in a muted line. Drop the repeated project segment when it matches the folder, and lead with what differs (file type, position count, unpriced count).",
+        "Consistency: the Documents rows use a different icon glyph (a gallery-style PDF icon) from the list rows, and have nothing on the right, so the ⋯ floats alone. Give documents a right-side meta (size or pages, or the linked list name) in the amount column, so the row rhythm matches the lists.",
+        "Consistency: the breadcrumb here is a lone 'All Projects' with no chevron or current item, but on the List page it is 'All Projects › Maschinentechnik - Anlagenbau'. Use the same breadcrumb component in both places.",
+        "Interaction: the dotted underline on '€2,500,000 cap' is the only hint that the cap is editable, and it is very faint. Add a pencil icon on hover, or make it a clear inline-edit chip.",
+        "Interaction: the Documents header has no sort/actions while Lists does, so the right edge is unbalanced. That is fine, but the section titles 'Lists 3' and 'Documents 2' should share the same top spacing. Documents currently gets about 56px and the hero→Lists gap is about 50px. Normalise both to one section-gap token.",
+        "Responsive: three pills (Upload files, New list, Open all) beside a 489px bar will wrap the same way they do on the mobile home. Plan for 1 primary + 1 secondary + ⋯ on small widths."
+      ]
+    },
+    "S3": {
+      "scores": {"hierarchy": 7, "density": 6, "typography": 7, "consistency": 6, "clarity": 7, "interaction": 7, "accessibility": 7, "responsive": 6, "wise": 6},
+      "issues": [
+        "Consistency: the List page content column spans x≈272–1408, while Home, Folder, Budgets, Archived, Trash and Empty folder use a centred x≈360–1320 column. Moving between pages makes the title and hero jump sideways by 88px. Use one max-width (or the same left edge) for all page headers and heroes, and let only the ledger table grow wider if needed.",
+        "Hierarchy (ledger): the group header subtotal ('€24,890.00', '€88,213.41') is regular-weight slate-500 while every line GP is bold slate-900. The rollup is visually weaker than its children. Make the group row the stronger tier (semibold slate-900 name and subtotal, maybe a slate-50 band), and set line GP to medium weight.",
+        "Density: a bold GP on all 197 rows creates a heavy black stripe down the right edge (see 04-list-full). Use medium weight for line GP and keep bold for subtotals and the hero.",
+        "Density: column widths are poorly distributed. OZ gets about 128px for '1.1.1', Kurztext starts at x≈460 and long texts truncate at x≈860 ('[PERSON_0…'), while 80–100px of empty space sits before Menge. Tighten OZ to about 72px, let Kurztext take the free space up to Menge, and right-align Menge directly beside Einheit.",
+        "Density: an always-visible checkbox column on every row adds 197 small boxes of noise. Show checkboxes on row hover, focus, or once one is selected (Gmail/Linear pattern), and keep the header checkbox.",
+        "Consistency: the toolbar mixes three control styles. The search is a filled pill, 'All categories' is a filled pill with a chevron, and 'Sort by amount' is bare text. Make sort a filled pill too. The sort label also reads differently on every screen ('Cost (High to Low)', 'Sort by amount', 'Highest amount'). Use one pattern: 'Sort: Amount ↓'.",
+        "Typography: in the rows, the bold GP baseline sits about 1–2px higher than the regular EP, Menge and Einheit (visible in the crops at 2.2.2 and 3.1.x). Align all cells to the baseline, or apply the same line-height and leading to the bold cell.",
+        "Clarity: the hero says '197 positions · 197 priced', which is redundant when everything is priced. Show 'All 197 positions priced', or only show the 'priced' count when it differs.",
+        "Responsive (12-mobile-list): the title truncates to 'Maschinentechnik - Anlag…' and the meta to '27.0…'. Allow the H1 to wrap to two lines on mobile instead of truncating. The group header 'Baustelleneinrichtung und Dokumentati…' also truncates. Let it wrap, with the subtotal on its own right-aligned line.",
+        "Responsive: in the mobile position card, the OZ '1.1.1' sits under the title in small grey and the qty input box is a large 80×36 outlined field. This is the only outlined input on the page, so it dominates the card. Use a borderless slate-50 fill input (like the search) and put the OZ before the title as a muted prefix.",
+        "Wise: dividers on every row plus a full-width header rule plus group rules make it a classic table, not a calm list. Keep the hairlines between groups only, or lower the row divider to slate-100. The density is right for estimators, but it can be quieter."
+      ]
+    },
+    "S4": {
+      "scores": {"hierarchy": 7, "density": 7, "typography": 6, "consistency": 6, "clarity": 6, "interaction": 7, "accessibility": 7, "responsive": 6, "wise": 7},
+      "issues": [
+        "Typography/consistency: the EP input shows '5700.00' (no thousands separator) while the GP card directly above shows '€5,700.00' and '1 psch × €5,700.00'. Format the input value as '5,700.00' when not focused, and right-align it consistently with Menge.",
+        "Typography: Langtext keeps the GAEB hard line breaks, so the textarea shows ragged orphan lines ('nach', 'für', 'Anlagen,'), which looks broken. Reflow soft-wrapped source lines (join lines that don't end in punctuation) for display, or render Langtext as read-only prose with an 'Edit' affordance.",
+        "Typography: the textarea is cut mid-line at the bottom edge by the sticky footer ('Geräte und Maschinen sind in die betreffenden' half-visible). Either give it a fixed height that ends on a line, or let the drawer scroll as a whole with a fade above the footer.",
+        "Consistency: field labels mix languages and abbreviation styles. 'Gesamtpreis (GP)' and 'Einheitspreis (EP)' are spelled out with abbreviations, 'Menge', 'Einheit', 'Kurztext' are not, and the footer chrome is English. Pick one pattern, for example GAEB term + abbreviation only where the table uses the abbreviation (EP, GP), and keep it identical to the ledger column headers.",
+        "Consistency: the Kategorie field is a bordered card with a brand-blue 'Change' text link. It is the only text-link-style action in the app (elsewhere actions are pills). Make it a select-style field with a chevron, or a small secondary pill.",
+        "Consistency: the input fields have 1px slate-200 borders while the page search/filter use borderless slate-100 fills. Choose one input style for the whole product.",
+        "Clarity: 'OZ 1.1.1' eyebrow plus a title that repeats the Kurztext field directly below it shows the same string twice within 300px. Keep the title and drop or collapse the Kurztext field until edited, or turn the title into the editable Kurztext.",
+        "Interaction: both the X (top-left) and 'Done' (bottom-right) close the drawer, which duplicates the action. Since changes autosave, drop 'Done', or keep 'Done' and remove X, but keep only one.",
+        "Interaction: the 1 of 197 prev/next chevrons are tiny (~24px) and far from the title. Group them in a segmented pill with visible borders.",
+        "Responsive: the drawer is about 512px wide with a large left radius. On phone it needs to become a full-screen sheet. The 3-up Menge/Einheit/EP grid would be too narrow at 390px, so plan a 2-row layout."
+      ]
+    },
+    "S5": {
+      "scores": {"hierarchy": 7, "density": 7, "typography": 8, "consistency": 6, "clarity": 6, "interaction": 7, "accessibility": 7, "responsive": 6, "wise": 7},
+      "issues": [
+        "Clarity: the hero shows the same €3,836,639 as the Home hero, but against a different cap (€5,900,000, 65% here vs €5,300,000, 72% on Home). Seeing one total with two caps undermines trust. Explain the difference in the label ('Sum of list caps' vs 'folder caps'), or reconcile the figures.",
+        "Clarity: 'Every list is within its cap' sits above a list whose last row is flagged 'Near cap' (86%). The message is technically true but reads as contradictory. Show '1 list near its cap' with the amber icon instead, and link it to the 'Needs attention' filter.",
+        "Hierarchy: the hero has no actions and its right half is empty (bar ends at about 964px, card at 1320px). Either shrink the card to content width or use the space for a compact breakdown (3 projects with mini bars). An empty soft box is wasted chrome.",
+        "Consistency: the progress-bar width differs on every hero (S1 ~496px, S2 ~489px, S3 ~576px, S5 ~576px). Fix one width (or a % of the card) in the hero component.",
+        "Consistency: the selected segment 'All' uses a near-black slate-900 fill. That is a third selected-state style, next to the sidebar's white raised pill and the indigo primary. Use the sidebar's selected treatment, or a brand-50 fill with brand-700 text.",
+        "Clarity/density: subtitles are long and repetitive ('Ringschluss Brunnenwasser · RINGSCHLUSS BRUNNENWASSER, [PERSON_132] · 249 positions'). The project name appears twice in different cases. Show 'Project · file/ref · N positions' and drop the duplicated all-caps description.",
+        "Consistency: the row icon tint encodes the parent project (orange, blue, green). That is useful, but orange collides with the amber 'Near cap' status. Avoid amber or green hues for project identity.",
+        "Typography: the 'Near cap' chip again pushes '86% of €600,000' left, so the percentage column is ragged. Same fix as S1.",
+        "Responsive: same row structure as Home, so on mobile it will truncate titles to about 12 characters. Apply the stacked mobile row fix."
+      ]
+    },
+    "S6": {
+      "scores": {"hierarchy": 7, "density": 7, "typography": 7, "consistency": 7, "clarity": 8, "interaction": 6, "accessibility": 7, "responsive": 7, "wise": 7},
+      "issues": [
+        "Hierarchy: a 1px-borderless 270px slate-50 slab sits at the top of an otherwise empty 900px page, so the page feels top-heavy and unfinished. Drop the container fill (Wise renders empty states on the page background), and vertically place the illustration about 1/3 down the viewport.",
+        "Consistency: the empty-state icon is a grey glyph in a white circle, while the Empty folder (S9) uses a brand-indigo glyph and a larger heading (20px vs 18px here). Use one EmptyState component with the same icon tint, heading size and max-width.",
+        "Typography: the body copy wraps to an awkward second line ('…out of your / active projects.'). Add text-wrap: balance, or a max-width of about 36ch.",
+        "Consistency: other list pages have a count subtitle under the H1 ('6 folders · 37 lists'). Archived has none, so the H1→card gap is tighter here than on S1 (title-to-card 40px here vs ~62px). Keep the same vertical rhythm, or show '0 folders'.",
+        "Interaction: no way forward from here. Add a quiet secondary 'Go to All Projects' pill, so the empty state isn't a dead end."
+      ]
+    },
+    "S7": {
+      "scores": {"hierarchy": 7, "density": 7, "typography": 7, "consistency": 7, "clarity": 8, "interaction": 6, "accessibility": 7, "responsive": 7, "wise": 7},
+      "issues": [
+        "Typography: the body copy orphans a single word ('…restored from / here.'). Use text-wrap: balance or rewrite it as 'Deleted folders and lists stay here until you restore them.'",
+        "Hierarchy/consistency: same top-heavy slab as Archived. Remove the slate-50 container or centre it in the viewport, and match S9's empty-state icon tint and heading size.",
+        "Clarity: it doesn't say whether items auto-delete after N days. If they do, state it in the subtitle, because that is the key fact of a trash page.",
+        "Interaction: no secondary action. Consider a 'Go to All Projects' pill. When items exist, make sure 'Empty trash' lives in a header ⋯ menu, not as a prominent button."
+      ]
+    },
+    "S8": {
+      "scores": {"hierarchy": 8, "density": 7, "typography": 7, "consistency": 7, "clarity": 6, "interaction": 7, "accessibility": 7, "responsive": 6, "wise": 8},
+      "issues": [
+        "Clarity: the query term isn't highlighted in the results. 'Porenbetonfassade' and 'Stahlbetonfertigteile' don't show where 'Beton' matched. Bold or brand-tint the matched substring in the title and subtitle.",
+        "Clarity: the grammar is wrong in 'Bachdurchlass Neppen — 1 lists'. Pluralise it ('1 list').",
+        "Clarity: the list results show only a filename as the subtitle, with no parent folder. Use 'Folder name · N positions' instead of repeating the title as 'LV_04_Porenbetonfassade.pdf'.",
+        "Density: the 'Positions' group header is cut off at the bottom with no rows visible, so the panel looks truncated. Size the scroll area so it ends on a row boundary, or show a 'Positions (N) ↓' row with a fade, or cap each group at 3 results with a 'Show all' row.",
+        "Consistency: the backdrop blur is very strong (the page is unreadable) and the scrim is grey. Lighten it to a slate-900/20 scrim with a ≤4px blur, which reads calmer and more premium.",
+        "Typography: the group labels ('Folders', 'Lists', 'Positions') are about 13px semibold slate-600, close in weight to the 13px subtitles. Make them clearly a different tier: 11–12px, medium, slate-500, with +0.02em tracking.",
+        "Responsive: a 672px modal with 24px radius needs a full-screen sheet on mobile, with the input pinned at the top. That is not evidenced yet."
+      ]
+    },
+    "S9": {
+      "scores": {"hierarchy": 8, "density": 7, "typography": 8, "consistency": 7, "clarity": 6, "interaction": 8, "accessibility": 7, "responsive": 7, "wise": 8},
+      "issues": [
+        "Clarity: the folder subtitle 'Awaiting initial line allocations' reads as demo or jargon copy. If it is the user-entered description, fine, but don't seed it. If it is generated, replace it with '0 lists'.",
+        "Clarity/consistency: the heading says 'Add your first item list', but the rest of the UI says 'list' ('New list', 'Lists 3'). Use 'Add your first list'.",
+        "Consistency: the folder header avatar is a grey generic folder in a slate circle, while folders on Home get coloured project icons. Use the same avatar treatment (tint and icon) the folder will have on Home.",
+        "Density: the empty card is about 440px tall with a slate-50 fill. As with S6/S7, consider dropping the fill and letting the drop zone show only on drag (dashed brand border), so the empty state is calmer.",
+        "Typography: the format hint 'GAEB .X81–.X86 / .D81–.D86 · CSV · JSON · PDF' is useful but visually equal to the body. Make it 12px slate-500 and put it closer to the buttons (16px instead of ~34px).",
+        "Interaction: the toast (dark, bottom-right) is fine, but its left icon is green-on-dark and the text is long. Keep it, and make sure it doesn't overlap a bottom-right FAB or dock when one exists."
+      ]
+    }
+  },
+  "global_issues": [
+    "Layout: the page container is inconsistent. List pages use x≈272–1408, while all other pages use a centred x≈360–1320. The top-bar search starts at x≈272, so on centred pages it doesn't align with the H1 (x≈360). Pick one content column and align the search with it.",
+    "Copy/casing: sort labels differ on every screen ('Cost (High to Low)', 'Sort by amount', 'Highest amount'), and button casing mixes Title Case ('New Folder') with sentence case ('New list', 'Add item', 'Upload files'). Standardise on sentence case and one 'Sort: X' pattern.",
+    "Money formatting: whole euros on heroes and folder rows, cents in folder list rows, and no separator in drawer inputs ('5700.00'). Define a money format rule per surface and apply it everywhere, including inputs when not focused.",
+    "Status chips ('Near cap') sit inline before the percentage, which breaks the right-aligned numeric column on Home and Budgets and destroys the mobile row ('F' / '2'). Give status a fixed slot (an icon dot before the % or a chip on the title line).",
+    "Selected-state styles: three different treatments (sidebar white raised pill, slate-900 segmented 'All', slate-100 palette row). Unify on one selected token.",
+    "Hero component: progress-bar width and the placement of actions and meta lines vary per screen. Lock the hero into one layout: label, number, bar (fixed width), one status line, actions row.",
+    "Progress-track contrast (slate-200 on slate-50) is about 1.2:1. The 'remaining' portion is near-invisible, so raise it to slate-300 or add an inset stroke.",
+    "Empty states (S6, S7, S9) differ in icon tint and heading size, and all sit in a heavy slate-50 slab. Build one EmptyState component on the page background with balanced text wrapping.",
+    "Ghost text-only controls ('Select', sort, 'Change') don't look clickable next to the filled pills. Give every secondary control the same soft-fill pill."
+  ]
+}

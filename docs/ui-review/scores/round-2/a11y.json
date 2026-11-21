@@ -1,0 +1,194 @@
+{
+  "member": "a11y",
+  "screens": {
+    "S1": {
+      "scores": {
+        "hierarchy": 9,
+        "density": 8,
+        "typography": 8,
+        "consistency": 8,
+        "clarity": 8,
+        "interaction": 8,
+        "accessibility": 8,
+        "responsive": 8,
+        "wise": 8
+      },
+      "issues": [
+        "Hero secondary actions ('Upload' Button variant secondary and the '...' More actions trigger) are bg-slate-100 on the bg-slate-50 Summary card (about 1.04:1), so you can't see the pill edge (01, 11). Inside Summary, render secondary buttons as bg-white ring-1 ring-slate-200 hover:bg-slate-50.",
+        "'1 project near its cap' meta button: the only sign it is a control is underline decoration-slate-400 on slate-50 (about 2.4:1). Use decoration-slate-600, or brand-700 text with a trailing chevron_right icon.",
+        "Mobile (11): rows lay out amount and budget meta differently. Fernleitung puts the amount and 'Near cap · 75%…' on two lines, Ringschluss puts '897.305 € 60% of…' on one, so the amount column wobbles. Below sm, always stack amount (line 1) and meta (line 2): in Row, change 'flex flex-wrap … sm:block' to 'flex flex-col'.",
+        "Density: on desktop, 'On track' rows show only a green meter while 'Near cap' rows show a word, so in a long list 'ok' is read from colour plus absence. That is acceptable, but add the muted word 'On track' to BudgetMini for ok rows, or confirm the meter is never the sole cue (keep '%' text)."
+      ]
+    },
+    "S2": {
+      "scores": {
+        "hierarchy": 8,
+        "density": 8,
+        "typography": 8,
+        "consistency": 7,
+        "clarity": 8,
+        "interaction": 7,
+        "accessibility": 8,
+        "responsive": 8,
+        "wise": 8
+      },
+      "issues": [
+        "The editable cap button '2.000.000 € cap' is signalled only by an underline with decoration-slate-400 (about 2.4:1 on slate-50) and a title tooltip. Add an inline 'edit' icon (16px, slate-600) after the text, use decoration-slate-600, and make the accessible name '2.000.000 € cap, change' (visible text first, for 2.5.3).",
+        "The folder actions kebab sits in the page header at the far right (x≈1348), about 1000px from the hero actions. S1 puts its '...' inside the hero action row. Move this kebab into the Summary actions as a third '...' pill so both screens match and keyboard order runs title → total → actions.",
+        "'New list' secondary pill is bg-slate-100 on the slate-50 card. Same fix as S1: white fill with ring-slate-200.",
+        "Money precision is mixed on one screen: the hero shows whole euros (1.505.036 €) and the list rows show cents (988.913,89 €). Use whole euros for project and list rows (moneyWhole) and keep cents for the ledger only, or use cents everywhere on this page.",
+        "List row hover fill (bg-slate-50) is the same colour as the hero card and close to white (1.04:1), so pointer users barely see the hover. Use hover:bg-slate-100 for rows."
+      ]
+    },
+    "S3": {
+      "scores": {
+        "hierarchy": 8,
+        "density": 8,
+        "typography": 8,
+        "consistency": 7,
+        "clarity": 7,
+        "interaction": 7,
+        "accessibility": 7,
+        "responsive": 7,
+        "wise": 8
+      },
+      "issues": [
+        "The Menge (QtyInput) resting cue doesn't render. editableCls uses text-decoration underline, which browsers don't draw on <input> text, so the quantity '1' looks static while EP shows a dashed underline (03, 12). On QtyInput use a resting 'border-0 border-b border-dashed border-slate-400 rounded-none' (full border only on hover and focus) so both editable numbers share one cue.",
+        "Row checkboxes and the select-all checkbox are xl:opacity-0 until hover. On touch screens ≥1280px wide (iPad Pro landscape, touch laptops) they never appear. Add [@media(hover:none)]:opacity-100 to both label wrappers.",
+        "Checkbox hit area is a <label class='size-9'> (36px). The pointer:coarse rule only matches button, a[href] and input, so phones keep 36px (12). Add 'label' to the selector in index.css, or give the label size-11 under coarse pointers.",
+        "Mobile (12): the group header truncates to 'Baustelleneinrichtung und Dokumenta…'. Replace 'block truncate' in the group <th> with 'line-clamp-2 break-words'.",
+        "Categories filter popover: aria-haspopup='true', no role, focus stays on the trigger, and tabbing past it leaves it open. Give the panel role='dialog' aria-label='Filter by category', focus the 'Search categories' input on open, close on focusout, and return focus to the trigger. Raise CategoryTree rows from min-h-8 text-xs to min-h-10 text-sm, and make the 'All'/'None' text buttons h-9 px-2.",
+        "The Kurztext cell button opens the drawer, but only the title tooltip says so. Add aria-haspopup='dialog' and an sr-only ', open details' suffix.",
+        "The 'Search positions' field rests at border-slate-200 on bg-slate-50 (about 1.2:1, WCAG 1.4.11). Use border-slate-400. inputCls uses slate-300, so pick one field border token.",
+        "On desktop, toasts (fixed right-4 bottom-6) cover the right end of the sticky ledger footer, where 'On track' is shown. When the list footer is mounted, offset the Toaster to bottom-20 (e.g. a data attribute on <body> or a ui-store flag).",
+        "The same list is titled '[ORT_024] LV24069' here but 'Maschinentechnik - Anlagenbau' on Active Budgets (S5), with the same 197 positions and 536.991,65 €. Use one title source (lab.title) in the H1, the crumbs, Active Budgets and the palette.",
+        "List tabs: the close button is size-8 (32px), and the coarse rule doesn't cover it. Make it size-9 so it gets the 44px coarse rule, or add .size-8 to the rule.",
+        "Group header row uses <th scope='colgroup'>, which is wrong for a row that labels the positions below it. Wrap each category in its own <tbody> and use <th scope='rowgroup' colSpan={6}>.",
+        "Mobile row: QtyInput is w-20 text-right, so '1' floats about 50px from the left edge of the qty line. Below xl, make it text-left w-16."
+      ]
+    },
+    "S4": {
+      "scores": {
+        "hierarchy": 8,
+        "density": 8,
+        "typography": 8,
+        "consistency": 8,
+        "clarity": 8,
+        "interaction": 8,
+        "accessibility": 8,
+        "responsive": 8,
+        "wise": 8
+      },
+      "issues": [
+        "Labeled still wraps each input in <label> and also sets aria-label, which overrides the visible text ('Einheitspreis' vs the visible 'Einheitspreis (EP)'). Delete aria-label from the Menge, Einheit, Einheitspreis and Kurztext inputs so the <label> text is the name.",
+        "The H2 'Baustelleneinrichtung und -räumung' is repeated right below as the Kurztext input value, so screen readers hear it twice and sighted users see it twice. Drop the Kurztext field and make the H2 an inline-edit button that becomes the input, or keep the field and replace the H2 with the OZ + category line.",
+        "Previous/next (chevron up/down) swap the whole content, but focus stays on the chevron and nothing is announced. Put aria-live='polite' on the '1 of 197' counter, or move focus to the H2 (tabIndex=-1) after navigating. Add Alt+↑/↓ shortcuts and show them in the button titles.",
+        "Background not inert: the Tab trap works, but VoiceOver and NVDA virtual cursors can still read the dimmed ledger (aria-modal is unreliable in Safari). Set inert on the app root (#root > shell) while the drawer is open.",
+        "Footer: 'Changes save automatically' (slate-600) and the green 'Saved' live text sit at opposite ends. Replace the helper text with 'Saved' for 2s after a commit, in the same spot, so sighted users see the confirmation where they read."
+      ]
+    },
+    "S5": {
+      "scores": {
+        "hierarchy": 8,
+        "density": 8,
+        "typography": 8,
+        "consistency": 8,
+        "clarity": 7,
+        "interaction": 8,
+        "accessibility": 8,
+        "responsive": 8,
+        "wise": 8
+      },
+      "issues": [
+        "List 3 shows as 'Maschinentechnik - Anlagenbau', but opening it shows the H1 '[ORT_024] LV24069'. Users, and screen readers following the row name, land on a page with a different name. Use one title everywhere, or show the file/LV name as the subtitle on both screens.",
+        "The hero meta button underlines the whole phrase '1 list near its cap · none over', but only the first part is an action. Make only '1 list near its cap' the button, keep '· none over' as plain text, and use decoration-slate-600 (slate-400 is about 2.4:1 on slate-50).",
+        "Choosing 'Needs attention' (chip or hero link) filters the list but leaves focus where it was, and the result isn't announced. After applying the filter, move focus to the 'Lists' heading (tabIndex=-1) and announce '1 list needs attention' in a polite live region.",
+        "Folder-tinted avatar tiles (fuchsia, blue, cyan) are decorative here. Each row's subtitle already names the folder, so use one neutral slate tile for list rows on this page. Then colour on this screen only means status."
+      ]
+    },
+    "S6": {
+      "scores": {
+        "hierarchy": 9,
+        "density": 9,
+        "typography": 9,
+        "consistency": 9,
+        "clarity": 8,
+        "interaction": 9,
+        "accessibility": 8,
+        "responsive": 9,
+        "wise": 8
+      },
+      "issues": [
+        "The empty-state text still has a literal '⋯' glyph ('from its ⋯ menu'), which screen readers announce as 'midline horizontal ellipsis'. Render it as <span aria-hidden>⋯</span><span class='sr-only'>More options</span>, or write 'from its More options (⋯) menu'.",
+        "The subtitle 'Archived projects don't count toward totals' and the body sentence 'It stops counting toward your totals' say the same thing. Drop the subtitle on the empty state, or shorten the body to 'Archive a project from its More options menu to set it aside.'",
+        "Wise: the empty state floats in a white void under a left-aligned header. Left-align it under the H1 (max-w-md, icon inline), or vertically centre it in the remaining viewport, so the page reads as one column."
+      ]
+    },
+    "S7": {
+      "scores": {
+        "hierarchy": 9,
+        "density": 9,
+        "typography": 9,
+        "consistency": 9,
+        "clarity": 9,
+        "interaction": 9,
+        "accessibility": 9,
+        "responsive": 9,
+        "wise": 8
+      },
+      "issues": [
+        "Wise: same as S6. The centred empty state sits at about 1/3 height under a left-aligned header, which leaves a large dead area. Align it to the content column (left, under the H1), or centre it in the viewport below the header."
+      ]
+    },
+    "S8": {
+      "scores": {
+        "hierarchy": 9,
+        "density": 8,
+        "typography": 9,
+        "consistency": 8,
+        "clarity": 8,
+        "interaction": 8,
+        "accessibility": 8,
+        "responsive": 9,
+        "wise": 8
+      },
+      "issues": [
+        "Group headings ('Projects 1', 'Lists 4', 'Positions 8') are role='presentation' inside role='listbox', so screen-reader users lose the grouping. Wrap each group in <div role='group' aria-labelledby={headingId}> and give the heading that id (no presentation role).",
+        "Tab is swallowed (it always refocuses the input), so keyboard users can never reach the 'Esc' close button. Let Tab cycle between the input and the close button instead of pinning to the input.",
+        "Background not inert: the screen-reader virtual cursor can leave the palette into the blurred page. Set inert on the app root while open (share this with the drawer and Dialog in a useModal hook).",
+        "List result subtitles fall back to raw file names ('LV_10_Stahlbetonfertigteile_Stuetzen_Binder.pdf'), which repeat the title and are noisy for screen readers. When phaseLabel is empty, show '<n> positions' instead of fileName.",
+        "Unpriced list and position results show nothing on the right while priced ones show an amount, so the right edge is ragged. Show a muted 'Not priced' (text-slate-600), as S1 rows do."
+      ]
+    },
+    "S9": {
+      "scores": {
+        "hierarchy": 9,
+        "density": 9,
+        "typography": 9,
+        "consistency": 8,
+        "clarity": 9,
+        "interaction": 8,
+        "accessibility": 8,
+        "responsive": 9,
+        "wise": 8
+      },
+      "issues": [
+        "Toasts have nested live regions: the Toaster wrapper is aria-live='polite' and each ToastItem is also role='status' or 'alert', so some screen readers announce 'Created project…' twice. Remove aria-live from the wrapper and keep the per-item roles.",
+        "Header kebab (More actions for Legal & Compliance) is at the far right, while S1 keeps '...' in the action row. Move it next to 'Upload files' / 'Start a blank list' for one action location.",
+        "The drop zone only changes border colour while dragging (border-brand-600, bg-brand-50). Add a visible and announced text change ('Drop to import into Legal & Compliance') via an aria-live region, so the state isn't colour-only.",
+        "'Set a budget cap' is a lone brand text button below the format hint, cut off from the actions. Make it a third pill in the action row, or move it into the header, so all next steps sit together."
+      ]
+    }
+  },
+  "global_issues": [
+    "Still no tailwind-merge. clsx can't resolve conflicting overrides: e.g. IconButton base 'size-9' plus className 'size-10' in DetailDrawer, Button size classes plus custom h-*. Whichever wins depends on CSS order, not intent. Add cn() = twMerge(clsx(...)) and use it in Button, IconButton, ToolButton and Meter.",
+    "The pointer:coarse 44px rule only matches button/a[href]/input with .h-9/.h-10/.size-9/.size-10. It misses checkbox <label class='size-9'>, list-tab close 'size-8', Button size='sm' (h-8, e.g. folder 'Restore'), CategoryTree rows (min-h-8) and the 'All'/'None' text buttons. Widen the selector, or give these components coarse variants.",
+    "Overlays (DetailDrawer, CommandPalette, mobile Sidebar) don't make the rest of the app inert. The mobile Sidebar has no Escape-to-close, no focus move into the drawer and no focus return to the hamburger. Build one useModal hook (inert app root, focus first element, Esc, restore focus) and use it in all overlays and Dialog.",
+    "Secondary buttons (bg-slate-100) on Summary cards (bg-slate-50) have no visible edge (about 1.04:1). Add a Summary-scoped secondary style: bg-white ring-1 ring-slate-200.",
+    "Text-button underlines use decoration-slate-400 (about 2.4:1 on slate-50) as the only cue that the text is a control (cap button, 'near its cap' links, unpriced count). Use decoration-slate-600 throughout.",
+    "Resting field borders are below 3:1 (WCAG 1.4.11): inputCls uses border-slate-300 (about 1.5:1) and 'Search positions' uses border-slate-200. Use border-slate-400 for resting text fields.",
+    "Menu items set outline-none and show focus only as bg-brand-50 plus a text-colour change (about 1.1:1 fill). Add 'focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-600' so keyboard focus in menus meets 2.4.7 clearly.",
+    "On desktop the Toaster (bottom-6 right-4) overlaps the sticky ledger footer on list pages, and its wrapper plus each item are both live regions (double announcements). Offset it above sticky bars and keep a single live region.",
+    "Names are inconsistent across screens: one list shows as '[ORT_024] LV24069' (list page) and 'Maschinentechnik - Anlagenbau' (Active Budgets). Resolve titles through one helper so link names match the page headings they open."
+  ]
+}

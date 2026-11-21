@@ -38,7 +38,7 @@ export function Trash() {
     })
 
   const Row = ({ icon, title, sub, when, onRestore, onPurge }: { icon: string; title: string; sub: string; when?: string; onRestore: () => void; onPurge: () => void }) => (
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl px-3 py-3 sm:flex-nowrap sm:px-4">
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg px-3 py-3 sm:flex-nowrap sm:px-4">
       <Avatar icon={icon} tone="slate" />
       <div className="min-w-0 flex-1">
         <div className="truncate text-[15px] font-semibold text-slate-900">{title}</div>

@@ -5,34 +5,39 @@ import { SEVERITIES, type Finding, type Severity } from '../lib/risk-assessment'
 
 /**
  * severity colours for the risk UI, built on the themed status tokens so they hold in dark mode.
- * A note has no colour of its own: it is information, not a problem, so it stays neutral.
+ * Findings are outlined flag chips, so they never read as the filled budget chips ("Near cap");
+ * a flagged row carries a 3px severity bar on its leading edge instead of a full-row tint.
  */
-export const RISK_UI: Record<Severity, { label: string; plural: string; icon: string; chip: string; row: string }> = {
-  error: { label: 'Error', plural: 'Errors', icon: 'error', chip: 'bg-rose-50 text-rose-800 ring-rose-600/40', row: 'bg-rose-50/70 hover:bg-rose-50' },
-  warning: { label: 'Warning', plural: 'Warnings', icon: 'warning', chip: 'bg-amber-50 text-amber-900 ring-amber-500/50', row: 'bg-amber-50/60 hover:bg-amber-50' },
-  info: { label: 'Note', plural: 'Notes', icon: 'info', chip: 'bg-slate-100 text-slate-700 ring-slate-400/70', row: 'hover:bg-slate-100' },
+export const RISK_UI: Record<Severity, { label: string; plural: string; icon: string; chip: string; row: string; bar: string }> = {
+  error: { label: 'Error', plural: 'Errors', icon: 'flag', chip: 'text-rose-800 ring-rose-600', row: '[&>td:first-child]:shadow-[inset_3px_0_0_var(--color-rose-600)]', bar: 'border-rose-600' },
+  warning: { label: 'Warning', plural: 'Warnings', icon: 'flag', chip: 'text-amber-900 ring-amber-500', row: '[&>td:first-child]:shadow-[inset_3px_0_0_var(--color-amber-500)]', bar: 'border-amber-500' },
+  info: { label: 'Note', plural: 'Notes', icon: 'flag', chip: 'text-slate-700 ring-slate-400', row: '[&>td:first-child]:shadow-[inset_3px_0_0_var(--color-slate-400)]', bar: 'border-slate-400' },
 }
 
 export function FindingBadge({ severity, children }: { severity: Severity; children?: React.ReactNode }) {
   const style = RISK_UI[severity]
   return (
-    <span className={clsx('inline-flex h-6 max-w-full items-center gap-1 rounded-md px-1.5 text-[13px] font-semibold ring-1 ring-inset', style.chip)}>
+    <span className={clsx('inline-flex h-6 max-w-full items-center gap-1 rounded-md bg-white px-1.5 text-[13px] font-semibold ring-1 ring-inset', style.chip)}>
       <Icon name={style.icon} size={15} fill className="shrink-0" />
       {children ?? style.label}
     </span>
   )
 }
 
-export function FindingText({ finding }: { finding: Finding }) {
+/** one finding: a severity bar on the leading edge, the badge and title, then the explanation */
+export function FindingText({ finding, reviewed }: { finding: Finding; reviewed?: boolean }) {
   return (
-    <div className="min-w-0">
+    <div className={clsx('min-w-0 border-l-[3px] pl-3', reviewed ? 'border-slate-300' : RISK_UI[finding.severity].bar)}>
       <div className="flex flex-wrap items-center gap-2">
-        <FindingBadge severity={finding.severity} />
+        {reviewed ? (
+          <span className="inline-flex h-6 items-center gap-1 rounded-md bg-slate-100 px-1.5 text-[13px] font-semibold text-slate-700">
+            <Icon name="check" size={15} className="shrink-0" />Reviewed
+          </span>
+        ) : <FindingBadge severity={finding.severity} />}
         <h4 className="text-[15px] font-semibold text-slate-900">{finding.title}</h4>
       </div>
       <p className="mt-1 text-sm leading-relaxed text-pretty text-slate-700">{finding.message}</p>
       {finding.suggested_fix?.rationale && <p className="mt-1 text-sm leading-relaxed text-pretty text-slate-600">{finding.suggested_fix.rationale}</p>}
-      <p className="mt-1 text-[13px] text-slate-500">Check layer {finding.layer}</p>
     </div>
   )
 }

@@ -218,7 +218,7 @@ export function Menu({
                     disabled={it.disabled}
                     onClick={() => { setOpen(false); it.onSelect() }}
                     className={clsx(
-                      'flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-sm font-medium outline-none transition-colors disabled:opacity-40',
+                      'flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-left text-sm font-medium outline-none transition-colors disabled:opacity-40',
                       it.danger ? 'text-rose-600 hover:bg-rose-50 focus-visible:bg-rose-50 focus-visible:ring-2 focus-visible:ring-rose-600 focus-visible:ring-inset' : 'text-slate-700 hover:bg-slate-100 focus-visible:bg-brand-50 focus-visible:text-brand-700 focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-inset',
                     )}
                   >

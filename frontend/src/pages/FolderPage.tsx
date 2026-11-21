@@ -65,7 +65,12 @@ export function FolderPage() {
   const status = heroStatus(f, counted.map((l) => ({ tone: budgetStatus(l.total, l.cap).tone })), ['list', 'lists'])
   // list caps are set independently; say when they promise more than the project cap allows
   const listCaps = allLists.filter(counts).reduce((x, l) => x + (l.cap || 0), 0)
-  const capNote = f.cap > 0 && listCaps > f.cap ? `List caps add up to ${moneyWhole(listCaps)}, ${moneyWhole(listCaps - f.cap)} over the project cap.` : undefined
+  const capNote = f.cap > 0 && listCaps > f.cap ? (
+    <span className="inline-flex items-center gap-1.5 font-medium text-amber-900">
+      <Icon name="warning" size={16} fill className="shrink-0 text-amber-600" />
+      List caps add up to {moneyWhole(listCaps)}, {moneyWhole(listCaps - f.cap)} over the project cap.
+    </span>
+  ) : undefined
   const toggle = (id: string) =>
     setSel((s) => {
       const n = new Set(s)
@@ -87,7 +92,7 @@ export function FolderPage() {
   return (
     <PageFrame>
       {f.trashedAt && (
-        <div role="status" className="mb-6 flex items-center justify-between gap-3 rounded-2xl bg-amber-50 px-5 py-3 text-sm text-amber-900">
+        <div role="status" className="mb-6 flex items-center justify-between gap-3 rounded-lg bg-amber-50 px-5 py-3 text-sm text-amber-900">
           <span className="flex items-center gap-2"><Icon name="delete" size={18} />This {nested ? 'sub-project' : 'project'} is in the Trash.</span>
           <Button size="sm" variant="ghost" onClick={() => useStore.getState().patchFolder(f.id, { trashedAt: undefined })}>Restore</Button>
         </div>

@@ -84,9 +84,15 @@ export function FolderCollection({
     <PageFrame>
       <PageHeader
         title={title}
-        subtitle={subtitle ?? (scoped.length ? `${plural(scoped.length, 'project', 'projects')} · ${plural(listCount, 'list', 'lists')}` : undefined)}
-        aside={withOpenAll && scoped.length > 0 && openAllIds.length > 0 ? (
-          <RowMenu label="More actions" items={[{ label: `Open all ${plural(openAllIds.length, 'list', 'lists')} in tabs`, icon: 'tab_group', onSelect: () => openLists(openAllIds) }]} />
+        subtitle={!scoped.length ? undefined : subtitle ?? (scoped.length ? `${plural(scoped.length, 'project', 'projects')} · ${plural(listCount, 'list', 'lists')}` : undefined)}
+        aside={withOpenAll && scoped.length > 0 ? (
+          <div className="flex items-center gap-2">
+            <Button variant="primary" icon="upload" onClick={() => openDialog({ kind: 'folder-target', action: 'import' })} aria-label="Import files" className="max-sm:w-10 max-sm:px-0">
+              <span className="max-sm:hidden">Import files</span>
+            </Button>
+            <Button icon="add" onClick={newProject} aria-label="New project" className="max-sm:w-10 max-sm:px-0"><span className="max-sm:hidden">New project</span></Button>
+            {openAllIds.length > 0 && <RowMenu label="More actions" items={[{ label: `Open all ${plural(openAllIds.length, 'list', 'lists')} in tabs`, icon: 'tab_group', onSelect: () => openLists(openAllIds) }]} />}
+          </div>
         ) : undefined}
       />
 
@@ -100,12 +106,6 @@ export function FolderCollection({
           status={heroStatus(budget, flagged.map((f) => ({ tone: projectTone(f) })), ['project', 'projects'])}
           meta={unpriced.length > 0 && <span className="num">{budget.projects} of {plural(scoped.length, 'project', 'projects')} priced</span>}
           note="Measured against project caps. List caps are on Active Budgets."
-          actions={
-            <>
-              <Button variant="primary" size="lg" icon="upload" onClick={() => openDialog({ kind: 'folder-target', action: 'import' })}>Import files</Button>
-              <Button size="lg" icon="add" onClick={newProject}>New project</Button>
-            </>
-          }
         />
       )}
 

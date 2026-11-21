@@ -1,0 +1,120 @@
+{
+  "member": "estimator",
+  "screens": {
+    "S1": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 7, "consistency": 7, "clarity": 6, "interaction": 7, "accessibility": 7, "responsive": 4, "wise": 7},
+      "issues": [
+        "Mobile (11): when a row carries the 'Near cap' pill the title collapses to 'F' and the subtitle to '2'. That makes the project unreadable. On <640px move the status pill under the amount (right column, own line) or replace it with an amber dot before the % text, and always give the title the full left column (min ~50% width, 2-line clamp, no 1-char truncation).",
+        "Mobile rows drop the cap progress bar but keep '72% of €2,500,000'. Keep a slim 40px bar under the % or drop the cap figure. As it is the row loses the at-a-glance budget signal that the desktop row has.",
+        "'€0 / Not priced yet' for the unpriced projects says the same thing twice and hides progress. Replace it with a priced-positions figure, e.g. '0 of 1,203 positions priced' (or '—' as the amount plus 'Not priced yet'), so an estimator can see how much pricing work is left in Ausbildungszentrum (27 lists).",
+        "The hero combined cap disagrees with Active Budgets for the same €3,836,639: here it is €5,300,000 (folder caps), there it is €5,900,000 (list caps). Use one definition everywhere, or label them explicitly ('of folder caps' vs 'of list caps'). Otherwise an estimator can't trust the headroom number (€1,463,361 vs €2,063,361 left).",
+        "Folder totals sum every list, including the D84 and D86 versions of the same tender (Ringschluss: 2 × €897,305 = €1,794,611). That double-counts the bid. Mark one version as the current one (or group versions under one list) and only count that version in folder and workspace totals.",
+        "Primary action is 'New Folder'. The estimator's main job here is importing GAEB tenders, so make 'Upload' (import GAEB/PDF) the primary pill and demote 'New Folder'. 'Open all' is ambiguous (opens every list in tabs?). Rename it, e.g. 'Open all lists in tabs', or move it into a ⋯ menu.",
+        "Casing is inconsistent: 'New Folder' and 'Cost (High to Low)' are Title Case, while 'Upload files', 'New list' and 'Add item' elsewhere are sentence case. Use sentence case throughout.",
+        "Money uses en-US grouping (€3,836,639). German tender users read '3.836.639 €'. Add a locale setting (default de-DE for money and quantities) even if the chrome stays English.",
+        "Mobile: the sort control is an unlabeled icon, and 'Open all' wraps onto an orphan second line in the hero. Put the secondary hero actions into a ⋯ overflow on mobile, and give the sort control a text label or an aria-visible tooltip."
+      ]
+    },
+    "S2": {
+      "scores": {"hierarchy": 8, "density": 7, "typography": 7, "consistency": 7, "clarity": 6, "interaction": 7, "accessibility": 7, "responsive": 6, "wise": 7},
+      "issues": [
+        "Folder total €1,794,611 adds StBALV23040.D86 and .D84, which are two GAEB phases of the same LV. Show the phase on each row ('D84 · Angebotsaufforderung' / 'D86 · Angebot'), let the user mark which one counts, and exclude superseded versions from the folder total and cap %.",
+        "List row subtitles repeat 'RINGSCHLUSS BRUNNENWASSER, [PERSON_132]' on every row, which is the folder name in caps again. Replace it with what tells versions apart: GAEB phase, date, position count and priced count (e.g. 'D86 · 27.02.24 · 249 positions · all priced').",
+        "The unpriced list [NUMMER_001]_leer.X83 shows '€0.00 / Not priced yet' and '248 unpriced' in the subtitle. Put the progress where the cap bar sits on the other rows ('0 of 248 priced' with an empty bar) and make 'Start pricing' the row's obvious click target.",
+        "Hero meta '746 positions · 498 priced · 248 still to price' is useful, but '248 still to price' should be a link that filters straight to the unpriced list or positions.",
+        "The D84 and D86 rows show the same '60% of €1,500,000'. If the caps are per-version copies, say so ('cap copied from D84'). Better, attach the cap to the tender rather than to each file version.",
+        "The Documents section rows have no size or date, and 'Linked to RINGSCHLUSS BRUNNENWASSER, [PERSON_132]' repeats the list label again. Show 'PDF · 2.1 MB · linked to D86' instead.",
+        "Primary pill is 'Upload files' here but 'New Folder' on home and 'Add item' on the list. That is fine per context, but 'New list' and 'Open all' would sit better in a ⋯ menu to keep one primary plus one secondary."
+      ]
+    },
+    "S3": {
+      "scores": {"hierarchy": 7, "density": 7, "typography": 7, "consistency": 6, "clarity": 6, "interaction": 6, "accessibility": 6, "responsive": 5, "wise": 7},
+      "issues": [
+        "No way to jump to what's still unpriced. Add a 'Not priced (n)' filter chip next to 'All categories' (and make the hero's 'n still to price' link to it). It's the most common estimator task, and right now it's buried in a 197-row scroll.",
+        "On desktop, Menge and EP look like plain text until hovered (the QtyInput border is transparent at md, and PriceCell is a borderless button). Give both a resting affordance, e.g. a hairline slate-200 underline or a faint field fill in the Menge/EP columns, and show a pencil or field outline on row hover. Then it's obvious these are the two editable columns and GP is computed.",
+        "Mobile makes Menge an always-visible bordered input, but EP is read-only text ('psch × €5,700.00'), so you can't change a unit price without opening the drawer. Make EP editable inline on mobile too (a tappable price chip opening a numeric keypad). Otherwise make neither editable inline and use the drawer for both.",
+        "Category (Titel) headers drop the OZ number: 'Baustelleneinrichtung und Dokumentation' should read '1.1  Baustelleneinrichtung und Dokumentation'. The Titel subtotal (€24,890.00) is grey and smaller than the position GPs. Make it at least the same weight as the GPs, and label it 'Summe Titel' or align it exactly in the GP column.",
+        "Only 100 of 197 positions render, with a 'Show 97 more' button at the bottom (04). Estimators scroll to check the whole LV and use Ctrl+F. Render all positions (virtualize if needed), or auto-load on scroll.",
+        "No LV total row at the end of the table (04 just ends at 5.1.52). Add a sticky or closing 'Summe LV €536,991.65' footer aligned to the GP column, so the total is visible while working deep in the list.",
+        "Kurztext truncates with an ellipsis on desktop ('Demontage, Ausbringen und Entsorgung der bestehenden…', 'Filterbodenmontage Fil…'), while a wide empty gutter sits between Kurztext and Menge. Narrow the Menge column (right-align closer to Einheit), allow a 2-line clamp, and show the start of the Langtext in a muted second line on hover or expand.",
+        "Hero meta '197 positions · 197 priced' is redundant when complete. Say 'All 197 positions priced ✓', and when incomplete show 'x of 197 priced' with the remainder linked.",
+        "There is no visual difference between source and edited values in the GP column except a small 'Edited' tag under the title. Add a subtle marker on the changed cell (e.g. a dot next to Menge or EP) and a list-level 'n edits · Reset' summary near the hero.",
+        "Mobile (12): the title truncates to 'Maschinentechnik - Anlag…', the metadata to '27.0…', and the Titel header to 'Dokumentati…'. Wrap titles to 2 lines on mobile instead of truncating; the hero plus filters take the whole first screen before the first position appears. Collapse the filter row into a single 'Filter' pill on mobile.",
+        "Money and quantities use en-US formatting (€5,700.00, 1,500). GAEB users expect 5.700,00 € and German decimal commas. Add a de-DE numeric locale. The inputs already parse commas.",
+        "'Sort by amount' is the third wording for the same sort ('Cost (High to Low)' on home, 'Highest amount' on Active Budgets). Unify the label, and keep 'Sort by OZ' visible as the default state."
+      ]
+    },
+    "S4": {
+      "scores": {"hierarchy": 8, "density": 7, "typography": 6, "consistency": 6, "clarity": 7, "interaction": 7, "accessibility": 7, "responsive": 6, "wise": 7},
+      "issues": [
+        "Langtext keeps the GAEB source's hard line breaks inside a textarea, so it reads raggedly ('vorhalten und / nach / Ende der Baumaßnahme räumen,'). Reflow soft-wrapped lines for reading (join lines that don't end in punctuation) and show it as read-only prose with an 'Edit Langtext' toggle. Most estimators read the Langtext far more than they edit it.",
+        "The EP input shows '5700.00' (no grouping, dot decimal) while the GP card shows '€5,700.00'. Format the field the same way as the display when not focused (5.700,00 in de-DE), and right-align the € suffix like the table.",
+        "The drawer doesn't show the effect of an edit on the list. Add a line under the GP card such as 'List total €536,991.65 · 67% of €800,000 cap', updating live, so the estimator sees cap impact without closing the drawer.",
+        "No original or source value and no reset in the drawer. When Menge or EP differs from the imported LV, show 'Original: 1 psch × €5,700.00 · Reset' under the field.",
+        "'Einheit' is a free-text field with the same weight as Menge and EP. Units come from the LV and rarely change, so make it read-only text next to Menge (or a select), and give the width to EP.",
+        "The Kategorie card subtitle 'Baustelleneinrichtung - Montagepläne - I' looks like a truncated path. Show the full Titel hierarchy as a breadcrumb ('1 Baustelleneinrichtung › 1.1 …') or drop the line.",
+        "Header: 'OZ 1.1.1' is tiny, muted and separate from the title. Set the OZ inline before the title in the same row (tabular, muted), and make the up/down arrows plus '1 of 197' larger targets (≥36px). The up arrow looks disabled with nearly no contrast.",
+        "No visible mobile variant. At 390px the drawer must become a full-height sheet with the three numeric fields stacked as Menge+Einheit, then EP, so they aren't squeezed into one row."
+      ]
+    },
+    "S5": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 7, "consistency": 7, "clarity": 7, "interaction": 7, "accessibility": 7, "responsive": 6, "wise": 8},
+      "issues": [
+        "The combined cap €5,900,000 differs from home's €5,300,000 for the same €3,836,639 total. Pick one cap definition across screens, or label which caps are being summed.",
+        "The D84 and D86 versions of StBALV23040 are listed and summed as two separate budgets. Group versions of one tender into a single row (show the latest phase, with the other version as a muted sub-line), so the 'total of priced lists' isn't double-counted.",
+        "Row subtitles repeat the folder name and then the list name ('Maschinentechnik - Anlagenbau · … ' under title 'Maschinentechnik - Anlagenbau'). Show folder · GAEB phase · positions, and drop the duplicate or file name when it equals the title.",
+        "Add the priced share per list ('249 positions · all priced' or '230/249 priced'). 'Active budget' only means something if you know the number is complete.",
+        "'Highest amount' sort label differs from 'Cost (High to Low)' and 'Sort by amount' elsewhere. Unify it.",
+        "'Needs attention' chip: show its count ('Needs attention 1') so the estimator knows before clicking whether anything is near or over cap.",
+        "Mobile not shown. Make sure 'Near cap' doesn't crush the title the way it does on home (S1)."
+      ]
+    },
+    "S6": {
+      "scores": {"hierarchy": 8, "density": 7, "typography": 8, "consistency": 8, "clarity": 8, "interaction": 6, "accessibility": 7, "responsive": 7, "wise": 8},
+      "issues": [
+        "The empty state is a large grey card occupying a third of the screen with only a sentence in it. Shrink it to content height and drop the card fill (plain centred icon and text), as Wise does.",
+        "The copy 'Archive a folder from its ··· menu' points to a menu that isn't on this page. Add a text link 'Go to All Projects' so the user has a next step.",
+        "Say what archiving does to the numbers ('Archived folders don't count toward totals or caps'). That is what an estimator needs to know before archiving a finished bid.",
+        "The body text in the empty state is small (13px) slate on a slate-50 fill. Bump it to 14px slate-600 on white for contrast."
+      ]
+    },
+    "S7": {
+      "scores": {"hierarchy": 8, "density": 7, "typography": 8, "consistency": 8, "clarity": 7, "interaction": 6, "accessibility": 7, "responsive": 7, "wise": 8},
+      "issues": [
+        "State the retention rule ('Items in Trash are deleted after 30 days') or say they are kept until emptied. Estimators need to know whether a deleted LV with hours of pricing is recoverable.",
+        "The empty card is oversized and has no fill purpose. Reduce it to content height without the box. The orphaned word 'here.' on the second line shows the max-width is too narrow, so widen it to ~44ch or rebalance with text-wrap: balance.",
+        "Mention that removed single positions are restored with Undo inside the list, not here, so users don't look for them in Trash."
+      ]
+    },
+    "S8": {
+      "scores": {"hierarchy": 7, "density": 7, "typography": 7, "consistency": 7, "clarity": 6, "interaction": 7, "accessibility": 7, "responsive": 6, "wise": 7},
+      "issues": [
+        "For 'Beton' the Positions group, which estimators search most often (find every Beton position across LVs), is pushed below the fold under one folder and five list names. Show the top 3–5 positions before lists, or interleave by relevance, with OZ, Kurztext, list name and EP/GP on the right.",
+        "No match highlighting. The folder 'Bachdurchlass Neppen' matches only via 'Stahlbetonrohre' in its subtitle. Bold the matched substring so it's clear why each result appears.",
+        "List results show only the file name as subtitle, not the folder, list total or priced status. Use 'Folder · €total · n positions' so you can pick the right LV without opening it.",
+        "Pluralization bug: '1 lists' in the folder result. Use '1 list'.",
+        "'3,052 positions indexed' in the footer is system noise. Replace it with result counts per group or remove it.",
+        "Footer hints ('↑↓ to move', '↵ to open') are very small and low contrast. Fine as nitpicks, but render the key glyphs as kbd chips like the 'Esc' chip so the style is consistent."
+      ]
+    },
+    "S9": {
+      "scores": {"hierarchy": 8, "density": 7, "typography": 8, "consistency": 7, "clarity": 6, "interaction": 8, "accessibility": 7, "responsive": 7, "wise": 8},
+      "issues": [
+        "The subtitle 'Awaiting initial line allocations' is meaningless jargon in an empty folder. Either show nothing or show a useful status ('No lists yet · no budget cap').",
+        "Terminology: 'Add your first item list' vs 'list' and 'LV' elsewhere. Use one term, e.g. 'Add your first list (LV)'.",
+        "There is no prompt to set a budget cap, which is the folder's other key number. Add a quiet secondary link 'Set a budget cap' under the actions, or show the empty hero (€0 · no cap set) above the drop zone, so the folder looks like the other folders.",
+        "The accepted-formats line 'GAEB .X81–.X86 / .D81–.D86 · CSV · JSON · PDF' is valuable for estimators, but it is muted and small. Keep it, and add that GAEB XML (X8x) is preferred because it keeps OZ and Langtext structure.",
+        "The empty-state card is very tall (about 440px) with lots of dead fill. Tighten it to content height plus 48px padding, and make the whole card a visible dashed drop target on drag-over."
+      ]
+    }
+  },
+  "global_issues": [
+    "Money and quantity formatting is en-US (€1,794,611 / 5700.00). German GAEB estimators read 1.794.611 € and 5.700,00. Add a numeric locale (default de-DE for numbers, chrome can stay English) and apply it in format.ts plus every input's display state.",
+    "Tender versions (D84 Angebotsaufforderung and D86 Angebot of the same LV) are treated as independent lists and summed into folder and workspace totals and cap %, which double-counts the bid. Introduce a version or phase concept: show the phase label, count only the current version, and group versions in list rows.",
+    "There is no first-class 'unpriced' workflow. Add a 'Not priced (n)' filter in the ledger, link every 'n still to price' or 'Not priced yet' to it, and show 'x of y priced' on folder and list rows instead of '€0 / Not priced yet'.",
+    "Combined cap is computed differently on All Projects (€5.3M, folder caps) and Active Budgets (€5.9M, list caps) for the same €3.84M. Define the cap hierarchy once (folder cap vs sum of list caps) and label it consistently.",
+    "The editable-vs-computed distinction is invisible on desktop. Menge and EP have no resting affordance, while mobile shows a bordered Menge but a read-only EP. Unify inline editing of Menge and EP across breakpoints and give editable cells a resting cue.",
+    "Three labels for one sort ('Cost (High to Low)', 'Highest amount', 'Sort by amount') and mixed Title or sentence case on buttons ('New Folder' vs 'New list'). Unify the wording and use sentence case.",
+    "Mobile list rows truncate aggressively (titles to one letter when a status pill is present, metadata to '27.0…'). Give titles priority, wrap to 2 lines, and move status pills under the amount."
+  ]
+}

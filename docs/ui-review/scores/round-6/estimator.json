@@ -1,0 +1,103 @@
+{
+  "member": "estimator",
+  "screens": {
+    "S1": {
+      "scores": {"hierarchy": 8, "density": 7, "typography": 8, "consistency": 7, "clarity": 6, "interaction": 7, "accessibility": 7, "responsive": 6, "wise": 7},
+      "issues": [
+        "The hero pill says '1 project almost at cap', but the only matching row (Site, '2% of 50.000 €') has no badge. Its warning is grey subtitle text ('1 list almost at cap'), while the milder Fernleitung 'Near cap' gets an amber badge. In FolderCard, when a list-level flag exists, render a badge with the triangle icon and the words 'List almost at cap', so every row the hero counts shows a visible badge.",
+        "Reword the hero pill so it matches the rows: '1 list almost at cap · 1 project near cap'. A project at 2% of its cap should not be called 'almost at cap'.",
+        "The hero total 2.940.313,49 € covers only 4 of 13 projects, but '4 of 13 projects priced' is the third grey line under the meter. Put it on the label instead: 'Total across projects · 4 of 13 priced'. Then delete the help sentence 'Measured against project caps. List caps are on Active Budgets.' (move it to a tooltip on '68%'), leaving one meta line under the meter.",
+        "Mobile (11): the hero line drops the cap ('68% · 1.409.686,51 € left' has no 'of 4.350.000 €'), and the rows show only '75%' with no 'of 2.000.000 €'. Keep the cap amount on mobile. Let the line wrap, or shorten it to '68% of 4,35 Mio €' or '75% of 2 Mio €'.",
+        "Secondary buttons ('New project', 'Sort: Highest amount', 'Select', the filter chips) are slate-100 #1a0c01 on #0d0502, which is about 1.1:1 and barely reads as a button. Raise the secondary fill to slate-200 #2a1a08, or add a 1px slate-300 border, so the shape reaches 3:1 against the page.",
+        "Project icon tiles use unexplained colours (brown for Fernleitung, blue-black for Ringschluss and Maschinentechnik, dark for Site). Use one tile style, or give the colour a meaning and say what it is.",
+        "The unlit part of the jib and the row meter tracks (bronze on black) are close to invisible. Raise the track to slate-300 #3d2a10 or brighter so the cap length can be read."
+      ]
+    },
+    "S2": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 8, "consistency": 7, "clarity": 7, "interaction": 7, "accessibility": 7, "responsive": 7, "wise": 7},
+      "issues": [
+        "'List caps add up to 2.100.000 €, 100.000 € over the project cap.' is a real over-allocation warning, but it uses the same grey body text as '314 positions'. Style it as a warning line (amber triangle icon and amber-800 text), and add a 'Review caps' link that opens Active Budgets filtered to this project.",
+        "The editable project cap ('2.000.000 €' with a dotted underline) is the only hint that the cap can be changed. On hover and focus, add a pencil icon next to it, and include 'Edit cap' in the header ⋯ menu.",
+        "List rows show only the type and position count. Add what an estimator checks before opening a list: the number of unpriced positions (for example '274 positions · 12 not priced') and the number of edited positions when it is above 0.",
+        "The first list row (Angebot AN24-0305) has a filled background that extends about 12px past the content column on both sides, so it looks selected. Keep the hover fill inside the column edges (x 312–1368), the same as the section header and the other rows.",
+        "Row subtitles mix list type and import source ('Bid · 274 positions' vs 'Word import · 40 positions'). Always show the type first ('Bid', 'Award', 'Estimate'), and show the source only when the type is unknown.",
+        "Secondary 'New list' and 'Select' share the near-invisible fill noted under S1. Apply the same fix here."
+      ]
+    },
+    "S3": {
+      "scores": {"hierarchy": 8, "density": 6, "typography": 8, "consistency": 6, "clarity": 7, "interaction": 6, "accessibility": 7, "responsive": 6, "wise": 7},
+      "issues": [
+        "On desktop, Menge and EP are inline-editable, but nothing shows it at rest. In QtyStepper.tsx, editableCls uses border-transparent, and the dotted underline its comment promises does not exist. Add a resting cue (for example border-b border-dashed border-slate-400 on the input and button) so an estimator can see which numbers they can change without hovering each row.",
+        "Position rows are about 48px tall, so 197 positions make a page about 12.000px tall, and the first position starts at y≈725. Cut the row height to 36px (py-0.5, h-8 cells), or add a 'Compact' density toggle next to Sort, so about 20 rows fit on one screen.",
+        "The hero meta line shows '38 with quantity 0' but not the counts an estimator acts on. Add 'N not priced' and 'N edited' as the same underlined filters. The 'Reset all' option exists, but only in the sticky footer and the menu.",
+        "'Search positions' has a visible 1px outline, while the global search and every other control are borderless fills. Use the same filled style for both search fields.",
+        "Toolbar: 'Sort: Position order' sits alone at the far right, away from 'Categories' and 'Select'. Group all four controls on the left, or move Sort into the column headers (click Menge, EP or GP to sort).",
+        "Mobile (12): the hero line drops the cap ('67% · 263.008,35 € left' has no 'of 800.000 €'). Keep it.",
+        "Mobile (12): each position card is about 190px tall (two-line title plus an input row), so only about 2 positions fit per screen. Put the title on one line with an ellipsis, and place Menge × EP and GP on one compact row about 44px tall.",
+        "Mobile (12): the long section titles ('Baustelleneinrichtung - Montagepläne - I') wrap to two lines and push the total sideways. Clamp them to one line and show the full title in the drawer or a tooltip."
+      ]
+    },
+    "S4": {
+      "scores": {"hierarchy": 8, "density": 7, "typography": 8, "consistency": 7, "clarity": 8, "interaction": 7, "accessibility": 8, "responsive": 7, "wise": 8},
+      "issues": [
+        "The GP block is a filled card inside the drawer, and 'Kategorie' is a second filled card, so the drawer has boxes inside a box. Drop the GP card fill and keep GP as a plain hero number with its sub-lines, separated by spacing. Turn Kategorie into a plain row with a chevron.",
+        "Next to '1 of 197' and the up/down chevrons, show the keyboard shortcut (for example 'J / K' or '↑ ↓' as kbd chips), and make sure those keys step through positions while the drawer has focus. An estimator walks a list position by position.",
+        "When Menge or EP has been edited, show the imported value inline under the field ('Imported: 1 psch' / 'Imported: 5.700,00 €'), with a 'Reset' link next to it, instead of only offering reset in the ⋯ menu.",
+        "The Langtext block runs to the bottom of the drawer and pushes everything after it out of view. Collapse it to about 6 lines with 'Show full text'.",
+        "Mobile: the drawer layout is not shown. Confirm it opens as a full-height sheet with Menge and EP above the fold and the prev/next controls at least 44px."
+      ]
+    },
+    "S5": {
+      "scores": {"hierarchy": 7, "density": 7, "typography": 8, "consistency": 6, "clarity": 7, "interaction": 7, "accessibility": 7, "responsive": 7, "wise": 7},
+      "issues": [
+        "The hero number is 'Left in list caps 1.460.686,51 €', but the crane meter and hook show the spend (67%), so the big number and the hook describe different quantities. Either make the hero the spend ('2.940.313,49 € of 4.401.000 €'), with '1.460.686,51 € left' as the meta line, or flip the meter so its lit part is the remaining amount.",
+        "Two grey explanation lines sit under the meter ('Measured against each list's own cap.' and '2.940.313,49 € priced across 5 lists'). Keep only the second one, merged into the meta line ('67% of 4.401.000 € · 2.940.313,49 € priced'). Move the first one to a tooltip.",
+        "List icon tiles switch between bronze, blue-black and near-black (Estimate, LV-Positionen, [ORT_024]...) for no visible reason. Use one tile style for every list, or label the colour meaning (for example one colour per project).",
+        "Rows don't show what is left. On a screen about remaining budget, add '20,00 € left' next to or instead of '98% of 1.000 €' for each row, so the estimator sees the headroom directly.",
+        "'Sort: Closest to cap' and 'Select' use the near-invisible secondary fill noted under S1. Apply the same fix here."
+      ]
+    },
+    "S6": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 8, "consistency": 8, "clarity": 8, "interaction": 7, "accessibility": 8, "responsive": 8, "wise": 8},
+      "issues": [
+        "'Go to All Projects' duplicates the sidebar link one click away. Remove it, or replace it with a useful action.",
+        "The copy 'from its More options menu' names an icon the user can't see on this screen. Say 'from the ⋯ menu on a project row', and render the ⋯ glyph inline.",
+        "Archived lists: say whether archiving a list (not only a project) is possible. If it is, change the subtitle to 'Archived projects and lists don't count toward totals'."
+      ]
+    },
+    "S7": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 8, "consistency": 8, "clarity": 7, "interaction": 7, "accessibility": 8, "responsive": 8, "wise": 8},
+      "issues": [
+        "State the retention rule. If items are purged after N days, say so in the subtitle ('Items are deleted forever after 30 days'). If they are not, say 'Kept until you delete them'. An estimator needs to know whether a deleted LV can still be recovered.",
+        "The subtitle ('Restore or delete items forever from their More options menu.') describes actions for items that don't exist. While the trash is empty, show only the empty-state text and keep the action hint for when items are present.",
+        "Remove the redundant 'Go to All Projects' button (the sidebar is right there)."
+      ]
+    },
+    "S8": {
+      "scores": {"hierarchy": 8, "density": 7, "typography": 8, "consistency": 7, "clarity": 6, "interaction": 7, "accessibility": 8, "responsive": 7, "wise": 7},
+      "issues": [
+        "Position results show no numbers. Add Menge, Einheit and EP (or GP) right-aligned on each position row ('12 m³ · 145,00 €'), or 'Not priced' in muted text. Then drop the group-level '· none priced' note.",
+        "Position rows name the category and project ('Ortbetonarbeiten · in Rohbau (Ausbildungszentrum...)') but not clearly the list. Show 'List › Category' explicitly so identical OZ codes in different LVs can be told apart.",
+        "'Positions 104' with 'Show 47 more positions' (3 + 47 = 50, not 104) reads like a bug. Label it 'Show 47 more (50 of 104)', or show 'Showing 3 of 104' next to the group count.",
+        "The palette only searches. Add commands at the top when the query is empty or matches (Go to Active Budgets, New project, Import files, Export current list), each with its shortcut shown, so ⌘K is truly keyboard-first.",
+        "'Esc' in the top right is styled as a button tile while the footer hints use kbd chips. Use the same Kbd component for Esc."
+      ]
+    },
+    "S9": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 8, "consistency": 7, "clarity": 8, "interaction": 8, "accessibility": 8, "responsive": 8, "wise": 7},
+      "issues": [
+        "The empty-state block starts at x≈346, about 34px right of the page title (x 312), while the Archived and Trash empty states align at 312. Remove the extra inset so it lines up with the title column.",
+        "A new project has no budget cap, and nothing on the screen invites setting one. Under the subtitle, add a quiet 'Set project cap' link (the same dotted-underline control used on S2), so the cap exists before the first list is imported.",
+        "The toast ('Created project \"Legal & Compliance\"') is a light inverted card, and it is the brightest object on the screen, louder than the primary CTA. Use the dark surface (slate-100 with a slate-300 border) for toasts and keep yellow for the Undo action."
+      ]
+    }
+  },
+  "global_issues": [
+    "Secondary buttons and chips (slate-100 #1a0c01 on #0d0502, about 1.1:1) barely read as buttons on every screen. Use slate-200 #2a1a08 fills or a 1px slate-300 border to reach 3:1 non-text contrast.",
+    "Mobile drops the cap amount from the hero meta line and from row meters (only '%' remains). An estimator always needs the cap in euros. Keep 'of X €' on mobile, using a compact '4,35 Mio €' if space is tight.",
+    "Inline-editable numbers (Menge, EP, cap) have no visible resting cue on desktop. Add a consistent dashed underline to every editable figure.",
+    "Status roll-up: a project flagged because of one of its lists must show a visible badge on its row, with wording that says it is the list ('List almost at cap'). Today the hero counts it while the row hides it.",
+    "Meter tracks and the unlit jib (bronze on pit black) are too dark to judge the cap length. Lighten the track to slate-300 or brighter.",
+    "Icon tile colours (bronze, blue-black, near-black) vary between rows with no stated meaning, on S1 and S5. Unify them or give them a legend."
+  ]
+}

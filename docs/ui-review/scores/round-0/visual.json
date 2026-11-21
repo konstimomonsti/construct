@@ -1,0 +1,125 @@
+{
+  "member": "visual",
+  "screens": {
+    "S1": {
+      "scores": {"hierarchy": 5, "density": 6, "typography": 4, "consistency": 5, "clarity": 6, "interaction": 6, "accessibility": 5, "responsive": 6, "wise": 4},
+      "issues": [
+        "No hero number: promote the workspace total (€3.84M of €5.30M, 72%) from the sidebar footer to a large proportional-figure hero under the H1, with one primary pill action beneath it; delete the sidebar 'Allocated Budget' widget.",
+        "Two competing indigo primaries (top-bar 'Upload File' and page 'Open All 37'): keep one primary; demote 'Open All' to secondary or move it into a 'More' menu.",
+        "Money is set in monospace (€1.79M, €2.50M, €0k): switch all amounts to the UI sans with tabular-nums; drop mono everywhere except OZ codes.",
+        "Percent labels printed inside 6px progress bars (white '72%' on green/orange) are unreadable and fail contrast: remove in-bar text, show '72%' as a muted label beside the bar.",
+        "Cards are boxes-in-boxes (border + two internal hairline dividers + centred icon tile): drop the inner dividers, use a soft fill card with left-aligned icon/title/subtitle and amount right-aligned, or a Wise-style row list.",
+        "Unbudgeted folders show '€0k · 0% · Set cap' with an empty bar: replace with a single muted 'No cap set' link and hide the empty bar and 0%.",
+        "Status colour is applied to body text ('2 lists inside' turns orange): keep the count neutral grey and carry status only on the bar/dot plus a word ('Caution').",
+        "Mobile: folder count reads '7 Folders' vs 6 on desktop, action row wraps into an orphaned divider, and cards are ~240px tall each; collapse cards to compact rows and fix the count."
+      ]
+    },
+    "S2": {
+      "scores": {"hierarchy": 4, "density": 4, "typography": 4, "consistency": 4, "clarity": 5, "interaction": 5, "accessibility": 5, "responsive": 5, "wise": 3},
+      "issues": [
+        "Seven action buttons across two rows (top bar: New Subfolder, Upload, Import CSV; page: Upload Files, New subfolder, New List, Open All) with two primaries: keep one primary ('New List' or 'Upload'), merge duplicates, move the rest to a kebab.",
+        "The folder total €1,794,610.90 is the right hero but set at ~15px monospace inside a bordered strip: set it at 32–40px proportional tabular sans directly under the title, with 'of €2.5M · 72%' muted beside it.",
+        "Inconsistent casing on duplicate buttons ('New Subfolder' vs 'New subfolder'): pick sentence case for all buttons.",
+        "Three list cards carry identical all-caps titles 'RINGSCHLUSS BRUNNENWASSER, [PERSON_132]'; the filename is the only differentiator but is tiny mono grey: make the filename/format the bold line and the shared title the muted subtitle.",
+        "Document cards repeat the folder name as a blue link on every card and use pink dots for 'PDF'/'Source file': remove the redundant folder link, show type as a neutral text label, drop the coloured dots.",
+        "Mixed icon tile colours (blue for lists, pink for documents, orange 'New List' icon): unify to one neutral icon tile style, reserve colour for budget status.",
+        "Card grid for lists wastes ~220px per card on a centred icon: convert lists and documents to row lists with amount right-aligned.",
+        "In-bar percentage text ('72%', '60%') is unreadable white-on-green: move outside the bar."
+      ]
+    },
+    "S3": {
+      "scores": {"hierarchy": 4, "density": 4, "typography": 4, "consistency": 4, "clarity": 5, "interaction": 6, "accessibility": 5, "responsive": 2, "wise": 3},
+      "issues": [
+        "The list total (€536,991.65 of €800k) is buried in a 12px table footer and again in a mint panel: lead the page with one large proportional total + cap bar under the list title; delete the footer total line.",
+        "Bottom budget panel is a box-in-box (mint border, inner status pill, '-/3' carousel dots, segmented threshold legend, two CTAs, pagination arrows): collapse to one inline status line ('Within budget · 67% of cap · €263k left') with a single secondary action.",
+        "Green 'Request Budget Expansion' competes with indigo 'Add Item' as a second primary in a different hue: make it a secondary/ghost or move to a menu.",
+        "Single-tab strip in its own bordered card plus a breadcrumb that repeats the same filename, followed by ~40px dead gap: replace with an H1 list title and drop the lone tab box.",
+        "Money and quantities are monospace and OZ/Einheitspreis use different weights: set Gesamt/Einheitspreis in proportional tabular sans, keep OZ mono but at muted weight.",
+        "Column order puts EINHEIT after GESAMT and the quantity stepper (−/1/+) occupies 110px per row: place unit next to Menge ('1 psch'), replace stepper with an inline editable cell, right-align Gesamt as last data column.",
+        "Per-row trash + kebab duplicate destructive actions and every row repeats the same tool icon and the truncated category chip 'Baustelleneinrichtung ...': move delete into the kebab, drop the repeated row icon, group rows under category headers instead of chips.",
+        "Mobile: table scrolls sideways, titles truncate to 12 characters and Menge/Gesamt are off-screen: switch to stacked rows (title, OZ, amount right) on narrow widths; footer metadata 'D86 · D86' duplicates the format."
+      ]
+    },
+    "S4": {
+      "scores": {"hierarchy": 6, "density": 7, "typography": 5, "consistency": 6, "clarity": 6, "interaction": 6, "accessibility": 5, "responsive": 6, "wise": 5},
+      "issues": [
+        "Einheitspreis input shows raw '5700' in monospace while Gesamt shows '€5,700.00': format the price input with locale grouping and currency, same proportional tabular face as the total.",
+        "Gesamt sits in a grey bordered box styled like an input: render it as a read-only large figure (not a field) so it reads as the result, and make it the drawer's focal number.",
+        "Langtext preserves hard source line breaks ('nach', 'für' orphaned on their own lines): reflow paragraphs for display, keep original breaks only in raw/edit mode.",
+        "Uppercase tracked micro labels (KURZTEXT, MENGE, EINHEIT) at ~11px grey are low contrast: use sentence-case 13px labels at AA contrast.",
+        "Header repeats the Kurztext (title and first field are identical): show OZ + title as header, drop the duplicate or make the title field the editable header.",
+        "Category path line under the select is ~11px pale grey and fails contrast: darken or remove it (the select already shows the category).",
+        "Footer 'Changes are saved in this browser' + ghost 'Reset changes' is near-invisible and there is no saved state indicator: show an explicit 'Saved' state and give Reset a visible secondary style.",
+        "Large empty band between Langtext and footer: let Langtext grow or pin footer closer."
+      ]
+    },
+    "S5": {
+      "scores": {"hierarchy": 5, "density": 7, "typography": 5, "consistency": 6, "clarity": 6, "interaction": 6, "accessibility": 5, "responsive": 5, "wise": 5},
+      "issues": [
+        "The portfolio sum 'Σ €3,836,638.94' is 13px grey mono next to the H1: make it the hero (large proportional figure) with cap and % beneath; drop the Σ glyph.",
+        "In-bar '66%' labels are white on green at ~9px: put the percentage as text beside the bar and add a word for status (On track / Caution) so status is not colour-only.",
+        "Two rows are visually identical ('RINGSCHLUSS BRUNNENWASSER, [PERSON_132]', 249, €897,305.45): lead each row with the distinguishing filename/format, demote the duplicated title.",
+        "Filenames under titles are monospace grey and all-caps source titles shout: use sans muted subtitles; keep content verbatim but reduce weight.",
+        "Sort carets on every header add noise: show only the active sort arrow, reveal others on hover.",
+        "Totals column uses monospace bold: use proportional tabular sans to match Wise-style money.",
+        "Row icons are identical grey document tiles adding no information: remove or replace with a status ring.",
+        "Table has no narrow-width plan (5 columns + bar): define a stacked row layout (title, folder, amount, bar) for mobile."
+      ]
+    },
+    "S6": {
+      "scores": {"hierarchy": 6, "density": 6, "typography": 7, "consistency": 6, "clarity": 6, "interaction": 5, "accessibility": 6, "responsive": 6, "wise": 6},
+      "issues": [
+        "'New Folder', sort 'Cost (High to Low)' and 'Select' are shown on an empty archive where they do nothing: hide toolbar controls when the view is empty, and never offer 'New Folder' inside Archived.",
+        "'0 Folders' count pill is noise on an empty state: hide counts at zero.",
+        "Dashed-border box around the empty state reads as a drop zone it is not: remove the dashed container, centre the illustration on the page background.",
+        "Inline '(⋮)' glyph in the helper copy is tiny and ambiguous: replace with words ('from the folder's More menu').",
+        "Empty-state icon is pale grey and small (~24px): increase to 40–48px in a soft tinted circle consistent with other empty states.",
+        "Breadcrumb 'Home > Workspace > Archived' differs from Trash's 'Home > Trash': use one breadcrumb pattern for all top-level nav pages (or none, since the sidebar already shows location)."
+      ]
+    },
+    "S7": {
+      "scores": {"hierarchy": 7, "density": 7, "typography": 7, "consistency": 6, "clarity": 7, "interaction": 6, "accessibility": 6, "responsive": 7, "wise": 6},
+      "issues": [
+        "Dashed-border container suggests a drop target: remove it and let the empty state sit on the page background.",
+        "Breadcrumb 'Home > Trash' is redundant with the selected sidebar item and inconsistent with Archived: drop breadcrumbs on top-level pages.",
+        "Empty-state icon is pale and small: enlarge in a soft tinted circle, matching the folder empty state.",
+        "No retention cue: add a muted line such as 'Items are kept for 30 days' so the page states its rule.",
+        "Helper copy is ~12px light grey: raise to 14px at AA contrast."
+      ]
+    },
+    "S8": {
+      "scores": {"hierarchy": 7, "density": 7, "typography": 6, "consistency": 7, "clarity": 7, "interaction": 7, "accessibility": 6, "responsive": 6, "wise": 7},
+      "issues": [
+        "Result subtitles are monospace filenames ('LV_04_Porenbetonfassade.pdf') that visually outweigh the sans titles: use muted sans subtitles and show the parent folder instead of the filename.",
+        "Grammar '1 lists' in the folder result: pluralise correctly.",
+        "Query match ('Beton') is not highlighted in results: bold or tint the matched substring.",
+        "Results cut mid-row at the bottom edge ('Vorsatzschale Beton Stützwand Ost' half visible): size the list to whole rows or add a fade.",
+        "Uppercase micro section headers (FOLDERS, LISTS, POSITIONS) and footer hints are pale ~11px: raise contrast to AA.",
+        "Identical grey document icons for every list add nothing: replace with folder colour or amount on the right (lists could show their total right-aligned)."
+      ]
+    },
+    "S9": {
+      "scores": {"hierarchy": 3, "density": 4, "typography": 6, "consistency": 3, "clarity": 5, "interaction": 5, "accessibility": 6, "responsive": 5, "wise": 3},
+      "issues": [
+        "Upload/subfolder actions appear three or four times (top bar: New Subfolder, Upload, Import CSV; toolbar: + Upload Files, + Create Subfolder; centre: Import Item Lists & CSVs; quick actions: Create Blank List, Add Nested Subfolder) with three indigo primaries: keep only the centred empty-state CTA plus one secondary 'Create blank list'; remove the toolbar and top-bar duplicates.",
+        "Buttons combine an icon and a literal '+' ('+ Upload Files', '+ Create Subfolder'): drop the '+' text.",
+        "Layout differs from every other folder page (breadcrumb in a bordered pill, no H1, no subtitle, page in a bordered white card): use the same header pattern as S2 with the folder name as H1.",
+        "Breadcrumb order 'All Projects > Workspace > Legal & Compliance' contradicts other pages ('Home > Workspace > …'): unify.",
+        "Box-in-box-in-box: page card border containing a dashed dropzone containing a button: remove the outer card, keep one soft dropzone.",
+        "'Empty' monospace badge beside the breadcrumb restates the empty state: remove.",
+        "'Rename' and red 'Delete' sit top-right as equal-weight buttons: move both into a folder 'More' menu.",
+        "Supported-formats line is ~11px pale grey: raise to AA contrast."
+      ]
+    }
+  },
+  "global_issues": [
+    "Replace monospace money/quantities everywhere with the UI sans plus font-variant-numeric: tabular-nums; keep mono only for OZ codes, and use one currency format (no mixing €1.79M, €537.0k, €0k and €1,794,610.90 on one screen).",
+    "Establish one hero number per screen (workspace, folder, list, budgets totals) at 32–40px proportional figures with cap and % beneath; delete the sidebar 'Allocated Budget' widget and the duplicate footer/panel totals.",
+    "One primary button per screen: the top bar's indigo 'Upload File'/'Import CSV' competes with page primaries everywhere; demote top-bar actions to an icon/secondary and remove duplicate page actions.",
+    "Progress bars: remove the white percentage text printed inside 6px bars; show % beside the bar and add a status word so status is not colour-only; keep one palette (green/amber/red) and stop colouring body text.",
+    "Flatten surfaces: drop boxes-in-boxes (card borders + inner dividers, bordered strips, dashed containers on non-drop empty states); use soft fills, larger radius, fewer hairlines.",
+    "Prefer Wise-style row lists over centred-icon card grids for folders, lists and documents: left icon, bold title, muted subtitle, amount right-aligned.",
+    "Unify page header pattern (breadcrumb style, H1, count pill, action row) and casing (sentence case for all buttons, no uppercase micro labels below AA contrast) across all screens.",
+    "Mobile: the ledger table must reflow to stacked rows (no sideways scroll, no 12-character truncation), and the top bar's icon-only primary needs a label or tooltip."
+  ]
+}

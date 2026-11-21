@@ -27,7 +27,7 @@ export class ErrorBoundary extends Component<Props, S> {
     if (!err) return this.props.children
     const notFound = (err as { notFound?: boolean }).notFound === true
     return (
-      <div role="alert" className="mt-6 flex flex-col items-center rounded-2xl border border-slate-200 bg-white px-6 py-16 text-center">
+      <div role="alert" className="mt-6 flex flex-col items-center rounded-lg border border-slate-200 bg-white px-6 py-16 text-center">
         <Icon name={notFound ? 'search_off' : 'report'} size={34} className={notFound ? 'text-slate-400' : 'text-rose-400'} />
         <h2 className="mt-3 font-heading text-base font-bold text-slate-900">{notFound ? 'List not found' : 'This list could not be loaded'}</h2>
         <p className="mt-1 max-w-sm text-xs text-slate-500">{notFound ? 'It may have been deleted or the link is wrong.' : err.message}</p>

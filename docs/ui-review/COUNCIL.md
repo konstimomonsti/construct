@@ -13,13 +13,18 @@ From round 7 the council is these two members. The ux, estimator, a11y and finte
 |---|---|---|
 | S1 | All Projects (home) | 01-all-projects.png, 11-mobile-home.png |
 | S2 | Folder | 02-folder.png |
-| S3 | List (ledger) | 03-list.png, 04-list-full.png, 12-mobile-list.png |
+| S3 | List (ledger; sections start collapsed, 04 is after "Expand all") | 03-list.png, 04-list-full.png, 12-mobile-list.png |
 | S4 | Position detail drawer | 05-list-detail-drawer.png |
 | S5 | Active Budgets | 06-active-budgets.png |
 | S6 | Archived | 07-archived.png |
 | S7 | Trash | 08-trash.png |
 | S8 | Search palette | 09-command-palette.png |
 | S9 | Empty folder | 10-empty-folder.png |
+| S10 | Catalogue: Products | 13-catalogue-products.png |
+| S11 | Catalogue: Suppliers | 14-catalogue-suppliers.png |
+| S12 | Catalogue: Subcontractors | 15-catalogue-subcontractors.png |
+| S13 | Catalogue editor dialog | 16-catalogue-editor.png |
+| S14 | Upload-check findings (list rows + drawer) | 17-list-findings.png, 18-drawer-findings.png |
 
 ## Design decisions (settled; score how well they are executed, not whether to make them)
 

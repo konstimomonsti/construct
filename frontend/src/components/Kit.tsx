@@ -3,7 +3,7 @@ import { Fragment, useId, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { Icon, Menu, Meter, type MenuItem } from './ui'
 import { Page } from './Page'
-import { budgetStatus, money, moneyCompact, moneyWhole } from '../lib/format'
+import { budgetStatus, money, moneyWhole } from '../lib/format'
 
 /* ------------------------------------------------------------------ */
 /* Page frame + header                                                 */
@@ -164,7 +164,7 @@ export function BudgetMini({ total, cap, label }: { total: number; cap: number; 
   if (!cap) return <span className="text-sm text-slate-600">No cap set</span>
   return (
     <span className="flex items-center justify-end gap-2 text-sm whitespace-nowrap text-slate-600">
-      <span className="num">{Math.round(st.pct)}%<span className="sm:hidden"> of {moneyCompact(cap).replace(/,0+(?=\u00a0)/, '')}</span><span className="max-sm:hidden"> of {moneyWhole(cap)}</span></span>
+      <span className="num">{Math.round(st.pct)}%<span className="max-sm:sr-only"> of {moneyWhole(cap)}</span></span>
       <Meter value={st.pct} tone={st.tone} className="w-12 flex-none sm:w-14" label={label} />
     </span>
   )
@@ -228,15 +228,15 @@ export function Summary({
         <div className="min-w-0">
           <div className="text-sm font-medium text-slate-600">{label}</div>
           <BigMoney value={amount} className={clsx('num display mt-1 block leading-[1.05] text-slate-900', compact ? 'text-[30px] sm:text-[44px]' : 'text-[34px] sm:text-[54px]')} />
-          {/* on phones a compact hero states the two judging numbers in one line, so the work starts sooner */}
-          {compact && cap > 0 && (
+          {/* on phones the hero states the two judging numbers in one line, so the work starts sooner */}
+          {cap > 0 && (
             <p className="num mt-1 text-sm text-slate-600 sm:hidden">
               {Math.round(st.pct)}% of {moneyWhole(cap)} · <span className={left < 0 ? 'font-semibold text-rose-700' : undefined}>{money(Math.abs(left))} {left >= 0 ? 'left' : 'over'}</span>
             </p>
           )}
         </div>
         {cap > 0 && (
-          <dl className={clsx('flex gap-x-10 gap-y-2 pb-1 sm:text-right', compact && 'max-sm:hidden')}>
+          <dl className="flex gap-x-10 gap-y-2 pb-1 max-sm:hidden sm:text-right">
             <div>
               <dt className="text-sm text-slate-600">Used</dt>
               <dd className="num mt-0.5 text-xl font-semibold text-slate-900 sm:text-2xl">{Math.round(st.pct)}%</dd>
@@ -267,7 +267,7 @@ export function Summary({
           <div className="mt-2 flex flex-wrap items-center justify-between gap-x-6 gap-y-2 text-sm text-slate-600">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
               <StatusTag tone={pill.tone} word={pill.word} hint />
-              {note && <span>{note}</span>}
+              {note && <span className="max-sm:hidden">{note}</span>}
             </div>
             {meta && <div>{meta}</div>}
           </div>
@@ -450,21 +450,21 @@ export function Row({
   onToggle?: () => void
   dataRow?: string
 }) {
-  const hit = 'absolute inset-0 z-0 rounded-2xl'
+  const hit = 'absolute inset-0 z-0 rounded-lg'
   return (
     <div
       data-row={dataRow}
       className={clsx(
-        'group relative flex items-start gap-3 rounded-2xl px-2 py-3 transition-colors sm:items-center sm:gap-4 sm:px-3',
+        'group relative flex items-start gap-3 rounded-lg px-2 py-3 transition-colors sm:items-center sm:gap-4 sm:px-3',
         selected ? 'bg-brand-50' : 'hover:bg-slate-100',
       )}
     >
       {selectMode ? (
-        <button type="button" role="checkbox" aria-checked={!!selected} aria-label={`Select ${label}`} onClick={onToggle} className={hit} />
+        <button type="button" data-nav role="checkbox" aria-checked={!!selected} aria-label={`Select ${label}`} onClick={onToggle} className={hit} />
       ) : to ? (
-        <Link to={to} aria-label={label} className={hit} />
+        <Link to={to} data-nav aria-label={label} className={hit} />
       ) : (
-        <button type="button" aria-label={label} onClick={onOpen} className={hit} />
+        <button type="button" data-nav aria-label={label} onClick={onOpen} className={hit} />
       )}
       {selectMode ? (
         <span aria-hidden className={clsx('flex size-11 shrink-0 items-center justify-center rounded-full border-2', selected ? 'border-brand-600 bg-brand-600 text-ink' : 'border-slate-400 bg-white')}>
@@ -473,7 +473,7 @@ export function Row({
       ) : (
         <Avatar icon={icon} tone={tone} />
       )}
-      <div className="pointer-events-none relative grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-3 gap-y-0.5 sm:gap-x-6">
+      <div className="pointer-events-none relative grid min-w-0 flex-1 grid-cols-[auto_minmax(0,1fr)] items-baseline sm:grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-0.5 sm:gap-x-6">
         <div className="col-span-2 row-start-1 flex min-w-0 items-center gap-2 sm:col-span-1">
           <span lang="de" className="line-clamp-2 text-[15px] leading-snug font-semibold break-normal hyphens-auto text-slate-900 sm:line-clamp-1">{title}</span>
           {badge && <span className="shrink-0 empty:hidden max-sm:hidden">{badge}</span>}
@@ -485,9 +485,11 @@ export function Row({
           </div>
         )}
         {amount && <div className="num col-start-1 row-start-3 text-[15px] font-semibold whitespace-nowrap text-slate-900 sm:col-start-2 sm:row-start-1 sm:text-right">{amount}</div>}
-        {meta && <div className="col-start-2 row-start-3 flex justify-end sm:row-start-2">{meta}</div>}
+        {meta && <div className="col-start-2 row-start-3 flex min-w-0 justify-end sm:row-start-2">{meta}</div>}
       </div>
-      {menu && !selectMode && <div className="relative z-10 -my-1.5 -mr-1 sm:my-0">{menu}</div>}
+      {menu && !selectMode && (
+        <div className="relative z-10 -my-1.5 -mr-1 transition-opacity sm:my-0 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-focus-within:opacity-100 [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:has-[[aria-expanded=true]]:opacity-100">{menu}</div>
+      )}
     </div>
   )
 }
@@ -572,7 +574,7 @@ export function EmptyState({ icon, title, text, children, hint, className, activ
       )}
     >
       {icon && (
-        <span className={clsx('flex items-center justify-center rounded-full bg-white text-brand-700 ring-1 ring-slate-300 ring-inset', compact ? 'mb-3 size-12' : 'mb-5 size-16')}>
+        <span className={clsx('flex items-center justify-center rounded-lg bg-white text-brand-700 ring-1 ring-slate-300 ring-inset', compact ? 'mb-3 size-12' : 'mb-5 size-16')}>
           <Icon name={icon} size={compact ? 24 : 30} />
         </span>
       )}

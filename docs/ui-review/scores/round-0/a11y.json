@@ -1,0 +1,125 @@
+{
+  "member": "a11y",
+  "screens": {
+    "S1": {
+      "scores": {"hierarchy": 6, "density": 6, "typography": 5, "consistency": 6, "clarity": 5, "interaction": 5, "accessibility": 4, "responsive": 6, "wise": 5},
+      "issues": [
+        "Percentage labels (72%, 75%, 67%) are white ~9px text inside an 8px green/orange bar (white on #10b981 ~2.5:1, on orange ~2:1); on 0% cards the green '0%' sits on a pale grey track. Move the % outside the bar as 13px+ text at >=4.5:1 and make the bar purely decorative (aria-hidden, with the value in text)",
+        "Folder status is colour-only: the green, orange and grey dots plus orange '2 lists inside' text carry the over-75% warning with no word or icon. Add a text label such as 'Near cap' and an icon, and keep the count text neutral",
+        "The kebab menu on each card is a ~16x16px icon with no visible label. Raise the hit area to at least 24x24px (44px on touch), add an aria-label like 'More actions for <folder>' and show a visible focus ring",
+        "Cap amounts, breadcrumbs, the 'REPOSITORIES' header, search placeholder and card subtitles are light grey (~#9aa0ad) at 11-12px, which falls below 4.5:1 on white and #f8f9fb. Darken muted text to at least #6b7280",
+        "Money is set in monospace grey ('€2.50M', 'Set cap'). Use proportional tabular numerals with full contrast, and give 'Set cap' a real button look instead of plain grey text",
+        "The grid/list toggle and the sidebar collapse are icon-only ~28px controls whose active state is only a subtle white fill. Add aria-pressed, a tooltip label and a stronger selected indicator",
+        "On mobile the header packs a hamburger, search, a bare upload icon button and the avatar, and the upload button has no text. Label it, and drop the stray vertical divider after 'Open All', which now wraps alone",
+        "The sidebar 'Allocated Budget' widget repeats the low-contrast white-in-bar '72%' at 9px"
+      ]
+    },
+    "S2": {
+      "scores": {"hierarchy": 5, "density": 4, "typography": 5, "consistency": 5, "clarity": 5, "interaction": 5, "accessibility": 4, "responsive": 4, "wise": 4},
+      "issues": [
+        "The '72%' on the total bar and the '60%' and '0%' on list cards are white or green micro-text inside thin bars and fail contrast. Put the value beside the bar",
+        "Document type is shown by pink/red dots ('PDF', 'Source file') and list status by green or grey dots. A red dot reads as an error and the meaning rests on colour alone; use neutral file-type icons with text",
+        "The selected or hovered card is marked only by blue title text and a faint shadow. Add a visible 2px focus/selected outline and make sure keyboard focus looks the same",
+        "Filenames (StBALV23040.D86, [NUMMER_001]_leer.X83) and 'GAEB 90' are light grey monospace at ~11px, well under 4.5:1. Darken them and enlarge to 12-13px",
+        "Upload, new-folder and import actions appear twice (top bar 'New Subfolder', 'Upload', 'Import CSV' and the page header 'Upload Files', 'New subfolder', 'New List'). For screen-reader and keyboard users this doubles the tab stops; keep one set",
+        "Seven header buttons in one row plus a ~16px kebab will not fit at tablet or phone width. Collapse the secondary actions into a labelled 'More' menu with at least 44px touch targets",
+        "Document card blurbs use grey 11px text clamped to two lines, which makes them hard to read. Raise the contrast or drop the blurb",
+        "Every card's kebab is a ~16px target with no accessible name"
+      ]
+    },
+    "S3": {
+      "scores": {"hierarchy": 5, "density": 4, "typography": 5, "consistency": 5, "clarity": 5, "interaction": 5, "accessibility": 4, "responsive": 2, "wise": 4},
+      "issues": [
+        "On mobile the ledger is a desktop table that scrolls sideways: Kurztext is truncated after about 12 characters, and Menge, Einheitspreis and Gesamt are off-screen, so the core task can't be done. Render the rows as stacked cards (title, OZ, qty stepper, total right-aligned) below about 640px",
+        "The mobile list tab is cut off ('[ORT_024'), the breadcrumb wraps over three lines, and the header actions wrap into ragged rows. Shorten the breadcrumb to a back link and move secondary actions into a menu",
+        "The row trash and kebab icons are ~16px, light grey, have no label and sit right next to each other, making a destructive mis-tap likely. Enlarge them to at least 24px (44px touch), add aria-labels and move delete into the menu",
+        "The quantity stepper's −/+ buttons are ~24px with pale grey glyphs (<3:1 non-text contrast). Darken the glyphs, enlarge the buttons, and label them 'Decrease/Increase quantity for <OZ>'",
+        "The OZ numbers ('OZ: 1.1.1') are light grey monospace at ~10px and fail AA. They are the primary identifier for an estimator, so give them full contrast",
+        "Budget status is a green pill on a green-tinted panel, and the inactive threshold tabs ('Caution (75%)' and others) look like plain text, so their state isn't discernible. Add a visible selected state and aria-selected, and don't rely on the mint fill",
+        "The carousel dots and '-/3', plus the 24px prev/next chevrons in the budget panel, have no labels and are tiny targets. Replace them with labelled buttons, or remove the carousel",
+        "Category chips truncate ('Baustelleneinrichtung ...') with no tooltip, so the full name is unavailable to keyboard and screen-reader users. Expose it via title or aria-label, or wrap the text"
+      ]
+    },
+    "S4": {
+      "scores": {"hierarchy": 6, "density": 6, "typography": 5, "consistency": 6, "clarity": 6, "interaction": 5, "accessibility": 5, "responsive": 5, "wise": 5},
+      "issues": [
+        "The field labels (KURZTEXT, MENGE, EINHEIT, EINHEITSPREIS €, KATEGORIE, LANGTEXT) are 10-11px uppercase grey with letter-spacing, below 4.5:1. Use 12-13px sentence case at #4b5563 or darker, programmatically tied to the inputs",
+        "'Reset changes' and the footer note 'Changes are saved in this browser' are very faint (~2:1). If the button is disabled, say why. Otherwise give it full contrast",
+        "The close X is a ~16px pale glyph in the top-right corner. Make it at least 32px with an aria-label, and confirm Esc and the focus trap work, returning focus to the row when closed",
+        "The category breadcrumb hint under the select is ~10px light grey and truncated with '…'. Raise the contrast and let it wrap",
+        "The OZ eyebrow ('OZ: 1.1.1') is grey 10px monospace with low contrast",
+        "The Gesamt read-only field looks like an input (bordered box). Style it as static text or mark it aria-readonly so it isn't mistaken for an editable field",
+        "The drawer is a fixed ~510px wide while the page behind keeps its full layout. On narrow screens it should become a full-screen sheet with sticky Save/Close",
+        "The Langtext textarea keeps hard line breaks and grows a tiny resize handle. Give it a larger handle or auto-grow, and make its focus ring clearly visible"
+      ]
+    },
+    "S5": {
+      "scores": {"hierarchy": 6, "density": 7, "typography": 5, "consistency": 6, "clarity": 6, "interaction": 5, "accessibility": 4, "responsive": 4, "wise": 5},
+      "issues": [
+        "The 'Usage of cap' percentages are white 9px text inside 8px bars (66%, 60%, 86% on orange ~2:1). Put the percentage as text beside the bar, and convey the 86% warning with a word or icon as well as orange",
+        "Sortable column headers show only faint grey up/down glyphs, and only TOTAL shows an active arrow. Expose aria-sort, darken the inactive glyphs to at least 3:1 and enlarge the header click targets",
+        "Filenames under the list names (Angebot AN24-0305.D84, LV-Positionen.docx) are light grey 11px monospace and fail AA",
+        "The 'Σ €3,836,638.94' sum next to the title is grey monospace with low contrast, yet it is the screen's key number. Make it full-contrast, larger, proportional tabular numerals",
+        "Row kebabs are ~16px targets with no labels. It is also unclear whether the whole row is a link; make the row focusable with a visible focus ring",
+        "A 6-column table with fixed widths won't fit on mobile. Plan a stacked row layout (name, folder subtitle, total right, cap bar below)",
+        "The two RINGSCHLUSS rows are identical apart from the grey filename, so screen-reader users can't tell them apart. Add a distinguishing accessible name"
+      ]
+    },
+    "S6": {
+      "scores": {"hierarchy": 6, "density": 7, "typography": 6, "consistency": 5, "clarity": 6, "interaction": 5, "accessibility": 6, "responsive": 6, "wise": 6},
+      "issues": [
+        "The empty-state dashed border and the archive icon are very pale (<3:1 non-text contrast). Darken them, or drop the border and rely on whitespace",
+        "The help text refers to 'its menu (⋮)' using a tiny glyph that low-vision users can't match to the real control. Write it as 'the More actions menu'",
+        "'Select' and the sort control show on an empty view, giving dead tab stops. Hide or disable them with aria-disabled when the view has 0 items",
+        "'New Folder' makes no sense on Archived (you can't create into an archive). Remove it to cut confusing actions",
+        "The '0 Folders' badge is grey on light grey with low contrast",
+        "The empty-state body text is ~12px grey. Raise it to 14px at >=4.5:1"
+      ]
+    },
+    "S7": {
+      "scores": {"hierarchy": 6, "density": 7, "typography": 6, "consistency": 6, "clarity": 7, "interaction": 6, "accessibility": 6, "responsive": 6, "wise": 6},
+      "issues": [
+        "The trash icon and dashed border are pale grey with non-text contrast under 3:1",
+        "The empty-state body copy is ~12px muted grey. Raise it to 14px at >=4.5:1",
+        "This header has no item-count badge or actions while Archived does, so the same type of view is inconsistent and screen-reader landmarks differ. Align the header pattern",
+        "State the retention policy (e.g. 'Items are deleted after 30 days') so users know the consequences without relying on assumptions",
+        "The global grid/list toggle and Upload File stay active on an empty Trash view. Hide controls that do nothing here"
+      ]
+    },
+    "S8": {
+      "scores": {"hierarchy": 7, "density": 6, "typography": 6, "consistency": 6, "clarity": 7, "interaction": 7, "accessibility": 5, "responsive": 5, "wise": 6},
+      "issues": [
+        "Result subtitles (filenames, '1 lists · LV 152516 ·…', 'OZ 1.1.70 · Rohbau') are light grey monospace at ~10-11px and fail 4.5:1. Use proportional 12px at #6b7280 or darker",
+        "The footer hints ('↑↓ navigate', '↵ open', '3,052 positions indexed') and the 'Esc' key cap are ~10px pale grey. Raise their contrast and size",
+        "The section headers (FOLDERS, LISTS, POSITIONS) are 10px uppercase grey. Make sure they are announced as group labels (role=group with aria-labelledby)",
+        "The active result is shown by a pale lavender fill plus a tiny ↵ glyph. Strengthen it to at least 3:1 against the other rows, or add a left accent bar, and use aria-activedescendant",
+        "The matched query text ('Beton') isn't highlighted in the results. Add a bold or underline match highlight that doesn't rely on colour",
+        "The modal is fixed at ~575px and floats mid-screen. On mobile it should be full-width or full-height with the input pinned at the top and 44px rows",
+        "The heavy background blur makes the context unreadable. The dimmed overlay is fine, but confirm the background gets aria-hidden or inert"
+      ]
+    },
+    "S9": {
+      "scores": {"hierarchy": 4, "density": 4, "typography": 6, "consistency": 4, "clarity": 5, "interaction": 5, "accessibility": 5, "responsive": 4, "wise": 4},
+      "issues": [
+        "Upload appears 4 times and subfolder 3 times ('New Subfolder', 'Upload', 'Import CSV', '+ Upload Files', '+ Create Subfolder', 'Import Item Lists & CSVs', 'Add Nested Subfolder', 'Create Blank List'), which bloats the tab order to 12+ stops. Keep one primary and one secondary action",
+        "'Supports GAEB .X81–.X86 / .D81–.D86, .CSV, .JSON and .PDF' is ~10px pale grey and fails AA, though it is critical info. Raise it to 13px at >=4.5:1",
+        "The 'Quick actions:' label and 'or drop files anywhere into this window' are low-contrast grey. Also give the drag-and-drop zone a keyboard-accessible equivalent (it currently relies on the button)",
+        "The 'Empty' badge is grey monospace on light grey with low contrast. It also duplicates the heading; remove it",
+        "The dashed drop-zone border is pale (<3:1). Strengthen it, and add a clearly visible dragover state",
+        "The header here is a boxed breadcrumb strip unlike every other screen's breadcrumb and H1 pattern, and there is no real H1 for the folder name. Restore the standard heading so screen-reader users get a page title",
+        "The toast 'Created folder \"Legal & Compliance\"' must be announced via role=status/aria-live, and it overlaps the card edge at the bottom right. Keep it clear of content",
+        "Seven or more buttons across the header won't fit on tablet or mobile. Collapse them into one 'Add' menu"
+      ]
+    }
+  },
+  "global_issues": [
+    "Drop text inside progress bars: white or green 9px percentages inside 8px bars fail WCAG 1.4.3 on every screen. Put the value beside the bar in full-contrast text, and expose bars as role=progressbar with aria-valuenow and an accessible label",
+    "Muted text is too light throughout (breadcrumbs, placeholders, OZ numbers, filenames, uppercase section and field labels, footer hints): ~#9ca3af at 10-11px is roughly 2.5:1. Set the muted token to at least #6b7280 on white (4.5:1) and use 12px as the minimum size",
+    "Status is colour-only: green, orange, grey and red dots and orange text signal budget health and file type. Pair every status colour with a word ('Near cap', 'Over cap') and an icon, and keep file-type dots neutral",
+    "Icon-only controls (kebab, row trash, grid/list toggle, sidebar collapse, tab '+', drawer close, carousel chevrons, mobile upload) are ~16-24px with no visible name. Make them at least 24x24px on desktop and 44x44px on touch, with aria-labels and tooltips",
+    "Mobile list ledger: the desktop table overflows sideways and hides prices, quantities and totals. Build a stacked card or row layout below 640px, and shorten the breadcrumb and header actions",
+    "Use proportional tabular numerals for money instead of monospace. Keep key totals full-contrast and large; the grey mono sums (Σ, cap values) currently read as disabled",
+    "Visible focus: no focus rings are evident on cards, rows, chips or the palette. Add a consistent 2px focus-visible outline (>=3:1) and make the selected card or row state match it",
+    "Remove duplicated actions (top bar plus page header plus empty state). They multiply tab stops and screen-reader noise; keep one primary action per screen and put the rest in a labelled 'More' menu"
+  ]
+}

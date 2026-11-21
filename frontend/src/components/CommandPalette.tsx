@@ -343,7 +343,7 @@ export function CommandPalette() {
                 className="h-16 flex-1 bg-transparent text-base text-slate-900 outline-none placeholder:text-slate-500"
               />
               {loading && <Icon name="progress_activity" size={18} className="animate-spin text-slate-500" />}
-              <button ref={closeRef} type="button" onClick={close} aria-label="Close search (Esc)" className="h-9 rounded-md bg-white px-3 text-[13px] font-medium text-slate-700 ring-1 ring-slate-400 ring-inset hover:bg-slate-100">
+              <button ref={closeRef} type="button" onClick={close} aria-label="Close search (Esc)" className="h-7 rounded-md bg-slate-100 px-2 text-xs font-medium text-slate-700 hover:bg-slate-200">
                 <span className="max-sm:hidden">Esc</span><span className="sm:hidden">Cancel</span>
               </button>
             </div>
@@ -444,7 +444,7 @@ export function CommandPalette() {
               <span className="flex items-center gap-1.5"><Kbd label="Up arrow">↑</Kbd><Kbd label="Down arrow">↓</Kbd> to move</span>
               <span className="flex items-center gap-1.5"><Kbd label="Enter">↵</Kbd> to open</span>
               <span className="ml-auto flex items-center gap-1.5"><Kbd label="Slash">/</Kbd> search a list</span>
-              <span className="flex items-center gap-1.5"><Kbd label="j">j</Kbd><Kbd label="k">k</Kbd> next or previous position</span>
+              <span className="flex items-center gap-1.5"><Kbd label="j">j</Kbd><Kbd label="k">k</Kbd> next or previous row</span>
             </div>
           </motion.div>
         </div>

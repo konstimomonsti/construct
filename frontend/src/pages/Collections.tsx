@@ -14,7 +14,7 @@ export function Archived() {
       archive
       emptyIcon="archive"
       emptyTitle="Nothing archived"
-      emptyText={<>Archive a project from its <Icon name="more_horiz" size={18} className="align-[-4px]" /><span className="sr-only">options</span> menu on All Projects to set it aside. You can restore it any time.</>}
+      emptyText={<>Archive a project from its <Icon name="more_horiz" size={18} className="align-[-4px]" /><span className="sr-only">options</span> menu on All Projects to set it aside. Archived projects don't count toward totals, and you can restore them any time.</>}
     />
   )
 }
