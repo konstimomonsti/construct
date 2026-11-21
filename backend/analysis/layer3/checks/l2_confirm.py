@@ -6,19 +6,25 @@ any matched dependency items and the other items of the same section, and decide
 missing or unclear. This rule never edits the layer 2 finding. It emits its own finding that points at
 it (`evidence.reviews_finding_id`), so the review UI can show both together:
 
-- included / excluded -> info, "probably a false positive", with a quote verified in the cited item;
-- missing             -> warning, "confirmed";
-- unclear             -> nothing (the layer 2 finding stands on its own).
+- included / excluded -> advisory review with a source quote and a separate quantity check;
+- missing             -> warning about the gap in the reviewed text;
+- unclear             -> no additional finding.
 """
 
 from __future__ import annotations
 
+import re
+
+from ...adapter import to_decimal
 from ...contracts import AnalysisInput, Finding, Line
+from ...layer1.common import review_fix, source_detail
+from ...layer2.engine import _active
 from ...registry import rule
+from ...units import convert
 from .. import prompts
 from ..common import batches, clip, current
 from ..provider import LLMRequest
-from ..schema import L2_CONFIRM_SCHEMA, L2Review, clamp_confidence, items, quote_in
+from ..schema import L2_CONFIRM_SCHEMA, L2Review, clamp_confidence, items, normalize
 
 RULE_ID = "L3.REVIEW.L2_CONFIRM"
 REVIEWED_REASONS = {"missing", "quantity_shortfall"}
@@ -75,16 +81,25 @@ def l2_confirm(ctx):
     sections = ctx.input.section_by_id()
     for lines, findings in groups.values():
         line_refs = {f"#{index}": line for index, (line, _) in enumerate(lines, start=1)}
+        refs_by_id = {line.id: ref for ref, line in line_refs.items()}
         items_payload = [{"ref": ref, "role": role, "code": line.code, "short_text": line.short_text,
-                          "long_text": clip(line.long_text), "quantity": _plain(line.quantity),
-                          "unit": line.unit_raw or line.unit}
+                          "long_text": clip(source_detail(line, ctx.input.project.source_document.format)),
+                          "quantity": _plain(line.quantity), "unit": line.unit_raw or line.unit,
+                          "firm_item": _active(line)}
                          for (ref, line), (_, role) in zip(line_refs.items(), lines)]
         sized = [(finding, 1) for finding in findings]
         for chunk in batches(sized, MAX_FINDINGS_PER_CALL, MAX_FINDINGS_PER_CALL):
             finding_refs = {f"F{index}": finding for index, finding in enumerate(chunk, start=1)}
             findings_payload = [{"ref": ref, "requirement": finding.evidence.get("dependency") or finding.title,
                                  "required_for": finding.evidence.get("trade_category"),
-                                 "check": finding.evidence.get("check_type"), "finding": finding.message}
+                                 "check": finding.evidence.get("check_type"), "finding": finding.message,
+                                 "quantity_unit": finding.evidence.get("quantity_unit"),
+                                 "minimum_shortfall": finding.evidence.get("shortfall_to_minimum"),
+                                 "scope": finding.scope,
+                                 "trigger_refs": [refs_by_id[id_] for id_ in finding.evidence.get("trigger_line_ids", [])
+                                                  if id_ in refs_by_id],
+                                 "counted_refs": [refs_by_id[id_] for id_ in finding.evidence.get("dependency_line_ids", [])
+                                                  if id_ in refs_by_id]}
                                 for ref, finding in finding_refs.items()]
             request = LLMRequest(system=prompts.L2_CONFIRM_SYSTEM,
                                  prompt=prompts.l2_confirm_prompt(findings_payload, items_payload),
@@ -118,34 +133,79 @@ def _finding(ctx, session, sections, reviewed: Finding, review: L2Review, line_r
                 "verdict": review.verdict, "reason": review.reason.strip(),
                 "confidence": clamp_confidence(review.confidence), "prompt_version": prompts.L2_CONFIRM_VERSION}
     related = list(reviewed.related_line_ids)
+    locator = None
     if review.verdict == "missing":
-        title = f"Confirmed missing: {dependency.lower()}"
-        message = f"Layer 2 reported missing {dependency.lower()}; the texts don't cover it. {review.reason.strip()}"
+        title = f"No coverage found for {dependency.lower()}"
+        message = f"The reviewed text leaves the reported gap in {dependency.lower()} open. {review.reason.strip()}"
         severity = "warning"
+        fix = review_fix("Check the remaining package documents and resolve the original dependency finding using "
+                         "the confirmed scope and quantities.")
     else:
-        # Anti-hallucination: included/excluded must cite an item we sent, with a verbatim quote.
         line = line_refs.get(review.line_ref.strip())
-        if line is None or not quote_in(review.quote, line.short_text, line.long_text):
+        field = _quote_field(line, review.quote, ctx.input.project.source_document.format) if line else None
+        if not field:
             return False
-        evidence.update({"quote": review.quote.strip(), "quote_line_id": line.id, "quote_line_code": line.code})
+        evidence.update({"quote": review.quote.strip(), "quote_line_id": line.id, "quote_line_code": line.code,
+                         "quote_field": field, "review_status": "advisory"})
         related.append(line.id)
-        where = f"{line.code or 'item'}: \"{review.quote.strip()}\""
+        locator = line.source_locator or None
+        where = f'position {line.code} (“{review.quote.strip()}”)' if line.code else f'“{review.quote.strip()}”'
         if review.verdict == "included":
-            title = f"Probably included: {dependency.lower()}"
-            message = (f"Layer 2 reported missing {dependency.lower()}, but it seems to be included in {where}. "
-                       f"{review.reason.strip()}")
+            title = f"Review possible coverage for {dependency.lower()}"
+            message = f"Check whether the wording in {where} covers the open {dependency.lower()} work."
+            quantity_check = _quantity_check(line, reviewed, ctx.input)
+            if quantity_check:
+                evidence["quantity_check"] = quantity_check
+            fix = review_fix("Confirm the quoted work covers the same dependency and scope. Reconcile the uncovered "
+                             "quantity against the drawings or takeoff before accepting this review.")
         else:
-            title = f"Probably excluded from the contract: {dependency.lower()}"
-            message = (f"Layer 2 reported missing {dependency.lower()}, but the text excludes it, {where}. "
-                       f"{review.reason.strip()}")
+            title = f"Review possible scope exclusion for {dependency.lower()}"
+            message = f"Check whether the wording in {where} assigns the open {dependency.lower()} work elsewhere."
+            fix = review_fix("Confirm that the exclusion applies to the triggering positions and their quantities. "
+                             "Record which party or package covers the work before accepting this review.")
         severity = "info"
     target = reviewed.target
     return ctx.finding(
         section=sections.get(target.section_id) if target.section_id else None, area_id=target.area_id,
         field=target.field, title=title, severity=severity, message=message, evidence=evidence,
         related_line_ids=list(dict.fromkeys(related)), discriminator=reviewed.id, origin="llm",
-        model=session.model_id,
+        model=session.model_id, source_locator=locator, suggested_fix=fix,
     )
+
+
+def _quote_field(line: Line, quote: str, source_format: str | None) -> str | None:
+    needle = normalize(quote).strip(" .,;:\"'„“”")
+    if not re.search(r"\w", needle):
+        return None
+    pattern = re.compile(rf"(?<!\w){re.escape(needle)}(?!\w)")
+    for field, text in (("short_text", line.short_text), ("long_text", clip(source_detail(line, source_format)))):
+        if pattern.search(normalize(text)):
+            return field
+    return None
+
+
+def _quantity_check(line: Line, finding: Finding, analysis_input: AnalysisInput) -> dict | None:
+    evidence = finding.evidence
+    if evidence.get("check_type") != "QuantityMatch":
+        return None
+    unit = evidence.get("quantity_unit")
+    needed = to_decimal(evidence.get("shortfall_to_minimum"))
+    result = {"unit": unit, "minimum_shortfall": _plain(needed)}
+    if line.id in evidence.get("dependency_line_ids", []):
+        return {**result, "state": "already_counted"}
+    if line.id in evidence.get("trigger_line_ids", []):
+        return {**result, "state": "bundled_quantity_unknown"}
+    if not _active(line):
+        return {**result, "state": "not_a_firm_item"}
+    lines = analysis_input.line_by_id()
+    triggers = {lines[id].section_id for id in evidence.get("trigger_line_ids", []) if id in lines}
+    if finding.target.area_id or line.distributions or triggers != {line.section_id}:
+        return {**result, "state": "scope_unverified"}
+    quantity = convert(line.quantity, line.unit, unit) if line.quantity is not None and unit else None
+    if quantity is None or quantity <= 0:
+        return {**result, "state": "quantity_unverified"}
+    return {**result, "quantity": _plain(quantity),
+            "state": "quantity_below_shortfall" if needed is not None and quantity < needed else "quantity_candidate"}
 
 
 def _plain(value) -> str | None:

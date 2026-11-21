@@ -90,6 +90,14 @@ The earthworks, sanitary, and doors PDF uploads linked all 448 positions. Indepe
 
 To reproduce, use `--suite dependency-scope` with the document generator and the local workspace upload replay.
 
+### Layer 3 scope reviews and quantity checks
+
+Layer 3 cites the original position and shows how its recorded quantity relates to the Layer 2 shortfall. Eight adversarial regressions cover wording inside an unrelated word, an already counted position, a bundled item with no separate quantity, a conditional item, a different room, incompatible units, an insufficient quantity, and a candidate that meets the minimum. Even a candidate still needs scope verification. The local Qwen 2.5 7B upload replay caught all six expected findings with guidance and left all four controls clear across PDF and X83.
+
+The bid simulator reuses the stored assessment of the original tender. On the sanitary X83 example, the detected seven-seat shortfall remained available while the scope review was open. Accepting the review removed the shortfall from suggested changes. Dismissing the review restored the suggestion. The tests exercise the original upload assessment and workspace decisions.
+
+A preliminary pass on the repository sanitary and screed PDFs and the Word bill linked all 246 positions. For the screed bill, the checker asks whether skirting belongs in another package. In the Word source, paragraphs 3 and 16 specify the units for positions 1.1.20 and 2.3.10 and leave their quantities blank. Verify them against the takeoff before entering values. These observations cover selected findings. Independent review still needs to judge the full set of findings, missed errors, and applicable DIN clauses.
+
 ## Concrete grade attribution replay
 
 Layer 1 compares concrete grades for explicitly named components. An identical grade on a second component can no longer conceal a conflict on the first. The finding quotes the heading and detail, names the affected component, and asks the reviewer to confirm the governing grade before aligning the two descriptions. Layer 3 checks the source component names when its model cites two grades. Wording that leaves a grade's component uncertain still calls for review.

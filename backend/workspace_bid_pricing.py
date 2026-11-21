@@ -6,6 +6,7 @@ import workspace_analysis
 from analysis.bid_pricing import PricingAssumptions, included_positions, quantity_opportunities, report
 from analysis.contracts import AnalysisResult
 from analysis.runner import DEFAULT_LAYERS, analyze
+from workspace_product_evidence import add_to_snapshot
 
 MAX_SCENARIOS = 12
 
@@ -23,8 +24,11 @@ def _assessment(snapshot, record):
         assessment = analyze(snapshot, DEFAULT_LAYERS, include_risk=False)
     decisions = (record["patch"] or {}).get("findingDecisions") or {}
     for finding in assessment.findings:
-        if (decisions.get(finding.id) or {}).get("status") == "dismissed":
+        decision = (decisions.get(finding.id) or {}).get("status")
+        if decision == "dismissed":
             finding.status = "rejected"
+        elif decision == "accepted":
+            finding.status = "accepted"
     return assessment
 
 
@@ -56,6 +60,8 @@ def run(connection, workspace, list_id, payload=None):
     workspace_analysis._attach_source(snapshot, source, upload["original_codes"])
     if Counter(map(_signature, snapshot.lines)) != Counter(map(_signature, source.lines)):
         raise ValueError("Workspace positions could not be reconciled with the original X83 quantities and units.")
+    snapshot = workspace_analysis._original_tender(snapshot, source, upload["original_refs"])
+    add_to_snapshot(connection, workspace, list_id, snapshot)
     snapshot = snapshot.with_hash()
     assessment = _assessment(snapshot, record)
     currency = source.project.currency or snapshot.project.currency or "EUR"

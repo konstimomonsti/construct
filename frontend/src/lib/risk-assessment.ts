@@ -9,6 +9,9 @@ export const RISK_STYLE = {
   info: { label: 'Info', icon: 'info', chip: 'bg-sky-100 text-sky-800', row: 'bg-sky-50 hover:bg-sky-100/75 max-lg:bg-sky-50' },
 } as const
 
+export type CoverageCheckState = 'already_counted' | 'bundled_quantity_unknown' | 'not_a_firm_item'
+  | 'scope_unverified' | 'quantity_unverified' | 'quantity_below_shortfall' | 'quantity_candidate'
+
 export type Evidence = {
   din?: { grade?: string | null; exposure?: string[]; required_min?: string | null }
   din_standard?: { identifier: string; edition: string; url: string }
@@ -21,6 +24,7 @@ export type Evidence = {
   short_quote?: string
   long_quote?: string
   scope_statements?: { line_id: string; line_code?: string | null; role: string; quote: string }[]
+  quantity_check?: { state: CoverageCheckState; unit?: string | null; minimum_shortfall?: string | null; quantity?: string | null }
   grade_quote?: string
   grade_field?: string
   exposure_quote?: string

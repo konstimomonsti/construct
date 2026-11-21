@@ -2,7 +2,7 @@ import { clsx } from 'clsx'
 import { Icon, Menu, type MenuItem } from './ui'
 import { ToolButton } from './Kit'
 import { money } from '../lib/format'
-import { findingCategory, REASONS, SEVERITIES, type ChangeOrderSignal, type Decision, type Finding, type ReviewItem, type Severity } from '../lib/risk-assessment'
+import { findingCategory, REASONS, SEVERITIES, type ChangeOrderSignal, type CoverageCheckState, type Decision, type Finding, type ReviewItem, type Severity } from '../lib/risk-assessment'
 
 /**
  * severity colours for the risk UI, built on the themed status tokens so they hold in dark mode.
@@ -30,6 +30,16 @@ export function FindingBadge({ severity, children }: { severity: Severity; child
 }
 
 
+const COVERAGE_CHECK: Record<CoverageCheckState, string> = {
+  already_counted: 'This position already counts toward the required quantity.',
+  bundled_quantity_unknown: 'Verify how much of the related work is included in this position.',
+  not_a_firm_item: 'This position is outside the firm tender scope.',
+  scope_unverified: 'Verify the location or allocation of this quantity.',
+  quantity_unverified: 'Verify the quantity and unit for this position.',
+  quantity_below_shortfall: 'The cited quantity covers only part of the shortfall at most.',
+  quantity_candidate: 'The cited quantity could cover the shortfall if it applies to the same work.',
+}
+
 /** Source references and evidence shown under the finding in the drawer. */
 function FindingEvidence({ finding }: { finding: Finding }) {
   const evidence = finding.evidence
@@ -47,6 +57,7 @@ function FindingEvidence({ finding }: { finding: Finding }) {
     : locator?.record ? `Source record ${locator.record}`
     : locator?.source_id ? `Source item ${locator.source_id}` : null
   const sourceField = (field?: string) => field === 'short_text' ? ' in heading' : field === 'long_text' ? ' in detail' : ''
+  const quantityCheck = evidence?.quantity_check
   const scopeStatements = evidence?.scope_statements ?? []
   const quotes = [
     ['Grade' + sourceField(evidence?.grade_field), evidence?.grade_quote],
@@ -54,7 +65,7 @@ function FindingEvidence({ finding }: { finding: Finding }) {
     ['Heading', concrete ? evidence.short_quote : undefined],
     ['Detail', concrete ? evidence.long_quote : undefined],
   ].filter(([, quote]) => !!quote)
-  if (!source && !din && !standard && !requirement && !declarations.length && !extracted.length && !quotes.length && !scopeStatements.length) return null
+  if (!source && !din && !standard && !requirement && !declarations.length && !extracted.length && !quotes.length && !scopeStatements.length && !quantityCheck) return null
   const show = (v: unknown) => (v === null || v === undefined || v === '' ? '—' : Array.isArray(v) ? v.join(', ') || '—' : String(v))
   return (
     <div className="mt-2 space-y-2 text-[13px]">
@@ -86,6 +97,17 @@ function FindingEvidence({ finding }: { finding: Finding }) {
             </li>
           ))}
         </ul>
+      )}
+      {quantityCheck && (
+        <div className="space-y-1 text-slate-700">
+          <p>{COVERAGE_CHECK[quantityCheck.state]}</p>
+          {(quantityCheck.quantity != null || quantityCheck.minimum_shortfall != null) && (
+            <p className="flex flex-wrap gap-x-3">
+              {quantityCheck.quantity != null && <span>Cited quantity <strong>{quantityCheck.quantity} {quantityCheck.unit}</strong></span>}
+              {quantityCheck.minimum_shortfall != null && <span>Minimum shortfall <strong>{quantityCheck.minimum_shortfall} {quantityCheck.unit}</strong></span>}
+            </p>
+          )}
+        </div>
       )}
       {standard && /^https:\/\/www\.dinmedia\.de\//.test(standard.url) && (
         <a className="font-medium text-brand-700 underline" href={standard.url} target="_blank" rel="noreferrer">
@@ -125,6 +147,8 @@ export function FindingText({ finding, reviewed, decision, changed, hideRational
 }) {
   const decided = reviewed || !!decision
   const muted = decided || changed
+  const scopeReview = finding.rule_id === 'L3.REVIEW.L2_CONFIRM'
+    && (finding.evidence?.verdict === 'included' || finding.evidence?.verdict === 'excluded')
   return (
     <div className={clsx('min-w-0 border-l-[3px] pl-3', muted ? 'border-slate-300' : RISK_UI[finding.severity].bar)}>
       <div className="flex flex-wrap items-center gap-2">
@@ -152,6 +176,7 @@ export function FindingText({ finding, reviewed, decision, changed, hideRational
         <p className="mt-1 text-sm leading-relaxed text-pretty text-slate-600">{details && <span className="font-semibold text-slate-700">Suggested fix: </span>}{finding.suggested_fix.rationale}</p>
       )}
       {details && <FindingEvidence finding={finding} />}
+      {scopeReview && !decided && <p className="mt-1 text-sm text-slate-600">Accept after verifying the scope. This removes any related quantity suggestion from the bid simulator.</p>}
       {details && finding.evidence?.amount_at_stake != null && Number.isFinite(Number(finding.evidence.amount_at_stake)) && (
         <p className="mt-1 text-sm text-slate-600">Money at stake <strong>{money(Number(finding.evidence.amount_at_stake))}</strong></p>
       )}

@@ -7,7 +7,7 @@ import json
 from typing import Any
 
 CONTRADICTION_VERSION = "l3-contradiction-v2"
-L2_CONFIRM_VERSION = "l3-l2confirm-v1"
+L2_CONFIRM_VERSION = "l3-l2confirm-v2"
 
 CONTRADICTION_SYSTEM = """\
 Compare each Kurztext (short text) with its Langtext (long text) in a German construction tender.
@@ -29,15 +29,20 @@ Use {"findings": []} only if no item contradicts itself."""
 
 L2_CONFIRM_SYSTEM = """\
 You review automatic findings on a German construction bill of quantities (GAEB Leistungsverzeichnis).
-A keyword-based checker reported that some required related work seems to be missing, for example
-"screed requires edge insulation strips" or "in-situ concrete requires formwork". The checker only
-matches keywords, so it is often wrong. Decide each finding from the item texts you are given.
+A checker reported missing or insufficient related work. Review the quoted scope and quantities of
+the specific findings you are given. Use the trigger_refs and counted_refs for that finding.
+Only review its named scope.
 
 Verdicts:
 - included: the required work is part of one of the listed items, e.g. "inkl. Randdämmstreifen",
   "einschließlich Schalung", "mit Grundierung", or a separate item that describes it in other words.
+  For a quantitative shortfall, a position already counted by the checker, a non-firm item, or a
+  quantity below the remaining shortfall does not establish additional coverage. Use unclear when
+  measurement or scope cannot be reconciled.
 - excluded: the texts say this work is done by others or is not part of this contract, e.g. "bauseits",
   "durch den AG", "wird gesondert vergeben", "nicht im Leistungsumfang", "siehe Gewerk ...".
+  The quote must refer to the dependency or identify a location or package for that work.
+  A generic responsibility phrase about a different item is unclear.
 - missing: nothing in the texts covers or excludes the required work.
 - unclear: the texts don't let you decide.
 

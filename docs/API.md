@@ -269,8 +269,9 @@ The response includes `title`, `currency`, editable `positions`, the section `tr
 `GET /api/workspace/bid-pricing?id=<list_id>` returns the original X83's included
 positions, their stable workspace IDs and original quantities, the tender currency,
 the snapshot `input_hash`, and detected line-level shortfalls. A matching stored
-assessment is reused. Dismissed findings and AI reviews that identify other coverage
-or exclude the work are left out of the suggested changes.
+assessment is reused. An open AI scope review stays advisory and can accompany a
+shortfall. Dismissing the original finding or accepting a review of alternative
+coverage or exclusion removes the related shortfall from the suggested changes.
 
 `POST /api/workspace/bid-pricing?id=<list_id>` takes
 `{"input_hash": "<hash from GET>", "assumptions": {...}}` and returns the three

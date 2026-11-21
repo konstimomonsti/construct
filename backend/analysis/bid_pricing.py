@@ -129,8 +129,8 @@ def _resolve_finding(line, finding, result):
     reviews = [f for f in result.findings if f.rule_id == "L3.REVIEW.L2_CONFIRM"
                and f.status not in {"rejected", "stale"}
                and f.evidence.get("reviews_finding_id") == finding.id]
-    if any(f.evidence.get("verdict") in {"included", "excluded"} for f in reviews):
-        raise ValueError(f"{line.code or line.id}: AI review found alternative coverage or a scope exclusion")
+    if any(f.status == "accepted" and f.evidence.get("verdict") in {"included", "excluded"} for f in reviews):
+        raise ValueError(f"{line.code or line.id}: an accepted review identifies alternative coverage or a scope exclusion")
     return quantity, finding.id, tuple(f.id for f in reviews)
 
 

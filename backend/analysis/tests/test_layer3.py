@@ -10,7 +10,7 @@ from analysis.layer2.adapter import from_data
 from analysis.layer3.provider import (
     FakeProvider, LLMRequest, OllamaProvider, ProviderError, ProviderUnavailable, ResponseCache, provider_from_env,
 )
-from analysis.layer3.prompts import CONTRADICTION_VERSION, PRECAST_VERSION
+from analysis.layer3.prompts import CONTRADICTION_VERSION, L2_CONFIRM_VERSION, PRECAST_VERSION
 from analysis.layer3.schema import CONTRADICTION_SCHEMA, L2_CONFIRM_SCHEMA, MAX_CONFIDENCE, quote_in
 from analysis.registry import rules_for
 from analysis.runner import analyze
@@ -381,6 +381,71 @@ def test_l2_confirm_included_excluded_missing():
     assert reviewed["Skirting"].id not in confirm
     assert len(confirm) == 4
     assert all(f.layer == 3 and f.origin == "llm" for f in confirm.values())
+
+
+@pytest.mark.parametrize("position,quote,quantity,unit,total_rule,state", [
+    ("01.0010", "Tiefspül-WC", "12", "St", "include", "bundled_quantity_unknown"),
+    ("01.0020", "WC-Sitz", "12", "St", "include", "already_counted"),
+    ("01.0030", "Sitzring aus Kunststoff", "12", "St", "conditional", "not_a_firm_item"),
+    ("01.0030", "Sitzring aus Kunststoff", "2", "St", "include", "quantity_below_shortfall"),
+    ("01.0030", "Sitzring aus Kunststoff", "12", "m", "include", "quantity_unverified"),
+    ("01.0030", "Sitzring aus Kunststoff", "12", "St", "include", "quantity_candidate"),
+    ("01.0030", "Sitzring aus Kunst", "12", "St", "include", None),
+])
+def test_l2_confirm_checks_scope_evidence_separately_from_the_original_gap(position, quote, quantity, unit,
+                                                                           total_rule, state):
+    analysis_input = from_data({"lines": [
+        line("01.0010", "Tiefspül-WC", quantity="10", unit="St"),
+        line("01.0020", "WC-Sitz", quantity="3", unit="St"),
+        line("01.0030", "Sitzring aus Kunststoff", quantity=quantity, unit=unit, total_rule=total_rule,
+             source_locator={"record": 3}),
+    ]})
+    prior = layer2_findings(analysis_input)
+    gap = next(f for f in prior if f.rule_id == "L2.SANITARY.WC_NEEDS_WC_SEAT")
+    assert gap.evidence["reason"] == "quantity_shortfall"
+    provider = FakeProvider(lambda req: answer_for(req, {gap.evidence["dependency"]: ("included", position, quote)})
+                            if req.prompt_version == L2_CONFIRM_VERSION else {"findings": []})
+    findings, _ = run3(analysis_input, provider, prior=prior)
+    reviews = by_rule(findings, CONFIRM)
+    if state is None:
+        assert reviews == []
+        return
+
+    review, = reviews
+    assert review.evidence["reviews_finding_id"] == gap.id
+    assert review.evidence["review_status"] == "advisory" and review.status == "open"
+    assert review.evidence["quote_field"] == "short_text"
+    assert review.evidence["quantity_check"]["state"] == state
+    assert review.evidence["quantity_check"]["minimum_shortfall"] == gap.evidence["shortfall_to_minimum"]
+    assert review.suggested_fix and not review.suggested_fix.operations
+    if position == "01.0030":
+        assert review.source_locator == {"record": 3}
+    if state in {"quantity_below_shortfall", "quantity_candidate"}:
+        assert review.evidence["quantity_check"]["quantity"] == quantity
+
+
+def test_l2_confirm_cannot_establish_room_coverage_from_a_different_room():
+    def located(item, room):
+        return {**item, "distributions": [{"area_id": room, "quantity": item["quantity"]}]}
+
+    analysis_input = from_data({
+        "areas": [{"id": "a", "name": "Room A"}, {"id": "b", "name": "Room B"}],
+        "lines": [
+            located(line("01.0010", "Tiefspül-WC", quantity="10", unit="St"), "a"),
+            located(line("01.0020", "WC-Sitz", quantity="3", unit="St"), "a"),
+            located(line("01.0030", "Sitzring aus Kunststoff", quantity="12", unit="St"), "b"),
+        ],
+    })
+    prior = layer2_findings(analysis_input)
+    gap = next(f for f in prior if f.rule_id == "L2.SANITARY.WC_NEEDS_WC_SEAT")
+    assert gap.target.area_id == "a" and gap.evidence["reason"] == "quantity_shortfall"
+    verdicts = {gap.evidence["dependency"]: ("included", "01.0030", "Sitzring aus Kunststoff")}
+    provider = FakeProvider(lambda req: answer_for(req, verdicts)
+                            if req.prompt_version == L2_CONFIRM_VERSION else {"findings": []})
+    findings, _ = run3(analysis_input, provider, prior=prior)
+    review, = by_rule(findings, CONFIRM)
+    assert review.evidence["reviews_finding_id"] == gap.id
+    assert review.evidence["quantity_check"]["state"] == "scope_unverified"
 
 
 def test_l2_confirm_drops_unverified_quotes_and_unknown_refs():
