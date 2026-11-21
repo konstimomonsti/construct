@@ -16,8 +16,8 @@ export type RowRisk = { severity: Severity; count: number; label?: string }
 /** why a section adds up to nothing, in the words the rows use */
 function zeroWhy(s: CatStat, waiting: number) {
   // every position waits on a suggested price: say so in the words the rows use
-  if (waiting > 0 && waiting === s.count) return <><Icon name="schedule" size={16} className="mr-1 align-[-3px] text-slate-500" />Pending</>
-  if (s.unpriced === s.count) return waiting > 0 ? <><Icon name="schedule" size={16} className="mr-1 align-[-3px] text-slate-500" />{int(waiting)} pending</> : 'Not priced'
+  if (waiting > 0 && (waiting === s.count || s.unpriced === s.count)) return <><Icon name="schedule" size={16} className="mr-1 align-[-3px] text-slate-500" />{int(waiting)} pending</>
+  if (s.unpriced === s.count) return 'Not priced'
   return amount(0)
 }
 
@@ -108,7 +108,7 @@ function PendingPrice({ s, oz, onConfirm, onReview, className }: { s: PriceSugge
           onClick={onConfirm}
           title="Confirm price"
           aria-label={`Confirm ${amount(s.price)} € for ${oz}`}
-          className="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-brand-700 hover:bg-brand-50"
+          className="inline-flex size-8 shrink-0 items-center justify-center rounded-md bg-slate-100 text-slate-800 ring-1 ring-slate-300 ring-inset hover:bg-brand-100 hover:text-brand-900 hover:ring-brand-400"
         >
           <Icon name="check" size={18} />
         </button>
@@ -190,7 +190,7 @@ const Row = memo(function Row({ listId, p, showCategory, selected, flash, edited
           <input type="checkbox" className="checkbox" checked={selected} onChange={() => onToggle(p.id)} aria-label={`Select ${p.oz} ${p.short}`} />
         </label>
       </td>
-      <td data-a="hide" className="w-[88px] px-2 py-1 font-mono text-[13px] leading-9 whitespace-nowrap text-slate-600 tabular-nums">{p.oz}</td>
+      <td data-a="hide" className="w-[88px] px-2 py-1 font-mono text-[13px] leading-9 whitespace-nowrap text-slate-600 tabular-nums lg:pl-[calc(0.5rem+var(--ind,0)*28px)]">{p.oz}</td>
       <td data-a="title" className="min-w-0 px-2 py-1 lg:pl-[calc(0.5rem+var(--ind,0)*28px)]">
         <button
           type="button"
@@ -467,7 +467,7 @@ EP (€)
                               {plural(st.count, 'position', 'positions')}
                               {/* where the money is, without expanding: each top section's share of the list */}
                               {top && showEmpty && listTotal > 0 && st.total > 0 && <span className="ml-2 text-slate-600">{st.total / listTotal < 0.01 ? '< 1' : Math.round((st.total / listTotal) * 100)}% of list</span>}
-                              {waiting > 0 && <span className="ml-2 font-medium text-slate-700">{int(waiting)} pending</span>}
+                              {waiting > 0 && st.total > 0 && <span className="ml-2 font-medium text-slate-700">{int(waiting)} pending</span>}
                             </span>
                           )}
                         </span>
@@ -478,7 +478,7 @@ EP (€)
                         </span>
                       )}
                     </th>
-                    <td colSpan={2} className={clsx('num px-2 pr-[3.25rem] text-right whitespace-nowrap lg:[@media(hover:hover)]:pr-0', top ? 'text-[15px] font-semibold text-slate-900' : 'text-sm font-medium text-slate-700')}>
+                    <td colSpan={2} className={clsx('num px-2 pr-[3.25rem] text-right whitespace-nowrap lg:[@media(hover:hover)]:pr-0', top ? 'text-[15px] font-semibold text-slate-900' : 'text-sm font-semibold text-slate-900')}>
                       {!st ? (
                         <span className="text-sm font-normal text-slate-500">No positions yet</span>
                       ) : st.total === 0 ? (

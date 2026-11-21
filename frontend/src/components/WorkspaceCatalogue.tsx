@@ -1,3 +1,4 @@
+import { Fragment } from 'react'
 import { Button, Icon } from './ui'
 import { MetaLink } from './Kit'
 import type { Position } from '../lib/types'
@@ -46,22 +47,22 @@ export function CatalogueOverview({ report, error, retryFailed, positions, onOpe
   const ready = report?.state === 'ready' && !pending && !error
   if (part === 'line') {
     const toggle = (v: Exclude<ResearchView, null>) => setShow(show === v ? null : v)
+    const links = report?.state === 'ready' ? [
+      count('matched') > 0 && <MetaLink key="m" pressed={show === 'matched'} onClick={() => toggle('matched')}><span className="num">{count('matched')}</span> {count('matched') === 1 ? 'match' : 'matches'}</MetaLink>,
+      count('suggested') > 0 && <MetaLink key="s" pressed={show === 'suggested'} onClick={() => toggle('suggested')}><span className="num">{count('suggested')}</span> web {count('suggested') === 1 ? 'suggestion' : 'suggestions'}</MetaLink>,
+      unresolved > 0 && <MetaLink key="u" pressed={show === 'unresolved'} onClick={() => toggle('unresolved')}><span className="num">{unresolved}</span> without a match</MetaLink>,
+    ].filter(Boolean) : []
+    const label = error || (report?.state === 'failed' ? 'Catalogue matching failed' :
+      !report || report.state === 'queued' || report.state === 'unstarted' ? 'Matching positions to the catalogue…' :
+        pending ? `Catalogue research: ${pending} positions in progress` : 'Catalogue research')
+    // once results are in, the icon names the group and the counts speak for themselves: the status row stays on one line
+    const quiet = ready && links.length > 0
     return (
       <span className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
-        <Icon name="inventory_2" size={16} className="text-slate-500" />
-        <span role="status">
-          {error || (report?.state === 'failed' ? 'Catalogue matching failed' :
-            !report || report.state === 'queued' || report.state === 'unstarted' ? 'Matching positions to the catalogue…' :
-              pending ? `Catalogue research: ${pending} positions in progress` : 'Catalogue research')}
-        </span>
-        {report?.state === 'ready' && (
-          <>
-            {count('matched') > 0 && <><span aria-hidden>·</span><MetaLink pressed={show === 'matched'} onClick={() => toggle('matched')}><span className="num">{count('matched')}</span> {count('matched') === 1 ? 'match' : 'matches'}</MetaLink></>}
-            {count('suggested') > 0 && <><span aria-hidden>·</span><MetaLink pressed={show === 'suggested'} onClick={() => toggle('suggested')}><span className="num">{count('suggested')}</span> web {count('suggested') === 1 ? 'suggestion' : 'suggestions'}</MetaLink></>}
-            {unresolved > 0 && <><span aria-hidden>·</span><MetaLink pressed={show === 'unresolved'} onClick={() => toggle('unresolved')}><span className="num">{unresolved}</span> without a match</MetaLink></>}
-            {ready && !count('matched') && !count('suggested') && !unresolved && !rows.some(({ item }) => hideMatched?.has(item.id)) && <span>· nothing found</span>}
-          </>
-        )}
+        <span title={quiet ? 'Catalogue research' : undefined} className="inline-flex"><Icon name="inventory_2" size={16} className="text-slate-500" /></span>
+        <span role="status" className={quiet ? 'sr-only' : undefined}>{label}</span>
+        {links.map((l, i) => <Fragment key={i}>{(i > 0 || !quiet) && <span aria-hidden>·</span>}{l}</Fragment>)}
+        {ready && !links.length && !rows.some(({ item }) => hideMatched?.has(item.id)) && <span>· nothing found</span>}
         {(error || report?.state === 'failed' || count('failed') > 0) &&
           <Button size="sm" onClick={() => void retryFailed()}>Retry</Button>}
       </span>

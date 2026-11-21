@@ -998,12 +998,12 @@ function PriceSuggestionNote({ s, unit, onConfirm, onDismiss }: { s: PriceSugges
       {!s.unitKnown && (
         // one side names no unit: show both, and ask for a deliberate yes before the price can count
         <div className="mt-3 space-y-2">
-          <dl className="grid grid-cols-2 gap-2 text-sm">
-            <div className="rounded-md bg-white px-3 py-2 ring-1 ring-slate-300 ring-inset">
+          <dl className="grid grid-cols-2 gap-x-4 text-sm">
+            <div>
               <dt className="text-[13px] text-slate-600">Catalogue unit</dt>
               <dd className={s.unit ? 'font-medium text-slate-900' : 'text-slate-600 italic'}>{s.unit || 'none given'}</dd>
             </div>
-            <div className="rounded-md bg-white px-3 py-2 ring-1 ring-slate-300 ring-inset">
+            <div>
               <dt className="text-[13px] text-slate-600">Position unit</dt>
               <dd className={unit ? 'font-medium text-slate-900' : 'text-slate-600 italic'}>{unit || 'none given'}</dd>
             </div>

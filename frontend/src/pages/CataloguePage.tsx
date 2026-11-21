@@ -3,7 +3,7 @@ import { clsx } from 'clsx'
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { CatalogueEditor, type EditorFocus } from '../components/CatalogueEditor'
 import { Skeleton } from '../components/Page'
-import { Chips, EmptyState, Kbd, PageFrame, PageHeader, RowList, RowMenu, ToolButton } from '../components/Kit'
+import { Chips, EmptyState, Kbd, MetaLink, PageFrame, PageHeader, RowList, RowMenu, ToolButton } from '../components/Kit'
 import { Button, Dialog, Icon, inputCls, kbdCls, Menu, toast } from '../components/ui'
 import { int, plural } from '../lib/format'
 import {
@@ -679,7 +679,13 @@ function Catalogue({ kind }: { kind: CatalogueKind }) {
               {countText ? <><span className="num">{countText}</span> {countWords}</> : loadingHeading}
             </h2>
             {paginated && <nav aria-label="Catalogue pages, top" className="-ml-1">{pager()}</nav>}
-            {pageCoverage && <span className="text-sm text-slate-600">{pageCoverage}</span>}
+            {pageCoverage && (
+              <span className="inline-flex items-center gap-x-1.5 text-sm text-slate-600">
+                {pageCoverage}
+                {/* a page of unpriced rows points straight at the ones that can be quoted from */}
+                {!pagePriced && pricedCount > 0 && <><span aria-hidden>·</span><MetaLink onClick={() => setFilter({ price: 'priced', category: undefined, unit: undefined })}>Show {withCounts ? `the ${int(pricedCount)} ` : ''}priced</MetaLink></>}
+              </span>
+            )}
             {facets.length > 0 && (
               <div role="group" aria-label="Filter priced products" className="ml-auto flex flex-wrap gap-2">
                 {facets.map((f) => <FacetMenu key={f.noun} {...f} />)}

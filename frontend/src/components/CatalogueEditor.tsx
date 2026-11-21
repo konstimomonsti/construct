@@ -196,56 +196,57 @@ function ProductFields({ entry, options, priceRef, draft, onDraft, onPicked }: {
   const dated = !!draft.price.trim()
   return (
     <>
-      {/* what a price means comes first: the unit, then the price per unit and the date it applies from */}
-      <div className="grid items-start gap-4 sm:grid-cols-2">
-        <EditorField label="Unit" name="unit" hint={locked ? 'Fixed for approved products' : undefined}>
-          {(control) => (
-            <ChoicePicker name="unit" label="Unit" value={unit} onChange={(next) => { onDraft({ ...draft, unit: next }); onPicked('unit') }} choices={CATALOGUE_UNITS} none="No unit"
-              other={{ item: 'Other unit…', placeholder: 'Type a unit', back: 'Choose from the usual units' }} maxLength={64} disabled={locked} control={control} />
-          )}
-        </EditorField>
-        {/* blank means not priced (or, with a stored price, keep it); the hint says so instead of a 0,00 that reads like a price */}
-        <EditorField label={stored ? 'New unit price' : 'Unit price'} name="unit_price" hint={stored ? 'Leave blank to keep the current price' : 'Leave blank if not priced'}
-          describedBy={[`${ids}-per`, stored && `${ids}-current`].filter(Boolean).join(' ')}>
-          {(control) => (
-            <span className="relative block">
-              <input ref={priceRef} name="unit_price" inputMode="decimal" maxLength={24} value={draft.price} onChange={(e) => onDraft({ ...draft, price: e.target.value })} {...control}
-                style={{ paddingRight: `calc(${Math.min(suffix.length, 14)}ch + 1.25rem)` }}
-                className={clsx(fieldCls, 'num text-right')} />
-              <span aria-hidden className="pointer-events-none absolute top-1/2 right-3.5 max-w-[60%] -translate-y-1/2 truncate text-sm text-slate-600">{suffix}</span>
-              <span id={`${ids}-per`} hidden>{perUnit ? `in ${currencyName} per ${perUnit}` : `in ${currencyName}`}</span>
-            </span>
-          )}
-        </EditorField>
-        {/* asked for only once there is a new price to date; the hint says when it applies and what shows until then */}
-        {dated && (
-          <div className="sm:col-start-2">
-            <EditorField label="Effective from" name="valid_from" required hint={effectHint(draft, entry)}>
-              {(control) => <input required name="valid_from" inputMode="numeric" pattern="\d{1,2}\.\d{1,2}\.\d{4}" title="DD.MM.YYYY" value={draft.from} onChange={(e) => onDraft({ ...draft, from: e.target.value })} {...control} className={clsx(fieldCls, 'num')} />}
-            </EditorField>
-          </div>
+      {/* three lines to start, growing with the text up to a scroll */}
+      <EditorField label="Description" name="description" required>
+        {(control) => <textarea required name="description" rows={3} maxLength={250000} defaultValue={entry?.description} {...control} className={clsx(fieldCls, 'h-auto max-h-72 min-h-[calc(3lh+1rem)] resize-y py-2 [field-sizing:content]')} />}
+      </EditorField>
+      {/* a choice of the catalogue's categories, like the unit and the supplier; a new one can still be typed */}
+      <EditorField label="Category" name="category" required>
+        {(control) => (
+          <ChoicePicker name="category" label="Category" value={category} onChange={(next) => { setCategory(next); onPicked('category') }} choices={options.categories.map(({ name }) => name)}
+            other={{ item: 'New category…', placeholder: 'Type a new category', back: 'Choose an existing category' }} maxLength={160} control={control} />
         )}
-      </div>
-      <input type="hidden" name="currency" value={currency} />
-      <span role="status" className="sr-only">{dated ? 'Effective from is now required, after the price.' : ''}</span>
-      {stored && (
-        <p id={`${ids}-current`} className="text-sm text-slate-600">
-          Current price <strong className="num font-semibold text-slate-900">{catalogueAmount(entry.unit_price!, currency, entry.unit)}</strong>
-          {cataloguePriceSource(entry) && <span className="num"> · {cataloguePriceSource(entry)}</span>}
-        </p>
-      )}
+      </EditorField>
+      {/* what it is, above; what it costs and who sells it, below the one rule */}
       <div className="space-y-4 border-t border-slate-200 pt-4">
-        {/* three lines to start, growing with the text up to a scroll */}
-        <EditorField label="Description" name="description" required>
-          {(control) => <textarea required name="description" rows={3} maxLength={250000} defaultValue={entry?.description} {...control} className={clsx(fieldCls, 'h-auto max-h-72 min-h-[calc(3lh+1rem)] resize-y py-2 [field-sizing:content]')} />}
-        </EditorField>
-        {/* a choice of the catalogue's categories, like the unit and the supplier; a new one can still be typed */}
-        <EditorField label="Category" name="category" required>
-          {(control) => (
-            <ChoicePicker name="category" label="Category" value={category} onChange={(next) => { setCategory(next); onPicked('category') }} choices={options.categories.map(({ name }) => name)}
-              other={{ item: 'New category…', placeholder: 'Type a new category', back: 'Choose an existing category' }} maxLength={160} control={control} />
+        {/* the unit, then the price per unit and the date it applies from */}
+        <div className="grid items-start gap-4 sm:grid-cols-2">
+          <EditorField label="Unit" name="unit" hint={locked ? 'Fixed for approved products' : undefined}>
+            {(control) => (
+              <ChoicePicker name="unit" label="Unit" value={unit} onChange={(next) => { onDraft({ ...draft, unit: next }); onPicked('unit') }} choices={CATALOGUE_UNITS} none="No unit"
+                other={{ item: 'Other unit…', placeholder: 'Type a unit', back: 'Choose from the usual units' }} maxLength={64} disabled={locked} control={control} />
+            )}
+          </EditorField>
+          {/* blank means not priced (or, with a stored price, keep it); the hint says so instead of a 0,00 that reads like a price */}
+          <EditorField label={stored ? 'New unit price' : 'Unit price'} name="unit_price" hint={stored ? 'Leave blank to keep the current price' : 'Leave blank if not priced'}
+            describedBy={[`${ids}-per`, stored && `${ids}-current`].filter(Boolean).join(' ')}>
+            {(control) => (
+              <span className="relative block">
+                <input ref={priceRef} name="unit_price" inputMode="decimal" maxLength={24} value={draft.price} onChange={(e) => onDraft({ ...draft, price: e.target.value })} {...control}
+                  style={{ paddingRight: `calc(${Math.min(suffix.length, 14)}ch + 1.25rem)` }}
+                  className={clsx(fieldCls, 'num text-right')} />
+                <span aria-hidden className="pointer-events-none absolute top-1/2 right-3.5 max-w-[60%] -translate-y-1/2 truncate text-sm text-slate-600">{suffix}</span>
+                <span id={`${ids}-per`} hidden>{perUnit ? `in ${currencyName} per ${perUnit}` : `in ${currencyName}`}</span>
+              </span>
+            )}
+          </EditorField>
+          {/* asked for only once there is a new price to date; the hint says when it applies and what shows until then */}
+          {dated && (
+            <div className="sm:col-start-2">
+              <EditorField label="Effective from" name="valid_from" required hint={effectHint(draft, entry)}>
+                {(control) => <input required name="valid_from" inputMode="numeric" pattern="\d{1,2}\.\d{1,2}\.\d{4}" title="DD.MM.YYYY" value={draft.from} onChange={(e) => onDraft({ ...draft, from: e.target.value })} {...control} className={clsx(fieldCls, 'num')} />}
+              </EditorField>
+            </div>
           )}
-        </EditorField>
+        </div>
+        <input type="hidden" name="currency" value={currency} />
+        <span role="status" className="sr-only">{dated ? 'Effective from is now required, after the price.' : ''}</span>
+        {stored && (
+          <p id={`${ids}-current`} className="text-sm text-slate-600">
+            Current price <strong className="num font-semibold text-slate-900">{catalogueAmount(entry.unit_price!, currency, entry.unit)}</strong>
+            {cataloguePriceSource(entry) && <span className="num"> · {cataloguePriceSource(entry)}</span>}
+          </p>
+        )}
         {/* who sells it and under which code, side by side */}
         <div className="grid items-start gap-4 sm:grid-cols-2">
           <EditorField label="Supplier" name="supplier_id" hint={locked ? 'Fixed for approved products' : undefined}>
