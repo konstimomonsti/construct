@@ -1,0 +1,236 @@
+=== page 4/78 size 595x842
+T x=423.0 y=51.0 x2=450.0 CourierNewStandard 7.5 col=000000 | Seite:
+T x=546.0 y=51.0 x2=550.5 CourierNewStandard 7.5 col=000000 | 4
+T x=423.0 y=61.5 x2=450.0 CourierNewStandard 7.5 col=000000 | Datum:
+T x=505.5 y=61.5 x2=550.5 CourierNewStandard 7.5 col=000000 | 14.03.2023
+T x=423.0 y=72.0 x2=463.5 CourierNewStandard 7.5 col=000000 | LV-Datum:
+T x=505.5 y=72.0 x2=550.5 CourierNewStandard 7.5 col=000000 | 10.03.2023
+T x=44.2 y=83.5 x2=102.8 CourierNewFett 7.5B col=000000 | Pos-Nr. (Pos-
+T x=44.2 y=92.5 x2=62.2 CourierNewFett 7.5B col=000000 | Nr.)
+T x=134.6 y=83.5 x2=157.1 CourierNewFett 7.5B col=000000 | Menge
+T x=269.2 y=83.5 x2=300.8 CourierNewFett 7.5B col=000000 | Einheit
+T x=400.5 y=83.5 x2=472.5 CourierNewFett 7.5B col=000000 | Einheitspreis in
+T x=429.8 y=92.5 x2=443.2 CourierNewFett 7.5B col=000000 | EUR
+T x=481.5 y=83.5 x2=544.5 CourierNewFett 7.5B col=000000 | Gesamtpreis in
+T x=506.2 y=92.5 x2=519.8 CourierNewFett 7.5B col=000000 | EUR
+T x=120.8 y=105.0 x2=251.2 CourierNewStandard 7.5 col=000000 | Neubau Neue Technische Chemie
+T x=120.8 y=123.0 x2=224.2 CourierNewStandard 7.5 col=000000 | Vorbereitende Arbeiten:
+T x=120.8 y=159.0 x2=255.8 CourierNewStandard 7.5 col=000000 | Ergänzung Brunnenwasserleitung
+T x=120.8 y=195.0 x2=228.8 CourierNewStandard 7.5 col=000000 | 2. ANGABEN ZUR BAUSTELLE
+T x=120.8 y=213.0 x2=219.8 CourierNewStandard 7.5 col=000000 | 2.1 Lage der Baustelle
+T x=120.8 y=267.0 x2=516.8 CourierNewStandard 7.5 col=000000 | Immerwahrstraße, entlang der Feuerwehrumfahrt an der Nordseite des IZN
+T x=120.8 y=276.0 x2=192.8 CourierNewStandard 7.5 col=000000 | Zentralwerkstatt
+T x=120.8 y=294.0 x2=530.2 CourierNewStandard 7.5 col=000000 | Innerhalb des Baufeldes bestehen beengte Verhältnisse; vorhandener Bau
+T x=120.8 y=303.0 x2=381.8 CourierNewStandard 7.5 col=000000 | Feuerwehrumfahrt und den Freiflächen der Institutsgebäude.
+T x=120.8 y=339.0 x2=296.2 CourierNewStandard 7.5 col=000000 | Lageplan der Baumaßnahme siehe Anlage 2
+T x=120.8 y=357.0 x2=300.8 CourierNewStandard 7.5 col=000000 | 2.2 Vorhandene öffentliche Verkehrswege
+T x=120.8 y=375.0 x2=489.8 CourierNewStandard 7.5 col=000000 | Die Zufahrt zur Baustelle erfolgt über Cauerstraße und Immerwahrstraße
+T x=120.8 y=393.0 x2=300.8 CourierNewStandard 7.5 col=000000 | 2.3 Parallel stattfindende Baumaßnahmen
+T x=120.8 y=420.0 x2=534.8 CourierNewStandard 7.5 col=000000 | Baufläche NTC, westlich der Immerwahrstraße, Tiefbauarbeiten zur Freim
+T x=120.8 y=429.0 x2=543.8 CourierNewStandard 7.5 col=000000 | statt. Diese Arbeiten finden vorwiegend im nördlichen und westlichen B
+T x=120.8 y=438.0 x2=147.8 CourierNewStandard 7.5 col=000000 | statt.
+T x=120.8 y=456.0 x2=548.2 CourierNewStandard 7.5 col=000000 | Eine temporäre Nutzung des südlichen Baufeldes NTC für die Zwischenlag
+T x=120.8 y=465.0 x2=512.2 CourierNewStandard 7.5 col=000000 | Rohrmaterial ist nach Abstimmung mit der Bauüberwachung und der auf de
+T x=120.8 y=474.0 x2=197.2 CourierNewStandard 7.5 col=000000 | Baufirma möglich.
+T x=120.8 y=492.0 x2=188.2 CourierNewStandard 7.5 col=000000 | 2.4 Erddeponien
+T x=120.8 y=510.0 x2=525.8 CourierNewStandard 7.5 col=000000 | Es bestehen zwei temporäre Zwischenlager für Bodenmaterial auf die jed
+T x=120.8 y=519.0 x2=525.8 CourierNewStandard 7.5 col=000000 | Oberboden ohne jegliche Betonteile oder sonst. Abbruchstoffe zwischeng
+T x=120.8 y=537.0 x2=179.2 CourierNewStandard 7.5 col=000000 | Bodenlager 1:
+T x=120.8 y=564.0 x2=534.8 CourierNewStandard 7.5 col=000000 | westlich der Immerwahrstraße, gegenüber der Einmündung Feuerwehrumfahr
+T x=120.8 y=573.0 x2=512.2 CourierNewStandard 7.5 col=000000 | ca.100 - 200 m in geordneten Haufwerken / Mieten, in Abstimmung mit de
+T x=120.8 y=582.0 x2=228.8 CourierNewStandard 7.5 col=000000 | zwischengelagert werden.
+T x=120.8 y=600.0 x2=539.2 CourierNewStandard 7.5 col=000000 | Die Lagerfläche westlich der Immerwahrstraße wird während der Bauzeit 
+T x=120.8 y=609.0 x2=543.8 CourierNewStandard 7.5 col=000000 | Drittfirma benutzt. Hier finden Grabarbeiten und temporäre Ablagerung 
+T x=120.8 y=618.0 x2=516.8 CourierNewStandard 7.5 col=000000 | daher sind alle Tätigkeiten auf dieser Fläche mit der Bauüberwachung v
+T x=120.8 y=636.0 x2=179.2 CourierNewStandard 7.5 col=000000 | Bodenlager 2:
+T x=120.8 y=654.0 x2=534.8 CourierNewStandard 7.5 col=000000 | Ein weiteres, temporäres Zwischenlager für Bodenmaterial das später, n
+T x=120.8 y=663.0 x2=548.2 CourierNewStandard 7.5 col=000000 | werden muß, befindet sich in einem Waldstück der FAU in einer Entfernu
+T x=120.8 y=672.0 x2=534.8 CourierNewStandard 7.5 col=000000 | zum Zwischenlager über Kurt-Schuhmacher-Straße, gegenüber Weißenseelin
+T x=120.8 y=690.0 x2=372.8 CourierNewStandard 7.5 col=000000 | Der Weg in das Zwischenlager selbst ist nicht befestigt
+T x=120.8 y=708.0 x2=314.2 CourierNewStandard 7.5 col=000000 | Zufahrt zum Bodenlager 2 siehe Anlage Nr. 3
+T x=120.8 y=726.0 x2=305.2 CourierNewStandard 7.5 col=000000 | 2.5 Seitenentnahmen und Ablagerungsstelle
+T x=120.8 y=744.0 x2=530.2 CourierNewStandard 7.5 col=000000 | Für die Auffüllarbeiten in der Verfüllzone soll möglichst Material aus
+T x=120.8 y=753.0 x2=534.8 CourierNewStandard 7.5 col=000000 | verwendet werden. Sollte díeser Bodenaushub nicht geeignet sein dann i
+T x=120.8 y=762.0 x2=507.8 CourierNewStandard 7.5 col=000000 | Rohboden zu verwenden, der aus einer Seitenentnahme im Baufeld oder au
+T x=120.8 y=771.0 x2=323.2 CourierNewStandard 7.5 col=000000 | Zwischenlager auf dem Gelände der FAU stammt,
+T x=120.8 y=411.0 x2=145.7 LiberationSans 7.5 col=000000 | Parallel
+T x=161.2 y=411.0 x2=171.7 LiberationSans 7.5 col=000000 | zur
+T x=179.2 y=411.0 x2=213.4 LiberationSans 7.5 col=000000 | Verlegung
+T x=224.2 y=411.0 x2=235.1 LiberationSans 7.5 col=000000 | der
+T x=242.2 y=411.0 x2=294.7 LiberationSans 7.5 col=000000 | [PERSON_132]
+T x=299.2 y=411.0 x2=311.7 LiberationSans 7.5 col=000000 | und
+T x=317.2 y=411.0 x2=328.0 LiberationSans 7.5 col=000000 | der
+T x=335.2 y=411.0 x2=409.4 LiberationSans 7.5 col=000000 | Brunnenwasserleitung
+T x=429.7 y=411.0 x2=450.1 LiberationSans 7.5 col=000000 | finden
+T x=461.2 y=411.0 x2=471.6 LiberationSans 7.5 col=000000 | auf
+T x=479.1 y=411.0 x2=490.0 LiberationSans 7.5 col=000000 | der
+T x=497.1 y=411.0 x2=535.5 LiberationSans 7.5 col=000000 | zukünftigen
+T x=120.8 y=321.0 x2=173.2 LiberationSans 7.5 col=000000 | [PERSON_133]
+T x=177.7 y=321.0 x2=195.7 LiberationSans 7.5 col=000000 | siehe
+T x=204.7 y=321.0 x2=228.1 LiberationSans 7.5 col=000000 | Anlage
+T x=236.2 y=321.0 x2=240.4 LiberationSans 7.5 col=000000 | 1
+T x=44.2 y=51.0 x2=55.5 LiberationSans 7.5 col=000000 | LV:
+T x=62.2 y=51.0 x2=236.1 LiberationSans 7.5 col=000000 | RINGSCHLUSSBRUNNENWASSER,[PERSON_132]
+T x=120.8 y=258.0 x2=224.1 LiberationSans 7.5 col=000000 | Friedrich-Alexander-Universität
+T x=264.7 y=258.0 x2=301.4 LiberationSans 7.5 col=000000 | [ORT_022]
+T x=305.9 y=258.0 x2=325.8 LiberationSans 7.5 col=000000 | (FAU)
+T x=332.8 y=258.0 x2=354.1 LiberationSans 7.5 col=000000 | östlich
+T x=368.8 y=258.0 x2=381.3 LiberationSans 7.5 col=000000 | und
+T x=386.8 y=258.0 x2=413.5 LiberationSans 7.5 col=000000 | westlich
+T x=427.3 y=258.0 x2=438.2 LiberationSans 7.5 col=000000 | der
+T x=120.8 y=231.0 x2=157.4 LiberationSans 7.5 col=000000 | [ORT_001]
+T x=161.9 y=231.0 x2=207.7 LiberationSans 7.5 col=000000 | FAU-Gelände
+T x=215.9 y=231.0 x2=229.2 LiberationSans 7.5 col=000000 | Süd
+T x=120.8 y=141.0 x2=157.0 LiberationSans 7.5 col=000000 | Ergänzung
+T x=165.7 y=141.0 x2=218.2 LiberationSans 7.5 col=000000 | [PERSON_132]
+T x=222.7 y=141.0 x2=225.2 LiberationSans 7.5 col=000000 | -
+T x=231.7 y=141.0 x2=272.1 LiberationSans 7.5 col=000000 | Haupttrasse
+T x=120.8 y=249.0 x2=132.0 LiberationSans 7.5 col=000000 | Die
+T x=138.8 y=249.0 x2=169.6 LiberationSans 7.5 col=000000 | Baustelle
+T x=183.7 y=249.0 x2=210.4 LiberationSans 7.5 col=000000 | befindet
+T x=224.2 y=249.0 x2=237.5 LiberationSans 7.5 col=000000 | sich
+T x=246.7 y=249.0 x2=252.5 LiberationSans 7.5 col=000000 | in
+T x=260.2 y=249.0 x2=270.6 LiberationSans 7.5 col=000000 | am
+T x=273.7 y=249.0 x2=315.4 LiberationSans 7.5 col=000000 | südöstlichen
+T x=332.2 y=249.0 x2=364.7 LiberationSans 7.5 col=000000 | Stadtrand
+T x=377.2 y=249.0 x2=389.3 LiberationSans 7.5 col=000000 | von
+T x=395.2 y=249.0 x2=431.8 LiberationSans 7.5 col=000000 | [ORT_022]
+T x=436.3 y=249.0 x2=446.7 LiberationSans 7.5 col=000000 | auf
+T x=454.3 y=249.0 x2=468.9 LiberationSans 7.5 col=000000 | dem
+T x=472.3 y=249.0 x2=500.7 LiberationSans 7.5 col=000000 | Gelände
+T x=508.3 y=249.0 x2=519.1 LiberationSans 7.5 col=000000 | der
+T x=120.8 y=555.0 x2=172.8 LiberationSans 7.5 col=000000 | Überschüssiger
+T x=188.2 y=555.0 x2=222.8 LiberationSans 7.5 col=000000 | Rohboden
+T x=228.7 y=555.0 x2=239.6 LiberationSans 7.5 col=000000 | der
+T x=246.7 y=555.0 x2=254.6 LiberationSans 7.5 col=000000 | im
+T x=260.2 y=555.0 x2=277.3 LiberationSans 7.5 col=000000 | Zuge
+T x=282.7 y=555.0 x2=293.6 LiberationSans 7.5 col=000000 | der
+T x=300.7 y=555.0 x2=337.4 LiberationSans 7.5 col=000000 | [ORT_030]
+T x=341.9 y=555.0 x2=364.0 LiberationSans 7.5 col=000000 | wieder
+T x=373.4 y=555.0 x2=410.5 LiberationSans 7.5 col=000000 | unmittelbar
+T x=427.4 y=555.0 x2=460.7 LiberationSans 7.5 col=000000 | gebraucht
+T x=472.3 y=555.0 x2=488.2 LiberationSans 7.5 col=000000 | wird,
+T x=499.3 y=555.0 x2=515.6 LiberationSans 7.5 col=000000 | kann
+T x=120.8 y=177.0 x2=157.0 LiberationSans 7.5 col=000000 | Ergänzung
+T x=165.7 y=177.0 x2=218.2 LiberationSans 7.5 col=000000 | [PERSON_132]
+T x=222.7 y=177.0 x2=225.2 LiberationSans 7.5 col=000000 | -
+T x=231.7 y=177.0 x2=265.9 LiberationSans 7.5 col=000000 | Anschluss
+T x=276.7 y=177.0 x2=285.0 LiberationSans 7.5 col=000000 | an
+T x=290.2 y=177.0 x2=316.5 LiberationSans 7.5 col=000000 | Rohbau
+D f rect=(44.2,77.2,119.2,95.2) w=None stroke=None fill=(0.9411764740943909, 0.9411764740943909, 0.9411764740943909)
+D f rect=(44.2,77.2,102.8,86.2) w=None stroke=None fill=(0.9411764740943909, 0.9411764740943909, 0.9411764740943909)
+D f rect=(44.2,86.2,62.2,95.2) w=None stroke=None fill=(0.9411764740943909, 0.9411764740943909, 0.9411764740943909)
+D f rect=(120.8,77.2,171.0,95.2) w=None stroke=None fill=(0.9411764740943909, 0.9411764740943909, 0.9411764740943909)
+D f rect=(134.2,77.2,157.5,86.2) w=None stroke=None fill=(0.9411764740943909, 0.9411764740943909, 0.9411764740943909)
+D f rect=(172.5,77.2,397.5,95.2) w=None stroke=None fill=(0.9411764740943909, 0.9411764740943909, 0.9411764740943909)
+D f rect=(269.2,77.2,300.8,86.2) w=None stroke=None fill=(0.9411764740943909, 0.9411764740943909, 0.9411764740943909)
+D f rect=(399.0,77.2,474.0,95.2) w=None stroke=None fill=(0.9411764740943909, 0.9411764740943909, 0.9411764740943909)
+D f rect=(400.5,77.2,472.5,86.2) w=None stroke=None fill=(0.9411764740943909, 0.9411764740943909, 0.9411764740943909)
+D f rect=(429.8,86.2,443.2,95.2) w=None stroke=None fill=(0.9411764740943909, 0.9411764740943909, 0.9411764740943909)
+D f rect=(475.5,77.2,550.5,95.2) w=None stroke=None fill=(0.9411764740943909, 0.9411764740943909, 0.9411764740943909)
+D f rect=(481.5,77.2,544.5,86.2) w=None stroke=None fill=(0.9411764740943909, 0.9411764740943909, 0.9411764740943909)
+D f rect=(506.2,86.2,519.8,95.2) w=None stroke=None fill=(0.9411764740943909, 0.9411764740943909, 0.9411764740943909)
+D s rect=(42.8,794.2,552.0,794.2) w=0.75 stroke=(0.6274510025978088, 0.6274510025978088, 0.6274510025978088) fill=None
+D fs rect=(184.4,46.8,236.9,51.3) w=1.0 stroke=(1.0, 1.0, 1.0) fill=(1.0, 1.0, 1.0)
+D fs rect=(166.4,136.8,218.9,141.3) w=1.0 stroke=(1.0, 1.0, 1.0) fill=(1.0, 1.0, 1.0)
+D fs rect=(166.4,172.8,218.9,177.3) w=1.0 stroke=(1.0, 1.0, 1.0) fill=(1.0, 1.0, 1.0)
+D fs rect=(121.3,226.8,187.4,231.3) w=1.0 stroke=(1.0, 1.0, 1.0) fill=(1.0, 1.0, 1.0)
+D fs rect=(395.9,244.8,430.4,249.3) w=1.0 stroke=(1.0, 1.0, 1.0) fill=(1.0, 1.0, 1.0)
+D fs rect=(265.4,253.8,340.4,258.3) w=1.0 stroke=(1.0, 1.0, 1.0) fill=(1.0, 1.0, 1.0)
+D fs rect=(121.3,316.8,200.9,321.3) w=1.0 stroke=(1.0, 1.0, 1.0) fill=(1.0, 1.0, 1.0)
+D fs rect=(242.9,406.8,295.4,411.3) w=1.0 stroke=(1.0, 1.0, 1.0) fill=(1.0, 1.0, 1.0)
+D fs rect=(301.4,550.8,349.4,555.3) w=1.0 stroke=(1.0, 1.0, 1.0) fill=(1.0, 1.0, 1.0)
+=== page 11/78 size 595x842
+T x=423.0 y=51.0 x2=450.0 CourierNewStandard 7.5 col=000000 | Seite:
+T x=541.5 y=51.0 x2=550.5 CourierNewStandard 7.5 col=000000 | 11
+T x=423.0 y=61.5 x2=450.0 CourierNewStandard 7.5 col=000000 | Datum:
+T x=505.5 y=61.5 x2=550.5 CourierNewStandard 7.5 col=000000 | 14.03.2023
+T x=423.0 y=72.0 x2=463.5 CourierNewStandard 7.5 col=000000 | LV-Datum:
+T x=505.5 y=72.0 x2=550.5 CourierNewStandard 7.5 col=000000 | 10.03.2023
+T x=44.2 y=83.5 x2=102.8 CourierNewFett 7.5B col=000000 | Pos-Nr. (Pos-
+T x=44.2 y=92.5 x2=62.2 CourierNewFett 7.5B col=000000 | Nr.)
+T x=134.6 y=83.5 x2=157.1 CourierNewFett 7.5B col=000000 | Menge
+T x=269.2 y=83.5 x2=300.8 CourierNewFett 7.5B col=000000 | Einheit
+T x=400.5 y=83.5 x2=472.5 CourierNewFett 7.5B col=000000 | Einheitspreis in
+T x=429.8 y=92.5 x2=443.2 CourierNewFett 7.5B col=000000 | EUR
+T x=481.5 y=83.5 x2=544.5 CourierNewFett 7.5B col=000000 | Gesamtpreis in
+T x=506.2 y=92.5 x2=519.8 CourierNewFett 7.5B col=000000 | EUR
+T x=120.8 y=105.0 x2=471.8 CourierNewStandard 7.5 col=000000 | Länge des überbrückten Zwischenraumes (Spannweite) über 2 bis 4 m, vor
+T x=120.8 y=114.0 x2=251.2 CourierNewStandard 7.5 col=0000ff | Positionsmenge = Produkt aus
+T x=120.8 y=123.0 x2=143.2 CourierNewStandard 7.5 col=0000ff | 2 St
+T x=143.2 y=123.0 x2=210.8 CourierNewStandard 7.5 col=000000 | (Vorhaltemenge)
+T x=120.8 y=132.0 x2=138.8 CourierNewStandard 7.5 col=0000ff | mal
+T x=120.8 y=141.0 x2=165.8 CourierNewStandard 7.5 col=0000ff | 10 Wochen
+T x=165.8 y=141.0 x2=242.2 CourierNewStandard 7.5 col=000000 | (Vorhaltedauer).
+T x=120.8 y=151.5 x2=147.8 CourierNewStandard 7.5 col=000000 | 20,000
+T x=172.5 y=151.5 x2=190.5 CourierNewStandard 7.5 col=000000 | StWo
+T x=44.2 y=172.0 x2=71.2 CourierNewKursiv 7.5I col=000000 | 1.1.18
+T x=120.8 y=172.0 x2=381.8 CourierNewFett 7.5B col=000000 | Laufsteg beidseit.Schutzwand Holz B 1-1,5m L 2-4m umsetzen
+T x=120.8 y=193.5 x2=525.8 CourierNewStandard 7.5 col=000000 | Laufsteg zur Überbrückung, mit beidseitiger Schutzwand, aus Holz, Brei
+T x=120.8 y=202.5 x2=530.2 CourierNewStandard 7.5 col=000000 | Länge des überbrückten Zwischenraumes (Spannweite) über 2 bis 4 m, ums
+T x=120.8 y=211.5 x2=201.8 CourierNewStandard 7.5 col=000000 | Anordnung des AG.
+T x=120.8 y=222.0 x2=143.2 CourierNewStandard 7.5 col=000000 | 1,000
+T x=172.5 y=222.0 x2=181.5 CourierNewStandard 7.5 col=000000 | St
+T x=44.2 y=242.5 x2=71.2 CourierNewKursiv 7.5I col=000000 | 1.1.19
+T x=120.8 y=242.5 x2=444.8 CourierNewFett 7.5B col=000000 | Behelfsüberfahrt 16,7kN/m2 L 2-4m B 3-3,75m Stahlbeton herstellen räum
+T x=120.8 y=264.0 x2=534.8 CourierNewStandard 7.5 col=000000 | Behelfsüberfahrt, über Graben, Verkehrslast 16,7 kN/m2, für nichtöffen
+T x=120.8 y=273.0 x2=521.2 CourierNewStandard 7.5 col=000000 | über 2 bis 4 m, Breite über 3 bis 3,75 m, Abdeckung mit vorgefertigten
+T x=120.8 y=282.0 x2=224.2 CourierNewStandard 7.5 col=000000 | herstellen und räumen.
+T x=120.8 y=292.5 x2=143.2 CourierNewStandard 7.5 col=000000 | 2,000
+T x=172.5 y=292.5 x2=181.5 CourierNewStandard 7.5 col=000000 | St
+T x=44.2 y=313.0 x2=71.2 CourierNewKursiv 7.5I col=000000 | 1.1.20
+T x=120.8 y=313.0 x2=408.8 CourierNewFett 7.5B col=000000 | Behelfsüberfahrt 16,7kN/m2 L 2-4m B 3-3,75m Stahlbeton vorhalten
+T x=120.8 y=334.5 x2=534.8 CourierNewStandard 7.5 col=000000 | Behelfsüberfahrt, über Graben, Verkehrslast 16,7 kN/m2, für nichtöffen
+T x=120.8 y=343.5 x2=521.2 CourierNewStandard 7.5 col=000000 | über 2 bis 4 m, Breite über 3 bis 3,75 m, Abdeckung mit vorgefertigten
+T x=120.8 y=352.5 x2=170.2 CourierNewStandard 7.5 col=000000 | vorhalten,
+T x=120.8 y=361.5 x2=251.2 CourierNewStandard 7.5 col=0000ff | Positionsmenge = Produkt aus
+T x=120.8 y=370.5 x2=143.2 CourierNewStandard 7.5 col=0000ff | 2 St
+T x=143.2 y=370.5 x2=210.8 CourierNewStandard 7.5 col=000000 | (Vorhaltemenge)
+T x=120.8 y=379.5 x2=138.8 CourierNewStandard 7.5 col=0000ff | mal
+T x=120.8 y=388.5 x2=165.8 CourierNewStandard 7.5 col=0000ff | 10 Wochen
+T x=165.8 y=388.5 x2=242.2 CourierNewStandard 7.5 col=000000 | (Vorhaltedauer).
+T x=120.8 y=399.0 x2=147.8 CourierNewStandard 7.5 col=000000 | 20,000
+T x=172.5 y=399.0 x2=190.5 CourierNewStandard 7.5 col=000000 | StWo
+T x=44.2 y=419.5 x2=71.2 CourierNewKursiv 7.5I col=000000 | 1.1.21
+T x=120.8 y=419.5 x2=404.2 CourierNewFett 7.5B col=000000 | Behelfsüberfahrt 16,7kN/m2 L 2-4m B 3-3,75m Stahlbeton umsetzen
+T x=120.8 y=441.0 x2=534.8 CourierNewStandard 7.5 col=000000 | Behelfsüberfahrt, über Graben, Verkehrslast 16,7 kN/m2, für nichtöffen
+T x=120.8 y=450.0 x2=521.2 CourierNewStandard 7.5 col=000000 | über 2 bis 4 m, Breite über 3 bis 3,75 m, Abdeckung mit vorgefertigten
+T x=120.8 y=459.0 x2=314.2 CourierNewStandard 7.5 col=000000 | umsetzen nach besonderer Anordnung des AG.
+T x=120.8 y=469.5 x2=143.2 CourierNewStandard 7.5 col=000000 | 1,000
+T x=172.5 y=469.5 x2=181.5 CourierNewStandard 7.5 col=000000 | St
+T x=415.5 y=500.5 x2=474.0 CourierNewFett 7.5B col=000000 | Gesamtbetrag:
+T x=532.5 y=500.5 x2=550.5 CourierNewFett 7.5B col=000000 | 0,00
+T x=44.2 y=51.0 x2=55.5 LiberationSans 7.5 col=000000 | LV:
+T x=62.2 y=51.0 x2=236.1 LiberationSans 7.5 col=000000 | RINGSCHLUSSBRUNNENWASSER,[PERSON_132]
+T x=120.8 y=323.5 x2=155.3 LiberationSans 7.5 col=000000 | STLB-Bau
+T x=161.2 y=323.5 x2=188.7 LiberationSans 7.5 col=000000 | 2020-04
+T x=197.2 y=323.5 x2=252.6 LiberationSans 7.5 col=000000 | [TELEFON_024]
+T x=120.8 y=182.5 x2=155.3 LiberationSans 7.5 col=000000 | STLB-Bau
+T x=161.2 y=182.5 x2=188.7 LiberationSans 7.5 col=000000 | 2020-04
+T x=197.2 y=182.5 x2=252.6 LiberationSans 7.5 col=000000 | [TELEFON_002]
+T x=120.8 y=253.0 x2=155.3 LiberationSans 7.5 col=000000 | STLB-Bau
+T x=161.2 y=253.0 x2=188.7 LiberationSans 7.5 col=000000 | 2020-04
+T x=197.2 y=253.0 x2=252.6 LiberationSans 7.5 col=000000 | [TELEFON_024]
+T x=120.8 y=430.0 x2=155.3 LiberationSans 7.5 col=000000 | STLB-Bau
+T x=161.2 y=430.0 x2=188.7 LiberationSans 7.5 col=000000 | 2020-04
+T x=197.2 y=430.0 x2=252.6 LiberationSans 7.5 col=000000 | [TELEFON_024]
+D f rect=(44.2,77.2,119.2,95.2) w=None stroke=None fill=(0.9411764740943909, 0.9411764740943909, 0.9411764740943909)
+D f rect=(44.2,77.2,102.8,86.2) w=None stroke=None fill=(0.9411764740943909, 0.9411764740943909, 0.9411764740943909)
+D f rect=(44.2,86.2,62.2,95.2) w=None stroke=None fill=(0.9411764740943909, 0.9411764740943909, 0.9411764740943909)
+D f rect=(120.8,77.2,171.0,95.2) w=None stroke=None fill=(0.9411764740943909, 0.9411764740943909, 0.9411764740943909)
+D f rect=(134.2,77.2,157.5,86.2) w=None stroke=None fill=(0.9411764740943909, 0.9411764740943909, 0.9411764740943909)
+D f rect=(172.5,77.2,397.5,95.2) w=None stroke=None fill=(0.9411764740943909, 0.9411764740943909, 0.9411764740943909)
+D f rect=(269.2,77.2,300.8,86.2) w=None stroke=None fill=(0.9411764740943909, 0.9411764740943909, 0.9411764740943909)
+D f rect=(399.0,77.2,474.0,95.2) w=None stroke=None fill=(0.9411764740943909, 0.9411764740943909, 0.9411764740943909)
+D f rect=(400.5,77.2,472.5,86.2) w=None stroke=None fill=(0.9411764740943909, 0.9411764740943909, 0.9411764740943909)
+D f rect=(429.8,86.2,443.2,95.2) w=None stroke=None fill=(0.9411764740943909, 0.9411764740943909, 0.9411764740943909)
+D f rect=(475.5,77.2,550.5,95.2) w=None stroke=None fill=(0.9411764740943909, 0.9411764740943909, 0.9411764740943909)
+D f rect=(481.5,77.2,544.5,86.2) w=None stroke=None fill=(0.9411764740943909, 0.9411764740943909, 0.9411764740943909)
+D f rect=(506.2,86.2,519.8,95.2) w=None stroke=None fill=(0.9411764740943909, 0.9411764740943909, 0.9411764740943909)
+D s rect=(42.8,794.2,552.0,794.2) w=0.75 stroke=(0.6274510025978088, 0.6274510025978088, 0.6274510025978088) fill=None
+D s rect=(44.2,488.2,550.5,488.2) w=0.75 stroke=(0.6274510025978088, 0.6274510025978088, 0.6274510025978088) fill=None
+D fs rect=(184.4,46.8,236.9,51.3) w=1.0 stroke=(1.0, 1.0, 1.0) fill=(1.0, 1.0, 1.0)
+D fs rect=(197.9,178.4,232.4,182.9) w=1.0 stroke=(1.0, 1.0, 1.0) fill=(1.0, 1.0, 1.0)
+D fs rect=(197.9,248.9,232.4,253.4) w=1.0 stroke=(1.0, 1.0, 1.0) fill=(1.0, 1.0, 1.0)
+D fs rect=(197.9,319.4,232.4,323.9) w=1.0 stroke=(1.0, 1.0, 1.0) fill=(1.0, 1.0, 1.0)
+D fs rect=(197.9,425.9,232.4,430.4) w=1.0 stroke=(1.0, 1.0, 1.0) fill=(1.0, 1.0, 1.0)
