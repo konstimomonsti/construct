@@ -25,9 +25,9 @@ def build():
             length = line["short_text"].split("l=")[-1].strip()
             line["short_text"] = line["short_text"].split(", l=")[0] + ", C35/45"
             line["long_text"] = (
-                f"Stahlbetonfertigteil als Sandwichelement aus Beton C35/45, Expositionsklasse XC4 und XF4. "
-                f"Länge {length}, Höhe 60 cm, Gesamtdicke 30 cm. "
-                "Dicke Vorsatzschale: 7 cm; Dicke Tragschale: 15 cm; Dämmstoffdicke: 8 cm. "
+                "Stahlbetonfertigteil als Sandwichelement aus Beton C35/45, Expositionsklasse XC4 und XF1. "
+                f"Länge {length}, Höhe 60 cm, d = 30 cm gesamt. "
+                "Dicke Vorsatzschale: 7 cm; Dicke Tragschale: 15 cm; Dämmschicht: 8 cm. "
                 "Wärmedämmung aus extrudierten Polystyrol-Hartschaumplatten. "
                 "Sichtbeton der Vorsatzschale durchgefärbt in RAL 7032. "
                 "Werkseitige Herstellung einschließlich Bewehrung und Transportanker; Montage auf der Baustelle."
@@ -44,8 +44,9 @@ def build():
             line.update(short_text="Einbauteil aus Edelstahl, Länge 150 mm",
                         long_text="Einbauteil Typ S150 aus Edelstahl liefern und werkseitig einbauen.")
     for code, short, detail, qty, unit in [
-        ("3.2.100", "Dichtstoff für Plattenfugen", "Plattenfugen nach Montage mit elastischem Dichtstoff schließen.", "45", "m"),
+        ("3.2.100", "Fugenabdichtung", "Plattenfugen nach Montage mit elastischem Dichtstoff schließen.", "45", "m"),
         ("3.2.110", "Baustellenverkehr sichern", "Verkehrsführung entlang der Zufahrt sicherstellen.", "20", "m"),
+        ("3.2.120", "Transport und Montage", "Fertigteile anliefern, abladen und auf der Baustelle versetzen.", "5", "St"),
     ]:
         doc["lines"].append({
             "id": "lv11-" + code, "code": code, "code_parts": code.split("."), "section_id": "s-3.2",

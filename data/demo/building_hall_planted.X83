@@ -36,7 +36,7 @@
           <Num>Yes</Num>
         </BoQBkdn>
         <Totals>
-          <Total>519191.90</Total>
+          <Total>519785.90</Total>
         </Totals>
       </BoQInfo>
       <BoQBody>
@@ -486,7 +486,7 @@
                         <DetailTxt>
                           <Text>
                             <p>
-                              <span>Bodenplatte als WU-Konstruktion herstellen, Beton C30/37 liefern, einbauen, verdichten, abziehen und nachbehandeln. Abrechnung nach m3.</span>
+                              <span>Bodenplatte d = 30 cm als WU-Konstruktion herstellen, Beton C30/37 liefern, einbauen, verdichten, abziehen und nachbehandeln. Abrechnung nach m3.</span>
                             </p>
                           </Text>
                         </DetailTxt>
@@ -738,41 +738,15 @@
                       </CompleteText>
                     </Description>
                   </Item>
-                  <Item ID="L01.04.0035" RNoPart="0035">
-                    <Qty>36.000</Qty>
-                    <QU>St</QU>
-                    <UP>28.00</UP>
-                    <IT>1008.00</IT>
-                    <Description>
-                      <CompleteText>
-                        <DetailTxt>
-                          <Text>
-                            <p>
-                              <span>Aussparungen, Hülsen und Ankerschienen nach Plan setzen und sichern. Abrechnung nach Stück.</span>
-                            </p>
-                          </Text>
-                        </DetailTxt>
-                        <OutlineText>
-                          <OutlTxt>
-                            <TextOutlTxt>
-                              <p>
-                                <span>Aussparungen und Einbauteile in Betonbauteilen</span>
-                              </p>
-                            </TextOutlTxt>
-                          </OutlTxt>
-                        </OutlineText>
-                      </CompleteText>
-                    </Description>
-                  </Item>
                 </Itemlist>
               </BoQBody>
               <Totals>
-                <Total>93856.00</Total>
+                <Total>92848.00</Total>
               </Totals>
             </BoQCtgy>
           </BoQBody>
           <Totals>
-            <Total>300664.00</Total>
+            <Total>299656.00</Total>
           </Totals>
         </BoQCtgy>
         <BoQCtgy ID="S02" RNoPart="02">
@@ -866,7 +840,7 @@
                         <DetailTxt>
                           <Text>
                             <p>
-                              <span>Estrich liefern, einbauen, verdichten, abziehen und nachbehandeln, Oberfläche für Belagarbeiten geeignet. Abrechnung nach m2.</span>
+                              <span>Estrich d = 65 mm liefern, einbauen, verdichten, abziehen und nachbehandeln, Oberfläche für Belagarbeiten geeignet. Abrechnung nach m2.</span>
                             </p>
                           </Text>
                         </DetailTxt>
@@ -1130,6 +1104,32 @@
                       </CompleteText>
                     </Description>
                   </Item>
+                  <Item ID="L03.01.0035" RNoPart="0035">
+                    <Qty>9.000</Qty>
+                    <QU>St</QU>
+                    <UP>168.00</UP>
+                    <IT>1512.00</IT>
+                    <Description>
+                      <CompleteText>
+                        <DetailTxt>
+                          <Text>
+                            <p>
+                              <span>Zarge einbauen, hinterfüllen und ausrichten. Abrechnung nach Stück.</span>
+                            </p>
+                          </Text>
+                        </DetailTxt>
+                        <OutlineText>
+                          <OutlTxt>
+                            <TextOutlTxt>
+                              <p>
+                                <span>Stahlumfassungszarge für Wanddicke 100 mm</span>
+                              </p>
+                            </TextOutlTxt>
+                          </OutlTxt>
+                        </OutlineText>
+                      </CompleteText>
+                    </Description>
+                  </Item>
                   <Item ID="L03.01.0040" RNoPart="0040">
                     <Qty>120.000</Qty>
                     <QU>m</QU>
@@ -1159,7 +1159,7 @@
                 </Itemlist>
               </BoQBody>
               <Totals>
-                <Total>27642.00</Total>
+                <Total>29154.00</Total>
               </Totals>
             </BoQCtgy>
             <BoQCtgy ID="S03.02" RNoPart="02">
@@ -1334,7 +1334,7 @@
             </BoQCtgy>
           </BoQBody>
           <Totals>
-            <Total>34609.40</Total>
+            <Total>36121.40</Total>
           </Totals>
         </BoQCtgy>
         <BoQCtgy ID="S04" RNoPart="04">
@@ -1371,7 +1371,7 @@
                           <OutlTxt>
                             <TextOutlTxt>
                               <p>
-                                <span>Abdeckarbeiten, Böden und Einbauteile schützen</span>
+                                <span>Abdeckarbeiten für Malerarbeiten</span>
                               </p>
                             </TextOutlTxt>
                           </OutlTxt>
@@ -1824,10 +1824,10 @@
                     </Description>
                   </Item>
                   <Item ID="L05.02.0040" RNoPart="0040">
-                    <Qty>0.000</Qty>
+                    <Qty>130.000</Qty>
                     <QU>m</QU>
                     <UP>12.00</UP>
-                    <IT>0.00</IT>
+                    <IT>1560.00</IT>
                     <Description>
                       <CompleteText>
                         <DetailTxt>
@@ -1850,10 +1850,10 @@
                     </Description>
                   </Item>
                   <Item ID="L05.02.0050" RNoPart="0050">
-                    <Qty>6.000</Qty>
+                    <Qty>0.000</Qty>
                     <QU>St</QU>
                     <UP>245.00</UP>
-                    <IT>1470.00</IT>
+                    <IT>0.00</IT>
                     <Description>
                       <CompleteText>
                         <DetailTxt>
@@ -1878,12 +1878,12 @@
                 </Itemlist>
               </BoQBody>
               <Totals>
-                <Total>10185.00</Total>
+                <Total>10275.00</Total>
               </Totals>
             </BoQCtgy>
           </BoQBody>
           <Totals>
-            <Total>84345.00</Total>
+            <Total>84435.00</Total>
           </Totals>
         </BoQCtgy>
       </BoQBody>

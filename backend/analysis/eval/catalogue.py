@@ -383,9 +383,7 @@ def plan_conflict(kind: str):
                        f"{line['code']}: long text says {new}, short text says {pattern.search(line['short_text']).group(0)}",
                        [{"op": "set", "id": line["id"], "field": "long_text", "value": text}],
                        label(target=line_target(line),
-                             expect=["L1.TEXT.VALUE_CONFLICT", "L3.TEXT.SHORT_LONG_CONTRADICTION"], match="line",
-                             gap=True, note="L1.TEXT.VALUE_CONFLICT is planned (tasks/01-deterministic-din-precast-rules.md); "
-                                            "the layer 3 check needs a model."),
+                             expect=["L1.TEXT.VALUE_CONFLICT", "L3.TEXT.SHORT_LONG_CONTRADICTION"], match="line"),
                        {"line": line["code"], "old": old, "new": new})
     return planner
 
@@ -590,8 +588,8 @@ TYPES: list[MutationType] = [
     MutationType("TEXT-TYPO", "Typo in the short text", "gap: L1.TEXT.TYPO planned", True, False, plan_typo),
     MutationType("TEXT-VAGUE", "Vague item 'nach Aufwand'", "gap: L1.TEXT.SPEC_PLACEHOLDER planned", True, False, plan_vague),
     MutationType("TEXT-CONFLICT-CLASS", "Concrete class differs in the long text",
-                 "gap: L1.TEXT.VALUE_CONFLICT planned / L3", True, False, plan_conflict("CLASS")),
-    MutationType("TEXT-CONFLICT-DN", "DN differs in the long text", "gap: L1.TEXT.VALUE_CONFLICT planned / L3", True,
+                 "L1.TEXT.VALUE_CONFLICT / L3", False, False, plan_conflict("CLASS")),
+    MutationType("TEXT-CONFLICT-DN", "DN differs in the long text", "L1.TEXT.VALUE_CONFLICT / L3", False,
                  False, plan_conflict("DN")),
     MutationType("L2-REMOVE", "Dependency removed", "L2.<GROUP>_NEEDS_<DEP>", False, False, plan_l2("REMOVE"),
                  per_type=False),

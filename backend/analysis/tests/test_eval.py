@@ -122,10 +122,14 @@ def test_dependency_is_removed_only_if_no_remaining_text_names_it(seed_doc):
 def test_gaps_and_controls_are_labelled(seed_doc):
     plans = catalogue.plan_all(seed_doc, 1, 1)
     by_type = {p.type: p for p in plans}
-    for name in ("DUP-REWORDED", "TEXT-TYPO", "TEXT-VAGUE", "TEXT-CONFLICT-CLASS", "TEXT-CONFLICT-DN"):
+    for name in ("DUP-REWORDED", "TEXT-TYPO", "TEXT-VAGUE"):
         assert by_type[name].label["gap"] is True and by_type[name].label["expect"]
-    conflict = by_type["TEXT-CONFLICT-CLASS"].label
-    assert "L1.TEXT.VALUE_CONFLICT" in conflict["expect"] and conflict["layers"] == [1, 3]
+    for name in ("TEXT-CONFLICT-CLASS", "TEXT-CONFLICT-DN"):
+        assert by_type[name].label["gap"] is False
+    for name in ("TEXT-CONFLICT-CLASS", "TEXT-CONFLICT-DN"):
+        conflict = by_type[name].label
+        assert not conflict["gap"]
+        assert "L1.TEXT.VALUE_CONFLICT" in conflict["expect"] and conflict["layers"] == [1, 3]
     for name in ("CTRL-INLINE", "CTRL-REORDER", "CTRL-WHITESPACE", "CTRL-PLUS5"):
         assert by_type[name].label["control"] is True and by_type[name].label["expect"] == []
 
@@ -275,14 +279,14 @@ def test_precast_seed_and_mutations_round_trip_cleanly(tmp_path):
     assert json.loads(PRECAST_PATH.read_text(encoding="utf-8")) == build()
     baseline = analyze(adapter.from_json(PRECAST_PATH), [1, 2])
     assert not baseline.errors
-    assert not [f for f in baseline.findings if f.severity in {"error", "warning"}]
+    assert not baseline.findings
 
     # One building-hall type keeps this test quick while exercising both format paths for precast.
     mutate.generate(out_dir=tmp_path, only={"QTY-ZERO"}, per_type=1, include_precast=True, demo=False)
     run_all(tmp_path, [1, 2])
     evaluation = evaluate(tmp_path)
     rendered = format_report(evaluation)
-    assert "Dämmstoffdicke 10 cm" in rendered
+    assert "Dämmschicht 10 cm" in rendered
     assert "Unrelated traffic-control quantity increases by 5%" in rendered
     assert "L3.PRECAST.MISSING_SPEC" in rendered
     assert not evaluation.false_alarms
@@ -290,7 +294,8 @@ def test_precast_seed_and_mutations_round_trip_cleanly(tmp_path):
         results = {row.label["mutation_type"]: row.outcome for row in evaluation.outcomes if row.backend == backend}
         for plan in precast.plans(docio.load(PRECAST_PATH)):
             assert plan.type in results
-        assert results["PRECAST-UNIT"] == "caught"
+        for case in ("STRENGTH", "LAYER-SUM", "UNIT", "PLACEHOLDER", "TEXT-CONFLICT", "MISSING-DRAWINGS"):
+            assert results[f"PRECAST-{case}"] == "caught", (backend, case)
         assert results["PRECAST-MISSING-SPEC"] == results["PRECAST-REBAR-SCOPE"] == "not_run"
 
 
@@ -305,8 +310,13 @@ def test_generated_demo_files_have_expected_live_findings():
     } <= {finding["rule_id"] for finding in building["findings"]}
     precast = run_file(folder / "precast_lv11_planted.X83", [1, 2])
     assert not precast["errors"]
-    assert any(finding["rule_id"] == "L1.UNIT.TEXT_MISMATCH" and finding["line_code"] == "3.2.80"
-               for finding in precast["findings"])
+    assert {
+        ("L1.DIN.EXPOSURE_STRENGTH", "3.2.20"),
+        ("L1.PRECAST.LAYER_SUM", "3.2.30"),
+        ("L1.UNIT.TEXT_MISMATCH", "3.2.80"),
+        ("L1.UNIT.TRADE_MISMATCH", "3.2.80"),
+        ("L1.TEXT.SPEC_PLACEHOLDER", "3.2.90"),
+    } <= {(finding["rule_id"], finding["line_code"]) for finding in precast["findings"]}
 
 
 def test_layer3_evaluation_refuses_modified_file_or_real_label_request(tmp_path, monkeypatch):

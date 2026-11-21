@@ -107,7 +107,7 @@ ROWS = [
      "Streifenfundamente herstellen, Beton C25/30 liefern, einbauen, verdichten und nachbehandeln. Abrechnung nach m3.",
      "68", "m3", "214.00"),
     ("01.02", "0030", "Bodenplatte aus Stahlbeton C30/37, d = 30 cm",
-     "Bodenplatte als WU-Konstruktion herstellen, Beton C30/37 liefern, einbauen, verdichten, abziehen und "
+     "Bodenplatte d = 30 cm als WU-Konstruktion herstellen, Beton C30/37 liefern, einbauen, verdichten, abziehen und "
      "nachbehandeln. Abrechnung nach m3.",
      "264", "m3", "238.00"),
     ("01.02", "0040", "Betonoberfläche der Hallenfläche mit Flügelglätter abziehen",
@@ -149,7 +149,7 @@ ROWS = [
      "Platten dicht gestoßen und versetzt verlegen, Durchdringungen sauber anpassen. Abrechnung nach m2.",
      "390", "m2", "8.90"),
     ("02.02", "0010", "Zementestrich CT-C25-F4, schwimmend, d = 65 mm",
-     "Estrich liefern, einbauen, verdichten, abziehen und nachbehandeln, Oberfläche für Belagarbeiten geeignet. "
+     "Estrich d = 65 mm liefern, einbauen, verdichten, abziehen und nachbehandeln, Oberfläche für Belagarbeiten geeignet. "
      "Abrechnung nach m2.",
      "240", "m2", "31.50"),
     ("02.02", "0020", "Zementestrich CT-C30-F5 im Verbund, d = 45 mm",
@@ -200,7 +200,7 @@ ROWS = [
      "Schattenfugenprofil am Wand-Decken-Anschluss einbauen und ausrichten. Abrechnung nach m.",
      "70", "m", "9.80"),
     # 04 Malerarbeiten
-    ("04.01", "0010", "Abdeckarbeiten, Böden und Einbauteile schützen",
+    ("04.01", "0010", "Abdeckarbeiten für Malerarbeiten",
      "Böden und Einbauteile mit Vlies schützen, Schutz nach Arbeitsende entfernen. Abrechnung pauschal.",
      "1", PSCH, "2800.00"),
     ("04.01", "0020", "Tiefengrund auf saugenden Untergründen",

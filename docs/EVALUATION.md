@@ -21,16 +21,16 @@ The optional `run --layers 1,2,3` uses the configured provider from the existing
 
 ## Snapshot at Task 05
 
-These figures describe the labelled fixtures with Layers 1 and 2 on the task's main baseline. X83 and JSON produced the same planted-label outcomes. The figures exclude the combined presenter files from recall and rule precision.
+These figures describe the labelled fixtures replayed through Layers 1 and 2 after Task 01 merged. X83 and JSON produced the same planted-label outcomes. The figures exclude the combined presenter files from recall and rule precision.
 
 | Suite per format | Caught | Missed | Known gaps | Layer not run |
 | --- | ---: | ---: | ---: | ---: |
-| Building hall | 76 | 0 | 13 | 0 |
-| Precast LV 11 | 1 | 5 | 0 | 2 |
+| Building hall | 80 | 0 | 9 | 0 |
+| Precast LV 11 | 6 | 0 | 0 | 2 |
 
-- The building hall matched the archived result of 76/76 for cases with a supporting rule. The 13 known gaps remain represented in overall recall.
-- The precast billing-unit conflict is detected by the existing rule. The five misses cover the planned strength, layer sum, placeholder, description conflict, and workshop drawing checks. The two Layer 3 cases cover missing specifications and ambiguous rebar scope.
-- Both clean seeds and all harmless controls produced zero findings. The default replay checks 46 controls across both formats, including the underlying clean seeds.
+- Task 01 added deterministic detection for four concrete-class and nominal-diameter contradictions. The remaining building-hall gaps cover reworded duplicates, typos, and vague wording.
+- The precast catches cover strength versus exposure class, sandwich layer sum, billing unit, a product placeholder, conflicting concrete grades, and missing workshop drawings. Missing height or colour and ambiguous rebar scope require Layer 3.
+- Both seeds and all 46 control files across the two formats produced zero findings after clarifying the fixture scope. The first replay diagnosed contextual false alarms when a protection item named adjacent embedded parts and when the long text gave only an included component's dimensions. The refreshed controls keep the included component dimensions and also state the main item's dimensions. The original wording remains a challenge for the rule engine.
 - The generated report includes recall by mutation, precision by rule, individual cases, and expected consequences such as changes in subtotals. A finding counts as a catch when its rule and affected position or scope match a label.
 
 The local browser upload shows the building-hall zero quantity, duplicate and missing edge insulation, and the precast billing-unit conflict. On this baseline the X83 upload check omits the source line amount. The CLI report verifies the planted arithmetic and its subtotal consequences.
@@ -39,9 +39,9 @@ Each generated file has a `construct-eval-labels/1` sidecar with stable position
 
 ## Preliminary review of repository files
 
-The [real-file labels](../backend/analysis/eval/labels/real_findings.csv) cover the existing warning and error groups in the seven repository X83, D83 and D86 files. Four files had no warning or error groups on this baseline. Among the nine labelled groups, one is a confirmed source error, one is a false alarm, three are consequences of an importer interpretation, and four still need supporting project evidence. The labels describe groups of existing findings. They measure neither missed real errors nor production recall.
+The [real-file labels](../backend/analysis/eval/labels/real_findings.csv) cover 18 warning and error groups in the seven repository X83, D83 and D86 files. The preliminary review found one confirmed source error, five false-alarm groups, three importer consequences, and nine groups requiring more evidence. The counts cover existing findings only, and some files are versions of the same tender.
 
-For example, the two duplicate disposal surcharges in the 501-24-01 source each refer to a distinct preceding root-stock position. In StBALV23040, the malformed `TEL00009` key accounts for the missing €982.20 in two nested subtotals. The source identifies the malformed key and amount, and the correct position number still needs review.
+In the 501-24-01 tender, two disposal surcharges refer to separate preceding root-stock positions. In StBALV23040, the malformed `TEL00009` key accounts for €982.20 missing from two nested subtotals. The correct position number needs confirmation. Four false-alarm groups flagged anonymized supplier tokens. Two text conflict groups compare the `C20/25` foundation and backing in the short description with the `C25/30` bedding in the long description. The project documents must establish which components share a grade.
 
 To prepare another group-level review:
 

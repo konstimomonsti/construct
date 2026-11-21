@@ -7,11 +7,11 @@ The lead merges PRs and resolves conflicts in this file. Contracts are in [CLAUD
 
 | ID | Task | Branch | Status | Notes |
 |---|---|---|---|---|
-| 01 | [Deterministic DIN 1045-2, precast and text-defect rules](tasks/01-deterministic-din-precast-rules.md) | `feat/task-01` | todo | |
+| 01 | [Deterministic DIN 1045-2, precast and text-defect rules](tasks/01-deterministic-din-precast-rules.md) | `feat/task-01` | merged | [PR #8](https://github.com/konstimomonsti/construct/pull/8) merged. LV_11: 13 findings. Lead follow-up: full DIN EN 206 grade table, armour-stone numbers ignored, case-sensitive exposure codes. Open: `SPEC_PLACEHOLDER` is noisy on anonymized manufacturer names (wave 2) |
 | 02 | [Layer 3 on Claude: precast extraction, scope audit, live demo](tasks/02-layer3-claude-checks.md) | `feat/task-02` | todo | |
 | 03 | [Risk score, change-order signals, Bieterfragen (contract v0.2)](tasks/03-risk-score-bieterfragen.md) | `feat/task-03` | todo | |
 | 04 | [Risk report UI, reviewer decisions, exports](tasks/04-risk-report-ui.md) | `feat/task-04` | todo | Uses a fixture until 03 lands |
-| 05 | [Planted-error evaluation and demo files](tasks/05-planted-error-evaluation.md) | `feat/task-05` | PR open | Building hall 76/76 supported cases, 46 clean controls. Precast has one catch, five misses pending Task 01 and two Layer 3 cases pending Task 02. |
+| 05 | [Planted-error evaluation and demo files](tasks/05-planted-error-evaluation.md) | `feat/task-05` | PR open | Task 01 replay: building hall 80/80 and precast 6/6 supported cases per format. All 46 controls clean. Nine known gaps and two Layer 3 cases per format remain. |
 | 06 | [Upload real tender PDFs and .xls (queued)](tasks/06-real-pdf-excel-upload.md) | `feat/task-06` | queued | First worker to finish takes it |
 
 Suggested merge order: 01 → 03 → 02 → 05 → 04 → 06. Each PR must pass CI (Python tests, frontend lint/build).
@@ -37,5 +37,5 @@ Suggested merge order: 01 → 03 → 02 → 05 → 04 → 06. Each PR must pass 
 
 | Metric | Value |
 |---|---|
-| Analysis tests | 197 passed, 2 skipped (main @ 4c65528) |
-| LV_11 fixture findings (layers 1–2) | 0 |
+| Analysis tests | 266 passed, 2 skipped (after task 01 + DIN follow-up) |
+| LV_11 fixture findings (layers 1–2) | 13 (10 `L1.DIN.NOTE`, 2 `L1.TEXT.SPEC_PLACEHOLDER`, 1 `L1.UNIT.TRADE_MISMATCH`) |
