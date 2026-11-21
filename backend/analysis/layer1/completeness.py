@@ -158,12 +158,13 @@ def code_duplicate(ctx):
     by_code = defaultdict(list)
     for line in ctx.input.lines:
         if line.code:
-            by_code[line.code].append(line)
-    for code, lines in by_code.items():
+            sheet = line.source_locator.get("sheet")
+            by_code[(sheet if isinstance(sheet, str) else None, line.code)].append(line)
+    for (sheet, code), lines in by_code.items():
         first, *repeats = lines
         for line in repeats:
             yield ctx.finding(line=line, field="code", related_line_ids=[first.id],
-                              message=f"OZ {code} is used {len(lines)} times.",
-                              evidence={"code": code, "occurrences": len(lines)},
+                              message=f"OZ {code} is used {len(lines)} times" + (f" on sheet {sheet}." if sheet else "."),
+                              evidence={"code": code, "occurrences": len(lines), **({"sheet": sheet} if sheet else {})},
                               suggested_fix=review_fix("Compare the linked positions with the tender. Remove a confirmed "
                                                        "duplicate or give distinct work unique numbers and update references."))

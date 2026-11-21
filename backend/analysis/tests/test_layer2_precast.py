@@ -37,6 +37,18 @@ def test_screed_measurements_are_not_triggers(text):
     assert not any(f.rule_id.startswith("L2.FLOOR.SCREED") for f in run(input_for(line("1", text)), []))
 
 
+def test_screed_does_not_count_insulation_as_more_screed():
+    trigger = line("1", "Zementestrich schwimmend, 65 mm", "10", "m²")
+    insulation = line("2", "Trittschalldämmung unter dem Estrich, 30 mm", "10", "m²")
+    finish = line("3", "PVC Bodenbelag", "10", "m²")
+    findings = {f.rule_id for f in run(input_for(trigger, insulation, finish), [])}
+    assert "L2.FLOOR.SCREED_NEEDS_EDGE_INSULATION" in findings
+    assert "L2.FLOOR.SCREED_NEEDS_PRIMER_AND_LEVELING" not in findings
+    assert "L2.FLOOR.SCREED_NEEDS_FLOOR_COVERING" not in findings
+    bundled = line("4", "Dämmung und Zementestrich herstellen", "10", "m²")
+    assert any(f.rule_id == "L2.FLOOR.SCREED_NEEDS_EDGE_INSULATION" for f in run(input_for(bundled), []))
+
+
 @pytest.mark.parametrize("text", [
     "Dichtstoff für Plattenfugen",
     "Plattenfugen mit elastischem Dichtstoff schließen",

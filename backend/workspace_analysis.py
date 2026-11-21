@@ -205,11 +205,19 @@ def run(payload, connection=None, workspace=None, list_id=None, file_id=None, fi
             "product_evidence_files": evidence_files}
 
 
+def _source_decimal_text(value):
+    if not isinstance(value, str):
+        return None
+    return re.sub(r"\s*(?:€|EUR)$", "", value, flags=re.I).replace("−", "-").strip() or None
+
+
+
 def _uploaded_input(document):
     phase_match = re.fullmatch(r"[XD]?(8[1-6])", str(document.get("phase") or ""), re.I)
     phase = phase_match[1] if phase_match else None
     currency = document.get("currency")
     bid = phase in {"84", "86"}
+    kind = document["source"]["kind"]
     sections = {}
 
     def add_section(code, label, parent_id):
@@ -230,7 +238,10 @@ def _uploaded_input(document):
         for part in position.get("path") or []:
             add_section(part["oz"], part.get("label"), section_id)
             section_id = part["oz"]
-        unit = position.get("unit")
+        cells = position.get("sourceCells")
+        if kind not in {"csv", "xlsx", "json", "docx", "pdf"} or not isinstance(cells, dict):
+            cells = None
+        unit = cells.get("unit") if cells is not None else position.get("unit")
         short = position.get("short")
         line = {
             "id": position["id"],
@@ -242,7 +253,19 @@ def _uploaded_input(document):
             "unit": unit,
             "pricing_basis": "lump_sum" if position.get("lumpSum") or (unit or "").lower().rstrip(".") == "psch" else "unit_rate",
         }
-        if bid:
+        if cells is not None:
+            if "code" in cells:
+                line["code"] = cells["code"] or None
+            quantity = cells.get("quantity")
+            line["quantity"] = _source_decimal_text(quantity)
+            line["quantity_raw"] = quantity or None
+            locator = {key: cells[key] for key in ("sheet", "row") if cells.get(key)}
+            if locator:
+                line["source_locator"] = locator
+            price, amount = (_source_decimal_text(cells.get(key)) for key in ("unitPrice", "amount"))
+            if price is not None or amount is not None:
+                line["source_amounts"] = {"unit_price": price, "line_amount": amount}
+        elif bid:
             line["source_amounts"] = {"unit_price": position.get("up")}
         elif position.get("up") is not None:
             line["price"] = {"unit_price": position["up"], "currency": currency, "source": "client"}
@@ -254,7 +277,7 @@ def _uploaded_input(document):
     return {
         "snapshot": {
             "project": {"currency": currency, "gaeb_phase": phase,
-                        "source_document": {"filename": document.get("fileName"), "format": document["source"]["kind"]}},
+                        "source_document": {"filename": document.get("fileName"), "format": kind}},
             "bom": {"title": document.get("title")},
             "sections": list(sections.values()),
             "lines": lines,

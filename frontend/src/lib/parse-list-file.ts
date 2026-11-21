@@ -1,24 +1,36 @@
-import { decodeGaeb90, parseCsv, parseGaeb90, parseGaebXml, type ParsedList } from './gaeb'
+import { decodeGaeb90, parseCsv, parseGaeb90, parseGaebXml, sourceNumber, type ParsedList } from './gaeb'
 import type { ListDoc, Position } from './types'
 
-function normalizeJson(raw: unknown): Position[] {
+const cellText = (value: unknown) => value == null ? '' : String(value).trim()
+
+function normalizeJson(raw: unknown, preserveSourceCells: boolean): Position[] {
   const arr = Array.isArray(raw) ? raw : (raw as { positions?: unknown })?.positions
   if (!Array.isArray(arr) || arr.some((row) => !row || typeof row !== 'object' || Array.isArray(row))) throw new Error('Expected an array of list positions.')
-  return arr.map((r: Record<string, unknown>, i) => ({
-    id: String(r.id ?? `p${i}`),
-    oz: String(r.oz ?? i + 1),
-    short: String(r.short ?? r.kurztext ?? r.name ?? '(ohne Kurztext)'),
-    long: r.long ? String(r.long) : undefined,
-    qty: Number.isFinite(Number(r.qty)) ? Number(r.qty) : 1,
-    unit: String(r.unit ?? 'St'),
-    up: r.up == null || r.up === '' || !Number.isFinite(Number(r.up)) ? null : Number(r.up),
-    category: String(r.category ?? 'Import'),
-    group: r.group ? String(r.group) : undefined,
-    lumpSum: r.lumpSum ? true : undefined,
-    path: Array.isArray(r.path) && r.path.every((part) => part && typeof part.oz === 'string' && typeof part.label === 'string')
-      ? r.path : undefined,
-    srcRef: r.srcRef ? String(r.srcRef) : undefined,
-  }))
+  return arr.map((r: Record<string, unknown>, i) => {
+    const sourceCells = {
+      code: 'oz' in r ? cellText(r.oz) : undefined,
+      quantity: cellText(r.qty), unit: cellText(r.unit), unitPrice: cellText(r.up),
+      amount: cellText(r.line_amount), row: i + 1,
+    }
+    const qty = sourceNumber(sourceCells.quantity)
+    const up = sourceNumber(sourceCells.unitPrice)
+    return {
+      id: String(r.id ?? `p${i}`),
+      oz: String(r.oz ?? i + 1),
+      short: String(r.short ?? r.kurztext ?? r.name ?? '(ohne Kurztext)'),
+      long: r.long ? String(r.long) : undefined,
+      qty: Number.isFinite(qty) ? qty : 1,
+      unit: sourceCells.unit || 'St',
+      up: Number.isFinite(up) ? up : null,
+      category: String(r.category ?? 'Import'),
+      group: r.group ? String(r.group) : undefined,
+      lumpSum: r.lumpSum ? true : undefined,
+      path: Array.isArray(r.path) && r.path.every((part) => part && typeof part.oz === 'string' && typeof part.label === 'string')
+        ? r.path : undefined,
+      srcRef: r.srcRef ? String(r.srcRef) : undefined,
+      ...(preserveSourceCells ? { sourceCells } : {}),
+    }
+  })
 }
 
 function isCategoryTree(value: unknown): value is ListDoc['tree'] {
@@ -27,9 +39,9 @@ function isCategoryTree(value: unknown): value is ListDoc['tree'] {
     && Number.isInteger(node.depth) && isCategoryTree(node.children))
 }
 
-function parseListJson(text: string, kind: 'json' | 'pdf' | 'docx' | 'xlsx', format: string): ParsedList {
+function parseListJson(text: string, kind: 'json' | 'pdf' | 'docx' | 'xlsx', format: string, preserveSourceCells = true): ParsedList {
   const raw = JSON.parse(text)
-  const positions = normalizeJson(raw)
+  const positions = normalizeJson(raw, preserveSourceCells)
   return {
     format,
     currency: typeof raw?.currency === 'string' ? raw.currency : 'EUR',
@@ -53,7 +65,7 @@ async function parseTenderDocument(file: File, kind: 'pdf' | 'xlsx'): Promise<Pa
     const error = await response.json().catch(() => null)
     throw new Error(typeof error?.error === 'string' ? error.error : 'The tender could not be read.')
   }
-  const parsed = parseListJson(await response.text(), kind, kind === 'pdf' ? 'PDF' : 'Excel')
+  const parsed = parseListJson(await response.text(), kind, kind === 'pdf' ? 'PDF' : 'Excel', false)
   if (!parsed.positions.length) {
     if (kind === 'pdf') return undefined // Keep ordinary PDFs attachable as supporting documents.
     throw new Error(parsed.warnings?.[0] ?? 'The workbook contains no readable tender positions.')

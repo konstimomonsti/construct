@@ -4,7 +4,7 @@
     "Category": "Floor screed and finishes",
     "TriggerRegex": "(?i)\\b([a-zäöüß]*estrich[a-zäöüß]*|hohlraumboden|doppelboden|(?:ct|ca|caf|ma|as)\\s*,\\s*\\d+\\s*mm)\\b",
     "TriggerIn": "short_text",
-    "ExcludeRegex": "(?i)\\b(abbrechen|abbruch\\w*|rückbau\\w*|zurückbauen|ausbauen|demontage|demontieren|entfernen|entsorg\\w*|aufnehmen|abtragen|stemmen|fräsen|messung\\w*|\\w*feuchte\\w*|belegreife\\w*|aussparung\\w*|zul|zulage\\w*)\\b",
+    "ExcludeRegex": "(?i)^\\s*(?:trittschall|wärme)?dämm(?:ung|platten?)\\b[^;]{0,45}\\b(?:unter|für)\\s+(?:dem\\s+)?\\w*estrich\\b|\\b(abbrechen|abbruch\\w*|rückbau\\w*|zurückbauen|ausbauen|demontage|demontieren|entfernen|entsorg\\w*|aufnehmen|abtragen|stemmen|fräsen|messung\\w*|\\w*feuchte\\w*|belegreife\\w*|aussparung\\w*|zul|zulage\\w*)\\b",
     "Required_Dependencies": [
       {"DependencyName": "Edge insulation", "Regex": "(?i)\\b(randdämmstreifen)\\b", "CheckType": "Boolean", "SuggestedText": "Randdämmstreifen", "SuggestedUnit": "m"},
       {"DependencyName": "Underlays and insulation", "Regex": "(?i)\\b(?:trittschall)?dämmung\\b|\\b(?:eps|xps)\\b", "CheckType": "Boolean", "SuggestedText": "Trittschalldämmung unter Estrich", "SuggestedUnit": "m²"},

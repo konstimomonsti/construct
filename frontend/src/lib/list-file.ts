@@ -17,6 +17,7 @@ export function documentList({ doc, positions, tree, longTexts, prices }: TableO
       long: longTexts ? p.long : undefined,
       up: prices ? p.up : null,
       srcRef: undefined,
+      sourceCells: undefined,
     })),
     tree: tree.roots.map(category),
   })

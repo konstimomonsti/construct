@@ -108,3 +108,20 @@ frontend/node_modules/.bin/tsx frontend/tests/risk-upload-fixtures.ts \
   'data/tenders/Angebot AN24-0305.D84' data/tenders/StBALV23040.D86 \
   | python -m analysis.eval.uploads
 ```
+
+## CSV, TSV, Excel and JSON workspace upload replay
+
+The list assessment reads the original position code, quantity, unit, rate, and written line amount from CSV, TSV, Excel, and JSON imports. The editable table can still display a starting value when the source leaves a cell blank. Findings distinguish blank quantities from explicit zero, retain malformed text, and cite the original row. Excel imports each visible sheet that contains an item table. Reviewers see the worksheet and row, and an OZ repeated on two sheets can be distinguished from a duplicate within one sheet. The check uses written values and saved formula results. A formula without a saved result needs review. Recalculation and formula validation are outside this replay.
+
+The replay covers flooring and electrical positions and seven planted defects per format. Blank and unreadable quantities, a priced zero, missing position code and unit, incorrect line amount, and missing screed edge insulation all produced a matching finding and evidence-backed guidance. All four clean controls passed. The first replay exposed a false dependency warning where a separately measured insulation item referred to the screed above it. The updated trigger distinguishes that wording from an item that supplies both the insulation and the screed. The existing 46 clean X83 and JSON controls also passed after this change.
+
+With the workspace replay database and dependencies described above:
+
+```sh
+fixture_dir=$(mktemp -d)
+frontend/node_modules/.bin/tsx frontend/tests/risk-table-fixtures.ts "$fixture_dir"
+frontend/node_modules/.bin/tsx frontend/tests/risk-upload-fixtures.ts "$fixture_dir"/* \
+  | PYTHONPATH=backend:backend/importer python -m analysis.eval.uploads
+```
+
+The same PostgreSQL replay also ran Layers 1 through 3 on JSON uploads converted from the clean precast X83, the missing height and colour variant, and the ambiguous rebar variant. Local Qwen 2.5 7B caught both labelled defects with guidance and the unchanged control produced zero findings. The run used one request at a time, four rows per batch, a 65-second request timeout, and a 210-second per-upload deadline. To reproduce with equivalent workspace JSON fixtures and their label sidecars, use the picker bridge above and pass `--local-layer3` to `analysis.eval.uploads`. The option uses Ollama on localhost. This targeted run covers those two precast ambiguities.
