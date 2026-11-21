@@ -203,11 +203,33 @@ backend/analysis/tests/test_layer3.py
 
 ## 5a. Layer 3: what is built
 
-`backend/analysis/layer3/`, following the design rules above. Two checks so far, the ones recommended to start with:
+`backend/analysis/layer3/`, following the design rules above. The checks run in this order, which is also the
+order in which the call budget is spent (`checks/__init__.py`):
+
+- **Precast extraction** (`checks/precast.py`, spec Step 2). Every line of a precast section (the section
+  title or a short text names Fertigteil / Sandwich / FT-) goes to `ANALYSIS_L3_MODEL` in batches; the answer
+  is the spec's `PrecastElementItem` (item type, element mark, length, height, layer thicknesses, concrete
+  grade, exposure, surfaces, through-coloured, RAL/pigment, anchor design, transport/assembly, placeholders)
+  plus `rebar_purpose` and `assigned_element_codes`. Values must be backed by the text (grade, colour and
+  element mark written there; a height/length next to a height/length word; "durchgefärbt" for
+  through-coloured), otherwise they count as not stated. The result is shared with the scope audit.
+- **`L3.PRECAST.MISSING_SPEC`** (warning): deterministic on the extracted fields. Spec `DEP_001` (a sandwich
+  element needs height, length, concrete grade, total thickness) and `DEP_002` (through-coloured concrete
+  needs a RAL colour or pigment). One finding per line, discriminator = the missing fields;
+  `evidence.extracted`, `evidence.bieterfrage_de`.
+- **`L3.OPT.BUNDLED_FORMWORK`** (info, section scope): elements with the same thickness, grade and
+  surfaces, with `evidence.total_bundled_precast_length_m` (spec `LLM_OPT_01`, computed in code).
+- **`L3.SCOPE.REBAR_AMBIGUOUS` / `SHOP_DRAWINGS_OVERLAP` / `EMBEDDED_UNALLOCATED`** (warning,
+  `checks/scope.py`, spec `LLM_SCOPE_01..03`). One call per precast section to `ANALYSIS_L3_AUDIT_MODEL`
+  with the extracted items as JSON (no raw text). A section is sent only when its item types make a problem
+  possible, and each answer must cite an item of the right type (open-purpose rebar next to precast
+  elements, a shop-drawing item next to elements that include anchor design, an embedded part assigned to
+  no element). Each finding carries `evidence.bieterfrage_de`; rebar and embedded parts also set
+  `evidence.change_order`.
 
 - **`L3.TEXT.SHORT_LONG_CONTRADICTION`** (`checks/contradictions.py`). Sends lines that have both texts,
   differing texts, and a value in the short text (a number or a material word); skips lines with a
-  layer 1 error on a text field. Batches by section (≤ 12 lines, ≤ 12 000 characters). The model must quote
+  layer 1 error on a text field or an `L1.TEXT.VALUE_CONFLICT` finding. Batches by section (≤ 12 lines, ≤ 12 000 characters). The model must quote
   the conflicting words from *each* text; both quotes are checked verbatim in code (whitespace, case and
   line-break hyphens aside) and must differ. When the long text also contains the short-text value
   (a DN 150 pipe with a DN 100 branch) the finding is downgraded to info. No fix is proposed: a person
@@ -217,16 +239,23 @@ backend/analysis/tests/test_layer3.py
   same section. Verdicts: `included` / `excluded` → info "probably a false positive", with the quote
   verified in the cited item; `missing` → warning "confirmed"; `unclear` → no finding. The layer 2
   finding is never edited; the new one carries `evidence.reviews_finding_id` and the same target.
+- **`L3.TEXT.UNDERSPECIFIED`** (warning, `checks/underspecified.py`). Only lines whose long text is missing or
+  under 60 characters, or that have a layer 1 text signal (unclear dimension, missing spec attribute,
+  placeholder, unresolved reference). Answer: `missing_property` from a fixed list, a verbatim quote
+  (checked), a draft question (`evidence.bieterfrage_de`); confidence at most 0.6.
+- **`L3.QTY.IMPLAUSIBLE`** (warning, `checks/quantities.py`). One call per section (up to 40 lines: short text,
+  quantity and unit only; sections with fewer than 2 quantified lines are skipped); lines with a layer 1
+  error on quantity or unit are left out.
 
 Infrastructure:
 
 | File | What |
 |---|---|
-| `provider.py` | `complete_json(LLMRequest) -> dict`. `OllamaProvider` (local, default; JSON-schema `format`, temperature 0), `AnthropicProvider` (official SDK, `output_config.format` structured output, effort `low`; opt-in), `FakeProvider` (tests), `ResponseCache` |
+| `provider.py` | `complete_json(LLMRequest) -> dict`. `OllamaProvider` (local, default; JSON-schema `format`, temperature 0), `AnthropicProvider` (official SDK, `output_config.format` structured output, effort `low`, `cache_control` on the system prompt, token `usage`; opt-in), `FakeProvider` (tests), `ResponseCache`, `audit_provider_from_env` |
 | `schema.py` | JSON schemas sent to the model, Pydantic models that validate each answer item on its own, quote check, confidence clamp (≤ 0.7) |
-| `prompts.py` | System prompts and their versions (`l3-contradiction-v1`, `l3-l2confirm-v1`); the version is in the cache key and in every finding's evidence |
-| `common.py` | Per-run session: cache first, then call budget, then the provider; a failed request goes to `errors`; an unavailable provider (or 3 failures in a row) stops further calls; skipped batches are reported |
-| `eval.py`, `eval_cases.json` | `python -m analysis.layer3.eval`: precision/recall on 10 labelled contradiction cases (two are real excerpts) and accuracy on 4 layer 2 review cases, against the configured real model |
+| `prompts.py` | System prompts and their versions (`l3-contradiction-v1`, `l3-l2confirm-v1`, `l3-precast-v1`, `l3-scope-v1`, `l3-underspecified-v1`, `l3-quantity-v1`); the version is in the cache key and in every finding's evidence |
+| `common.py` | Per-run session: cache first, then call budget and time budget, then the provider; `ask_many` sends a rule's independent batches concurrently; `audit=True` uses the audit model; a failed request goes to `errors`; an unavailable provider (or 3 failures in a row) stops further calls; skipped batches are reported |
+| `eval.py`, `eval_cases.json` | `python -m analysis.layer3.eval`: precision/recall on 10 labelled contradiction cases (two are real excerpts), accuracy on 4 layer 2 review cases, and precision/recall per (rule, OZ) on 4 task 02 cases (LV_11 plus three hand-written sections), against the configured real model |
 
 Configuration (environment variables):
 
@@ -234,9 +263,12 @@ Configuration (environment variables):
 |---|---|---|
 | `ANALYSIS_L3_PROVIDER` | `ollama` | `ollama`, `anthropic` or `none` |
 | `ANALYSIS_L3_MODEL` | `qwen2.5:7b-instruct` / `claude-haiku-5-5` | per provider |
+| `ANALYSIS_L3_AUDIT_MODEL` | `claude-sonnet-5-5` (anthropic) / `ANALYSIS_L3_MODEL` (ollama) | whole-section scope audit |
 | `OLLAMA_HOST` | `http://localhost:11434` | |
 | `ANALYSIS_L3_TIMEOUT` | `120` | seconds per request |
-| `ANALYSIS_L3_MAX_CALLS` | `40` | model calls per run (cache hits are free) |
+| `ANALYSIS_L3_MAX_CALLS` | `12` | model calls per run (cache hits are free); the P0 precast checks spend it first |
+| `ANALYSIS_L3_DEADLINE` | `75` | seconds of model calls per run; later batches are reported in `errors`, not sent. Prod timeout is 30 s, so layer 3 ends in about 90 s at worst |
+| `ANALYSIS_L3_CONCURRENCY` | `4` | parallel requests within one check |
 | `ANALYSIS_L3_MAX_BATCH_LINES` / `_CHARS` | `12` / `12000` | contradiction batch size |
 | `ANALYSIS_L3_CACHE` | `.cache/layer3` | directory, or `off` |
 
@@ -246,8 +278,14 @@ The API provider needs `pip install -e ".[llm-api]"` and credentials the SDK can
 On the files in `data/tenders/`, the contradiction check needs 4–32 calls per file (≈ 11 000–137 000 prompt
 characters); the layer 2 review sends nothing there, because layer 2 raises nothing on those files.
 
-Known limits: **precision has not been measured yet**, since no model was available while building it.
-Run the eval with the chosen model before trusting either check. The cache holds tender text: it is
+Sampling: Claude Haiku 5.5 and Sonnet 5.5 reject a non-default `temperature`, so the Anthropic provider sends
+none; repeat runs are deterministic through the response cache. The upload worker
+(`backend/workspace_analysis.py`) runs layers 1-3 when a provider is configured and, if layer 3 still crashes,
+stores the layer 1-2 report with an error line.
+
+Known limits: precision of the contradiction and layer 2 review checks has not been measured with a real
+model yet; for the task 02 checks see the numbers in `tasks/02-layer3-claude-checks.md`. Run the eval with
+the chosen model before trusting a check. The cache holds tender text: it is
 git-ignored, and `ANALYSIS_L3_CACHE=off` disables it. The other candidate checks in the table above are
 still to build; fix validation (`set_field` on allowed fields only) comes with `L3.FIX.SUGGEST`.
 

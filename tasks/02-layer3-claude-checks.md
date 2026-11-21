@@ -70,4 +70,52 @@ Use prompt caching for the shared system prompt.
 
 ## Notes / blockers (fill in)
 
--
+**Status: PR open. Live run and eval done on 2026-11-21 (claude-haiku-5-5 + claude-sonnet-5-5).**
+
+- **Built:** `checks/precast.py` (extraction + `L3.PRECAST.MISSING_SPEC` + `L3.OPT.BUNDLED_FORMWORK`),
+  `checks/scope.py` (`L3.SCOPE.REBAR_AMBIGUOUS`, `SHOP_DRAWINGS_OVERLAP`, `EMBEDDED_UNALLOCATED`, one audit
+  call per precast section with `ANALYSIS_L3_AUDIT_MODEL`), `checks/underspecified.py`, `checks/quantities.py`.
+  DEP_001/DEP_002 and the bundled length are computed in Python from the extracted fields. Extracted values
+  the text doesn't back (grade, RAL, element mark not written there; height/length without a height/length
+  word) count as missing. Scope answers must cite an item of the right type, or they are dropped.
+- **Budget / speed:** prod defaults `ANALYSIS_L3_MAX_CALLS=12`, `ANALYSIS_L3_TIMEOUT=30`,
+  `ANALYSIS_L3_DEADLINE=75` (new; later batches are reported in `errors`, not sent). Independent batches of a
+  check run 4 at a time (`ANALYSIS_L3_CONCURRENCY`). The P0 precast checks run first, so they get the budget.
+  LV_11 needs 5 calls (extraction 1, audit 1, contradiction 1, underspecified 1, quantity 1).
+- **Temperature:** Claude Haiku 5.5 and Sonnet 5.5 return HTTP 400 for a non-default `temperature`, so none
+  is sent. Repeat runs are deterministic through the disk cache (test:
+  `test_second_identical_run_is_served_from_cache`, 0 provider calls). The system prompt carries
+  `cache_control` for Anthropic prompt caching (extraction and audit prompts are > 512 tokens).
+- **Worker:** `workspace_analysis.run` already runs layers 1-3 when `ANALYSIS_L3_PROVIDER` is `anthropic`/`ollama`.
+  If layer 3 still crashes, it now re-runs layers 1-2 and stores that report with an error line.
+- **Live cost / duration (acceptance 2):** one uncached run of layer 3 on `lv11_precast.json`
+  (`test_layer3_live.py`, passed): **24.5 s, $0.020**, 5 calls (Haiku: 4 calls, 12 630 input / 3 083 output tokens
+  incl. 5 976 cache-write; Sonnet audit: 1 call, 3 594 input / 905 output tokens). Findings: `MISSING_SPEC` on
+  3.2.20-3.2.60 (height + RAL/pigment), `REBAR_AMBIGUOUS` on 3.2.70, `SHOP_DRAWINGS_OVERLAP` on 3.2.10,
+  `EMBEDDED_UNALLOCATED` on 3.2.90, `BUNDLED_FORMWORK` (20.67 m). A repeat run is served from the disk cache
+  (0 calls, $0). Prompt caching gave no reads within this small run (each check has its own system prompt and
+  LV_11 fits one batch per check); it pays off on bigger LVs with several batches per check, or on re-runs
+  within 5 minutes.
+- **Eval precision (acceptance 3):** `ANALYSIS_L3_PROVIDER=anthropic python -m analysis.layer3.eval`, cache off,
+  80 s:
+  - task 02 checks, per (rule, OZ) on 4 cases (LV_11, a complete precast section, a site-connection-steel
+    section, a general section): **precision 1.0, recall 1.0** (MISSING_SPEC 5/5, REBAR_AMBIGUOUS 1/1,
+    UNDERSPECIFIED 1/1, QTY.IMPLAUSIBLE 1/1, 0 false positives; the two clean precast sections produced no
+    findings). SHOP_DRAWINGS_OVERLAP / EMBEDDED_UNALLOCATED fired only where they are labelled acceptable
+    (LV_11), so they have no precision number yet;
+  - existing checks with the same model: contradiction precision 1.0 / recall 1.0 (10 cases), layer 2 review
+    accuracy 0.75 (`underlay_missing` came back `unclear`).
+  The set is small (4 + 10 + 4 cases); task 05's planted-error files are the real measure.
+- **Not measured:** the 200-line / 90 s target was not run live. It rests on the call budget (12), 4 parallel
+  requests per check and the 75 s deadline. LV_11 takes 24.5 s for 5 calls.
+- **Tests:** `python -m pytest -q backend/analysis/tests` (after merging main with task 01): 291 passed, 3 skipped (the live test skips without a key).
+  `backend/tests` has 3 failures on Windows that also happen on `main` (Linux font path, JS MIME type).
+
+### Blockers / requests
+
+- Please register the `integration` pytest marker in `backend/pyproject.toml`
+  (`markers = ["integration: needs ANTHROPIC_API_KEY"]`). The file is outside this task's allowlist, so pytest
+  currently warns `PytestUnknownMarkWarning`.
+- Task 01 is merged: its `L1.TEXT.SPEC_ATTRIBUTE_MISSING` / `UNCLEAR_DIMENSION` / `SPEC_PLACEHOLDER` /
+  `REFERENCE_UNRESOLVED` findings make a line an `L3.TEXT.UNDERSPECIFIED` candidate, and `L1.TEXT.VALUE_CONFLICT`
+  lines are skipped by the contradiction check (rule IDs matched as strings).
