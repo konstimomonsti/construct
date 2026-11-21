@@ -20,6 +20,11 @@ MAX_LISTED = 20
 GERMAN = re.compile(r"\b(?:und|der|die|das|mit|für|von|nach|gemäß|sowie|einschl|inkl|oder|werden|ist)\b", re.I)
 ENGLISH = re.compile(r"\b(?:the|and|with|for|of|to|including|according|shall|is|are)\b", re.I)
 
+PARALLEL_ACTION = re.compile(
+    rf"\b(?:liefern|montieren|einbauen|herstellen|anbringen|verlegen|ausbauen|demontieren|entfernen)"
+    rf"[ \t]*/[ \t]*(?P<verb>[{spelling.LETTERS}]+tzten)(?=[ \t]*(?:$|[;/.,]))", re.I,
+)
+
 
 def is_german(lines: list[Line]) -> bool:
     text = "\n".join(text_of(line) for line in lines)
@@ -117,10 +122,22 @@ def _title_transpositions(line: Line, sections: dict[str, Section], checker: spe
         yield token, spelling.match_case(word, candidate), source.get(candidate)
 
 
+def _parallel_infinitives(title: str, checker: spelling.SpellChecker):
+    """A slash joining standalone work actions calls for parallel infinitives."""
+    for match in PARALLEL_ACTION.finditer(spelling.mask(title)):
+        word = match["verb"]
+        candidate = word.lower()[:-3] + "en"
+        if candidate not in checker.lexicon:
+            continue
+        start, end = match.span("verb")
+        yield spelling.Token(word, start, end), spelling.match_case(word, candidate), {
+            "field": "short_text", "term": match[0], "reason": "parallel_infinitives",
+        }
+
+
 @rule("L1.TEXT.TYPO", layer=1, category="text", severity="info", title="Possible typo",
-      description="Adjacent letters in a short description appear reversed when the position, its section heading "
-                  "or the German dictionary supports a unique correction. The optional dictionary also supports "
-                  "general spelling checks.")
+      description="A short description contains a likely transposition or a mismatched verb in a list of work actions. "
+                  "The optional German dictionary also supports general spelling checks.")
 def typo(ctx):
     lines = ctx.input.lines
     if not lines or not is_german(lines):
@@ -131,26 +148,35 @@ def typo(ctx):
     for line in lines:
         if not line.short_text:
             continue
-        replacements = list(_title_transpositions(line, sections, checker))
+        transpositions = list(_title_transpositions(line, sections, checker))
+        parallel = list(_parallel_infinitives(line.short_text, checker))
+        replacements = {token.start: (token, candidate, support)
+                        for token, candidate, support in transpositions + parallel}
         if not replacements:
             continue
         new_text = line.short_text
         corrections = []
-        for token, candidate, support in reversed(replacements):
+        for offset in sorted(replacements, reverse=True):
+            token, candidate, support = replacements[offset]
             new_text = new_text[:token.start] + candidate + new_text[token.end:]
             corrected.add((line.id, token.text.lower()))
             corrections.append({"word": token.text, "suggestion": candidate,
                                 "source": support or {"dictionary": checker.dictionary_name}})
         corrections.reverse()
         first = corrections[0]
+        message = f"Check '{first['word']}' against '{first['suggestion']}' in {line.code or '(no code)'}."
+        rationale = "The proposed spelling reverses adjacent letters and matches the supporting text or dictionary."
+        if parallel:
+            _, candidate, support = parallel[0]
+            message = f"In “{support['term']}”, use “{candidate}” to keep both work actions in the infinitive."
+            rationale = "Verify the proposed wording against the original position before applying the correction."
         yield ctx.finding(
-            line=line, field="short_text", discriminator="title-transposition",
-            message=f"Check '{first['word']}' against '{first['suggestion']}' in {line.code or '(no code)'}.",
+            line=line, field="short_text", discriminator="title-transposition" if transpositions else "parallel-infinitives",
+            message=message,
             evidence={**first, "corrections": corrections},
             suggested_fix=Fix(operations=[SetField(line_id=line.id, field="short_text",
                                                    old_value=line.short_text, new_value=new_text)],
-                              confidence=0.7, rationale="The proposed spelling reverses adjacent letters and "
-                                                       "matches the supporting text or dictionary."),
+                              confidence=0.7, rationale=rationale),
         )
     if checker.hunspell is None:
         return

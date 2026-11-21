@@ -53,6 +53,38 @@ def by_rule(findings, rule_id):
 # ---------------------------------------------------------------- typos
 
 
+@pytest.mark.parametrize("title,wrong,right", [
+    ("Abdeckung liefern/aufsetzten; Monteure, die sie aufsetzten", "aufsetzten", "aufsetzen"),
+    ("Montagekeile montieren / einsetzten", "einsetzten", "einsetzen"),
+    ("Abdeckung ausbauen / ersetzten", "ersetzten", "ersetzen"),
+])
+def test_parallel_work_actions_correct_only_the_incorrect_infinitive(title, wrong, right):
+    spelling.use_checker(spelling.SpellChecker({**LEXICON, right: 5}, use_hunspell=False))
+    [typo] = by_rule(run(line(1, title)), "L1.TEXT.TYPO")
+    assert typo.evidence["word"] == wrong and typo.evidence["suggestion"] == right
+    assert typo.evidence["source"]["reason"] == "parallel_infinitives"
+    assert wrong in typo.evidence["source"]["term"]
+    assert typo.evidence["source"]["term"] in typo.message
+    [operation] = typo.suggested_fix.operations
+    assert operation.field == "short_text" and operation.old_value == title
+    assert operation.new_value == title.replace(wrong, right, 1)
+
+
+@pytest.mark.parametrize("title", [
+    "Abdeckung liefern/aufsetzen",
+    "Abdeckung, die die Monteure aufsetzten",
+    "Abdeckung liefern / aufsetzten die Monteure vor Ort",
+    "Fabrikat: Abdeckung liefern/aufsetzten",
+    "Produktbeispiel „Abdeckung liefern/aufsetzten“",
+    "Abdeckung liefern/schätzten",
+    "Abdeckung / seitenversetzten",
+])
+def test_parallel_work_actions_leave_other_uses_untouched(title):
+    spellings = FakeHunspell("aufsetzten", "aufsetzen", "versetzten", "versetzen")
+    spelling.use_checker(spelling.SpellChecker({**LEXICON, "aufsetzen": 5, "versetzen": 5}, spellings))
+    assert by_rule(run(line(1, title)), "L1.TEXT.TYPO") == []
+
+
 def test_typo_found_with_fix_on_every_line():
     findings = run(line(1, "Leistung", "Der Auftragnehemer hat das Material zu liefern und einzubauen."),
                    line(2, "Leistung", "Vom Auftragnehemer zu liefern."),

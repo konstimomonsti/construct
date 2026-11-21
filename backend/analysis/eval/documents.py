@@ -429,6 +429,30 @@ def generate_written_stiffness(out):
             write_fixture_labels(out / f"{name}.{ext}", f"stiffness-compatible.{ext}", label)
 
 
+def generate_action_spelling(out):
+    """Replay parallel work actions and legitimate past-tense wording."""
+    out.mkdir(parents=True, exist_ok=True)
+    for name, wording, expected in (
+        ("action-clean", "Schachtabdeckung liefern/aufsetzen", False),
+        ("action-cover", "Schachtabdeckung liefern/aufsetzten", True),
+        ("action-replace", "Bordstein ausbauen / ersetzten", True),
+        ("action-preterite", "Abdeckung, die Monteure aufsetzten", False),
+        ("action-product", "Fabrikat: Abdeckung liefern/aufsetzten", False),
+    ):
+        detail = "Abdeckung aus Edelstahl, 200 × 200 × 4 mm." if name == "action-product" else None
+        item = Item("01.0010", wording, 10, "St", detail=detail)
+        locators = _write_text_case(out, name, "Leistungsverzeichnis Montage", item, "action")
+        locators.update(_write_offer_tables(out, name, item))
+        for ext, locator in locators.items():
+            label = {"control": not expected, "layers": [1], "expect": []}
+            if expected:
+                label.update(match="line", expect=["L1.TEXT.TYPO"], target={
+                    "line_codes": [item.code], "severity": "info", "source_locator": locator,
+                })
+            baseline = "action-clean" if expected else name
+            write_fixture_labels(out / f"{name}.{ext}", f"{baseline}.{ext}", label)
+
+
 def generate_grade_scope(out):
     """Test concrete grade conflicts, legitimate component differences and unclear attribution."""
     out.mkdir(parents=True, exist_ok=True)
@@ -539,7 +563,8 @@ if __name__ == "__main__":
               "dimensions": generate_dimensions, "dotted": generate_dotted, "grade-scope": generate_grade_scope,
               "exposure-scope": generate_exposure_scope, "dependency-scope": generate_dependency_scope,
               "product-offer": generate_product_offer, "product-position": generate_product_position,
-              "product-requirements": generate_product_requirements, "written-stiffness": generate_written_stiffness}
+              "product-requirements": generate_product_requirements, "written-stiffness": generate_written_stiffness,
+              "action-spelling": generate_action_spelling}
     parser.add_argument("--suite", choices=suites, default="tabular")
     args = parser.parse_args()
     suites[args.suite](args.out)

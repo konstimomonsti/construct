@@ -48,6 +48,7 @@ def test_repository_audit_scores_source_labels_without_assuming_unreviewed_posit
     by_id = {case["id"]: case for case in result["cases"]}
     assert by_id["gaeb-award-damaged-oz"]["outcome"] == "caught_with_guidance"
     assert by_id["word-setup-duration"]["outcome"] == "caught_with_guidance"
+    assert by_id["word-cover-typo"]["outcome"] == "caught_with_guidance"
     assert by_id["screed-included-edge-strip"]["outcome"] == "clear_control"
     assert by_id["word-alternative-code"]["outcome"] == "unresolved"
     assert "source_unlinked" not in result["counts"]
