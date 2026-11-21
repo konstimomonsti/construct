@@ -407,7 +407,12 @@ def classify(connection, workspace, list_id):
     for candidate, resolved, state, product, job in prepared:
         if model and state in {"queued", "needs_description"}:
             if evidence := companions.get(position_number(candidate)):
-                job["model_check"] = companion_check(resolved, evidence)
+                if evidence.get("requires_catalogue_review"):
+                    job["model_check"] = catalogue_check(
+                        resolved, evidence["product"], aligned_copy=evidence["position"],
+                    )
+                else:
+                    job["model_check"] = companion_check(resolved, evidence)
             elif review_item := matcher.review_candidate(resolved):
                 job["model_check"] = catalogue_check(resolved, review_item)
             if "model_check" in job:

@@ -215,6 +215,36 @@ def test_duct_bundle_review_preserves_component_count_dimensions_and_ties():
     assert duplicate.review_candidate(position) is None
 
 
+def test_summary_bundle_can_request_review_with_aligned_evidence():
+    from analysis.layer3.provider import FakeProvider
+    from workspace_product_ai import adjudicate, catalogue_check
+    from workspace_product_companions import catalogue_matches, compatible_duct_summary
+
+    item = {"id": "duct", "name": "PE-HD Leerrohrpaar 2 × da 50 × 4,6 mm", "category": "Ducts",
+            "unit_code": "m", "tender_units": [], "description": "Leerrohrpaar für Glasfaser, je Meter des Paars."}
+    anchors = [{"oz": f"1.{n}", "short": f"Kabel Typ {n}", "unit": "m"} for n in range(1, 21)]
+    original = {"oz": "1.23", "short": "PE-HD Rohre 2x da 50 x 4,6 mm (Leerrohr) liefern", "unit": "m"}
+    detailed = {**original, "short": "PE-HD Rohre 2 x da 50 x 4,6 mm (Leerrohr - zum",
+                "long": "PE-HD Rohre 2 x da 50 x 4,6 mm (Leerrohr - zum Einblasen von Glasfaser geeignet) liefern",
+                "qty": 100}
+    full = [{**anchor, "qty": 3} for anchor in anchors] + [detailed]
+    matcher = catalogue.ProductMatcher([item])
+    assert compatible_duct_summary(original, detailed)
+    assert not compatible_duct_summary({**original, "short": original["short"].replace("liefern", "verlegen")}, detailed)
+    assert not compatible_duct_summary(original, {**detailed, "long": detailed["long"] + " Bestehend aus 3 Innenrohren."})
+    assert not catalogue_matches([original], [full], matcher)
+
+    match = catalogue_matches([*anchors, original], [full], matcher)[(1, 23)]
+    assert match["product"] == item and match["requires_catalogue_review"]
+    check = catalogue_check(original, item, aligned_copy=match["position"])
+    verdict = {"case": 0, "compatible": True, "quote": "Leerrohrpaar für Glasfaser",
+               "original_quote": "Einblasen von Glasfaser geeignet"}
+    fake = FakeProvider([{"verdicts": [verdict]}, {"verdicts": [{**verdict, "compatible": False}]}])
+    assert adjudicate(fake, [check]) == [check["product"]]
+    assert "aligned_copy" in fake.requests[0].prompt
+    assert adjudicate(fake, [check]) == [None]
+
+
 def test_review_can_shortlist_a_specification_followed_by_a_printed_total():
     from workspace_product_match import review_descriptions, tokens
 
@@ -225,6 +255,26 @@ def test_review_can_shortlist_a_specification_followed_by_a_printed_total():
     assert tokens(printed) in review_descriptions(title, printed)
     assert tokens(specification) in review_descriptions(title, printed)
     assert tokens(specification) not in review_descriptions(title, printed + "\nAbweichend DN 1000.")
+
+
+def test_exact_steel_grades_support_a_match_across_redacted_form_labels():
+    title = "Probennahmeventil DN 15"
+    detail = (
+        "Werkstoff Gehäuse: 1.4408 Edelstahl. Werkstoff Kopfstück: 1.4301 Edelstahl. Werkstoff [PERSON_001]: PTFE. "
+        "Mit Auslaufbogen 90 Grad und einem Anschlussnippel G 1/2 Zoll, Nenndruck PN 10. "
+        "Für Wasserproben im Leitungssystem mit abflammbarem Auslauf und totraumfreier "
+        "Nadelventiltechnik. [PERSON_129]: '...............' (PROHA1 oder gleichwertig) liefern und montieren."
+    )
+    printed = detail.replace("Edelstahl", "PER000115").replace("Werkstoff [PERSON_001]", "[PERSON_001]")
+    printed = printed.replace("[PERSON_129]:", "###:")
+    product = {"id": "valve", "name": title, "description": detail, "unit_code": "St", "tender_units": [],
+               "category": "Valves"}
+    position = {"short": title, "long": printed, "unit": "St"}
+    matcher = catalogue.ProductMatcher([product])
+    assert matcher.match(position) == product
+    assert matcher.match({**position, "long": printed.replace("1.4301", "1.4571")}) is None
+    assert matcher.match({**position, "long": printed.replace("PTFE", "EPDM")}) is None
+    assert matcher.match({**position, "long": printed.replace("PROHA1", "PROHA2")}) is None
 
 
 @pytest.mark.skipif(not os.environ.get("CATALOGUE_TEST_DSN"), reason="Requires a disposable migrated PostgreSQL database")

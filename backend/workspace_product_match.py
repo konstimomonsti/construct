@@ -34,6 +34,9 @@ DETACHED_PREAMBLE = re.compile(
 DUCT_MARKING = re.compile(r"(?i)\bpe[\s-]+hd\b")
 DUCT_BUNDLE_SIZE = re.compile(r"(?i)\b([1-9]\d*)\s*[x×]\s*da\s*(\d+(?:[.,]\d+)?)\s*[x×]\s*(\d+(?:[.,]\d+)?)\s*mm\b")
 DUCT_BODY_COUNT = re.compile(r"(?i)\b(?:aus|mit)\s+(\d+)\s+(?:innen)?rohr(?:en|e)?\b")
+EMPTY_LABELLED_FIELD = re.compile(r"""(?i)(?:#{3}|\[person_\d+\])\s*:\s*['"]?\.{8,}['"]?""")
+REDACTED_MATERIAL_LABEL = re.compile(r"(?i)\bwerkstoff[ \t]+(?=\[person_\d+\][ \t]*:)")
+STAINLESS_GRADES = frozenset({"1.4301", "1.4408"})
 PLACEHOLDER_PREFIXES = ("person_", "firma_", "telefon_", "ort_")
 DIMENSION_KEYS = frozenset({"dn", "sn", "pn", "sdr"})
 
@@ -106,6 +109,19 @@ def primary_specifications(name, raw):
     if component and not COMPONENT_OVERRIDE.search(raw, component.end()):
         return tuple(body for body in descriptions(name, raw[:component.start()]) if len(body) >= 12)
     return ()
+
+
+def stainless_specifications(name, raw):
+    """Keep exact grades when their material name is repeated or redacted."""
+    if not all(grade in raw for grade in STAINLESS_GRADES):
+        return ()
+    raw = EMPTY_LABELLED_FIELD.sub("", REDACTED_MATERIAL_LABEL.sub("", raw))
+    return tuple(
+        tuple(term for previous, term in zip(("", *body), body)
+              if previous not in STAINLESS_GRADES or not (term == "edelstahl" or term.startswith("person_")))
+        for body in descriptions(name, raw)
+        if len(body) >= 32 and STAINLESS_GRADES.issubset(body)
+    )
 
 
 def deduplicate_wrap(terms):
@@ -336,6 +352,7 @@ class ProductText:
     name: tuple[str, ...]
     details: tuple[tuple[str, ...], ...]
     pipe: tuple[tuple[str, ...], ...]
+    stainless: tuple[tuple[str, ...], ...]
 
 
 class ProductMatcher:
@@ -360,7 +377,7 @@ class ProductMatcher:
                     units = frozenset(printed_units)
             pipe = pipe_key(name)
             index = len(self.products)
-            self.products.append(ProductText(row, units, name, details, pipe))
+            self.products.append(ProductText(row, units, name, details, pipe, stainless_specifications(name, row["description"])))
             self.names[reference_override(name)].add(index)
             if len(name) >= 5 and is_specific(name):
                 self.long_names[name[:4]].add(index)
@@ -388,6 +405,7 @@ class ProductMatcher:
             return None
         details = tuple(detail for detail in descriptions(name, raw) if detail and detail != name)
         primary = primary_specifications(name, raw)
+        stainless = stainless_specifications(name, raw)
         truncated = clipped_description(raw)
         pipe = pipe_key(name)
         unit = tender_unit(position.get("unit"))
@@ -411,6 +429,9 @@ class ProductMatcher:
             if (unit in product.units and primary
                     and (normalized == reference_override(product.name) or begins(product.name, name))
                     and any(body in product.details for body in primary)):
+                score = max(score, 5)
+            if (unit in product.units and normalized == reference_override(product.name)
+                    and any(body in product.stainless for body in stainless)):
                 score = max(score, 5)
             if score:
                 matches[score].append(product.row)
