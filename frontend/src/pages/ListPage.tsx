@@ -9,11 +9,11 @@ import { MetaLink, PageFrame, PageHeader, RowMenu, SortMenu, Summary, ToolButton
 import { phaseLabel } from '../components/ListCard'
 import { ErrorBoundary } from '../components/ErrorBoundary'
 import { LedgerTable } from '../components/LedgerTable'
-import { FindingFilter, FindingText } from '../components/RiskAssessment'
-import { decisionsOf, indexFindings, matchesFindingFilter, SEVERITIES, useUploadAssessment, type Decision, type Report } from '../lib/risk-assessment'
+import { ChangeOrderText, FindingFilter, FindingText } from '../components/RiskAssessment'
+import { decisionsOf, indexFindings, matchesFindingFilter, SEVERITIES, useUploadAssessment, type ChangeOrderSignal, type Decision, type Report, type ReviewItem } from '../lib/risk-assessment'
 import { riskXlsx, downloadBytes } from '../lib/risk-export'
 import type { RowRisk } from '../components/LedgerTable'
-import { DecisionControls } from '../components/risk/DecisionControls'
+import { DecisionControls, DismissMenu } from '../components/risk/DecisionControls'
 import { RiskSummary } from '../components/risk/RiskSummary'
 import { BidderQuestions, openQuestions } from '../components/risk/BidderQuestions'
 import { RiskPrint } from '../components/risk/RiskPrint'
@@ -264,7 +264,7 @@ function useFixtureReport(on: boolean) {
 }
 
 function ListDetail({ doc: imported }: { doc: ListDoc }) {
-  const [params, setParams] = useSearchParams()
+  const [params] = useSearchParams()
   const { lists, folders, documents } = useModel()
   const attached = documents.filter((document) => document.listId === imported.id)
   const original = attached.find((document) => document.original && document.name === imported.fileName)
@@ -299,6 +299,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   const fixtureReport = useFixtureReport(params.get('risk') === 'fixture')
   const uploadReport = fixtureReport ?? (assessment?.state === 'ready' ? assessment.report : null)
   const risk = uploadReport?.risk ?? null
+  const aiCheckSkipped = uploadReport?.layers_run != null && !uploadReport.layers_run.includes(3)
   const reviewedIds = useStore((s) => s.listPatch[doc.id]?.reviewedFindings)
   const decisionMap = useStore((s) => s.listPatch[doc.id]?.findingDecisions)
   const decisions = useMemo(() => decisionsOf({ findingDecisions: decisionMap, reviewedFindings: reviewedIds }), [decisionMap, reviewedIds])
@@ -307,8 +308,28 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   const questions = useMemo(() => openQuestions(uploadReport?.questions ?? [], decisions), [uploadReport, decisions])
   const codes = useMemo(() => new Map(imported.positions.map((p) => [p.id, p.oz])), [imported.positions])
   const { byRow: findingsByRow, listWide } = useMemo(
-    () => indexFindings(uploadReport?.findings ?? [], imported.positions), [uploadReport, imported.positions],
+    () => indexFindings(uploadReport?.findings ?? [], positions), [uploadReport, positions],
   )
+  const { signalsByRow, listSignals } = useMemo(() => {
+    const signalsByRow = new Map<string, ChangeOrderSignal[]>()
+    const listSignals: ChangeOrderSignal[] = []
+    const positionIds = new Set(positions.map((position) => position.id))
+    for (const signal of risk?.change_order_signals ?? []) {
+      if (signal.line_id && positionIds.has(signal.line_id)) {
+        const items = signalsByRow.get(signal.line_id) ?? []
+        items.push(signal)
+        signalsByRow.set(signal.line_id, items)
+      } else {
+        listSignals.push(signal)
+      }
+    }
+    return { signalsByRow, listSignals }
+  }, [risk, positions])
+  const reviewByRow = useMemo(() => {
+    const items = new Map<string, ReviewItem[]>(findingsByRow)
+    for (const [id, signals] of signalsByRow) items.set(id, [...(findingsByRow.get(id) ?? []), ...signals])
+    return items
+  }, [findingsByRow, signalsByRow])
   // a finding about a field the user has since edited no longer describes the position: show it as
   // "changed since upload" instead of flagging the row with an error the edit may already have fixed
   const changedFindings = useMemo(() => {
@@ -332,34 +353,43 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
     return out
   }, [uploadReport, edits])
   const settled = useMemo(() => new Set([...reviewed, ...changedFindings]), [reviewed, changedFindings])
-  // rows are memoized: reuse the previous risk object when nothing changed, so a decision re-renders one row only
+  const rowPoints = useMemo(() => {
+    const points = new Map<string, number>()
+    const positionIds = new Set(positions.map((position) => position.id))
+    const add = (lineId: string | null | undefined, itemId: string) => {
+      const value = risk?.points[itemId]
+      if (!lineId || !value || settled.has(itemId)) return
+      points.set(lineId, (points.get(lineId) ?? 0) + value)
+    }
+    for (const finding of uploadReport?.findings ?? []) {
+      const id = finding.target.line_id
+      add(id && positionIds.has(id) ? id : finding.related_line_ids.find((id) => positionIds.has(id)), finding.id)
+    }
+    for (const [id, signals] of signalsByRow) for (const signal of signals) add(id, signal.id)
+    return points
+  }, [uploadReport, positions, risk, settled, signalsByRow])
+  // rows are memoized: reuse unchanged risk data across decisions
   const riskCacheRef = useRef(new Map<string, RowRisk>())
   const risks = useMemo(() => {
     const prev = riskCacheRef.current
-    const next = new Map([...findingsByRow].flatMap(([id, findings]) => {
-      const open = findings.filter((finding) => !reviewed.has(finding.id) && !changedFindings.has(finding.id))
-      const severity = SEVERITIES.find((level) => open.some((finding) => finding.severity === level))
-      if (!severity) return []
-      const risk: RowRisk = { severity, count: open.length, label: open.map((finding) => finding.title).join(', ') }
+    return new Map([...reviewByRow].flatMap(([id, items]) => {
+      const open = items.filter((item) => !settled.has(item.id))
+      if (!open.length) return []
+      const severity = SEVERITIES.find((level) => open.some((item) => 'severity' in item && item.severity === level))
+      const signalCount = open.filter((item) => !('severity' in item)).length
+      const rowRisk: RowRisk = { severity, count: open.length - signalCount, signalCount, points: rowPoints.get(id) ?? 0, label: open.map((item) => item.title).join(', ') }
       const old = prev.get(id)
-      return [[id, old && old.severity === risk.severity && old.count === risk.count && old.label === risk.label ? old : risk] as const]
+      return [[id, old && old.severity === rowRisk.severity && old.count === rowRisk.count && old.signalCount === rowRisk.signalCount && old.points === rowRisk.points && old.label === rowRisk.label ? old : rowRisk] as const]
     }))
-    return next
-  }, [findingsByRow, reviewed, changedFindings])
+  }, [reviewByRow, rowPoints, settled])
   useEffect(() => {
     riskCacheRef.current = risks
   }, [risks])
-  const filterFindings = useMemo(
-    () => positions.flatMap(({ id }) => {
-      const findings = findingsByRow.get(id)
-      return findings ? [findings] : []
-    }),
-    [positions, findingsByRow],
-  )
+  const filterFindings = useMemo(() => [...reviewByRow.values()], [reviewByRow])
 
   const [q, setQ] = useState('')
   const [cats, setCats] = useState<Set<string> | null>(null)
-  const [sortTotal, setSortTotal] = useState(false)
+  const [sort, setSort] = useState<'oz' | 'amount' | 'risk'>('oz')
   const [onlyUnpriced, setOnlyUnpriced] = useState(false)
   const [onlyPending, setOnlyPending] = useState(false)
   const [researchShow, setResearchShow] = useState<ResearchView>(null)
@@ -425,12 +455,23 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
 
   const rows = useMemo(() => {
     const t = q.trim().toLowerCase()
-    let r = positions.filter(
-      (p) => matchesFindingFilter(findingFilter, findingsByRow.get(p.id) ?? [], settled) && (!cats || cats.has(leafOz(p))) && (!onlyUnpriced || (p.up == null && !pending.has(p.id))) && (!onlyPending || (p.up == null && pending.has(p.id))) && (!onlyZero || (p.up != null && p.qty === 0)) && (!onlyEdited || editedIds.has(p.id) || addedIds.has(p.id)) && (!t || p.oz.toLowerCase().includes(t) || p.short.toLowerCase().includes(t) || p.path?.some((part) => part.label.toLowerCase().includes(t))),
+    const r = positions.filter(
+      (p) => matchesFindingFilter(findingFilter, reviewByRow.get(p.id) ?? [], settled) && (!cats || cats.has(leafOz(p))) && (!onlyUnpriced || (p.up == null && !pending.has(p.id))) && (!onlyPending || (p.up == null && pending.has(p.id))) && (!onlyZero || (p.up != null && p.qty === 0)) && (!onlyEdited || editedIds.has(p.id) || addedIds.has(p.id)) && (!t || p.oz.toLowerCase().includes(t) || p.short.toLowerCase().includes(t) || p.path?.some((part) => part.label.toLowerCase().includes(t))),
     )
-    if (sortTotal) r = [...r].sort((a, b) => positionTotal(b) - positionTotal(a))
+    if (sort === 'amount') r.sort((a, b) => positionTotal(b) - positionTotal(a))
+    if (sort === 'risk') r.sort((a, b) => (rowPoints.get(b.id) ?? 0) - (rowPoints.get(a.id) ?? 0))
     return r
-  }, [positions, q, cats, sortTotal, onlyUnpriced, onlyPending, pending, onlyZero, onlyEdited, editedIds, addedIds, findingFilter, findingsByRow, settled])
+  }, [positions, q, cats, sort, rowPoints, onlyUnpriced, onlyPending, pending, onlyZero, onlyEdited, editedIds, addedIds, findingFilter, reviewByRow, settled])
+  const repeatedIds = useMemo(() => {
+    if (!findingFilter.startsWith('rule:')) return []
+    const ids = new Set<string>()
+    for (const row of rows) {
+      for (const finding of findingsByRow.get(row.id) ?? []) {
+        if (findingFilter === `rule:${finding.rule_id}` && !settled.has(finding.id)) ids.add(finding.id)
+      }
+    }
+    return [...ids]
+  }, [findingFilter, findingsByRow, rows, settled])
 
   const largest = useMemo(() => {
     let best: Position | null = null
@@ -442,16 +483,18 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   const detailIdx = detailId ? rows.findIndex((r) => r.id === detailId) : -1
   const detailCatalogue = detail && report?.positions[detail.id]
   const detailFindings = detail ? findingsByRow.get(detail.id) : undefined
-  const detailOpen = detailFindings?.filter((finding) => !settled.has(finding.id)).length ?? 0
+  const detailItems = detail ? reviewByRow.get(detail.id) : undefined
+  const detailOpen = detailItems?.filter((item) => !settled.has(item.id)).length ?? 0
+  const detailExposure = detail && risk?.top_risks.find((row) => row.line_id === detail.id)?.amount
   // the next row (in table order, wrapping) that still has an open finding, so review can run row to row
   const nextFlagged = useMemo(() => {
     if (detailIdx < 0) return null
     for (let step = 1; step < rows.length; step++) {
       const row = rows[(detailIdx + step) % rows.length]
-      if (findingsByRow.get(row.id)?.some((finding) => !settled.has(finding.id))) return row
+      if (reviewByRow.get(row.id)?.some((item) => !settled.has(item.id))) return row
     }
     return null
-  }, [rows, detailIdx, findingsByRow, settled])
+  }, [rows, detailIdx, reviewByRow, settled])
   // several findings often carry the same advice; say it once under the heading instead of under each
   const rationales = detailFindings?.map((finding) => finding.suggested_fix?.rationale ?? '') ?? []
   const sharedRationale = rationales.length > 1 && rationales[0] && rationales.every((note) => note === rationales[0]) ? rationales[0] : ''
@@ -468,15 +511,13 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
     decide([findingId], decision, title)
     // after a decision, carry on with the next open finding in the drawer
     // when none is left on this row, the cursor waits on the way to the next flagged row
-    if (decision) requestAnimationFrame(() => (document.querySelector<HTMLElement>('[data-review="open"]') ?? document.querySelector<HTMLElement>('[data-next-finding]') ?? document.getElementById('drawer-findings-h'))?.focus())
-  }
-  const jumpTo = (lineId: string) => {
-    setParams((prev) => {
-      const next = new URLSearchParams(prev)
-      next.set('pos', lineId)
-      return next
-    }, { replace: true })
-    openDetail(lineId, 'findings')
+    if (decision) requestAnimationFrame(() => {
+      const drawerFindings = document.getElementById('drawer-findings-h')?.parentElement
+      const next = drawerFindings?.querySelector<HTMLElement>('[data-review="open"]')
+        ?? drawerFindings?.querySelector<HTMLElement>('[data-next-finding]')
+        ?? drawerFindings?.querySelector<HTMLElement>('#drawer-findings-h')
+      next?.focus()
+    })
   }
   const exportExcel = async () => {
     if (!uploadReport) return
@@ -488,12 +529,8 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   // the note is gone once a suggestion is settled: the cursor moves to the EP it filled (or left empty)
   const focusDrawerPrice = () => requestAnimationFrame(() => document.querySelector<HTMLElement>('[role=dialog] [data-risk-field="unit_price"]')?.focus())
 
-  // opening a row from its finding badge focuses the field the finding is about
   const openRow = (position: Position, fromFinding?: boolean) => {
-    const findings = fromFinding ? findingsByRow.get(position.id)?.filter((finding) => !reviewed.has(finding.id)) : undefined
-    const relevant = findings?.find((finding) => matchesFindingFilter(findingFilter, [finding], reviewed)) ?? findings?.[0]
-    // from a finding badge the cursor lands on the findings heading, which names the field to check
-    openDetail(position.id, relevant ? 'findings' : undefined)
+    openDetail(position.id, fromFinding ? 'findings' : undefined)
   }
 
   const removeSelected = () => {
@@ -531,7 +568,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
 
   const toTable = () => setTimeout(() => tableRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 40)
   const review = () => {
-    setSortTotal(true)
+    setSort('amount')
     setQ('')
     setCats(null)
     setFindingFilter('all')
@@ -614,6 +651,11 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
     ...(attached.length
       ? (['sep' as const, ...attached.map((d) => ({ label: d.name, icon: 'attach_file', onSelect: () => openDialog({ kind: 'doc', doc: d }) }))] as (MenuItem | 'sep')[])
       : []),
+    ...(uploadReport && risk ? [
+      'sep' as const,
+      { label: 'Excel risk matrix', icon: 'table_view', onSelect: () => void exportExcel() },
+      { label: 'Print risk review / PDF', icon: 'print', onSelect: () => window.print() },
+    ] : []),
     ...(live ? (['sep' as const, ...listMenu(live).filter((it) => it !== 'sep' && it.danger)] as (MenuItem | 'sep')[]) : []),
   ]
 
@@ -718,10 +760,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
         }
       />
 
-      {uploadReport && risk && (
-        <RiskSummary report={uploadReport} risk={risk} decisions={decisions} codes={codes} onDecide={decide} onOpen={jumpTo}
-          onExcel={() => void exportExcel()} onPrint={() => window.print()} />
-      )}
+      {risk && <RiskSummary risk={risk} decisions={decisions} />}
 
       {catalogueEnabled && researchShow && (
         <div className="mb-6">
@@ -749,6 +788,11 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
           </div>
           <CategoryFilter tree={tree} stats={catStats} value={cats} onChange={setCats} />
           <FindingFilter rows={filterFindings} reviewed={settled} value={findingFilter} onChange={setFindingFilter} />
+          {repeatedIds.length > 1 && (
+            <DismissMenu label={`Dismiss ${repeatedIds.length} shown findings`} onDismiss={(decision) => decide(repeatedIds, decision)}>
+              {`Dismiss ${repeatedIds.length} shown findings`}
+            </DismissMenu>
+          )}
           {assessment?.state === 'waiting' && (
             <span role="status" className="inline-flex h-10 items-center gap-1.5 text-sm text-slate-600">
               <Icon name="progress_activity" size={18} className="animate-spin" />Checking the uploaded list
@@ -785,12 +829,14 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
             <Icon name="checklist" size={18} /><span className="max-[1399px]:sr-only">Select</span>
           </button>
           <div className="flex items-center gap-2 sm:ml-auto">
-            {!sortTotal && !filtered && tree.length > 0 && (
+            {sort === 'oz' && !filtered && tree.length > 0 && (
               <ToolButton icon={sectionsOpen ? 'unfold_less' : 'unfold_more'} aria-expanded={sectionsOpen} aria-keyshortcuts="e" title={`${sectionsOpen ? 'Collapse' : 'Expand'} all sections (E)`} onClick={() => setSectionsOpen((v) => !v)} className="max-[1399px]:w-10 max-[1399px]:justify-center max-[1399px]:px-0">
                 <span className="max-[1399px]:sr-only">{sectionsOpen ? 'Collapse all' : 'Expand all'}</span>
               </ToolButton>
             )}
-            <SortMenu value={sortTotal ? 'amount' : 'oz'} options={{ oz: 'Position order', amount: 'Highest amount' }} onChange={(k) => setSortTotal(k === 'amount')} noun="positions" />
+            {risk
+              ? <SortMenu value={sort} options={{ oz: 'Position order', amount: 'Highest amount', risk: 'Highest risk' }} onChange={setSort} noun="positions" />
+              : <SortMenu value={sort === 'amount' ? 'amount' : 'oz'} options={{ oz: 'Position order', amount: 'Highest amount' }} onChange={setSort} noun="positions" />}
           </div>
         </div>
 
@@ -811,7 +857,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
           pending={pending}
           onConfirmPrice={(pid) => confirmPrices([pid])}
           sectionsOpen={sectionsOpen}
-          sortActive={sortTotal}
+          sortActive={sort !== 'oz'}
           selectMode={selectMode}
         />
 
@@ -865,17 +911,26 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
         </div>
       </div>
 
-      {(listWide.length > 0 || uploadReport?.source_notice || !!uploadReport?.errors.length) && (
+      {(listWide.length > 0 || listSignals.length > 0 || uploadReport?.source_notice || !!uploadReport?.errors.length || aiCheckSkipped) && (
         <section aria-labelledby="list-findings-h" className="mt-8">
-          <h2 id="list-findings-h" className="font-heading text-base font-bold text-slate-900">
-            Upload check for the whole list{listWide.length > 0 && <span className="num ml-2 font-sans text-sm font-medium text-slate-600">{int(listWide.length)}</span>}
-          </h2>
-          {(uploadReport?.source_notice || !!uploadReport?.errors.length) && (
-            <p className="mt-1 text-sm text-amber-900">{uploadReport?.source_notice || 'Some checks could not finish during the upload.'}</p>
+          <h2 id="list-findings-h" className="font-heading text-base font-bold text-slate-900">Upload check for the whole list</h2>
+          {(uploadReport?.source_notice || aiCheckSkipped || !!uploadReport?.errors.length) && (
+            <div className="mt-1 space-y-1 text-sm text-amber-900" role="note">
+              {uploadReport?.source_notice && <p>{uploadReport.source_notice}</p>}
+              {aiCheckSkipped && <p>The AI check (layer 3) did not run.</p>}
+              {uploadReport?.errors.slice(0, 3).map((error, index) => <p key={index}>{error}</p>)}
+            </div>
           )}
-          {listWide.length > 0 && (
+          {(listWide.length > 0 || listSignals.length > 0) && (
             <ul className="mt-3 space-y-4">
-              {listWide.map((finding) => <li key={finding.id}><FindingText finding={finding} /></li>)}
+              {[...listWide, ...listSignals].map((item) => (
+                <li key={item.id} className="space-y-3">
+                  {'severity' in item ? <FindingText finding={item} decision={decisions[item.id]} details />
+                    : <ChangeOrderText signal={item} decision={decisions[item.id]} />}
+                  <DecisionControls className="ml-[15px]" title={item.title} decision={decisions[item.id]}
+                    onDecide={(decision) => decide([item.id], decision, item.title)} />
+                </li>
+              ))}
             </ul>
           )}
         </section>
@@ -917,7 +972,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
         setOnlyPending(false)
         setOnlyZero(false)
         setOnlyEdited(false)
-        setSortTotal(false)
+        setSort('oz')
         toast(`Added section "${name}"`)
       }} />
       <AddItemDialog open={adding} onClose={() => setAdding(false)} listId={doc.id} tree={tree} positions={positions} />
@@ -933,12 +988,15 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
           <CatalogueDetails result={detailCatalogue} position={detail}
             onApply={(long) => useStore.getState().patchPosition(doc.id, detail.id, { long })} />
         ) : undefined}
-        findings={detailFindings?.length ? (
+        findings={detailItems?.length ? (
           <section aria-labelledby="drawer-findings-h">
             <h3 id="drawer-findings-h" tabIndex={-1} data-risk-field="findings" className="rounded text-[15px] font-semibold text-slate-900">
               Upload check
               <span className="num ml-2 text-sm font-medium text-slate-600">{detailOpen ? `${int(detailOpen)} to review` : 'All reviewed'}</span>
             </h3>
+            {detailExposure != null && Number.isFinite(Number(detailExposure)) && (
+              <p className="mt-1 text-sm text-slate-600">Money at stake <strong>{money(Number(detailExposure))}</strong></p>
+            )}
             {sharedRationale && (
               <details className="group/why mt-1 text-sm text-slate-600">
                 <summary className="inline-flex min-h-8 cursor-pointer list-none items-center gap-1 rounded font-medium text-slate-700 hover:text-slate-900 [&::-webkit-details-marker]:hidden">
@@ -949,11 +1007,13 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
               </details>
             )}
             <ul className="mt-3 space-y-5">
-              {detailFindings.map((finding) => (
-                <li key={finding.id} className="space-y-3">
-                  <FindingText finding={finding} decision={decisions[finding.id]} changed={changedFindings.has(finding.id)} hideRationale={!!sharedRationale} details />
-                  <DecisionControls className="ml-[15px]" title={finding.title} decision={decisions[finding.id]}
-                    onDecide={(decision) => decideInDrawer(finding.id, finding.title, decision)} />
+              {detailItems.map((item) => (
+                <li key={item.id} className="space-y-3">
+                  {'severity' in item
+                    ? <FindingText finding={item} decision={decisions[item.id]} changed={changedFindings.has(item.id)} hideRationale={!!sharedRationale} details />
+                    : <ChangeOrderText signal={item} decision={decisions[item.id]} />}
+                  <DecisionControls className="ml-[15px]" title={item.title} decision={decisions[item.id]}
+                    onDecide={(decision) => decideInDrawer(item.id, item.title, decision)} />
                 </li>
               ))}
             </ul>
@@ -963,7 +1023,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
                 className="group/next mt-5 flex min-h-9 max-w-full items-start gap-1.5 rounded py-1 text-left text-sm text-slate-700 hover:text-slate-900">
                 <Icon name="arrow_downward" size={16} className="mt-0.5 shrink-0" />
                 <span className="min-w-0">
-                  <span className="block font-semibold underline decoration-slate-400 underline-offset-4 group-hover/next:decoration-slate-700">Next open finding</span>
+                  <span className="block font-semibold underline decoration-slate-400 underline-offset-4 group-hover/next:decoration-slate-700">Next position to review</span>
                   <span className="block text-pretty text-slate-600"><span className="num mr-1.5 font-mono text-[13px]">{nextFlagged.oz}</span><span lang="de" className="hyphens-auto">{nextFlagged.short}</span></span>
                 </span>
               </button>

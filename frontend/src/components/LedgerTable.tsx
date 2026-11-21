@@ -11,7 +11,7 @@ import { leafOz, treeStats, type CatStat } from '../lib/resolve'
 import type { Severity } from '../lib/risk-assessment'
 import type { CategoryNode, Position } from '../lib/types'
 
-export type RowRisk = { severity: Severity; count: number; label?: string }
+export type RowRisk = { severity?: Severity; count: number; signalCount: number; points: number; label: string }
 
 /** why a section adds up to nothing, in the words the rows use */
 function zeroWhy(s: CatStat, waiting: number) {
@@ -147,6 +147,11 @@ interface RowProps {
 }
 
 const Row = memo(function Row({ listId, p, showCategory, selected, flash, edited, qtyEdited, upEdited, risk, pending, onConfirmPrice, onToggle, onOpen, onMove }: RowProps) {
+  const severity = risk ? risk.severity ?? 'info' : undefined
+  const reviewLabel = risk && [
+    risk.count > 0 && plural(risk.count, 'finding', 'findings'),
+    risk.signalCount > 0 && plural(risk.signalCount, 'change-order signal', 'change-order signals'),
+  ].filter(Boolean).join(' · ')
   const total = positionTotal(p)
   const remove = () => {
     useStore.getState().removePositions(listId, [p.id])
@@ -180,8 +185,8 @@ const Row = memo(function Row({ listId, p, showCategory, selected, flash, edited
       data-risk={risk?.severity}
       className={clsx(
         'group transition-colors lg:relative',
-        selected ? 'bg-brand-50/70' : risk ? RISK_UI[risk.severity].tint : 'hover:bg-slate-100',
-        risk && [RISK_UI[risk.severity].row, 'lg:[&>td]:align-top'],
+        selected ? 'bg-brand-50/70' : severity ? RISK_UI[severity].tint : 'hover:bg-slate-100',
+        severity && [RISK_UI[severity].row, 'lg:[&>td]:align-top'],
         flash && 'bg-brand-50 outline-2 -outline-offset-2 outline-brand-300',
       )}
     >
@@ -207,19 +212,20 @@ const Row = memo(function Row({ listId, p, showCategory, selected, flash, edited
           <span lang="en" className="sr-only">, open details</span>
         </button>
         {showCategory && <div className="mt-0.5 truncate text-[13px] text-slate-600">{p.category}</div>}
-        {risk && (
+        {risk && severity && (
           <button
             type="button"
             onClick={() => onOpen(p, true)}
             title={risk.label}
-            aria-label={`${RISK_UI[risk.severity].label}: review ${risk.count === 1 ? '1 finding' : `${risk.count} findings`} for ${p.oz} ${hasShort ? p.short : ''}${risk.label ? `, ${risk.label}` : ''}`}
+            aria-label={`Review ${reviewLabel} for ${p.oz}${hasShort ? ` ${p.short}` : ''}: ${risk.label}`}
             className="mb-1.5 block rounded-md max-lg:mt-1"
           >
             {/* the row says how much; the titles live in the drawer, so nothing here gets clipped */}
-            <FindingBadge severity={risk.severity}>
-              {RISK_UI[risk.severity].label}
-              <span className="font-normal">· {risk.count === 1 ? '1 finding' : `${risk.count} findings`}</span>
+            <FindingBadge severity={severity}>
+              {risk.severity && <>{RISK_UI[risk.severity].label}<span aria-hidden>·</span></>}
+              <span className="font-normal">{reviewLabel}</span>
             </FindingBadge>
+            {risk.points > 0 && <span className="num ml-2 text-[13px] text-slate-600">{plural(risk.points, 'risk point', 'risk points')}</span>}
           </button>
         )}
       </td>
@@ -370,15 +376,18 @@ export function LedgerTable({
   /** worst open finding inside a collapsed section, so flagged rows stay visible as a hint */
   const sectionRisk = (oz: string) => {
     if (!risks?.size) return null
-    let worst: RowRisk | null = null
+    let worst: Severity | null = null
     let count = 0
+    let points = 0
     for (const pid of stats.get(oz)?.pids ?? []) {
       const risk = risks.get(pid)
       if (!risk) continue
       count++
-      if (!worst || SEVERITY_RANK[risk.severity] < SEVERITY_RANK[worst.severity]) worst = risk
+      points += risk.points
+      const severity = risk.severity ?? 'info'
+      if (!worst || SEVERITY_RANK[severity] < SEVERITY_RANK[worst]) worst = severity
     }
-    return worst ? { severity: worst.severity, count } : null
+    return worst ? { severity: worst, count, points } : null
   }
 
   const selectedVisible = visible.reduce((n, r) => n + (selected.has(r.id) ? 1 : 0), 0)
@@ -434,7 +443,7 @@ Einheitspreis (€)
         {blocks.map((b) => {
           const cat = b.cat
           const open = cat ? isOpen(cat.oz) : true
-          const flagged = cat && !open ? sectionRisk(cat.oz) : null
+          const flagged = cat ? sectionRisk(cat.oz) : null
           const top = b.depth === 0
           return (
             // a sub-section and its positions step in one level per depth (capped at three), so the tree reads at a glance
@@ -473,9 +482,10 @@ Einheitspreis (€)
                           )}
                         </span>
                       </button>
-                      {flagged && (
-                        <span className="-mt-1 mb-2 block pl-[calc(136px+var(--ind,0)*28px)] text-sm max-lg:pl-[calc(1.75rem+var(--ind,0)*16px)]">
-                          <FindingBadge severity={flagged.severity}>{flagged.count === 1 ? '1 flagged position' : `${flagged.count} flagged positions`}</FindingBadge>
+                      {flagged && (!open || flagged.points > 0) && (
+                        <span className="-mt-1 mb-2 flex flex-wrap items-center gap-2 pl-[calc(136px+var(--ind,0)*28px)] text-sm max-lg:pl-[calc(1.75rem+var(--ind,0)*16px)]">
+                          {!open && <FindingBadge severity={flagged.severity}>{plural(flagged.count, 'flagged position', 'flagged positions')}</FindingBadge>}
+                          {flagged.points > 0 && <span className="num text-[13px] text-slate-600">{plural(flagged.points, 'risk point', 'risk points')}</span>}
                         </span>
                       )}
                     </th>
