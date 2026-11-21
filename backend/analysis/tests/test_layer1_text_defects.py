@@ -1,6 +1,8 @@
 import pytest
 
-from test_layer1 import make_line, run
+from analysis.adapter import from_file
+from analysis.runner import analyze
+from test_layer1 import DATA, make_line, run
 
 
 def selected(rule, short, long="", phase="83"):
@@ -14,6 +16,36 @@ def test_placeholders(text):
     finding, = selected("SPEC_PLACEHOLDER", text)
     assert finding.evidence["kind"] == "placeholder"
     assert finding.evidence["bieterfrage_de"].startswith("Zu Pos. 01.0001:")
+
+
+@pytest.mark.parametrize("text", [
+    "Fabrikat z. B. [FIRMA_095]",
+    "Lieferant/Hersteller: [FIRMA_095] oder\ngleichwertig",
+    "Hersteller: [FIRMA_095] & Co. KG",
+    "Hersteller: [FIRMA_095]\n49090 Osnabrück",
+])
+def test_supplier_redactions_in_examples_and_contact_details(text):
+    assert selected("SPEC_PLACEHOLDER", "Pumpe DN 150", text) == []
+
+
+@pytest.mark.parametrize("filename", [
+    "8209.003_Leistungsverzeichnis_leer.X83",
+    "8209.003_Leistungsverzeichnis_leer.D83",
+    "GAEB-[PROJEKT_004].X83",
+    "[ORT_024] LV24069.D86",
+])
+def test_reviewed_supplier_redactions_are_clean_in_original_tenders(filename):
+    result = analyze(from_file(DATA / filename), [1])
+    assert result.errors == []
+    assert not any(finding.rule_id == "L1.TEXT.SPEC_PLACEHOLDER" for finding in result.findings)
+
+
+def test_supplier_context_does_not_hide_unresolved_technical_fields():
+    long = "Hersteller: [FIRMA_095] & Co. KG. Typ: [TYP_123]"
+    finding, = selected("SPEC_PLACEHOLDER", "Pumpe", long)
+    assert len(finding.evidence["excerpts"]) == 1
+    assert "[TYP_123]" in finding.evidence["excerpts"][0]
+    assert selected("SPEC_PLACEHOLDER", "Pumpe", "Hersteller: [FIRMA_095]")
 
 
 @pytest.mark.parametrize("phase", ["83", "84", "86"])

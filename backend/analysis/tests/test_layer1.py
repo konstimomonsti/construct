@@ -149,6 +149,22 @@ def test_lump_sum_rules_and_no_noise_for_plain_psch():
     assert all(f.suggested_fix.rationale and f.suggested_fix.operations == [] for f in findings)
 
 
+def test_lump_sum_effort_conflict_is_grounded_in_the_pricing_clause():
+    source = make_line(1, short_text="Zusatzarbeiten", long_text="Leistungen nach tatsächlichem Aufwand abrechnen.",
+                       quantity=D(1), unit="lump_sum", pricing_basis="lump_sum")
+    finding, = only(run(source), "L1.LUMP.OPEN_SCOPE")
+    assert finding.target.field == "long_text"
+    assert finding.evidence["pricing_clause"] == "Leistungen nach tatsächlichem Aufwand abrechnen"
+    assert finding.evidence["bieterfrage_de"].startswith("Zu Pos. 01.0001:")
+    assert "L1.LUMP.OPEN_SCOPE" not in rules(run(source.model_copy(update={"unit": "h", "pricing_basis": "unit_rate"})))
+    assert "L1.LUMP.OPEN_SCOPE" not in rules(run(source.model_copy(update={
+        "long_text": "Die Arbeiten werden nicht nach Aufwand abgerechnet. Abrechnung pauschal.",
+    })))
+    assert "L1.LUMP.OPEN_SCOPE" not in rules(run(source.model_copy(update={
+        "long_text": "Der Polier plant die Mannschaft nach Aufwand. Abrechnung pauschal.",
+    })))
+
+
 def test_bidder_input_severity_depends_on_phase():
     text = "Fabrikat: '..............' vom Bieter einzutragen"
     assert only(run(make_line(1, long_text=text)), "L1.TEXT.BIDDER_INPUT")[0].severity == "info"
@@ -199,6 +215,31 @@ def test_real_relative_surcharges_refer_to_distinct_base_work():
     finding, = duplicate_at_second_surcharge(snapshot.with_hash())
     assert finding.evidence["same_as"] == "02.03.0005"
     assert finding.suggested_fix.operations == []
+
+def test_near_duplicate_reviews_reworded_work_but_preserves_technical_variants():
+    amounts = SourceAmounts(unit_price=D(20))
+    left = make_line(1, short_text="Kabel im Graben links sichern",
+                     long_text="Kabel im Graben links mit einer zusätzlichen Schutzabdeckung sichern.", source_amounts=amounts)
+    candidate = make_line(2, short_text="Kabel im Graben links befestigen",
+                          long_text="Kabel im Graben links mit einer zusätzlichen Schutzabdeckung befestigen.",
+                          source_amounts=amounts)
+    finding, = only(run(left, candidate), "L1.DUP.NEAR_TEXT")
+    assert finding.related_line_ids == [left.id]
+    assert finding.evidence["differing_terms"] == ["befestigen", "sichern"]
+    assert finding.suggested_fix.operations == []
+    for old, new in (("links", "rechts"), ("Kabel", "Rohr")):
+        variant = candidate.model_copy(update={
+            "short_text": candidate.short_text.replace(old, new),
+            "long_text": candidate.long_text.replace(old, new),
+        })
+        assert "L1.DUP.NEAR_TEXT" not in rules(run(left, variant))
+
+
+def test_reworded_duplicate_check_keeps_real_award_variants_separate():
+    result = analyze(adapter.from_file(DATA / "StBALV23040.D86"), [1])
+    assert result.errors == []
+    assert "L1.DUP.NEAR_TEXT" not in rules(result)
+
 
 def test_distribution_sum():
     result = run(make_line(1, distributions=[Distribution(area_id="a", quantity=D(4)),

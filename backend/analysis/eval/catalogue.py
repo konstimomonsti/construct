@@ -297,13 +297,12 @@ def plan_duplicate(kind: str):
                 new = clone_line(line, code, f"L{code}")
                 new["short_text"] = reword(line["short_text"])
                 new["long_text"] = reword(line["long_text"])
-                expect, also = ["L1.DUP.*"], []
+                expect, also = ["L1.DUP.NEAR_TEXT"], []
                 text = f"{line['code']} copied under the new OZ {code} with reworded texts"
             planted = [{"op": "insert_after", "after_id": line["id"], "line": new}]
             yield Plan(f"DUP-{kind}-{number:02d}", f"DUP-{kind}", text,
                        planted + derive(ctx.doc, planted, [new["id"]]),
-                       label(target=line_target(new), expect=expect, match="line", also=also, gap=kind == "REWORDED",
-                             note="No rule compares reworded descriptions yet." if kind == "REWORDED" else ""),
+                       label(target=line_target(new), expect=expect, match="line", also=also),
                        {"source": line["code"], "new_code": code})
     return planner
 
@@ -317,7 +316,7 @@ _SYNONYMS = [("liefern", "bereitstellen"), ("einbauen", "montieren"), ("herstell
 
 
 def reword(text: str | None) -> str | None:
-    """Same meaning, different words. Falls back to rotating the comma-separated parts."""
+    """Closely reword a description or rotate its comma-separated parts."""
     if text is None:
         return None
     result = text
@@ -363,8 +362,7 @@ def plan_vague(ctx: Context, count: int, rng: random.Random) -> Iterator[Plan]:
         planted = [{"op": "insert_after", "after_id": last["id"], "line": new}]
         yield Plan(f"TEXT-VAGUE-{number:02d}", "TEXT-VAGUE", f"Vague item 'nach Aufwand' added as {code}",
                    planted + derive(ctx.doc, planted, []),
-                   label(target=line_target(new), expect=["L1.TEXT.SPEC_PLACEHOLDER"], match="line", gap=True,
-                         note="Open quantity basis ('nach Aufwand') is not detected yet."),
+                   label(target=line_target(new), expect=["L1.LUMP.OPEN_SCOPE"], match="line"),
                    {"new_code": code})
 
 
@@ -584,9 +582,9 @@ TYPES: list[MutationType] = [
                  plan_unit_dimension),
     MutationType("DUP-NEW-OZ", "Exact duplicate, new OZ", "L1.DUP.SUSPECTED", False, False, plan_duplicate("NEW-OZ")),
     MutationType("DUP-SAME-OZ", "Exact duplicate, same OZ", "L1.CODE.DUPLICATE", False, False, plan_duplicate("SAME-OZ")),
-    MutationType("DUP-REWORDED", "Reworded duplicate", "gap: no similarity rule", True, False, plan_duplicate("REWORDED")),
+    MutationType("DUP-REWORDED", "Potential overlap between reworded positions", "L1.DUP.NEAR_TEXT", False, False, plan_duplicate("REWORDED")),
     MutationType("TEXT-TYPO", "Typo in the short text", "gap: L1.TEXT.TYPO planned", True, False, plan_typo),
-    MutationType("TEXT-VAGUE", "Vague item 'nach Aufwand'", "gap: L1.TEXT.SPEC_PLACEHOLDER planned", True, False, plan_vague),
+    MutationType("TEXT-VAGUE", "Lump sum with open effort", "L1.LUMP.OPEN_SCOPE", False, False, plan_vague),
     MutationType("TEXT-CONFLICT-CLASS", "Concrete class differs in the long text",
                  "L1.TEXT.VALUE_CONFLICT / L3", False, False, plan_conflict("CLASS")),
     MutationType("TEXT-CONFLICT-DN", "DN differs in the long text", "L1.TEXT.VALUE_CONFLICT / L3", False,

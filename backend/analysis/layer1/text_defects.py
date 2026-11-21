@@ -9,6 +9,14 @@ from .textvalues import DIMENSIONS, GRADE, NUMBER, values
 # Product/value redactions, not anonymized people or addresses.
 PLACEHOLDER = re.compile(r"\[(?:FIRMA|KENNZEICHEN|PRODUKT|TYP|NUMMER)_\d+\]|\bXXX\b|:\s*[-–—]{2,}|"
                          r"\b(?:Fabrikat|Typ|Widerstandsklasse|Produkt)\s*:\s*(?:\.{3,}|…{2,})", re.I)
+FIRM_MASK = re.compile(r"\[FIRMA_\d+\]", re.I)
+EXAMPLE_SUPPLIER = re.compile(r"\b(?:z\.\s*(?:b\.)?|zum\s+Beispiel)\s+[^.;!?]{0,75}$", re.I)
+SUPPLIER_LABEL = re.compile(r"\b(?:Hersteller|Lieferant|Fabrikat)\s*:\s*$", re.I)
+SUPPLIER_CONTACT = re.compile(
+    r"^\s*(?:[,&]\s*Co\.\s*KG\b|GmbH\b|\[(?:ADRESSE|ORT|TELEFON)_\d+\]|\d{5}\s+[^\W\d_]|Tel\.?:?\s|Fon\s)", re.I,
+)
+SUPPLIER_ALTERNATIVE = re.compile(r"\boder\s+(?:ein\s+Produkt\s+)?gleichwertig\w*|\bo\.\s*ä\.", re.I)
+NEXT_FIELD = re.compile(r"\b(?:Typ|Produkt|Fabrikat|Hersteller|Lieferant)\s*:|\bangeboten\w*\b|[;!?)]", re.I)
 BIDDER_LABEL = re.compile(r"\b(?:Bieter|angeboten\w*|gewählt\w*|einzutragen|anzugeben)\b", re.I)
 UNCLEAR = re.compile(rf"\b(?:[dlbh]\s*=|(?:Dicke|Länge|Breite|Höhe)\s*[:=])\s*"
                      rf"(?:\?[^\n;,]*|{NUMBER}\s*(?:mm|cm|m)?\s*\?|"
@@ -25,13 +33,27 @@ ATTRIBUTE_DE = {"DN or size": "Nennweite bzw. Abmessung", "cable cross-section":
                 "concrete class": "Betonfestigkeitsklasse", "thickness": "Dicke", "door size": "Türabmessung"}
 
 
+def supplier_reference(text: str, match: re.Match) -> bool:
+    """Check if a masked company occurs in an example, alternative, or contact block."""
+    if not FIRM_MASK.fullmatch(match[0]):
+        return False
+    before = text[max(0, match.start() - 95):match.start()]
+    after = text[match.end():match.end() + 100]
+    alternative = NEXT_FIELD.split(after, maxsplit=1)[0]
+    return bool(EXAMPLE_SUPPLIER.search(before) or SUPPLIER_ALTERNATIVE.search(alternative)
+                or SUPPLIER_LABEL.search(before) and SUPPLIER_CONTACT.match(after))
+
+
 @rule("L1.TEXT.SPEC_PLACEHOLDER", layer=1, category="text", severity="warning",
-      title="Specification contains a placeholder", description="Redacted identifiers, XXX or unfilled specification values; explicit bidder input fields are excluded.")
+      title="Specification contains a placeholder",
+      description="Unresolved identifiers, XXX or unfilled technical values. Excludes bidder fields and masked example suppliers or contacts.")
 def spec_placeholder(ctx):
     for line in ctx.input.lines:
         text = text_of(line)
         matches = []
         for match in PLACEHOLDER.finditer(text):
+            if supplier_reference(text, match):
+                continue
             start = text.rfind("\n", 0, match.start()) + 1
             end = text.find("\n", match.end())
             row = text[start:end if end >= 0 else len(text)]
