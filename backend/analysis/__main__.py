@@ -41,6 +41,7 @@ def main(argv=None) -> int:
         command.add_argument("--out")
         if name == "run":
             command.add_argument("--layers", default=",".join(map(str, DEFAULT_LAYERS)))
+            command.add_argument("--no-risk", action="store_true", help="Skip risk scoring and bidder questions")
     commands.add_parser("rules")
     catalogue_cli.add_command(commands)
     args = parser.parse_args(argv)
@@ -63,7 +64,7 @@ def main(argv=None) -> int:
         emit(analysis_input.model_dump_json(indent=2), args.out)
         return 0
     layers = [int(part) for part in args.layers.split(",") if part.strip()]
-    result = analyze(analysis_input, layers)
+    result = analyze(analysis_input, layers, include_risk=not args.no_risk)
     emit(result.model_dump_json(indent=2), args.out)
     return 0
 

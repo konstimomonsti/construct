@@ -14,12 +14,15 @@ import importlib
 from typing import Iterable
 
 from .contracts import AnalysisInput, AnalysisResult, Finding, Summary
+from .questions import build_questions
+from .risk import assess
 
 DEFAULT_LAYERS = (1, 2)
 _SEVERITY_ORDER = {"error": 0, "warning": 1, "info": 2}
 
 
-def analyze(analysis_input: AnalysisInput, layers: Iterable[int] = DEFAULT_LAYERS) -> AnalysisResult:
+def analyze(analysis_input: AnalysisInput, layers: Iterable[int] = DEFAULT_LAYERS, *,
+            include_risk: bool = True) -> AnalysisResult:
     if not analysis_input.input_hash:
         analysis_input = analysis_input.with_hash()
     findings: list[Finding] = []
@@ -37,9 +40,18 @@ def analyze(analysis_input: AnalysisInput, layers: Iterable[int] = DEFAULT_LAYER
         layers_run.append(layer)
 
     findings = _sorted(_dedupe(findings), analysis_input)
+    risk, questions = None, []
+    if include_risk:
+        try:
+            risk = assess(analysis_input, findings)
+            questions = build_questions(analysis_input, findings, risk)
+        except Exception as exc:
+            errors.append(f"risk report: {type(exc).__name__}: {exc}")
+            risk, questions = None, []
     return AnalysisResult(
         bom_version_id=analysis_input.bom.bom_version_id, input_hash=analysis_input.input_hash,
         layers_run=layers_run, findings=findings, summary=summarize(findings), errors=errors,
+        risk=risk, questions=questions,
     )
 
 
