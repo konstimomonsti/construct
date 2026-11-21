@@ -105,7 +105,7 @@ and **required dependencies**. A dependency is either `Boolean` (something must 
 `QuantityMatch` (it must cover the trigger's area, within 10%).
 
 - 15 groups and 46 checks: screed and floor finishes, in-situ concrete, drywall, painting, flat roofs,
-  and (from IMPLEMENTATION_PLAN.md §2.4) electrical installation, lighting, cabling, lightning
+  and (from NEXT_FEATURES_IMPLEMENTATION_PLAN.md §2.4) electrical installation, lighting, cabling, lightning
   protection, WCs, drinking water, tiling, steel doors, industrial doors and windows. Tested on the
   `LV_xx` building PDFs in `Data/`; see DEPENDENCY_VALIDATOR.md for what they find.
 - A dependency can be `"Severity": "info"` for items usually in another package (RCD protection,

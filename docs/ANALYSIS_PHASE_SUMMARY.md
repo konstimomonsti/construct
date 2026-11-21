@@ -111,7 +111,7 @@ land in their sections.
 - `docs/ANALYSIS_LAYERS.md`: start here; what each layer does, the status, and the design rules for layer 3.
 - `docs/ANALYSIS_CONTRACT.md`: data model, layer 1 rule catalogue, sources.
 - `docs/DEPENDENCY_VALIDATOR.md`: layer 2 rules and how to extend them.
-- `docs/DATA_SOURCES.md`: public GAEB test files, tender portals and price data we could use.
+- `docs/PUBLIC_DATA_SOURCES.md`: public GAEB test files, tender portals and price data we could use.
 
 ## Current state
 
@@ -130,7 +130,7 @@ land in their sections.
 ## Suggested next steps
 
 1. Measure layer 3 precision with the chosen model (`python -m analysis.layer3.eval`).
-2. Get building-project GAEB files (see `DATA_SOURCES.md`: BVBS test files, Dangl samples, public tenders) to
+2. Get building-project GAEB files (see `PUBLIC_DATA_SOURCES.md`: BVBS test files, Dangl samples, public tenders) to
    test layer 2 on real buildings and add more trades (sanitary, electrical, tiling, windows).
 3. Run migration 009 and `from_db` against the database.
 4. Add accept/reject to the web report and apply accepted fixes to a new BOM version.

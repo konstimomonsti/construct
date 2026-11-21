@@ -50,7 +50,7 @@ def _is_trigger(text: str, trigger: re.Pattern, exclude: re.Pattern | None) -> b
 
 # PDF item flags meaning "not a firm part of the order": Bedarfsposition ohne/mit GB, Wahlposition.
 # adapter.derive_pricing reads only the GAEB names (Provis, AltItem, ...) so far, which leaves these
-# lines at total_rule "include" (IMPLEMENTATION_PLAN.md §0.2). Such a line must neither trigger a
+# lines at total_rule "include" (NEXT_FEATURES_IMPLEMENTATION_PLAN.md §0.2). Such a line must neither trigger a
 # check nor count as covering a dependency.
 _NOT_FIRM_FLAGS = ("unit_price_only", "provisional_included", "alternative_item")
 

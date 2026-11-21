@@ -451,7 +451,7 @@ class FalsePositiveTests(unittest.TestCase):
 
 
 class EngineTweakTests(unittest.TestCase):
-    """IMPLEMENTATION_PLAN.md §2.4: per-dependency severity, dimension skipping, PDF item flags."""
+    """NEXT_FEATURES_IMPLEMENTATION_PLAN.md §2.4: per-dependency severity, dimension skipping, PDF item flags."""
 
     def test_info_dependency_is_info_but_keeps_its_proposal(self):
         findings = selected(input_for(line("s", "UP-Schuko-Steckdose", "10", "St")), "RCD_PROTECTION")
@@ -500,7 +500,7 @@ class EngineTweakTests(unittest.TestCase):
 
 
 class NewTradeTests(unittest.TestCase):
-    """The ten groups added from IMPLEMENTATION_PLAN.md §2.4, with texts from the LV_xx PDFs in Data/."""
+    """The ten groups added from NEXT_FEATURES_IMPLEMENTATION_PLAN.md §2.4, with texts from the LV_xx PDFs in Data/."""
 
     def hits(self, *lines):
         return {f.rule_id: f for f in run(input_for(*lines), [])}
