@@ -1,7 +1,7 @@
 import { clsx } from 'clsx'
 import { Icon, Menu, type MenuItem } from './ui'
 import { ToolButton } from './Kit'
-import { SEVERITIES, type Finding, type Severity } from '../lib/risk-assessment'
+import { REASONS, SEVERITIES, type Decision, type Finding, type Severity } from '../lib/risk-assessment'
 
 /**
  * severity colours for the risk UI, built on the themed status tokens so they hold in dark mode.
@@ -28,21 +28,74 @@ export function FindingBadge({ severity, children }: { severity: Severity; child
   )
 }
 
+
+/** what layer 3 or a DIN rule found, shown under the message in the drawer */
+function FindingEvidence({ finding }: { finding: Finding }) {
+  const din = finding.evidence?.din
+  const extracted = Object.entries(finding.evidence?.extracted ?? {})
+  if (!din && !extracted.length) return null
+  const show = (v: unknown) => (v === null || v === undefined || v === '' ? '—' : Array.isArray(v) ? v.join(', ') || '—' : String(v))
+  return (
+    <div className="mt-2 space-y-2 text-[13px]">
+      {din && (
+        <p className="flex flex-wrap gap-x-3 gap-y-1 text-slate-700">
+          <span className="font-semibold text-slate-900">DIN 1045-2</span>
+          {din.grade && <span>Grade <span className="num font-medium">{din.grade}</span></span>}
+          {!!din.exposure?.length && <span>Exposure <span className="num font-medium">{din.exposure.join(', ')}</span></span>}
+          {din.required_min && <span>Minimum <span className="num font-medium">{din.required_min}</span></span>}
+        </p>
+      )}
+      {extracted.length > 0 && (
+        <table className="w-full max-w-sm text-left">
+          <caption className="mb-1 text-left font-semibold text-slate-900">Read from the text</caption>
+          <tbody>
+            {extracted.map(([key, value]) => (
+              <tr key={key} className="border-t border-slate-200">
+                <th scope="row" className="py-1 pr-3 font-medium text-slate-600">{key.replace(/_/g, ' ')}</th>
+                <td className={clsx('num py-1', value == null ? 'text-amber-900' : 'text-slate-900')}>{show(value)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  )
+}
+
 /** one finding: a severity bar on the leading edge, the badge and title, then the explanation */
-export function FindingText({ finding, reviewed, changed, hideRationale }: { finding: Finding; reviewed?: boolean; changed?: boolean; hideRationale?: boolean }) {
-  const muted = reviewed || changed
+export function FindingText({ finding, reviewed, decision, changed, hideRationale, details }: {
+  finding: Finding; reviewed?: boolean; decision?: Decision; changed?: boolean; hideRationale?: boolean; details?: boolean
+}) {
+  const decided = reviewed || !!decision
+  const muted = decided || changed
   return (
     <div className={clsx('min-w-0 border-l-[3px] pl-3', muted ? 'border-slate-300' : RISK_UI[finding.severity].bar)}>
       <div className="flex flex-wrap items-center gap-2">
-        <span className={clsx('inline-flex items-center gap-1 text-[13px] font-semibold', muted ? 'text-slate-600' : RISK_UI[finding.severity].ink)}>
-          <Icon name={reviewed ? 'check' : changed ? 'edit' : RISK_UI[finding.severity].icon} size={15} fill={!muted} className="shrink-0" />
-          {reviewed ? 'Reviewed' : changed ? 'Changed since upload' : RISK_UI[finding.severity].label}
-        </span>
+        {decision ? (
+          <span className={clsx('inline-flex items-center gap-1 text-[13px] font-semibold text-slate-600')}>
+            <Icon name={decision.status === 'accepted' ? 'check' : 'block'} size={15} className="shrink-0" />
+            {decision.status === 'accepted' ? 'Accepted' : `Dismissed${decision.reason ? ` · ${REASONS[decision.reason]}` : ''}`}
+          </span>
+        ) : (
+          <span className={clsx('inline-flex items-center gap-1 text-[13px] font-semibold', muted ? 'text-slate-600' : RISK_UI[finding.severity].ink)}>
+            <Icon name={reviewed ? 'check' : changed ? 'edit' : RISK_UI[finding.severity].icon} size={15} fill={!muted} className="shrink-0" />
+            {reviewed ? 'Reviewed' : changed ? 'Changed since upload' : RISK_UI[finding.severity].label}
+          </span>
+        )}
+        {finding.origin === 'llm' && (
+          <span title={finding.model ?? undefined} className="inline-flex h-6 items-center gap-1 rounded-md bg-brand-50 px-1.5 text-[13px] font-semibold text-brand-700 ring-1 ring-brand-300 ring-inset">
+            <Icon name="auto_awesome" size={15} className="shrink-0" />AI check{details && finding.model ? ` · ${finding.model}` : ''}
+          </span>
+        )}
         <h4 className={clsx('text-[15px] font-semibold', muted ? 'text-slate-700' : 'text-slate-900')}>{finding.title}</h4>
       </div>
-      {changed && !reviewed && <p className="mt-1 text-sm leading-relaxed text-pretty text-slate-700">You edited this value after the upload check. The note below describes the uploaded version.</p>}
+      {changed && !decided && <p className="mt-1 text-sm leading-relaxed text-pretty text-slate-700">You edited this value after the upload check. The note below describes the uploaded version.</p>}
       <p className={clsx('mt-1 text-sm leading-relaxed text-pretty', muted ? 'text-slate-600' : 'text-slate-700')}>{plainFindingText(finding.message)}</p>
-      {!hideRationale && finding.suggested_fix?.rationale && <p className="mt-1 text-sm leading-relaxed text-pretty text-slate-600">{finding.suggested_fix.rationale}</p>}
+      {!hideRationale && finding.suggested_fix?.rationale && (
+        <p className="mt-1 text-sm leading-relaxed text-pretty text-slate-600">{details && <span className="font-semibold text-slate-700">Suggested fix: </span>}{finding.suggested_fix.rationale}</p>
+      )}
+      {details && <FindingEvidence finding={finding} />}
+      {decision?.note && <p className="mt-1 text-sm text-slate-600">Note: {decision.note}</p>}
     </div>
   )
 }

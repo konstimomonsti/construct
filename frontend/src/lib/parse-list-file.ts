@@ -27,7 +27,7 @@ function isCategoryTree(value: unknown): value is ListDoc['tree'] {
     && Number.isInteger(node.depth) && isCategoryTree(node.children))
 }
 
-function parseListJson(text: string, kind: 'json' | 'pdf' | 'docx', format: string): ParsedList {
+function parseListJson(text: string, kind: 'json' | 'pdf' | 'docx' | 'xlsx', format: string): ParsedList {
   const raw = JSON.parse(text)
   const positions = normalizeJson(raw)
   return {
@@ -37,7 +37,28 @@ function parseListJson(text: string, kind: 'json' | 'pdf' | 'docx', format: stri
     positions,
     tree: isCategoryTree(raw?.tree) && positions.every((p) => p.path?.length) ? raw.tree : undefined,
     source: { kind },
+    warnings: Array.isArray(raw?.warnings) ? raw.warnings.filter((value: unknown) => typeof value === 'string') : undefined,
   }
+}
+
+async function parseTenderDocument(file: File, kind: 'pdf' | 'xlsx'): Promise<ParsedList | undefined> {
+  const response = await fetch(`/api/workspace/parse?filename=${encodeURIComponent(file.name)}`, {
+    method: 'POST', body: file,
+  }).catch((error: unknown) => {
+    if (kind === 'pdf') return null // Preserve document attachment in offline workspaces.
+    throw error
+  })
+  if (!response) return undefined
+  if (!response.ok) {
+    const error = await response.json().catch(() => null)
+    throw new Error(typeof error?.error === 'string' ? error.error : 'The tender could not be read.')
+  }
+  const parsed = parseListJson(await response.text(), kind, kind === 'pdf' ? 'PDF' : 'Excel')
+  if (!parsed.positions.length) {
+    if (kind === 'pdf') return undefined // Keep ordinary PDFs attachable as supporting documents.
+    throw new Error(parsed.warnings?.[0] ?? 'The workbook contains no readable tender positions.')
+  }
+  return parsed
 }
 
 /** Parse the same supported list files for the picker and drag-and-drop. Plain documents can be attached. */
@@ -52,11 +73,13 @@ export async function parseListFile(file: File): Promise<ParsedList | undefined>
   }
   if (ext === 'csv' || ext === 'tsv') return parseCsv(await file.text())
   if (ext === 'json') return parseListJson(await file.text(), 'json', 'JSON')
+  if (ext === 'xls') return parseTenderDocument(file, 'xlsx')
   if (ext === 'xlsx') return (await import('./import-documents')).readExcel(file)
   if (ext === 'pdf' || ext === 'docx') {
     const { readPdfPayload, readWordPayload } = await import('./import-documents')
     const payload = ext === 'pdf' ? await readPdfPayload(file) : await readWordPayload(file)
-    return payload ? parseListJson(payload, ext, ext === 'pdf' ? 'PDF' : 'Word') : undefined
+    return payload ? parseListJson(payload, ext, ext === 'pdf' ? 'PDF' : 'Word')
+      : ext === 'pdf' ? parseTenderDocument(file, 'pdf') : undefined
   }
   throw new Error('Unsupported file type.')
 }

@@ -17,6 +17,7 @@ from analysis.runner import DEFAULT_LAYERS, analyze
 from tender_import.common import detect_format
 from tender_import.legacy import gaeb_1990
 from tender_import.structured import gaeb_xml
+from workspace_parse import read_document
 
 
 LOG = logging.getLogger(__name__)
@@ -51,6 +52,13 @@ def _source(connection, workspace, list_id, file_id, filename):
         return None
     content, name = bytes(row["content"]), row["name"]
     kind = detect_format(name, content)
+    if kind in {"pdf", "xls"}:
+        snapshots, _ = read_document(name, content)
+        # The preview and upload use the same content-derived IDs. Combine sheets for position
+        # evidence without replacing the editable list's section hierarchy.
+        return snapshots[0].model_copy(update={
+            "lines": [line for source in snapshots for line in source.lines],
+        })
     if kind not in {"gaeb_xml", "gaeb_1990"}:
         return None
     parsed = gaeb_xml(content) if kind == "gaeb_xml" else gaeb_1990(content)
@@ -64,10 +72,12 @@ def _attach_source(snapshot, source, original_codes):
     # Use only unambiguous matches. Keep the file's stated amount only while its inputs agree
     # with the draft. Changing quantity or price replaces the draft amount with a calculation.
     pairs = []
+    source_lines = source.line_by_id()
     for line in snapshot.lines:
         if line.id not in original_codes:
             continue
-        matches = by_code.get(_code(original_codes[line.id]), [])
+        match_by_id = source_lines.get(line.id)
+        matches = [match_by_id] if match_by_id is not None else by_code.get(_code(original_codes[line.id]), [])
         if len(matches) != 1:
             continue
         match = matches[0]
@@ -75,6 +85,14 @@ def _attach_source(snapshot, source, original_codes):
     current_ids = {match.id: line.id for line, match in pairs}
     for line, match in pairs:
         line.gaeb_flags = match.gaeb_flags
+        line.source_locator = match.source_locator
+        if match.source_locator and source.project.source_document.format in {"xls", "pdf"}:
+            # The editable table needs numeric placeholders. Analysis keeps missing source fields missing.
+            if match.quantity is None and line.quantity == 0:
+                line.quantity = None
+            line.quantity_raw = match.quantity_raw
+            if match.unit is None and not line.unit_raw:
+                line.unit = None
         line.total_rule = match.total_rule
         line.alternative_for = current_ids.get(match.alternative_for)
         if match.pricing_basis == "lump_sum":
@@ -82,6 +100,10 @@ def _attach_source(snapshot, source, original_codes):
         if (match.source_amounts and line.source_amounts and line.quantity == match.quantity
                 and line.source_amounts.unit_price == match.source_amounts.unit_price and line.unit == match.unit):
             line.source_amounts.line_amount = match.source_amounts.line_amount
+        elif (source.project.source_document.format in {"xls", "pdf"} and match.source_amounts
+                and line.quantity == match.quantity and line.unit == match.unit
+                and (line.price.unit_price if line.price else None) == match.source_amounts.unit_price):
+            line.source_amounts = match.source_amounts
     return bool(pairs)
 
 
@@ -121,14 +143,25 @@ def run(payload, connection=None, workspace=None, list_id=None, file_id=None, fi
             source = _source(connection, workspace, list_id, file_id, filename)
         except (LookupError, ValueError, SyntaxError):
             source = None
-            source_notice = "The original GAEB file could not be checked. Findings are based on the editable list."
+            source_notice = "The original tender file could not be checked. Findings are based on the editable list."
         if source:
             original_codes = payload.get("original_codes")
             if isinstance(original_codes, dict):
                 used_source = _attach_source(snapshot, source, original_codes)
+            if used_source and source.project.source_document.format in {"xls", "pdf"}:
+                snapshot.import_warnings = source.import_warnings
             snapshot = snapshot.with_hash()
-    return {**analyze(snapshot, layers).model_dump(mode="json"),
-            "used_source": used_source, "source_notice": source_notice}
+    try:
+        result = analyze(snapshot, layers)
+    except Exception:
+        if 3 not in layers:
+            raise
+        # Layer 3 handles provider failures itself; this is the last line of defence, so an unexpected
+        # crash there still leaves the reviewer with the layer 1 and 2 findings.
+        LOG.exception("Layer 3 failed; storing the layer 1 and 2 findings only")
+        result = analyze(snapshot, [layer for layer in layers if layer != 3])
+        result.errors.append("layer 3: failed unexpectedly; findings are from layers 1 and 2 only")
+    return {**result.model_dump(mode="json"), "used_source": used_source, "source_notice": source_notice}
 
 
 def _uploaded_input(document):
@@ -237,7 +270,7 @@ def assess_next(connection):
         workspace, list_id, document = job["workspace"], job["list_id"], job["value"]
         try:
             with connection.transaction():
-                filename = document.get("fileName") if document["source"]["kind"] in {"gaeb-xml", "gaeb90"} else None
+                filename = document.get("fileName") if document["source"]["kind"] in {"gaeb-xml", "gaeb90", "pdf", "xlsx"} else None
                 report = run(_uploaded_input(document), connection, workspace, list_id, filename=filename)
         except psycopg.OperationalError:
             raise

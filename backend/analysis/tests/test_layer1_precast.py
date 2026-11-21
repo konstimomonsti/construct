@@ -39,3 +39,20 @@ def test_trade_units(text, good, bad):
 
 def test_long_text_mentions_do_not_reclassify():
     assert selected("Abdichtung", "Betonstahl und Sandwichplattenanker", "m²") == []
+
+
+def test_layer_labels_dämmstoffdicke_and_gesamtdicke():
+    text = ("Sandwichelement, Gesamtdicke 30 cm. Dicke Vorsatzschale: 7 cm; Dicke Tragschale: 15 cm; "
+            "Dämmstoffdicke: {} cm.")
+    assert not selected("FT-Sockel Sandwich", text.format(8))
+    assert [f.rule_id for f in selected("FT-Sockel Sandwich", text.format(10))] == ["L1.PRECAST.LAYER_SUM"]
+
+
+@pytest.mark.parametrize("short,unit", [("Abdeckarbeiten, Böden und Einbauteile schützen", "lump_sum"),
+                                        ("Schutzabdeckung für Betonstahl und Halfenschienen", "lump_sum")])
+def test_later_mentions_do_not_classify_the_item(short, unit):
+    assert not selected(short, unit=unit)
+
+
+def test_element_code_prefix_still_classifies():
+    assert [f.rule_id for f in selected("FS 01: FT-Sockel, Sandwichelement", unit="kg")] == ["L1.UNIT.TRADE_MISMATCH"]
