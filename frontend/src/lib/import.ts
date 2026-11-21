@@ -6,6 +6,7 @@ import type { DocMeta, ListDoc, Position } from './types'
 import { selectModel, useStore } from './store'
 import { removeDocuments, saveDocument } from './documents'
 import { toast } from '../components/ui'
+import { useImportProgress } from './import-progress'
 
 export const ACCEPT = '.x80,.x81,.x82,.x83,.x84,.x85,.x86,.x87,.x88,.x89,.d80,.d81,.d82,.d83,.d84,.d85,.d86,.d87,.d88,.d89,.csv,.tsv,.xls,.xlsx,.json,.docx,.pdf'
 
@@ -66,6 +67,8 @@ export interface ImportResult {
   docs: number
   failed: string[]
   openListId?: string
+  /** the user cancelled from the loader; files finished before that stay imported */
+  cancelled?: boolean
 }
 
 async function addFile(file: File, listId: string, original: boolean, list?: ListDoc) {
@@ -86,11 +89,26 @@ async function addFile(file: File, listId: string, original: boolean, list?: Lis
   }
 }
 
+/** shows the import loader (see components/ImportLoader.tsx); it stays at 100 % briefly so the finish is visible */
 export async function importFiles(files: File[], folderId: string, activeListId?: string): Promise<ImportResult> {
+  const progress = useImportProgress.getState()
+  progress.begin(files)
+  try {
+    return await runImport(files, folderId, activeListId)
+  } finally {
+    if (!useImportProgress.getState().cancelled) await new Promise((resolve) => setTimeout(resolve, 400))
+    progress.end()
+  }
+}
+
+async function runImport(files: File[], folderId: string, activeListId?: string): Promise<ImportResult> {
+  const progress = useImportProgress.getState()
+  const signal = progress.controller?.signal
   const { parseListFile } = await import('./parse-list-file')
   const res: ImportResult = { lists: [], positions: 0, docs: 0, failed: [] }
   const documents: File[] = []
   const importErrors: string[] = []
+  const unread: string[] = []
   const offerFiles = new Set([
     ...files.map((file) => file.name),
     ...selectModel(useStore.getState()).lists
@@ -98,23 +116,34 @@ export async function importFiles(files: File[], folderId: string, activeListId?
       .map((list) => list.fileName),
   ].filter((name) => /\.d84$/i.test(name)).map((name) => fileStem(name).toLowerCase()))
   for (const f of files) {
+    if (signal?.aborted) break
     const name = f.name
     const ext = name.split('.').pop()?.toLowerCase() ?? ''
     try {
       const supportingPdf = ext === 'pdf' && offerFiles.has(fileStem(name).toLowerCase())
-      const parsed = await parseListFile(f, { supportingPdf }) ?? (supportingPdf ? undefined : await readSampleDocument(f))
+      progress.update(name, { phase: 'reading', pct: 5 })
+      const parsed = await parseListFile(f, { supportingPdf, signal, onProgress: (patch) => progress.update(name, patch) })
+        ?? (supportingPdf ? undefined : await readSampleDocument(f))
+      if (signal?.aborted) break
       if (!parsed) {
         documents.push(f)
+        // a tender PDF that came back without positions: say so, instead of a bare "Imported 1 document"
+        if (ext === 'pdf' && !supportingPdf) unread.push(name)
+        progress.update(name, { phase: 'done', pct: 100 })
         continue
       }
+      progress.update(name, { phase: 'building', pct: 95 })
       const list = makeListDoc(folderId, parsed.title || fileStem(name), name, parsed.positions, parsed)
       await addFile(f, list.id, true, list)
+      progress.update(name, { phase: 'done', pct: 100 })
       if (parsed.warnings?.length) toast(`${name}: ${parsed.warnings[0]}`)
       res.lists.push(list.id)
       res.positions += list.positions.length
       if (files.length === 1 && list.positions.length > 0) res.openListId = list.id
     } catch (err) {
+      if (signal?.aborted) break
       console.warn(`import failed: ${name}`, err)
+      progress.update(name, { phase: 'failed', pct: 100 })
       res.failed.push(name)
       if (err instanceof Error) importErrors.push(`${name}: ${err.message}`)
     }
@@ -122,6 +151,7 @@ export async function importFiles(files: File[], folderId: string, activeListId?
 
   const importedListIds = [...res.lists]
   for (const file of documents) {
+    if (signal?.aborted) break
     try {
       const lists = selectModel(useStore.getState()).lists.filter((list) => list.folderId === folderId && !list.trashedAt)
       const name = fileStem(file.name)
@@ -146,7 +176,13 @@ export async function importFiles(files: File[], folderId: string, activeListId?
   const parts: string[] = []
   if (res.lists.length) parts.push(`${res.lists.length} ${res.lists.length === 1 ? 'list' : 'lists'} (${res.positions.toLocaleString('de-DE')} positions)`)
   if (res.docs) parts.push(`${res.docs} ${res.docs === 1 ? 'document' : 'documents'}`)
+  if (signal?.aborted) {
+    res.cancelled = true
+    toast(parts.length ? `Import cancelled. Already imported: ${parts.join(' + ')}` : 'Import cancelled')
+    return res
+  }
   if (parts.length) toast(`Imported ${parts.join(' + ')}`)
+  if (unread.length) toast(`No positions read from ${unread.join(', ')}. It was kept as a document. If this is a tender, the server that reads PDFs may be unavailable; try again later.`, 'error')
   if (res.failed.length) toast(importErrors[0] ?? `Could not read: ${res.failed.join(', ')}`, 'error')
   return res
 }

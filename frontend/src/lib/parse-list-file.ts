@@ -1,4 +1,6 @@
 import { decodeGaeb90, parseCsv, parseGaeb90, parseGaebXml, type ParsedList } from './gaeb'
+import { estimatePct, expectedMs, recordDuration } from './import-progress'
+import { serverReachable } from './server'
 import type { ListDoc, Position } from './types'
 
 function normalizeJson(raw: unknown): Position[] {
@@ -41,19 +43,41 @@ function parseListJson(text: string, kind: 'json' | 'pdf' | 'docx' | 'xlsx', for
   }
 }
 
-async function parseTenderDocument(file: File, kind: 'pdf' | 'xlsx'): Promise<ParsedList | undefined> {
-  const response = await fetch(`/api/workspace/parse?filename=${encodeURIComponent(file.name)}`, {
-    method: 'POST', body: file,
-  }).catch((error: unknown) => {
-    if (kind === 'pdf') return null // Preserve document attachment in offline workspaces.
+export type ImportProgressPatch = { phase: 'reading' | 'building'; pct: number }
+type OnProgress = (patch: ImportProgressPatch) => void
+
+async function parseTenderDocument(file: File, kind: 'pdf' | 'xlsx', onProgress?: OnProgress, signal?: AbortSignal): Promise<ParsedList | undefined> {
+  const url = `/api/workspace/parse?filename=${encodeURIComponent(file.name)}`
+  const started = Date.now()
+  // Plain fetch, not XMLHttpRequest: XHR only reports the answer once the whole body is sent, so an early error
+  // (a 502 from the dev proxy, a 413) left the import hanging. Uploading is quick next to the server's parse, so the
+  // percentage is estimated from the start and never passes 95 % before the server answers.
+  let timer: ReturnType<typeof setInterval> | undefined
+  if (onProgress) {
+    const expected = expectedMs(file.size)
+    onProgress({ phase: 'reading', pct: 0 })
+    timer = setInterval(() => onProgress({ phase: 'reading', pct: 95 * estimatePct(Date.now() - started, expected) }), 200)
+  }
+  let response: Response
+  try {
+    // a missing backend would otherwise leave the upload hanging (see lib/server.ts)
+    if (!await serverReachable(signal)) throw new TypeError('The server that reads tender files is not reachable.')
+    response = await fetch(url, { method: 'POST', body: file, signal })
+  } catch (error) {
+    if (signal?.aborted) throw error // cancelled: don't fall back to attaching the PDF
+    if (kind === 'pdf') return undefined // Preserve document attachment in offline workspaces.
     throw error
-  })
-  if (!response) return undefined
+  } finally {
+    if (timer) clearInterval(timer)
+  }
   if (!response.ok) {
-    const error = await response.json().catch(() => null)
+    const error = await response.text().then((t) => JSON.parse(t) as { error?: unknown } | null).catch(() => null)
     throw new Error(typeof error?.error === 'string' ? error.error : 'The tender could not be read.')
   }
-  const parsed = parseListJson(await response.text(), kind, kind === 'pdf' ? 'PDF' : 'Excel')
+  onProgress?.({ phase: 'building', pct: 95 })
+  const text = await response.text()
+  recordDuration(file.size, Date.now() - started)
+  const parsed = parseListJson(text, kind, kind === 'pdf' ? 'PDF' : 'Excel')
   if (!parsed.positions.length) {
     if (kind === 'pdf') return undefined // Keep ordinary PDFs attachable as supporting documents.
     throw new Error(parsed.warnings?.[0] ?? 'The workbook contains no readable tender positions.')
@@ -62,7 +86,7 @@ async function parseTenderDocument(file: File, kind: 'pdf' | 'xlsx'): Promise<Pa
 }
 
 /** Parse the same supported list files for the picker and drag-and-drop. Plain documents can be attached. */
-export async function parseListFile(file: File, { supportingPdf = false } = {}): Promise<ParsedList | undefined> {
+export async function parseListFile(file: File, { supportingPdf = false, onProgress, signal }: { supportingPdf?: boolean; onProgress?: OnProgress; signal?: AbortSignal } = {}): Promise<ParsedList | undefined> {
   const ext = file.name.split('.').pop()?.toLowerCase() ?? ''
   if (/^[xd]8\d$/.test(ext)) {
     const parsed = ext.startsWith('x')
@@ -73,14 +97,14 @@ export async function parseListFile(file: File, { supportingPdf = false } = {}):
   }
   if (ext === 'csv' || ext === 'tsv') return parseCsv(await file.text())
   if (ext === 'json') return parseListJson(await file.text(), 'json', 'JSON')
-  if (ext === 'xls') return parseTenderDocument(file, 'xlsx')
+  if (ext === 'xls') return parseTenderDocument(file, 'xlsx', onProgress, signal)
   if (ext === 'xlsx') return (await import('./import-documents')).readExcel(file)
   if (ext === 'pdf' || ext === 'docx') {
     const { readPdfPayload, readWordPayload } = await import('./import-documents')
     const payload = supportingPdf ? await readPdfPayload(file).catch(() => undefined)
       : ext === 'pdf' ? await readPdfPayload(file) : await readWordPayload(file)
     return payload ? parseListJson(payload, ext, ext === 'pdf' ? 'PDF' : 'Word')
-      : ext === 'pdf' && !supportingPdf ? parseTenderDocument(file, 'pdf') : undefined
+      : ext === 'pdf' && !supportingPdf ? parseTenderDocument(file, 'pdf', onProgress, signal) : undefined
   }
   throw new Error('Unsupported file type.')
 }
