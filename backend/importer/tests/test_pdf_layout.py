@@ -53,6 +53,19 @@ class SyntheticLayoutTests(unittest.TestCase):
         self.assertEqual(read_quantity("5 m  EP.......  GP.......")["unit"], "m")
         self.assertIsNone(read_quantity("5 Stück ....."))
 
+    def test_unpriced_section_total_is_not_part_of_the_description(self):
+        items, _, _ = extract(f"""\
+            {HEADER}
+            1.1.10        Bauschild
+                          Bauschild aufstellen
+                          1,000 Stck .........................   .........................
+            Summe 1.1.    Baustelleinrichtung                       .........................
+            1.2.10        Bauzaun
+                          230,000 m  .........................   .........................
+        """)
+        self.assertEqual([i["code"] for i in items], ["1.1.10", "1.2.10"])
+        self.assertNotIn("Summe", items[0].get("long_description") or "")
+
     def test_cause_b_quantity_without_unit_keeps_the_missing_unit(self):
         items, _, result = extract(f"""\
             {HEADER}
