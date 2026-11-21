@@ -1,6 +1,6 @@
 # Analysis phase: the error-detection layers
 
-What the analysis phase does, what layers 1 and 2 already cover, and what layer 3 has to build.
+What the analysis phase does, what each of the three layers covers, and what is still open.
 Start here when you work on any layer. The exact data model is in
 [ANALYSIS_CONTRACT.md](ANALYSIS_CONTRACT.md), and layer 2's knowledge base is described in
 [DEPENDENCY_VALIDATOR.md](DEPENDENCY_VALIDATOR.md).
@@ -21,7 +21,7 @@ upload (GAEB / PDF / DOCX)
   -> analysis/adapter.py           one AnalysisInput object
   -> layer 1  deterministic checks                 analysis/layer1   DONE
   -> layer 2  dependency / completeness checks     analysis/layer2   DONE (first version)
-  -> layer 3  LLM checks for the hard cases        analysis/layer3   TO BUILD
+  -> layer 3  LLM checks for the hard cases        analysis/layer3   FIRST VERSION (2 checks, unmeasured)
   -> AnalysisResult: list of Finding -> review UI -> accept / reject
   -> accepted fixes are applied to a NEW bom_version                                       (not built yet)
 ```
@@ -119,7 +119,7 @@ another trade" or engineering exceptions. The files in `Data/` are pipeline, pla
 no buildings, so they correctly raise nothing; that it detects real problems is only tested on
 synthetic examples. More trades (sanitary, electrical, windows, tiling, ...) are still to add.
 
-## 5. Layer 3: LLM checks (to build)
+## 5. Layer 3: LLM checks (first version)
 
 ### Goal
 
@@ -188,6 +188,56 @@ analysis/layer3/
 analysis/tests/test_layer3.py
 ```
 
+## 5a. Layer 3: what is built
+
+`analysis/layer3/`, following the design rules above. Two checks so far, the ones recommended to start with:
+
+- **`L3.TEXT.SHORT_LONG_CONTRADICTION`** (`checks/contradictions.py`). Sends lines that have both texts,
+  differing texts, and a value in the short text (a number or a material word); skips lines with a
+  layer 1 error on a text field. Batches by section (≤ 12 lines, ≤ 12 000 characters). The model must quote
+  the conflicting words from *each* text; both quotes are checked verbatim in code (whitespace, case and
+  line-break hyphens aside) and must differ. When the long text also contains the short-text value
+  (a DN 150 pipe with a DN 100 branch) the finding is downgraded to info. No fix is proposed: a person
+  decides which text is right.
+- **`L3.REVIEW.L2_CONFIRM`** (`checks/l2_confirm.py`). For each layer 2 finding with reason `missing` or
+  `quantity_shortfall`, sends the trigger items, the matched dependency items and up to 25 items of the
+  same section. Verdicts: `included` / `excluded` → info "probably a false positive", with the quote
+  verified in the cited item; `missing` → warning "confirmed"; `unclear` → no finding. The layer 2
+  finding is never edited; the new one carries `evidence.reviews_finding_id` and the same target.
+
+Infrastructure:
+
+| File | What |
+|---|---|
+| `provider.py` | `complete_json(LLMRequest) -> dict`. `OllamaProvider` (local, default; JSON-schema `format`, temperature 0), `AnthropicProvider` (official SDK, `output_config.format` structured output, effort `low`; opt-in), `FakeProvider` (tests), `ResponseCache` |
+| `schema.py` | JSON schemas sent to the model, Pydantic models that validate each answer item on its own, quote check, confidence clamp (≤ 0.7) |
+| `prompts.py` | System prompts and their versions (`l3-contradiction-v1`, `l3-l2confirm-v1`); the version is in the cache key and in every finding's evidence |
+| `common.py` | Per-run session: cache first, then call budget, then the provider; a failed request goes to `errors`; an unavailable provider (or 3 failures in a row) stops further calls; skipped batches are reported |
+| `eval.py`, `eval_cases.json` | `python -m analysis.layer3.eval`: precision/recall on 10 labelled contradiction cases (two are real excerpts) and accuracy on 4 layer 2 review cases, against the configured real model |
+
+Configuration (environment variables):
+
+| Variable | Default | |
+|---|---|---|
+| `ANALYSIS_L3_PROVIDER` | `ollama` | `ollama`, `anthropic` or `none` |
+| `ANALYSIS_L3_MODEL` | `qwen2.5:7b-instruct` / `claude-haiku-5-5` | per provider |
+| `OLLAMA_HOST` | `http://localhost:11434` | |
+| `ANALYSIS_L3_TIMEOUT` | `120` | seconds per request |
+| `ANALYSIS_L3_MAX_CALLS` | `40` | model calls per run (cache hits are free) |
+| `ANALYSIS_L3_MAX_BATCH_LINES` / `_CHARS` | `12` / `12000` | contradiction batch size |
+| `ANALYSIS_L3_CACHE` | `.cache/layer3` | directory, or `off` |
+
+The API provider needs `pip install -e ".[llm-api]"` and credentials the SDK can resolve
+(`ANTHROPIC_API_KEY`). Layer 3 is not in the runner's default layers: ask for it with `--layers 1,2,3`.
+
+On the files in `Data/`, the contradiction check needs 4–32 calls per file (≈ 11 000–137 000 prompt
+characters); the layer 2 review sends nothing there, because layer 2 raises nothing on those files.
+
+Known limits: **precision has not been measured yet**, since no model was available while building it.
+Run the eval with the chosen model before trusting either check. The cache holds tender text: it is
+git-ignored, and `ANALYSIS_L3_CACHE=off` disables it. The other candidate checks in the table above are
+still to build; fix validation (`set_field` on allowed fields only) comes with `L3.FIX.SUGGEST`.
+
 ## 6. After the layers: review and apply (not built yet)
 
 - **Web review UI:** list findings grouped by severity, line and layer; show the source text through
@@ -204,7 +254,7 @@ analysis/tests/test_layer3.py
 | Contract, adapter (GAEB files, JSON, DB), runner, CLI | Done |
 | Layer 1 | Done, tested on real files |
 | Layer 2 | First version, false positives on real files fixed; true positives only tested synthetically |
-| Layer 3 | To build (this document, §5) |
+| Layer 3 | First version: contradiction check and layer 2 review (§5a); precision not measured yet |
 | `from_db` + migration 009 | Written, **never run against PostgreSQL** |
 | Pricing phase (`line_pricing`) | Not built; price rules tested only on synthetic data |
 | Review UI, apply to new BOM version | Not built |

@@ -1,0 +1,28 @@
+{
+  "_about": "Labelled cases for measuring layer 3 precision with a real model: python -m analysis.layer3.eval. 'expect' is the contradiction verdict per line (true = contradiction). Real excerpts from Data/ are marked source.",
+  "contradiction": [
+    {"id": "dn", "expect": true, "short_text": "PVC-KG-Rohr DN 150 verlegen", "long_text": "Kanalgrundrohr aus PVC-U nach DIN EN 1401, DN 200, SN 8, mit Steckmuffe, in vorhandenem Graben verlegen."},
+    {"id": "concrete", "expect": true, "short_text": "Fundamentbeton C25/30", "long_text": "Streifenfundamente aus Ortbeton, Betonfestigkeitsklasse C30/37, Expositionsklasse XC2, herstellen."},
+    {"id": "board", "expect": true, "short_text": "GK-Ständerwand 12,5 mm beplankt", "long_text": "Metallständerwand CW 75, beidseitig einlagig beplankt mit Gipsplatten Typ A, d = 15 mm, Fugen gespachtelt."},
+    {"id": "material", "expect": true, "short_text": "Dachrinne Kupfer halbrund", "long_text": "Hängedachrinne halbrund aus Titanzink, Zuschnitt 333 mm, einschließlich Rinnenhalter, liefern und montieren."},
+    {"id": "height", "expect": true, "short_text": "Bauzaun H = 2,0 m", "long_text": "Mobilen Bauzaun, Höhe 1,20 m, mit Fußplatten liefern, aufstellen, vorhalten und wieder abbauen."},
+    {"id": "same_value", "expect": false, "short_text": "Bauzaun H = 2,0 m liefern, aufstellen, unterhalten und wieder nach Abschluss der Arbeiten beseitigen.", "long_text": "Bauzaun H = 2,0 m liefern, aufstellen, unterhalten und wieder nach Abschluss der Arbeiten beseitigen. In Bereichen zusätzlich zu den Grundabsperreinrichtungen, welche in der Position Baustellensicherung einzukalkulieren sind.", "source": "501-24-01_GAEB-XML_sas.x83 01.01.0005"},
+    {"id": "branch", "expect": false, "short_text": "Schmutzwasserleitung DN 150", "long_text": "Schmutzwasserleitung DN 150 aus PP herstellen, einschließlich Abzweig DN 100 für Hausanschluss."},
+    {"id": "units_written_differently", "expect": false, "short_text": "Trittschalldämmung 30 mm", "long_text": "Trittschalldämmung aus Mineralwolle, Dicke 3 cm, Anwendungstyp DES-sg, zweilagig verlegen."},
+    {"id": "detail_added", "expect": false, "short_text": "Zementestrich CT-C25-F4, 50 mm", "long_text": "Zementestrich CT-C25-F4 als schwimmender Estrich, Nenndicke 50 mm, auf Trennlage, inkl. Randdämmstreifen."},
+    {"id": "truncated", "expect": false, "short_text": "Provisorische Überfahrten/Durchfahrten im Ausführungsbereich für Anlieger und oder Waldarbeiten", "long_text": "Provisorische Überfahrten/Durchfahrten im Ausführungsbereich für Anlieger und oder Waldarbeiten herstellen und wieder beseitigen. Ausführung mit Stahlplatten und/oder Kies ein- und wieder ausbauen.", "source": "501-24-01_GAEB-XML_sas.x83 01.01.0006"}
+  ],
+  "l2_confirm": [
+    {"id": "edge_included", "dependency": "Edge insulation", "expect": "included",
+     "lines": [{"code": "01.0010", "short_text": "Zementestrich CT-C25-F4, 50 mm", "long_text": "Zementestrich auf Trennlage herstellen, einschließlich PE-Randstreifen 8 mm umlaufend.", "quantity": "120", "unit": "m²"}]},
+    {"id": "primer_excluded", "dependency": "Primer and leveling", "expect": "excluded",
+     "lines": [{"code": "01.0010", "short_text": "Zementestrich 50 mm", "long_text": "Zementestrich auf Trennlage herstellen.", "quantity": "120", "unit": "m²"},
+               {"code": "01.0020", "short_text": "Vorarbeiten Untergrund", "long_text": "Die Vorbereitung des Untergrunds erfolgt bauseits durch den AG.", "quantity": "1", "unit": "psch"}]},
+    {"id": "underlay_missing", "dependency": "Underlays and insulation", "expect": "missing",
+     "lines": [{"code": "01.0010", "short_text": "Zementestrich 50 mm", "long_text": "Zementestrich auf Trennlage herstellen.", "quantity": "120", "unit": "m²"},
+               {"code": "01.0020", "short_text": "Bodenbelag Linoleum", "long_text": "Linoleum 2,5 mm vollflächig verkleben.", "quantity": "120", "unit": "m²"}]},
+    {"id": "covering_included", "dependency": "Floor covering", "expect": "included",
+     "lines": [{"code": "01.0010", "short_text": "Zementestrich 50 mm", "long_text": "Zementestrich auf Trennlage herstellen.", "quantity": "120", "unit": "m²"},
+               {"code": "01.0020", "short_text": "Nutzschicht", "long_text": "Elastischen Belag aus Kautschuk, 3 mm, vollflächig verkleben.", "quantity": "120", "unit": "m²"}]}
+  ]
+}

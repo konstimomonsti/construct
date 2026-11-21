@@ -13,6 +13,8 @@ dependencies = ["pydantic>=2.8,<3", "lxml>=5"]
 [project.optional-dependencies]
 db = ["psycopg[binary]>=3.2"]
 test = ["pytest>=8"]
+# Layer 3 through the Anthropic API (opt-in; the default local provider, Ollama, needs no package).
+llm-api = ["anthropic>=2.12,<3"]
 
 [project.scripts]
 construct-analysis = "analysis.__main__:main"
@@ -23,6 +25,7 @@ include = ["analysis*"]
 
 [tool.setuptools.package-data]
 "analysis.layer2" = ["rules.json"]
+"analysis.layer3" = ["eval_cases.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["analysis/tests"]

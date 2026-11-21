@@ -27,3 +27,6 @@ backups/
 build/
 dist/
 .pytest_cache/
+
+# Layer 3 LLM answer cache (may contain tender text)
+.cache/
