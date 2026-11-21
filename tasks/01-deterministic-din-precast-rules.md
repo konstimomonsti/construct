@@ -73,4 +73,21 @@ Severity depends on the document phase (`project.gaeb_phase`) the way the existi
 
 ## Notes / blockers (fill in)
 
--
+- Implemented all ten layer-1 rules and four `L2.PRECAST.ELEMENTS_NEEDS_*` checks, without dependencies or automatic edits. P0 was implemented before the P1 dependency group.
+- Scope exception approved explicitly by the user in chat: update only the hard-coded group/check counts in `backend/analysis/tests/test_layer2.py` (16 / 50), and add precast German question evidence in `backend/analysis/layer2/engine.py`. No other out-of-allowlist edits.
+- LV_11: 13 findings (10 DIN notes: XF2 and WA on 3.2.20–60; one trade-unit warning on 3.2.80; two placeholders on 3.2.80/90). No strength, layer-sum or dependency errors. Synthetic C20/25 + XF2, 10 cm insulation and conflicting concrete classes are tested.
+- Real-file CLI validation (`--layers 1,2`): counts below are new rules only; every omitted rule is zero. No analysis execution errors.
+
+  | Rule | StBALV23040.D86 | 501-24-01_GAEB-XML_sas.x83 | 8209.003_Leistungsverzeichnis_leer.X83 |
+  |---|---:|---:|---:|
+  | L1.DIN.UNKNOWN_GRADE | 1 | 1 | 0 |
+  | L1.DIN.NOTE | 3 | 0 | 0 |
+  | L1.TEXT.SPEC_PLACEHOLDER | 0 | 16 | 11 |
+  | L1.TEXT.VALUE_CONFLICT | 4 | 1 | 2 |
+  | L1.TEXT.SPEC_ATTRIBUTE_MISSING | 2 | 0 | 0 |
+
+- False-positive review: broad redactions initially produced 54/147/72 placeholder findings. Restricted the pattern to product/value identifiers rather than PERSON/ORT/contact redactions; excluded identified bidder blanks, including “oder gleichwertig” fields. Checked remaining product examples. Tightened item classification to avoid trench, marking and ancillary work; recognized pipe outside diameters. Two remaining attribute infos concern temporary power cables without a cross-section. Prevented DIN notes from matching embedded image data without a concrete grade, and “wie vor” warnings from component lists within an item. Standard drainage precast structures are excluded from the structural dependency group, preserving existing real-file regression tests.
+- Limits: only the supplied DIN rank/minimum tables are used; XA/XM have no invented minima, LC grades are unknown, and multi-grade items are not assigned ambiguous exposure-strength pairs. Attribute checks are conservative and inherit previous base items and section titles; the input contract has no section-note text. Named prose references are not resolved semantically. Dependency presence uses the existing engine scope, not per-element allocation. These limitations do not change the shared contracts.
+- Blockers / requests: the two code-scope blockers were resolved by user approval. Team-chat destination was requested but has not been supplied; blockers were reported immediately in the working chat. Validation and PR status are recorded below.
+- Validation: `PYTHONPATH=backend;backend/importer python -m pytest -q backend/analysis/tests` (PowerShell equivalent): **259 passed, 3 skipped, 66 subtests passed**. Used the pre-existing Python virtual environment from the sibling checkout, with imports pointing at this repository; installed no dependencies. `python -m analysis rules` lists all 14 new rules with nonempty titles/descriptions. `git diff --check` passed. Fetched and merged `origin/main` before final verification (already up to date).
+- Published branch `feat/task-01`; [PR #8](https://github.com/konstimomonsti/construct/pull/8) is open against `main`. No push to `main`.

@@ -1,8 +1,8 @@
 # GAEB dependency validator
 
-This Python implementation of [layer 2](ANALYSIS_CONTRACT.md) includes 15 trade groups and 46 checks. Section 2.4 of the [implementation plan](archive/NEXT_FEATURES_IMPLEMENTATION_PLAN.md) describes the ten groups added after the original five.
+This Python implementation of [layer 2](ANALYSIS_CONTRACT.md) includes 16 trade groups and 50 checks. Section 2.4 of the [implementation plan](archive/NEXT_FEATURES_IMPLEMENTATION_PLAN.md) describes the ten groups added after the original five; task 01 adds precast elements.
 
-The checker consumes **already parsed JSON**. It returns contract-shaped `Finding` objects and optional `add_line` proposals for human review. It never edits the BoQ or accesses a database. Raw GAEB/PDF extraction, pricing, layer 1, layer 3, and applying accepted fixes belong to the surrounding pipeline. Layer 2 registers all 46 checks with the existing shared registry without replacing shared models, units, adapters, or the runner.
+The checker consumes **already parsed JSON**. It returns contract-shaped `Finding` objects and optional `add_line` proposals for human review. It never edits the BoQ or accesses a database. Raw GAEB/PDF extraction, pricing, layer 1, layer 3, and applying accepted fixes belong to the surrounding pipeline. Layer 2 registers all 50 checks with the existing shared registry without replacing shared models, units, adapters, or the runner.
 
 ## Run on Windows / PowerShell
 
@@ -34,7 +34,7 @@ Other useful commands:
 # Set a 5% allowable shortage; 0.05 is a fraction, not the number 5.
 .\.venv\Scripts\python.exe -m analysis.layer2 data/examples/items.json --scope trade --tolerance 0.05
 
-# Metadata for all 46 registered dependency checks.
+# Metadata for all 50 registered dependency checks.
 .\.venv\Scripts\python.exe -m analysis.layer2 --list-rules
 
 # Exit 1 on warnings/errors, useful in a validation job.
@@ -95,6 +95,16 @@ Numbers are parsed as `Decimal`, including German decimal commas and grouped for
 | `L2.DOOR.STEEL` | steel, fire and smoke doors ("tür" required) | Door closer (T30/T90/RS doors only); lock cylinder *(info; "PZ-vorgerichtet" is not a cylinder)*; door hardware |
 | `L2.DOOR.INDUSTRIAL` | sectional, roller, high-speed doors | Safety edge or light barrier (powered doors); drive power supply *(info)* |
 | `L2.WINDOW` | windows, window doors | Window sills *(info)*; installation joint sealing (RAL) |
+| `L2.PRECAST.ELEMENTS` | Fertigteil, Sandwich, FT- elements | Shop drawings; transport and assembly; joint sealing; anchors / embedded parts |
+
+The four precast rule IDs end in `_NEEDS_SHOP_DRAWINGS`, `_NEEDS_TRANSPORT_AND_ASSEMBLY`,
+`_NEEDS_JOINT_SEALING` and `_NEEDS_ANCHORS_AND_EMBEDDED_PARTS`. They are Boolean presence
+checks and produce warnings with formal German `evidence.bieterfrage_de` questions. Bundled
+descriptions (including `Einschl. Transport und Montage`) satisfy dependencies. The existing
+scope behavior applies: a match anywhere within that scope establishes presence, not per-element
+coverage. Standard drainage structures, pipes, manholes, kerbs, removal, drawing items and
+surcharges do not trigger this structural-precast group. All four dependencies are present in LV_11.
+Screed measurements, moisture checks and `Belegreife` checks are excluded from screed triggers.
 
 The ten new groups were written against the real `LV_xx` PDFs in `data/tenders/` (one building split by trade). On them layer 2 now reports:
 

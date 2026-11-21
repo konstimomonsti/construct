@@ -96,8 +96,8 @@ class AdapterTests(unittest.TestCase):
 
 class RuleTests(unittest.TestCase):
     def test_all_groups_and_registered_checks(self):
-        self.assertEqual(len(load_rules()), 15)
-        self.assertEqual(len(rule_metadata()), 46)
+        self.assertEqual(len(load_rules()), 16)
+        self.assertEqual(len(rule_metadata()), 50)
         self.assertEqual(run(input_for(), []), [])
 
     def test_all_five_groups_detect_missing_dependencies(self):
@@ -291,7 +291,7 @@ class PipelineIntegrationTests(unittest.TestCase):
         result = pipeline_analyze(input, layers=[1, 2])
         self.assertEqual(result.layers_run, [1, 2])
         self.assertEqual(result.errors, [])
-        self.assertEqual(len(rules_for(2)), 46)
+        self.assertEqual(len(rules_for(2)), 50)
         dependency_findings = [finding for finding in result.findings if finding.layer == 2]
         self.assertEqual(len(dependency_findings), 1)
         self.assertEqual(dependency_findings[0].target.area_id, "office-b")
@@ -330,7 +330,7 @@ class CliTests(unittest.TestCase):
         self.assertIn("office", output.lower())
         code, output, _ = self.call_cli("--list-rules")
         self.assertEqual(code, 0)
-        self.assertEqual(len(json.loads(output)), 46)
+        self.assertEqual(len(json.loads(output)), 50)
 
     def test_invalid_input_is_clean_error(self):
         with tempfile.TemporaryDirectory() as temp:
