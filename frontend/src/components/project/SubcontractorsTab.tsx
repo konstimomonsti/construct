@@ -2,14 +2,19 @@ import { clsx } from 'clsx'
 import { useMemo, useRef, useState, type FormEvent } from 'react'
 import { Button, Dialog, Field, Icon, inputCls, toast } from '../ui'
 import { useSubNames, shortDate, type SubName } from './names'
+import { RequestDialog } from './RequestDialog'
+import { removeDocuments, saveDocument } from '../../lib/documents'
 import { int, money, parseNumber, plural } from '../../lib/format'
 import { parseListFile } from '../../lib/parse-list-file'
 import { matchOffer, ozOverlap, type OfferMatch } from '../../lib/subcontract-offer'
-import { useStore } from '../../lib/store'
+import { useModel, useStore } from '../../lib/store'
+import { useUi } from '../../lib/ui-store'
 import {
   chooseSubcontractor, declineOffer, offerOf, setOffer, type SubcontractOffer, type SubcontractPackage,
 } from '../../lib/subcontract'
-import type { Position } from '../../lib/types'
+import type { CategoryNode, DocMeta, ListDoc, Position } from '../../lib/types'
+
+type PendingFile = { fileName: string; positions: Position[]; file: File }
 
 const ACCEPT = '.x84,.d84,.x83,.d83,.x86,.d86,.xlsx,.xls,.csv'
 const EMPTY: SubcontractPackage[] = []
@@ -17,6 +22,9 @@ const COLS = 'md:grid-cols-[minmax(0,1.3fr)_8.5rem_8.5rem_minmax(0,2fr)_6.5rem]'
 
 type Props = {
   listId: string
+  doc: ListDoc
+  /** the list as the user sees it, for rebuilding a request file */
+  resolved: { positions: Position[]; tree: CategoryNode[] }
   /** real packages, plus read-only demo packages when `?demo=workflow` is on */
   packages: SubcontractPackage[]
   /** ids of packages that only exist as demo data: actions on them write nothing */
@@ -27,11 +35,14 @@ type Props = {
   onNew: () => void
 }
 
-export function SubcontractorsTab({ listId, packages, demoIds, demoNames, positions, onNew }: Props) {
+export function SubcontractorsTab({ listId, doc, resolved, packages, demoIds, demoNames, positions, onNew }: Props) {
   const nameOf = useSubNames(true, demoNames)
   const byId = useMemo(() => new Map(positions.map((p) => [p.id, p])), [positions])
+  const { documents } = useModel()
+  const openDialog = useUi((s) => s.openDialog)
   const [editing, setEditing] = useState<string | null>(null)
-  const [pending, setPending] = useState<{ fileName: string; positions: Position[] } | null>(null)
+  const [viewing, setViewing] = useState<string | null>(null)
+  const [pending, setPending] = useState<PendingFile | null>(null)
   const fileInput = useRef<HTMLInputElement>(null)
 
   /** applies `fn` to the stored packages and offers Undo; demo-only packages are never written */
@@ -53,10 +64,30 @@ export function SubcontractorsTab({ listId, packages, demoIds, demoNames, positi
         toast('No positions found in that file', 'error')
         return
       }
-      setPending({ fileName: file.name, positions: parsed.positions })
+      setPending({ fileName: file.name, positions: parsed.positions, file })
     } catch (e) {
       toast(`The file could not be read: ${(e as Error).message}`, 'error')
     }
+  }
+
+  /** keeps the offer file the way the award document is kept; demo packages never write, so they keep nothing */
+  const assign = async (pkgId: string, subId: string, patch: Partial<SubcontractOffer>, text: string, file: File) => {
+    setPending(null)
+    let documentId: string | undefined
+    if (!demoIds?.has(pkgId)) {
+      const meta: DocMeta = { id: `doc-${crypto.randomUUID()}`, name: file.name, file: '', pages: 0, excerpt: `${(file.size / 1024).toFixed(0)} KB`, listId, stored: true }
+      try {
+        await saveDocument(meta.id, file)
+        if (!useStore.getState().addImportedFile(meta)) {
+          removeDocuments([meta.id])
+          throw new Error('The destination list is unavailable.')
+        }
+        documentId = meta.id
+      } catch (e) {
+        toast(`The offer file could not be kept, the offer is saved without it: ${(e as Error).message}`, 'error')
+      }
+    }
+    change(pkgId, (all) => setOffer(all, pkgId, subId, documentId ? { ...patch, documentId } : patch), text)
   }
 
   return (
@@ -71,7 +102,10 @@ export function SubcontractorsTab({ listId, packages, demoIds, demoNames, positi
         packages.map((pkg) => (
           <section key={pkg.id} aria-label={pkg.name} className="rounded-lg ring-1 ring-slate-200">
             <header className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-slate-200 px-4 py-3">
-              <h3 className="font-heading text-[15px] font-bold text-slate-900">{pkg.name}</h3>
+              <div className="flex min-w-0 items-center gap-2">
+                <h3 className="font-heading text-[15px] font-bold text-slate-900">{pkg.name}</h3>
+                <Button size="sm" variant="ghost" icon="visibility" onClick={() => setViewing(pkg.id)} aria-label={`View request: ${pkg.name}`}>View request</Button>
+              </div>
               <p className="text-sm text-slate-600">
                 <span className="num">{plural(pkg.positionIds.length, 'position', 'positions')}</span>
                 {pkg.dueDate && <> · due <span className="num">{shortDate(pkg.dueDate)}</span></>}
@@ -87,10 +121,13 @@ export function SubcontractorsTab({ listId, packages, demoIds, demoNames, positi
                 const offer = offerOf(pkg, subId)
                 const who = nameOf(subId)
                 const key = `${pkg.id}:${subId}`
+                // shown only while the stored file is known to this workspace
+                const storedFile = offer.documentId ? documents.find((d) => d.id === offer.documentId) : undefined
                 return (
                   <li key={subId} className="px-4 py-3">
                     <Row
                       pkg={pkg} offer={offer} who={who} chosen={pkg.chosenId === subId}
+                      onView={storedFile ? () => openDialog({ kind: 'doc', doc: storedFile }) : undefined}
                       names={(ids) => ids.map((id) => byId.get(id)?.oz).filter(Boolean).join(', ')}
                       onEdit={() => setEditing(editing === key ? null : key)}
                       onChoose={() => change(pkg.id, (all) => chooseSubcontractor(all, pkg.id, pkg.chosenId === subId ? null : subId),
@@ -128,11 +165,13 @@ export function SubcontractorsTab({ listId, packages, demoIds, demoNames, positi
         positions={byId}
         nameOf={nameOf}
         onClose={() => setPending(null)}
-        onAssign={(pkgId, subId, patch, text) => {
-          change(pkgId, (all) => setOffer(all, pkgId, subId, patch), text)
-          setPending(null)
-        }}
+        onAssign={(pkgId, subId, patch, text, file) => void assign(pkgId, subId, patch, text, file)}
       />
+
+      {viewing && (() => {
+        const pkg = packages.find((p) => p.id === viewing)
+        return pkg ? <RequestDialog pkg={pkg} doc={doc} resolved={resolved} nameOf={nameOf} onClose={() => setViewing(null)} /> : null
+      })()}
     </div>
   )
 }
@@ -151,11 +190,13 @@ function DateCard({ label, date, empty }: { label: string; date?: string; empty:
   )
 }
 
-function Row({ pkg, offer, who, chosen, names, onEdit, onChoose, onDecline }: {
+function Row({ pkg, offer, who, chosen, onView, names, onEdit, onChoose, onDecline }: {
   pkg: SubcontractPackage
   offer: SubcontractOffer
   who: SubName
   chosen: boolean
+  /** opens the stored offer file; missing when no file was kept */
+  onView?: () => void
   names: (ids: string[]) => string
   onEdit: () => void
   onChoose: () => void
@@ -176,7 +217,14 @@ function Row({ pkg, offer, who, chosen, names, onEdit, onChoose, onDecline }: {
         {offer.declined && <span className="mt-0.5 inline-flex items-center gap-1 text-xs font-semibold text-slate-700"><Icon name="block" size={14} />Declined</span>}
       </div>
       <div className={dim}><DateCard label="Sent X83" date={sent} empty="Not sent" /></div>
-      <div className={dim}><DateCard label="Received X84" date={received} empty="Waiting" /></div>
+      <div className={dim}>
+        <DateCard label="Received X84" date={received} empty="Waiting" />
+        {onView && (
+          <button type="button" onClick={onView} aria-label={`View offer file from ${who.name}`} className="mt-1 inline-flex items-center gap-1 text-[13px] font-medium text-slate-700 underline decoration-slate-400 underline-offset-4 hover:text-slate-900">
+            <Icon name="visibility" size={16} />View
+          </button>
+        )}
+      </div>
       <div className={clsx('col-span-2 min-w-0 text-sm md:col-span-1', dim)}>
         {offer.amount != null ? (
           <p className="flex flex-wrap items-baseline gap-x-2">
@@ -248,24 +296,24 @@ function ReplyForm({ offer, onSave, onCancel }: { offer: SubcontractOffer; onSav
 }
 
 function ImportDialog({ pending, packages, positions, nameOf, onClose, onAssign }: {
-  pending: { fileName: string; positions: Position[] } | null
+  pending: PendingFile | null
   packages: SubcontractPackage[]
   positions: Map<string, Position>
   nameOf: (id: string) => SubName
   onClose: () => void
-  onAssign: (pkgId: string, subId: string, patch: Partial<SubcontractOffer>, text: string) => void
+  onAssign: (pkgId: string, subId: string, patch: Partial<SubcontractOffer>, text: string, file: File) => void
 }) {
   // the dialog is remounted per file (key), so the preselection runs once per import
   return pending && <ImportForm key={pending.fileName + pending.positions.length} {...{ pending, packages, positions, nameOf, onClose, onAssign }} />
 }
 
 function ImportForm({ pending, packages, positions, nameOf, onClose, onAssign }: {
-  pending: { fileName: string; positions: Position[] }
+  pending: PendingFile
   packages: SubcontractPackage[]
   positions: Map<string, Position>
   nameOf: (id: string) => SubName
   onClose: () => void
-  onAssign: (pkgId: string, subId: string, patch: Partial<SubcontractOffer>, text: string) => void
+  onAssign: (pkgId: string, subId: string, patch: Partial<SubcontractOffer>, text: string, file: File) => void
 }) {
   const pkgPositions = (pkg: SubcontractPackage) => pkg.positionIds.flatMap((id) => positions.get(id) ?? [])
   const defaultSub = (p?: SubcontractPackage) => p?.subcontractorIds.find((id) => offerOf(p, id).amount == null) ?? p?.subcontractorIds[0] ?? ''
@@ -299,7 +347,7 @@ function ImportForm({ pending, packages, positions, nameOf, onClose, onAssign }:
             variant="primary"
             disabled={!ready}
             onClick={() => pkg && match && onAssign(pkg.id, subId, { receivedAt: new Date().toISOString(), amount: match.amount, fileName: pending.fileName, matched: match.matched, missing: match.missing },
-              `Assigned ${pending.fileName} to ${nameOf(subId).name}`)}
+              `Assigned ${pending.fileName} to ${nameOf(subId).name}`, pending.file)}
           >
             Assign
           </Button>

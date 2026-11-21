@@ -1,14 +1,14 @@
 import { useMemo } from 'react'
 import { useSubcontractors } from '../subcontract/useSubcontractors'
 
-export type SubName = { name: string; trade?: string }
+export type SubName = { name: string; trade?: string; email?: string | null }
 
 /** catalogue id → name and trade. Demo names (`?demo=workflow`) fill in where the catalogue knows nothing. */
 export function useSubNames(enabled: boolean, demo?: Record<string, SubName>) {
   const subs = useSubcontractors(enabled)
   const map = useMemo(() => {
     const out = new Map<string, SubName>(Object.entries(demo ?? {}))
-    for (const row of subs.rows) out.set(row.id, { name: row.name, trade: row.trade })
+    for (const row of subs.rows) out.set(row.id, { name: row.name, trade: row.trade, email: row.email })
     return out
   }, [subs.rows, demo])
   return (id: string): SubName => map.get(id) ?? { name: id }

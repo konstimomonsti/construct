@@ -30,9 +30,10 @@ export function AwardTab({ listId, award, onOpen }: { listId: string; award?: Do
         removeDocuments([doc.id])
         throw new Error('The destination list is unavailable.')
       }
-      const before = useStore.getState().listPatch[listId]?.awardDocumentId
-      useStore.getState().patchList(listId, { awardDocumentId: doc.id })
-      toast(`Attached ${file.name} as the award document`, 'ok', { label: 'Undo', run: () => useStore.getState().patchList(listId, { awardDocumentId: before }) })
+      const before = useStore.getState().listPatch[listId]
+      const [beforeId, beforeAt] = [before?.awardDocumentId, before?.awardUploadedAt]
+      useStore.getState().patchList(listId, { awardDocumentId: doc.id, awardUploadedAt: new Date().toISOString() })
+      toast(`Attached ${file.name} as the award document`, 'ok', { label: 'Undo', run: () => useStore.getState().patchList(listId, { awardDocumentId: beforeId, awardUploadedAt: beforeAt }) })
     } catch (e) {
       toast(`The award document could not be saved: ${(e as Error).message}`, 'error')
     } finally {

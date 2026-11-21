@@ -12,6 +12,7 @@ import { OfferTab } from '../components/project/OfferTab'
 import { AwardTab } from '../components/project/AwardTab'
 import { SubcontractOverlay } from '../components/subcontract/SubcontractOverlay'
 import type { SubcontractPackage } from '../lib/subcontract'
+import { currentPhase } from '../lib/workflow'
 import { ErrorBoundary } from '../components/ErrorBoundary'
 import { LedgerTable } from '../components/LedgerTable'
 import { BidSimulator } from '../components/BidSimulator'
@@ -346,6 +347,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   }, [storedPackages, workflowDemo])
   const awardId = useStore((s) => s.listPatch[doc.id]?.awardDocumentId)
   const award = awardId ? documents.find((d) => d.id === awardId) : undefined
+  const workflow = useMemo(() => currentPhase(packages, !!award), [packages, award])
   const st = useMemo(() => statsOf(positions), [positions])
   // findings from the automatic check that runs once on upload
   const assessment = useUploadAssessment(catalogueEnabled && original ? imported.id : null)
@@ -750,16 +752,14 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
       )}
 
       <PhaseHeader
-        pending={pendingTotal}
         total={st.total}
         cap={cap}
-        tone={status.tone}
         phase={tab}
         onPhase={setTab}
+        workflow={workflow}
         badges={{
           subcontractors: packages.length || null,
           x84: packages.filter((p) => p.chosenId).length || null,
-          x86: award ? '✓' : null,
         }}
         onEditCap={live ? () => openDialog({ kind: 'edit-cap', target: 'list', id: doc.id }) : undefined}
         sub={pendingCount > 0 && (
@@ -1049,7 +1049,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
 
       {tab === 'subcontractors' && (
         <PhasePanel phase="subcontractors">
-          <SubcontractorsTab listId={doc.id} packages={packages} demoIds={demoIds} demoNames={workflowDemo?.demoNames} positions={positions} onNew={() => setSending(true)} />
+          <SubcontractorsTab listId={doc.id} doc={doc} resolved={resolved} packages={packages} demoIds={demoIds} demoNames={workflowDemo?.demoNames} positions={positions} onNew={() => setSending(true)} />
         </PhasePanel>
       )}
       {tab === 'x84' && (

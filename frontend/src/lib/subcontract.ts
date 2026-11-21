@@ -27,6 +27,8 @@ export type SubcontractOffer = {
   missing?: string[]
   /** we declined this offer */
   declined?: boolean
+  /** id of the stored offer file (a `DocMeta`), when the file was imported */
+  documentId?: string
 }
 
 export type SubcontractPackage = {
@@ -44,6 +46,8 @@ export type SubcontractPackage = {
   format: SubcontractFormat
   status: SubcontractStatus
   sentAt?: string
+  /** the email text as it went out (generic salutation, sender block, no budget); `toRequest` never copies it */
+  sentText?: string
   /** internal note, never exported */
   notes?: string
   /** replies by subcontractor catalogue id */
@@ -111,7 +115,28 @@ export function upsertPackage(packages: readonly SubcontractPackage[], pkg: Subc
   return [...others.slice(0, before), pkg, ...others.slice(before)]
 }
 
-export const removePackage = (packages: readonly SubcontractPackage[], id: string): SubcontractPackage[] => packages.filter((p) => p.id !== id)
+/**
+ * The package to store when the overlay saves or re-exports `next`. A new id is stored as built. For an existing
+ * id the replies survive: `offers` and `chosenId` are carried over (those of subcontractors removed from the
+ * package are dropped, and so is the choice if that subcontractor is gone) and `sentText` stays unless `next`
+ * carries a new one (a newly composed and sent email).
+ */
+export function mergeSavedPackage(existing: SubcontractPackage | undefined, next: SubcontractPackage): SubcontractPackage {
+  if (!existing) return next
+  const keep = new Set(next.subcontractorIds)
+  const offers = Object.fromEntries(Object.entries(next.offers ?? existing.offers ?? {}).filter(([id]) => keep.has(id)))
+  const chosenId = next.chosenId ?? existing.chosenId
+  const { offers: _o, chosenId: _c, sentText: _s, ...rest } = next
+  const sentText = next.sentText ?? existing.sentText
+  return {
+    ...rest,
+    ...(Object.keys(offers).length ? { offers } : {}),
+    ...(chosenId && keep.has(chosenId) ? { chosenId } : {}),
+    ...(sentText !== undefined ? { sentText } : {}),
+  }
+}
+
+export const removePackage =(packages: readonly SubcontractPackage[], id: string): SubcontractPackage[] => packages.filter((p) => p.id !== id)
 
 export const setStatus = (packages: readonly SubcontractPackage[], id: string, status: SubcontractStatus, at?: string): SubcontractPackage[] =>
   packages.map((p) => (p.id === id ? { ...p, status, sentAt: status === 'sent' ? at ?? p.sentAt : p.sentAt } : p))

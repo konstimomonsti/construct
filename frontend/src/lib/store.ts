@@ -8,6 +8,7 @@ import { removeDocuments } from './documents'
 import { withoutLegacyImports } from './legacy'
 import { applyDecision, decisionsOf, type Decision, type Decisions } from './risk-assessment'
 import type { SubcontractPackage } from './subcontract'
+import type { CalendarEntry, Communication } from './communications'
 
 export type SortKey = 'cost-desc' | 'cost-asc' | 'name' | 'items'
 export const SORT_LABEL: Record<SortKey, string> = {
@@ -38,6 +39,10 @@ interface ListPatch {
   subcontractPackages?: SubcontractPackage[]
   /** the uploaded award document (X86 tab) */
   awardDocumentId?: string
+  /** ISO, when the award document was uploaded (the calendar's "Award document received") */
+  awardUploadedAt?: string
+  /** manually logged communications with subcontractors, the client and suppliers (calendar) */
+  communications?: Communication[]
 }
 export interface ListEdits {
   qty: Record<string, number>
@@ -74,6 +79,8 @@ interface State {
   listPatch: Record<string, ListPatch>
   edits: Record<string, ListEdits>
   stats: Record<string, Stats>
+  /** custom calendar appointments by id (synced) */
+  calendar: Record<string, CalendarEntry>
   openTabs: string[]
   view: 'grid' | 'list'
   sort: SortKey
@@ -115,6 +122,8 @@ interface State {
   deleteList: (id: string) => void
   addPosition: (listId: string, p: Position) => void
   recordStats: (listId: string, s: Stats) => void
+  saveCalendarEntry: (entry: CalendarEntry) => void
+  deleteCalendarEntry: (id: string) => void
 }
 
 const emptyEdits = (): ListEdits => ({ qty: {}, up: {}, removed: [], added: [], patch: {}, moves: {}, categories: { added: [], renamed: {} } })
@@ -153,6 +162,7 @@ export const useStore = create<State>()(
       listPatch: {},
       edits: {},
       stats: {},
+      calendar: {},
       openTabs: [],
       view: 'grid',
       sort: 'cost-desc',
@@ -323,6 +333,12 @@ export const useStore = create<State>()(
         set((s) => {
           const e = norm(s.edits[listId])
           return { edits: { ...s.edits, [listId]: { ...e, added: [...e.added, p] } } }
+        }),
+      saveCalendarEntry: (entry) => set((s) => ({ calendar: { ...s.calendar, [entry.id]: entry } })),
+      deleteCalendarEntry: (id) =>
+        set((s) => {
+          const { [id]: _drop, ...rest } = s.calendar
+          return { calendar: rest }
         }),
       recordStats: (listId, st) => {
         const cur = get().stats[listId]

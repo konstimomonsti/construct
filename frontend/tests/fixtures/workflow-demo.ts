@@ -3,6 +3,7 @@
  * Loaded read-only by `?demo=workflow` on the list page (`angebot-an24-0305-d84`); never written to the store.
  * Position ids (p0…) are the real ids of frontend/public/data/lists/angebot-an24-0305-d84.json.
  */
+import type { CalendarEntry, Communication } from '../../src/lib/communications'
 import type { SubcontractPackage } from '../../src/lib/subcontract'
 
 export const demoPackages: SubcontractPackage[] = [
@@ -40,6 +41,22 @@ export const demoPackages: SubcontractPackage[] = [
       'demo-s7': { sentAt: '2026-11-13T09:00:00.000Z' },
     },
   },
+]
+
+/** DEMO DATA: manual calendar entries for the AN24 list (`/calendar?demo=workflow`). Ids start with `demo-`. Read-only. */
+export const demoCommunications: Communication[] = [
+  { id: 'demo-com-1', at: '2026-11-17T13:30:00.000Z', party: 'client', name: 'Bauherr Beispiel GmbH', channel: 'phone', direction: 'in', note: 'DEMO DATA: asked to move the submission date' },
+  { id: 'demo-com-2', at: '2026-11-19T09:15:00.000Z', party: 'supplier', name: 'Baustoff Muster AG', channel: 'email', direction: 'out', note: 'DEMO DATA: requested a quote for screed' },
+  { id: 'demo-com-3', at: '2026-11-20T08:00:00.000Z', party: 'subcontractor', name: 'Schmidt Ausbau', channel: 'meeting', direction: 'out', note: 'DEMO DATA: site visit with the kitchen fitter' },
+]
+
+const local = (d: number, h = 0, m = 0) => new Date(2026, 10, d, h, m).toISOString()
+
+/** DEMO DATA: custom appointments (`/calendar?demo=workflow`). Ids start with `demo-`. Read-only. */
+export const demoAppointments: CalendarEntry[] = [
+  { id: 'demo-cal-1', title: 'Site visit Weinsbach', start: local(24, 9), end: local(24, 11, 30), allDay: false, listId: 'angebot-an24-0305-d84', location: 'Weinsbach', note: 'DEMO DATA' },
+  { id: 'demo-cal-2', title: 'Bid deadline AN24-0305', start: local(27), end: local(27), allDay: true, listId: 'angebot-an24-0305-d84', note: 'DEMO DATA' },
+  { id: 'demo-cal-3', title: 'Internal pricing meeting', start: local(25, 14), end: local(25, 15, 30), allDay: false, location: 'Office, room 2', note: 'DEMO DATA' },
 ]
 
 /** catalogue id → display data, standing in for the subcontractor catalogue the backend serves */
