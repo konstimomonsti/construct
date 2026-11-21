@@ -70,7 +70,7 @@ Use prompt caching for the shared system prompt.
 
 ## Notes / blockers (fill in)
 
-**Status: PR open. Live numbers pending: no `ANTHROPIC_API_KEY` was available to this worker.**
+**Status: PR open. Live run and eval done on 2026-11-21 (claude-haiku-5-5 + claude-sonnet-5-5).**
 
 - **Built:** `checks/precast.py` (extraction + `L3.PRECAST.MISSING_SPEC` + `L3.OPT.BUNDLED_FORMWORK`),
   `checks/scope.py` (`L3.SCOPE.REBAR_AMBIGUOUS`, `SHOP_DRAWINGS_OVERLAP`, `EMBEDDED_UNALLOCATED`, one audit
@@ -88,20 +88,31 @@ Use prompt caching for the shared system prompt.
   `cache_control` for Anthropic prompt caching (extraction and audit prompts are > 512 tokens).
 - **Worker:** `workspace_analysis.run` already runs layers 1-3 when `ANALYSIS_L3_PROVIDER` is `anthropic`/`ollama`.
   If layer 3 still crashes, it now re-runs layers 1-2 and stores that report with an error line.
-- **Live cost / duration (acceptance 2):** *pending*. Run
-  `$env:ANTHROPIC_API_KEY="..."; $env:PYTHONPATH="backend;backend/importer"; python -m pytest -q -s -m integration backend/analysis/tests/test_layer3_live.py`;
-  it prints seconds, tokens per model and the USD cost. Expected order of magnitude: about 9 lines -> 4 Haiku calls +
-  1 Sonnet call, well under $0.05.
-- **Eval precision (acceptance 3):** *pending a key*. `python -m analysis.layer3.eval` now also reports
-  precision/recall per (rule, OZ) on 4 task 02 cases (LV_11 + complete precast section + site connection steel
-  section + general quantities/texts). Offline with the FakeProvider it reports precision 1.0, which only
-  shows that the harness works, not how good the model is.
+- **Live cost / duration (acceptance 2):** one uncached run of layer 3 on `lv11_precast.json`
+  (`test_layer3_live.py`, passed): **24.5 s, $0.020**, 5 calls (Haiku: 4 calls, 12 630 input / 3 083 output tokens
+  incl. 5 976 cache-write; Sonnet audit: 1 call, 3 594 input / 905 output tokens). Findings: `MISSING_SPEC` on
+  3.2.20-3.2.60 (height + RAL/pigment), `REBAR_AMBIGUOUS` on 3.2.70, `SHOP_DRAWINGS_OVERLAP` on 3.2.10,
+  `EMBEDDED_UNALLOCATED` on 3.2.90, `BUNDLED_FORMWORK` (20.67 m). A repeat run is served from the disk cache
+  (0 calls, $0). Prompt caching gave no reads within this small run (each check has its own system prompt and
+  LV_11 fits one batch per check); it pays off on bigger LVs with several batches per check, or on re-runs
+  within 5 minutes.
+- **Eval precision (acceptance 3):** `ANALYSIS_L3_PROVIDER=anthropic python -m analysis.layer3.eval`, cache off,
+  80 s:
+  - task 02 checks, per (rule, OZ) on 4 cases (LV_11, a complete precast section, a site-connection-steel
+    section, a general section): **precision 1.0, recall 1.0** (MISSING_SPEC 5/5, REBAR_AMBIGUOUS 1/1,
+    UNDERSPECIFIED 1/1, QTY.IMPLAUSIBLE 1/1, 0 false positives; the two clean precast sections produced no
+    findings). SHOP_DRAWINGS_OVERLAP / EMBEDDED_UNALLOCATED fired only where they are labelled acceptable
+    (LV_11), so they have no precision number yet;
+  - existing checks with the same model: contradiction precision 1.0 / recall 1.0 (10 cases), layer 2 review
+    accuracy 0.75 (`underlay_missing` came back `unclear`).
+  The set is small (4 + 10 + 4 cases); task 05's planted-error files are the real measure.
+- **Not measured:** the 200-line / 90 s target was not run live. It rests on the call budget (12), 4 parallel
+  requests per check and the 75 s deadline. LV_11 takes 24.5 s for 5 calls.
 - **Tests:** `python -m pytest -q backend/analysis/tests` (after merging main with task 01): 291 passed, 3 skipped (the live test skips without a key).
   `backend/tests` has 3 failures on Windows that also happen on `main` (Linux font path, JS MIME type).
 
 ### Blockers / requests
 
-- Need `ANTHROPIC_API_KEY` from the lead to fill in the live cost/duration and the eval precision.
 - Please register the `integration` pytest marker in `backend/pyproject.toml`
   (`markers = ["integration: needs ANTHROPIC_API_KEY"]`). The file is outside this task's allowlist, so pytest
   currently warns `PytestUnknownMarkWarning`.
