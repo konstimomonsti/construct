@@ -2,13 +2,14 @@ import type { ParsedList } from './gaeb'
 import { positionTotal } from './money'
 import { flatTree, treeFromPaths } from './cat'
 import type { DocMeta, ListDoc, Position } from './types'
-import { useStore } from './store'
-import { useUi } from './ui-store'
+import { selectModel, useStore } from './store'
+import { removeDocuments, saveDocument } from './documents'
 import { toast } from '../components/ui'
 
-export const ACCEPT = '.x81,.x82,.x83,.x84,.x86,.d81,.d83,.d84,.d86,.csv,.json,.pdf'
+export const ACCEPT = '.x81,.x82,.x83,.x84,.x86,.d81,.d83,.d84,.d86,.csv,.tsv,.json,.pdf'
 
-const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
+const uid = () => crypto.randomUUID()
+const fileStem = (name: string) => name.replace(/\.[^.]+$/, '')
 const slug = (s: string) =>
   s.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'liste'
 
@@ -71,27 +72,36 @@ export interface ImportResult {
   failed: string[]
 }
 
-export async function importFiles(files: File[], folderId: string): Promise<ImportResult> {
+async function addFile(file: File, listId: string, original: boolean, list?: ListDoc) {
+  const doc: DocMeta = {
+    id: `d-${uid()}`,
+    name: file.name,
+    file: '',
+    pages: 0,
+    excerpt: `${(file.size / 1024).toFixed(0)} KB`,
+    listId,
+    stored: true,
+    original,
+  }
+  await saveDocument(doc.id, file)
+  if (!useStore.getState().addImportedFile(doc, list)) {
+    removeDocuments([doc.id])
+    throw new Error('The destination folder or list is unavailable.')
+  }
+}
+
+export async function importFiles(files: File[], folderId: string, activeListId?: string): Promise<ImportResult> {
   const g = await import('./gaeb')
   const res: ImportResult = { lists: [], positions: 0, docs: 0, failed: [] }
+  const pdfFiles: File[] = []
   for (const f of files) {
     const name = f.name
     const ext = name.split('.').pop()?.toLowerCase() ?? ''
-    const base = name.replace(/\.[^.]+$/, '')
+    if (ext === 'pdf') {
+      pdfFiles.push(f)
+      continue
+    }
     try {
-      if (ext === 'pdf') {
-        const doc: DocMeta = {
-          id: `d-${uid()}`,
-          name,
-          file: '',
-          pages: 0,
-          excerpt: `${(f.size / 1024).toFixed(0)} KB · upload (this session only)`,
-          blobUrl: URL.createObjectURL(f),
-        }
-        useUi.getState().addSessionDoc(folderId, doc)
-        res.docs++
-        continue
-      }
       let parsed: ParsedList
       if (/^x8\d$/.test(ext)) parsed = g.parseGaebXml(await f.text())
       else if (/^d8\d$/.test(ext)) parsed = g.parseGaeb90(g.decodeGaeb90(new Uint8Array(await f.arrayBuffer())))
@@ -101,20 +111,39 @@ export async function importFiles(files: File[], folderId: string): Promise<Impo
         const positions = normalizeJson(raw)
         parsed = { format: 'JSON', currency: raw?.currency ?? 'EUR', title: raw?.title, positions, tree: Array.isArray(raw?.tree) && positions.every((p) => p.path?.length) ? raw.tree : undefined, source: { kind: 'json' } }
       } else {
-        res.failed.push(name)
-        continue
+        throw new Error('Unsupported file type.')
       }
-      if (!parsed.positions.length) {
-        res.failed.push(name)
-        continue
-      }
-      const doc = makeListDoc(folderId, parsed.title || base, name, parsed.positions, parsed)
-      useStore.getState().addList(doc)
-      res.lists.push(doc.id)
-      res.positions += doc.positions.length
+      if (!parsed.positions.length) throw new Error('No positions found.')
+      const list = makeListDoc(folderId, parsed.title || fileStem(name), name, parsed.positions, parsed)
+      await addFile(f, list.id, true, list)
+      res.lists.push(list.id)
+      res.positions += list.positions.length
     } catch (err) {
       console.warn(`import failed: ${name}`, err)
       res.failed.push(name)
+    }
+  }
+
+  const importedListIds = [...res.lists]
+  for (const file of pdfFiles) {
+    try {
+      const lists = selectModel(useStore.getState()).lists.filter((list) => list.folderId === folderId && !list.trashedAt)
+      const name = fileStem(file.name)
+      const matching = lists.filter((list) => fileStem(list.fileName).toLowerCase() === name.toLowerCase())
+      const selected = lists.find((list) => list.id === activeListId)
+        ?? (matching.length === 1 ? matching[0] : undefined)
+        ?? (importedListIds.length === 1 ? lists.find((list) => list.id === importedListIds[0]) : undefined)
+      if (selected) {
+        await addFile(file, selected.id, false)
+      } else {
+        const list = makeListDoc(folderId, name, file.name, [])
+        await addFile(file, list.id, false, list)
+        res.lists.push(list.id)
+      }
+      res.docs++
+    } catch (err) {
+      console.warn(`import failed: ${file.name}`, err)
+      res.failed.push(file.name)
     }
   }
   const parts: string[] = []
@@ -126,27 +155,20 @@ export async function importFiles(files: File[], folderId: string): Promise<Impo
 }
 
 /** open the native file picker and import into a folder */
-export function pickAndImport(folderId: string | (() => string), onDone?: (r: ImportResult) => void, accept = ACCEPT) {
+export function pickAndImport(folderId: string, onDone?: (r: ImportResult) => void, accept = ACCEPT, activeListId?: string) {
   const input = document.createElement('input')
   input.type = 'file'
   input.multiple = true
   input.accept = accept
   input.hidden = true
+  input.oncancel = () => input.remove()
   input.onchange = async () => {
     const files = [...(input.files ?? [])]
     input.remove()
     if (!files.length) return
-    const id = typeof folderId === 'function' ? folderId() : folderId
-    const r = await importFiles(files, id)
+    const r = await importFiles(files, folderId, activeListId)
     onDone?.(r)
   }
   document.body.appendChild(input)
   input.click()
-}
-
-/** folder used by "Upload File" on pages that aren't a folder */
-export function inboxFolderId(): string {
-  const st = useStore.getState()
-  const found = st.userFolders.find((f) => f.name === 'Imports')
-  return found ? found.id : st.createFolder('Imports', 'Uploaded item lists & documents')
 }

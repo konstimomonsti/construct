@@ -7,7 +7,7 @@ import type { FolderView } from '../lib/store'
 import { useUi } from '../lib/ui-store'
 import { useActions } from '../lib/actions'
 
-export function EmptyFolder({ folder: f, dragging }: { folder: FolderView; dragging: boolean }) {
+export function EmptyFolder({ folder: f, ancestors, dragging }: { folder: FolderView; ancestors: FolderView[]; dragging: boolean }) {
   const openDialog = useUi((s) => s.openDialog)
   const { trashFolder } = useActions()
   const pick = (accept?: string) => pickAndImport(f.id, undefined, accept)
@@ -24,6 +24,12 @@ export function EmptyFolder({ folder: f, dragging }: { folder: FolderView; dragg
             <Icon name="chevron_right" size={12} className="text-slate-300" />
             <Link to="/" className="font-medium transition-colors hover:text-brand-600">Workspace</Link>
             <Icon name="chevron_right" size={12} className="text-slate-300" />
+            {ancestors.map((folder) => (
+              <span key={folder.id} className="flex min-w-0 items-center gap-1.5">
+                <Link to={`/folder/${folder.id}`} className="truncate hover:text-brand-600">{folder.name}</Link>
+                <Icon name="chevron_right" size={12} className="text-slate-300" />
+              </span>
+            ))}
             <span className="flex min-w-0 items-center gap-1.5 font-semibold text-slate-900">
               <Icon name="folder" size={16} className="text-amber-500" />
               <span className="truncate">{f.name}</span>
@@ -47,7 +53,7 @@ export function EmptyFolder({ folder: f, dragging }: { folder: FolderView; dragg
               </button>
             )}
           />
-          <button type="button" onClick={() => openDialog({ kind: 'new-folder', parent: f.name })} className="flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-50">
+          <button type="button" onClick={() => openDialog({ kind: 'new-folder', parent: f.id })} className="flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-50">
             <Icon name="create_new_folder" size={16} className="text-brand-600" />
             <span>+ Create Subfolder</span>
           </button>
@@ -105,7 +111,7 @@ export function EmptyFolder({ folder: f, dragging }: { folder: FolderView; dragg
               <Icon name="add_box" size={15} className="text-amber-500" />
               <span>Create Blank List</span>
             </button>
-            <button type="button" onClick={() => openDialog({ kind: 'new-folder', parent: f.name })} className="flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 shadow-2xs transition-colors hover:border-slate-300 hover:bg-slate-50">
+            <button type="button" onClick={() => openDialog({ kind: 'new-folder', parent: f.id })} className="flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 shadow-2xs transition-colors hover:border-slate-300 hover:bg-slate-50">
               <Icon name="create_new_folder" size={15} className="text-brand-500" />
               <span>Add Nested Subfolder</span>
             </button>

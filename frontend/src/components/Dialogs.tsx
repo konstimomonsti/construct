@@ -2,9 +2,10 @@ import { lazy, Suspense, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button, Dialog, Field, inputCls, toast } from './ui'
 import { niceCap } from '../lib/format'
-import { useModel, useStore } from '../lib/store'
-import { useUi } from '../lib/ui-store'
-import { makeListDoc } from '../lib/import'
+import { folderPath, useModel, useStore } from '../lib/store'
+import { useUi, type DialogState } from '../lib/ui-store'
+import { makeListDoc, pickAndImport } from '../lib/import'
+import type { DocMeta } from '../lib/types'
 
 const DocViewer = lazy(() => import('./DocViewer'))
 
@@ -18,10 +19,12 @@ export function Dialogs() {
       {d?.kind === 'rename-list' && <Rename key={d.id} kind="list" id={d.id} onClose={close} />}
       {d?.kind === 'cap' && <CapDialog key={`${d.target}-${d.id}`} target={d.target} id={d.id} prefill={d.prefill} onClose={close} />}
       {d?.kind === 'blank-list' && <BlankList folderId={d.folderId} onClose={close} />}
+      {d?.kind === 'folder-target' && <FolderTarget dialog={d} onClose={close} />}
+      {d?.kind === 'link-document' && <LinkDocument doc={d.doc} onClose={close} />}
       <Confirm />
       {d?.kind === 'doc' && (
         <Suspense fallback={null}>
-          <DocViewer />
+          <DocViewer key={d.doc.id} />
         </Suspense>
       )}
     </>
@@ -30,13 +33,15 @@ export function Dialogs() {
 
 function NewFolder({ open, parent, onClose }: { open: boolean; parent?: string; onClose: () => void }) {
   const navigate = useNavigate()
+  const { folders } = useModel()
+  const parentName = folders.find((folder) => folder.id === parent)?.name
   const [name, setName] = useState('')
   const [desc, setDesc] = useState('')
   const submit = (e: FormEvent) => {
     e.preventDefault()
     const n = name.trim()
     if (!n) return
-    const id = useStore.getState().createFolder(n, desc.trim() || (parent ? `in ${parent}` : ''))
+    const id = useStore.getState().createFolder(n, desc.trim(), parent)
     toast(`Created folder "${n}"`)
     setName('')
     setDesc('')
@@ -48,7 +53,7 @@ function NewFolder({ open, parent, onClose }: { open: boolean; parent?: string; 
       open={open}
       onClose={onClose}
       title={parent ? 'Create Subfolder' : 'New Folder'}
-      description={parent ? `Specify a name for this new folder inside "${parent}".` : 'Give the new folder a name. You can import item lists into it afterwards.'}
+      description={parentName ? `Create a folder inside "${parentName}".` : 'Give the new folder a name. You can import item lists into it afterwards.'}
       footer={
         <>
           <Button onClick={onClose}>Cancel</Button>
@@ -64,6 +69,96 @@ function NewFolder({ open, parent, onClose }: { open: boolean; parent?: string; 
           <input className={inputCls} value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="Awaiting initial line allocations" maxLength={120} />
         </Field>
       </form>
+    </Dialog>
+  )
+}
+
+function FolderTarget({ dialog, onClose }: { dialog: Extract<DialogState, { kind: 'folder-target' }>; onClose: () => void }) {
+  const navigate = useNavigate()
+  const { folders, lists } = useModel()
+  const openDialog = useUi((s) => s.openDialog)
+  const [folderId, setFolderId] = useState('')
+  const list = dialog.action === 'move-list' ? lists.find((item) => item.id === dialog.listId) : undefined
+  const fromDocument = dialog.action === 'move-document' ? folders.find((folder) => folder.documents.some((doc) => doc.id === dialog.docId)) : undefined
+  const currentFolder = list?.folderId ?? fromDocument?.id
+  const options = folders.flatMap((folder) => {
+    const path = folderPath(folders, folder.id)
+    return folder.id === currentFolder || path.some((part) => part.trashedAt) ? []
+      : [{ id: folder.id, name: path.map((part) => part.name).join(' / ') }]
+  }).sort((a, b) => a.name.localeCompare(b.name))
+  const move = dialog.action !== 'import'
+  const submit = () => {
+    const target = options.find((option) => option.id === folderId)
+    if (!target) return
+    onClose()
+    if (dialog.action === 'move-document') {
+      useStore.getState().moveDocument(dialog.docId, folderId)
+      toast(`Moved document to "${target.name}"`)
+    } else if (list) {
+      useStore.getState().patchList(list.id, { folderId })
+      toast(`Moved "${list.title}" to "${target.name}"`)
+    } else if (!move) {
+      pickAndImport(folderId, (result) => {
+        if (result.lists.length || result.docs) navigate(`/folder/${folderId}`)
+      })
+    }
+  }
+  return (
+    <Dialog
+      open
+      onClose={onClose}
+      title={move ? 'Move to folder' : 'Choose an import folder'}
+      description={dialog.action === 'move-document' ? 'The document will keep its link to the list.'
+        : move ? 'Documents stored with the list will move with it.' : 'Choose the folder or subfolder where these files belong.'}
+      footer={
+        <>
+          <Button onClick={onClose}>Cancel</Button>
+          {!move && !options.length && <Button onClick={() => openDialog({ kind: 'new-folder' })}>New folder</Button>}
+          <Button variant="primary" disabled={!folderId} onClick={submit}>{move ? 'Move' : 'Choose files'}</Button>
+        </>
+      }
+    >
+      <Field label="Destination folder">
+        <select data-autofocus className={inputCls} value={folderId} onChange={(event) => setFolderId(event.target.value)}>
+          <option value="">Select a folder</option>
+          {options.map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}
+        </select>
+      </Field>
+    </Dialog>
+  )
+}
+
+function LinkDocument({ doc, onClose }: { doc: DocMeta; onClose: () => void }) {
+  const { folders, lists } = useModel()
+  const [listId, setListId] = useState(doc.listId ?? '')
+  const options = lists.flatMap((list) => {
+    const path = folderPath(folders, list.folderId)
+    return list.trashedAt || !path.length || path.some((folder) => folder.trashedAt) ? []
+      : [{ id: list.id, name: [...path.map((folder) => folder.name), list.title].join(' / ') }]
+  }).sort((a, b) => a.name.localeCompare(b.name))
+  return (
+    <Dialog
+      open
+      onClose={onClose}
+      title="Change linked list"
+      description={`Choose the list that "${doc.name}" belongs to.`}
+      footer={
+        <>
+          <Button onClick={onClose}>Cancel</Button>
+          <Button variant="primary" disabled={listId === doc.listId || !options.some((option) => option.id === listId)} onClick={() => {
+            useStore.getState().linkDocument(doc.id, listId)
+            toast('Document linked to its new list')
+            onClose()
+          }}>Link document</Button>
+        </>
+      }
+    >
+      <Field label="Linked list">
+        <select data-autofocus className={inputCls} value={listId} onChange={(event) => setListId(event.target.value)}>
+          <option value="">Select a list</option>
+          {options.map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}
+        </select>
+      </Field>
     </Dialog>
   )
 }

@@ -52,6 +52,7 @@
    "documents": [
     {
      "id": "hem2301-2-gesamt-lv-pdf",
+     "listId": "8209-003-leistungsverzeichnis-leer-x83",
      "name": "HEM2301-2_Gesamt-LV.pdf",
      "file": "files/HEM2301-2_Gesamt-LV.pdf",
      "pages": 0,
@@ -72,6 +73,7 @@
    "documents": [
     {
      "id": "angebot-an24-0305-pdf",
+     "listId": "angebot-an24-0305-d84",
      "name": "Angebot AN24-0305.pdf",
      "file": "files/Angebot%20AN24-0305.pdf",
      "pages": 0,
@@ -79,6 +81,7 @@
     },
     {
      "id": "leistungsverzeichnis-pdf",
+     "listId": "lv-positionen-docx",
      "name": "Leistungsverzeichnis.pdf",
      "file": "files/Leistungsverzeichnis.pdf",
      "pages": 0,
@@ -86,6 +89,7 @@
     },
     {
      "id": "lv-schachtbauwerk-pdf",
+     "listId": "lv-positionen-docx",
      "name": "LV-Schachtbauwerk.pdf",
      "file": "files/LV-Schachtbauwerk.pdf",
      "pages": 0,
@@ -107,6 +111,7 @@
    "documents": [
     {
      "id": "abgabe-lv-pdf",
+     "listId": "nummer-001-leer-x83",
      "name": "Abgabe LV.pdf",
      "file": "files/Abgabe%20LV.pdf",
      "pages": 0,
@@ -114,6 +119,7 @@
     },
     {
      "id": "leistungsverzeichnis-leer-pdf",
+     "listId": "nummer-001-leer-x83",
      "name": "Leistungsverzeichnis_leer.pdf",
      "file": "files/Leistungsverzeichnis_leer.pdf",
      "pages": 0,
@@ -144,6 +150,7 @@
    "documents": [
     {
      "id": "lv-ausdruck-projekt-004-pdf",
+     "listId": "gaeb-projekt-004-x83",
      "name": "LV-Ausdruck-[PROJEKT_004].pdf",
      "file": "files/LV-Ausdruck-%5BPROJEKT_004%5D.pdf",
      "pages": 0,

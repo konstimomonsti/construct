@@ -8,12 +8,16 @@ export interface DocMeta {
   file: string
   pages: number
   excerpt: string
+  listId?: string
+  stored?: boolean
+  original?: boolean
   /** session-only object URL for user uploads */
   blobUrl?: string
 }
 
 export interface FolderMeta {
   id: string
+  parentId?: string
   name: string
   description: string
   icon: string

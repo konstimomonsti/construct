@@ -3,6 +3,11 @@
 BillBuild is the React/Vite budget workspace at `/`. The same origin serves the
 [HTTP API](../docs/API.md) and database administration tools.
 
+Upload files while viewing a folder or subfolder, or choose a destination from the workspace.
+An imported list keeps its original file in **Documents**. A PDF can be attached to an existing
+list, and an unmatched PDF gets a list of its own. Use a document’s menu to move it between folders
+while keeping its list link. Imported files and links are stored in the current browser.
+
 ## Development
 
 From the repo root, start PostgreSQL and the API:

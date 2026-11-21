@@ -1,9 +1,10 @@
 import { clsx } from 'clsx'
 import { useMatch, useNavigate } from 'react-router-dom'
-import { Button, Icon, Menu } from './ui'
+import { Button, Icon, Menu, toast } from './ui'
 import { useStore, useModel } from '../lib/store'
 import { useUi } from '../lib/ui-store'
-import { inboxFolderId, pickAndImport } from '../lib/import'
+import { pickAndImport } from '../lib/import'
+import { clearDocuments } from '../lib/documents'
 
 export function Header() {
   const view = useStore((s) => s.view)
@@ -19,18 +20,10 @@ export function Header() {
   const showToggle = true
 
   const upload = () => {
-    if (folderMatch) return pickAndImport(folderMatch.params.folderId!)
-    if (listMatch) {
-      const l = lists.find((x) => x.id === listMatch.params.listId)
-      return pickAndImport(l?.folderId ?? inboxFolderId(), (r) => r.lists[0] && navigate(`/list/${r.lists[0]}`))
-    }
-    pickAndImport(inboxFolderId, (r) => {
-      if (r.lists.length || r.docs) {
-        const st = useStore.getState()
-        const f = st.userFolders.find((x) => x.name === 'Imports')
-        if (f) navigate(`/folder/${f.id}`)
-      }
-    })
+    if (folderMatch?.params.folderId) return pickAndImport(folderMatch.params.folderId)
+    const list = lists.find((item) => item.id === listMatch?.params.listId && !item.trashedAt)
+    if (list) return pickAndImport(list.folderId, undefined, undefined, list.id)
+    openDialog({ kind: 'folder-target', action: 'import' })
   }
 
   return (
@@ -92,8 +85,8 @@ export function Header() {
         )}
         {folderMatch ? (
           <>
-            <Button size="lg" icon="create_new_folder" aria-label="New Folder" className="hidden sm:inline-flex" onClick={() => openDialog({ kind: 'new-folder' })}>
-              <span className="hidden xl:inline">New Folder</span>
+            <Button size="lg" icon="create_new_folder" aria-label="New Subfolder" className="hidden sm:inline-flex" onClick={() => openDialog({ kind: 'new-folder', parent: folderMatch.params.folderId })}>
+              <span className="hidden xl:inline">New Subfolder</span>
             </Button>
             <Button size="lg" icon="upload" aria-label="Upload" className="hidden sm:inline-flex" onClick={upload}>
               <span className="hidden xl:inline">Upload</span>
@@ -103,8 +96,8 @@ export function Header() {
             </Button>
           </>
         ) : (
-          <Button variant="primary" size="lg" icon={listMatch ? 'file_present' : 'upload'} aria-label={listMatch ? 'Import CSV' : 'Upload File'} onClick={upload}>
-            <span className="hidden md:inline">{listMatch ? 'Import CSV' : 'Upload File'}</span>
+          <Button variant="primary" size="lg" icon={listMatch ? 'file_present' : 'upload'} aria-label="Upload File" onClick={upload}>
+            <span className="hidden md:inline">Upload File</span>
           </Button>
         )}
         <Menu
@@ -126,8 +119,10 @@ export function Header() {
                   confirmLabel: 'Reset everything',
                   danger: true,
                   run: () => {
-                    useStore.persist.clearStorage()
-                    window.location.assign('/')
+                    void clearDocuments().then(() => {
+                      useStore.persist.clearStorage()
+                      window.location.assign('/')
+                    }).catch(() => toast('Could not clear stored documents.', 'error'))
                   },
                 }),
             },
