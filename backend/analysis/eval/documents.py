@@ -399,6 +399,36 @@ def generate_product_requirements(out):
                                  *(labels if conflict else [{"control": True, "layers": [1], "expect": []}]))
 
 
+def generate_written_stiffness(out):
+    """Test a written minimum against a contradictory attached upper bound."""
+    out.mkdir(parents=True, exist_ok=True)
+    package = {
+        "schema": "billbuild.product-evidence.v1",
+        "declarations": [{"manufacturer": "Synthetic Works", "product_code": "PIPE-4",
+                          "document": "Synthetic declaration PIPE-4", "revision": "A", "locator": "p. 2",
+                          "ring_stiffness_sn": 4}],
+        "product_requirements": [{"position_code": "01.0010", "property_name": "ring_stiffness_sn",
+                                  "comparison": "at_most", "required": {"value": "4", "unit": "SN"},
+                                  "document": "Synthetic installation schedule", "locator": "Row 9"}],
+    }
+    (out / "product-evidence.json").write_text(json.dumps(package, indent=2), encoding="utf-8")
+    for name, wording in (
+        ("stiffness-compatible", "Mindestens SN 4."),
+        ("stiffness-conflict", "Mindestens SN 8."),
+        ("stiffness-conditional", "Sofern erforderlich, mindestens SN 8."),
+    ):
+        item = Item("01.0010", "PVC-U-Abwasserrohr DN 160", 10, "m",
+                    detail=f"{wording}\nHersteller: Synthetic Works; SKU: PIPE-4")
+        locators = _write_text_case(out, name, "Synthetic drainage tender", item, "stiffness")
+        for ext, locator in locators.items():
+            label = {"control": name != "stiffness-conflict", "layers": [1], "expect": []}
+            if not label["control"]:
+                label.update(match="line", expect=["L1.PRODUCT.REQUIREMENT_CONFLICT"], target={
+                    "line_codes": [item.code], "severity": "warning", "source_locator": locator,
+                })
+            write_fixture_labels(out / f"{name}.{ext}", f"stiffness-compatible.{ext}", label)
+
+
 def generate_grade_scope(out):
     """Test concrete grade conflicts, legitimate component differences and unclear attribution."""
     out.mkdir(parents=True, exist_ok=True)
@@ -509,7 +539,7 @@ if __name__ == "__main__":
               "dimensions": generate_dimensions, "dotted": generate_dotted, "grade-scope": generate_grade_scope,
               "exposure-scope": generate_exposure_scope, "dependency-scope": generate_dependency_scope,
               "product-offer": generate_product_offer, "product-position": generate_product_position,
-              "product-requirements": generate_product_requirements}
+              "product-requirements": generate_product_requirements, "written-stiffness": generate_written_stiffness}
     parser.add_argument("--suite", choices=suites, default="tabular")
     args = parser.parse_args()
     suites[args.suite](args.out)

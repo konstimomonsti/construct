@@ -19,7 +19,7 @@ export type Evidence = {
   din_standard?: { identifier: string; edition: string; url: string }
   declarations?: { manufacturer: string; product_code: string; document: string; revision: string; locator: string }[]
   requirement?: { document: string; locator: string; position_locator?: SourceLocator }
-  requirements?: { document: string; locator: string; comparison: 'equal' | 'at_least' | 'at_most'; required: { value: string; unit?: string | null } }[]
+  requirements?: { document: string; locator: string; comparison: 'equal' | 'at_least' | 'at_most'; required: { value: string; unit?: string | null }; quote?: string; field?: string }[]
   position_candidates?: { line_code: string; locator: SourceLocator }[]
   position_candidate_count?: number
   extracted?: Record<string, unknown>
@@ -30,6 +30,8 @@ export type Evidence = {
   long_quote?: string
   scope_statements?: { line_id: string; line_code?: string | null; role: string; quote: string }[]
   quantity_check?: { state: CoverageCheckState; unit?: string | null; minimum_shortfall?: string | null; quantity?: string | null }
+  requirement_quote?: string
+  requirement_field?: string
   offer_quote?: string
   offer_field?: string
   grade_quote?: string

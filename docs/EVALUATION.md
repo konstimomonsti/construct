@@ -175,6 +175,14 @@ A preliminary check on the repository sanitary, screed, and doors PDFs used synt
 
 Run the `product-requirements` generator through the same workspace replay setup. Replay `conflict` and `compatible` separately and pass the `product-evidence.json` from the matching directory. Include the compatible baseline files in that replay.
 
+### Written stiffness and attached schedules
+
+A directly stated drainage-pipe minimum, such as `Mindestens SN 8` or `SN ≥ 8`, participates in the same requirement check as a typed `ring_stiffness_sn` entry. Use a numeric value and omit the unit or use `SN` in the attachment. The finding quotes the tender text, names the attached schedule and row, and asks which requirement governs. Conditional wording, fitting requirements, and unclear choices remain outside this comparison. The product check reads the declaration's dedicated SN field or its typed SN property. If both disagree, it asks for the governing declaration.
+
+The `written-stiffness` suite caught one conflict per format in PDF, Word, JSON, and GAEB X83. All eight compatible and conditional controls were clear. The three-layer PDF and X83 replay kept both planted conflicts and all four controls clear. A synthetic probe on the repository sanitary PDF linked the warning to position 1.18, page 5. The sampled repository bills did not contain an explicit SN minimum with a paired conflicting schedule.
+
+Generate the suite with `--suite written-stiffness` and replay `stiffness-*.{pdf,docx,X83,json}` with the generated `product-evidence.json`.
+
 ## GAEB workspace upload replay
 
 The workspace picker parses the test files. The replay saves each original file and its parsed list in PostgreSQL, runs the assessment worker, and checks the stored findings and input hash against analysis of the original file. The worker keeps the original file's quantities, prices, subtotals, flags, and source locators. Unambiguous position and section links carry those findings into the workspace. Separate draft assessments continue to use the edited values.

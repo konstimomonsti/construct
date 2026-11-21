@@ -303,6 +303,66 @@ def test_identical_declared_and_required_units_can_be_compared_for_unlisted_prop
     assert findings(drainage)[PROPERTY].evidence["outcome"] == "conflict"
 
 
+@pytest.mark.parametrize("unit", [None, "SN"])
+def test_written_stiffness_conflicts_with_attached_maximum(drainage, unit):
+    bind_requirements(drainage, [("at_most", "4", unit)], name="ring_stiffness_sn")
+    report = findings(drainage)
+    assert STIFFNESS not in report and PROPERTY not in report
+    conflict = report[REQUIREMENT_CONFLICT]
+    written, attached = conflict.evidence["requirements"]
+    assert conflict.target.line_code == "01.10"
+    assert written["quote"] == "Mindestens SN 8"
+    assert written["field"] == "long_text" and written["comparison"] == "at_least"
+    assert attached["attachment_id"] == "attachment-1"
+    assert attached["document"] == "Document 1"
+    assert conflict.suggested_fix and not conflict.suggested_fix.operations
+
+
+def test_sn_requirement_is_checked_against_first_class_declaration(drainage):
+    bind_requirements(drainage, [("at_least", "8", "SN")], name="ring_stiffness_sn")
+    drainage["items"][0]["long"] = "Hersteller: Synthetic Works; SKU: P160-A"
+    report = findings(drainage)
+    assert report[PROPERTY].evidence["outcome"] == "conflict"
+    assert Decimal(report[PROPERTY].evidence["observed"]) == 4
+
+
+@pytest.mark.parametrize("description", [
+    "Sofern erforderlich, mindestens SN 8.",
+    "Mindestens SN 8 für Formstücke.",
+    "Formstücke mindestens SN 8.",
+    "Mindestens SN 8 oder gleichwertige Formstücke aus Beton.",
+    "Mindestens SN 4. Mindestens SN 8.",
+    "Mindestens SN 8,5.",
+])
+def test_conditional_or_unresolved_written_sn_leaves_attached_check_available(drainage, description):
+    bind_requirements(drainage, [("at_most", "4", None)], name="ring_stiffness_sn")
+    drainage["items"][0]["long"] = f"{description}\nHersteller: Synthetic Works; SKU: P160-A"
+    report = findings(drainage)
+    assert REQUIREMENT_CONFLICT not in report and STIFFNESS not in report
+    if PROPERTY in report:
+        assert report[PROPERTY].evidence["outcome"] == "insufficient_evidence"
+
+
+@pytest.mark.parametrize("quote", ["mindestens SN 8", "SN ≥ 8", "≥ SN 8"])
+def test_written_sn_can_be_part_of_the_pipe_heading(drainage, quote):
+    item = drainage["items"][0]
+    item["short"] = f"PVC-U-Abwasserrohr DN 160, {quote}"
+    item["long"] = "Hersteller: Synthetic Works; SKU: P160-A"
+    report = findings(drainage)
+    assert report[STIFFNESS].evidence["requirement_quote"] == quote
+    assert report[STIFFNESS].evidence["requirement_field"] == "short_text"
+
+
+def test_disagreeing_declaration_formats_cannot_establish_stiffness(drainage):
+    bind_requirements(drainage, [("at_most", "8", None)], name="ring_stiffness_sn")
+    drainage["declarations"][0]["properties"]["ring_stiffness_sn"] = {"value": "8", "unit": "SN"}
+    report = findings(drainage)
+    assert REQUIREMENT_CONFLICT not in report
+    for rule in (STIFFNESS, PROPERTY):
+        assert report[rule].evidence["outcome"] == "insufficient_evidence"
+        assert report[rule].severity == "info"
+
+
 def test_x83_round_trip_preserves_offered_identity_and_din_reference(drainage):
     item = drainage["items"][0]
     content = to_bytes({

@@ -72,6 +72,7 @@ function FindingEvidence({ finding }: { finding: Finding }) {
   const quantityCheck = evidence?.quantity_check
   const scopeStatements = evidence?.scope_statements ?? []
   const quotes = [
+    ['Requirement' + sourceField(evidence?.requirement_field), evidence?.requirement_quote],
     ['Offered variant' + sourceField(evidence?.offer_field), evidence?.offer_quote],
     ['Grade' + sourceField(evidence?.grade_field), evidence?.grade_quote],
     ['Exposure' + sourceField(evidence?.exposure_field), evidence?.exposure_quote],
@@ -130,10 +131,11 @@ function FindingEvidence({ finding }: { finding: Finding }) {
       {requirement && <p className="text-slate-700"><span className="font-semibold">Requirement</span> — {requirement.document} · {requirement.locator}</p>}
       {requirements.length > 0 && (
         <ul className="space-y-1 text-slate-700">
-          {requirements.map(({ document, locator, comparison, required }, index) => (
+          {requirements.map(({ document, locator, comparison, required, quote }, index) => (
             <li key={index}>
               <strong>{{ equal: 'Exactly', at_least: 'At least', at_most: 'At most' }[comparison]} {required.value}{required.unit && ` ${required.unit}`}</strong>
               {' · '}{document}{' · '}{locator}
+              {quote && <q className="block break-words">{quote}</q>}
             </li>
           ))}
         </ul>
