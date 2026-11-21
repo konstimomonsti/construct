@@ -28,7 +28,8 @@
     -webkit-tap-highlight-color: transparent;
   }
   body {
-    @apply bg-slate-50 font-sans text-slate-900 antialiased;
+    @apply bg-white font-sans text-[15px] text-slate-900 antialiased;
+    font-feature-settings: 'cv11';
   }
   h1, h2, h3, h4 {
     font-family: var(--font-heading);
@@ -38,7 +39,8 @@
   }
   :focus-visible {
     outline: 2px solid var(--color-brand-600);
-    outline-offset: 1px;
+    outline-offset: 2px;
+    border-radius: 6px;
   }
   ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
@@ -70,7 +72,7 @@
   .ms-fill { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 20; }
 
   .checkbox {
-    @apply size-4 shrink-0 cursor-pointer appearance-none rounded border border-slate-300 bg-white transition-colors hover:border-slate-400;
+    @apply size-[18px] shrink-0 cursor-pointer appearance-none rounded-[5px] border-[1.5px] border-slate-500 bg-white transition-colors hover:border-slate-700;
     background-position: center;
     background-repeat: no-repeat;
   }
@@ -85,7 +87,24 @@
   }
 
   .tabular { font-variant-numeric: tabular-nums lining-nums; }
+  /* money & quantities: proportional sans, fixed-width digits */
+  .num { font-family: var(--font-sans); font-variant-numeric: tabular-nums lining-nums; letter-spacing: -0.01em; }
 }
+
+/* touch: every control is at least 44px */
+@media (pointer: coarse) {
+  :is(button, a[href], input, label):is(.h-9, .h-10, .size-8, .size-9, .size-10) { min-height: 44px; }
+  :is(button, a[href], label):is(.size-8, .size-9, .size-10) { min-width: 44px; }
+}
+
+/* row checkboxes: on desktop with a mouse they appear on row hover; touch screens show them
+   only while selecting (see the ledger card layout below) */
+@media (min-width: 1280px) and (hover: hover) {
+  .ledger:not([data-selecting]) tbody tr:not(:hover) .cb-reveal:not(:focus-within),
+  .ledger:not([data-selecting]):not(:hover) thead .cb-reveal:not(:focus-within) { opacity: 0; }
+}
+
+h1, h2, h3 { text-wrap: balance; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
@@ -94,4 +113,30 @@
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* ledger: real table on wide screens, stacked two-line cards below 1280px */
+@media (max-width: 1279px) {
+  .ledger, .ledger tbody { display: block; }
+  .ledger thead { display: none; }
+  .ledger tr {
+    display: grid;
+    grid-template-columns: 2.25rem minmax(0, 1fr) auto;
+    grid-template-areas: "cb title total" "cb qty menu";
+    column-gap: 0.75rem;
+    row-gap: 0.5rem;
+    padding: 0.75rem 0.25rem;
+    align-items: center;
+  }
+  .ledger td { display: block; width: auto; padding: 0; }
+  .ledger td[data-a="cb"] { grid-area: cb; align-self: start; padding-left: 0; }
+  .ledger td[data-a="title"] { grid-area: title; }
+  .ledger td[data-a="total"] { grid-area: total; align-self: start; }
+  .ledger td[data-a="qty"] { grid-area: qty; text-align: left; }
+  .ledger td[data-a="menu"] { grid-area: menu; }
+  .ledger td[data-a="hide"] { display: none; }
+  .ledger:not([data-selecting]) tr:not([data-group]) { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "title total" "qty menu"; }
+  .ledger:not([data-selecting]) td[data-a="cb"] { display: none; }
+  .ledger tr[data-group] { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: none; padding: 1.25rem 0.5rem 0.5rem; }
+  .ledger tr[data-group] > * { display: block; padding: 0; }
 }

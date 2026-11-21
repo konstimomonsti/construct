@@ -2,17 +2,17 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { useShallow } from 'zustand/react/shallow'
 import type { DocMeta, FolderMeta, Library, ListDoc, ListMeta, Position } from './types'
-import { niceCap } from './format'
+import { gaebPhase, niceCap } from './format'
 import { positionTotal } from './money'
 import { removeDocuments } from './documents'
 import { withoutLegacyImports } from './legacy'
 
 export type SortKey = 'cost-desc' | 'cost-asc' | 'name' | 'items'
 export const SORT_LABEL: Record<SortKey, string> = {
-  'cost-desc': 'Cost (High to Low)',
-  'cost-asc': 'Cost (Low to High)',
-  name: 'Name (A–Z)',
-  items: 'Line items',
+  'cost-desc': 'Highest amount',
+  'cost-asc': 'Lowest amount',
+  name: 'Name A–Z',
+  items: 'Most positions',
 }
 
 interface FolderPatch {
@@ -155,7 +155,7 @@ export const useStore = create<State>()(
           userFolders: [
             ...s.userFolders,
             {
-              id, parentId, name, description: description || 'Awaiting initial line allocations', icon: 'folder_open',
+              id, parentId, name, description, icon: 'folder_open',
               tone: 'slate', lists: [], documents: [], createdAt: new Date().toISOString(), userCreated: true,
             },
           ],
@@ -330,7 +330,39 @@ export interface ListView extends ListMeta {
   cap: number
   capIsCustom: boolean
   trashedAt?: string
+  /** GAEB exchange phase (D84 = bid, D86 = award …) read from the file name */
+  phaseCode?: string
+  phaseName?: string
+  /** phase code of a later version of the same tender in this folder (e.g. "D86"); this one is not counted in totals */
+  supersededBy?: string
 }
+
+/** descriptions seeded by older builds; never shown */
+const PLACEHOLDER_DESCRIPTIONS = new Set(['Awaiting initial line allocations'])
+export const folderDescription = (f: Pick<FolderMeta, 'description'>) =>
+  PLACEHOLDER_DESCRIPTIONS.has(f.description?.trim()) ? '' : (f.description ?? '').trim()
+
+const stem = (name: string) => name.replace(/\.[^.]+$/, '').trim().toLowerCase()
+
+/** mark earlier GAEB phases of the same tender (same file stem, same folder) as superseded */
+function markVersions(lists: ListView[]): ListView[] {
+  const groups = new Map<string, ListView[]>()
+  for (const l of lists) {
+    if (l.trashedAt || !l.phaseCode) continue
+    const k = `${l.folderId}|${stem(l.fileName)}`
+    groups.set(k, [...(groups.get(k) ?? []), l])
+  }
+  const latest = new Map<string, string>()
+  for (const g of groups.values()) {
+    if (g.length < 2) continue
+    const top = g.reduce((a, b) => (Number(b.phaseCode!.slice(1)) > Number(a.phaseCode!.slice(1)) ? b : a))
+    for (const l of g) if (l !== top) latest.set(l.id, top.phaseCode!)
+  }
+  return latest.size ? lists.map((l) => (latest.has(l.id) ? { ...l, supersededBy: latest.get(l.id) } : l)) : lists
+}
+
+/** lists that count toward money totals */
+export const counts = (l: ListView) => !l.trashedAt && !l.supersededBy
 
 export function applyEdits(doc: ListDoc, e?: ListEdits): Position[] {
   if (!e) return doc.positions
@@ -352,7 +384,8 @@ export const statsOf = (positions: Position[]) => ({
 
 function buildLists(s: State): ListView[] {
   const metas: ListMeta[] = [...(s.base?.lists ?? []), ...s.userLists.map(({ positions: _p, notes: _n, ...m }) => m)]
-  return metas.map((m) => {
+  return markVersions(metas.map((m) => {
+    const phase = gaebPhase(m.fileName, m.phase, m.format)
     const patch = s.listPatch[m.id] ?? {}
     const st = s.stats[m.id]
     const total = st?.total ?? m.total
@@ -368,8 +401,10 @@ function buildLists(s: State): ListView[] {
       cap,
       capIsCustom: patch.cap != null,
       trashedAt: patch.trashedAt,
+      phaseCode: phase?.code,
+      phaseName: phase?.name,
     }
-  })
+  }))
 }
 
 function buildDocuments(s: State): (DocMeta & { originalFolderId?: string })[] {
@@ -406,8 +441,9 @@ function buildFolders(s: State, lists: ListView[], documents: ReturnType<typeof 
         ...f.lists.map((id) => byId.get(id)).filter((l): l is ListView => !!l && l.folderId === f.id && !l.trashedAt),
         ...listMetas.filter((l) => !f.lists.includes(l.id)),
       ]
-      const total = ordered.reduce((a, l) => a + l.total, 0)
-      const baseTotal = ordered.reduce((a, l) => a + l.baseTotal, 0)
+      const counted = ordered.filter(counts)
+      const total = counted.reduce((a, l) => a + l.total, 0)
+      const baseTotal = counted.reduce((a, l) => a + l.baseTotal, 0)
       return {
         ...f,
         documents: documentsByFolder.get(f.id) ?? [],
@@ -418,8 +454,8 @@ function buildFolders(s: State, lists: ListView[], documents: ReturnType<typeof 
         total,
         cap: patch.cap ?? (niceCap(baseTotal) || (f.userCreated ? 50_000 : 0)),
         capIsCustom: patch.cap != null,
-        positions: ordered.reduce((a, l) => a + l.positionsCount, 0),
-        priced: ordered.reduce((a, l) => a + l.pricedCount, 0),
+        positions: counted.reduce((a, l) => a + l.positionsCount, 0),
+        priced: counted.reduce((a, l) => a + l.pricedCount, 0),
         listMetas: ordered,
       }
     })
@@ -432,7 +468,7 @@ let memoVal: { folders: FolderView[]; lists: ListView[]; documents: DocMeta[] } 
 export function selectModel(s: State) {
   const key = [s.base, s.userFolders, s.userLists, s.userDocuments, s.documentLinks, s.documentFolders, s.folderPatch, s.listPatch, s.stats]
   if (key.every((k, i) => k === memoKey[i])) return memoVal
-  const lists = buildLists(s)
+  const lists = nameLists(buildLists(s), s)
   const documents = buildDocuments(s)
   memoVal = { lists, documents, folders: buildFolders(s, lists, documents) }
   memoKey = key
@@ -440,6 +476,20 @@ export function selectModel(s: State) {
 }
 
 export const useModel = () => useStore(useShallow(selectModel))
+
+const plainName = (x: string) => x.toLowerCase().replace(/[^\p{L}\p{N}]/gu, '')
+/** a list named exactly like its project would read as a duplicate everywhere; call it by its file name instead */
+export function listName(title: string, fileName: string, folderName?: string) {
+  return folderName && fileName && plainName(title) === plainName(folderName) ? fileName.replace(/\.[^.]+$/, '') : title
+}
+function nameLists(lists: ListView[], s: State): ListView[] {
+  const names = new Map<string, string>()
+  for (const f of [...(s.base?.folders ?? []), ...s.userFolders]) names.set(f.id, s.folderPatch[f.id]?.name ?? f.name)
+  return lists.map((l) => {
+    const t = listName(l.title, l.fileName, names.get(l.folderId))
+    return t === l.title ? l : { ...l, title: t }
+  })
+}
 
 export function folderPath(folders: FolderView[], id: string): FolderView[] {
   const path: FolderView[] = []
@@ -452,10 +502,24 @@ export function folderPath(folders: FolderView[], id: string): FolderView[] {
   return path
 }
 
-export function useWorkspaceBudget() {
-  const { folders } = useModel()
-  const live = folders.filter((f) => !f.trashedAt)
+/**
+ * The one portfolio figure used on All Projects and Active Budgets: the money in every
+ * active (not archived, not trashed) project, against the sum of those projects' caps.
+ * Projects without priced lists add neither money nor cap.
+ */
+export function portfolioBudget(folders: FolderView[]) {
+  const live = folders.filter((f) => !f.trashedAt && !f.archived && !isInArchived(folders, f) && f.total > 0)
   const total = live.reduce((a, f) => a + f.total, 0)
   const cap = live.reduce((a, f) => a + f.cap, 0)
-  return { total, cap, pct: cap ? (total / cap) * 100 : 0 }
+  return { total, cap, projects: live.length }
+}
+
+function isInArchived(folders: FolderView[], f: FolderView) {
+  return folderPath(folders, f.id).some((x) => x.archived || x.trashedAt)
+}
+
+export function useWorkspaceBudget() {
+  const { folders } = useModel()
+  const b = portfolioBudget(folders)
+  return { total: b.total, cap: b.cap, pct: b.cap ? (b.total / b.cap) * 100 : 0 }
 }

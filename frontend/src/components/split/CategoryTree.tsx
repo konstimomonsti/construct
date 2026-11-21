@@ -217,7 +217,7 @@ export function CategoryTree(props: CategoryTreeProps) {
   }
 
   if (!rows.length) {
-    return <div className={clsx('px-3 py-10 text-center text-xs text-slate-400', className)}>{q ? 'No matching categories or positions' : 'No categories'}</div>
+    return <div className={clsx('px-3 py-10 text-center text-sm text-slate-600', className)}>{q ? 'No matching categories or positions' : 'No categories'}</div>
   }
 
   return (
@@ -266,7 +266,7 @@ export function CategoryTree(props: CategoryTreeProps) {
             }}
             style={{ paddingLeft: indent }}
             className={clsx(
-              'group/row flex min-h-8 cursor-pointer items-center gap-1.5 rounded-lg pr-2 text-xs outline-none transition-colors focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-inset',
+              'group/row flex min-h-10 cursor-pointer items-center gap-1.5 rounded-lg pr-2 text-[13px] outline-none transition-colors focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-inset',
               selected ? 'bg-brand-50 text-brand-700' : 'hover:bg-slate-50',
               dropOz === n?.oz && isCat && 'bg-brand-50 ring-2 ring-brand-500 ring-inset',
               !isCat && 'text-slate-600',
@@ -282,7 +282,7 @@ export function CategoryTree(props: CategoryTreeProps) {
                   e.stopPropagation()
                   onToggleExpand(n!.oz)
                 }}
-                className={clsx('flex size-5 shrink-0 items-center justify-center rounded text-slate-400 hover:bg-slate-100 hover:text-slate-700', !r.expandable && 'invisible')}
+                className={clsx('flex size-5 shrink-0 items-center justify-center rounded text-slate-500 hover:bg-slate-100 hover:text-slate-800', !r.expandable && 'invisible')}
               >
                 <Icon name="chevron_right" size={16} className={clsx('transition-transform duration-[120ms]', r.isOpen && 'rotate-90')} />
               </button>
@@ -290,7 +290,7 @@ export function CategoryTree(props: CategoryTreeProps) {
               <span className="size-5 shrink-0" />
             )}
             {mode === 'check' ? <Box state={state} /> : selected ? <Icon name="radio_button_checked" size={16} className="text-brand-600" /> : isCat ? <Icon name="radio_button_unchecked" size={16} className="text-slate-300" /> : null}
-            <span className="shrink-0 font-mono text-[11px] text-slate-400">{isCat ? n!.oz : r.pos!.oz}</span>
+            <span className="shrink-0 font-mono text-xs text-slate-500">{isCat ? n!.oz : r.pos!.oz}</span>
             {isCat && renaming === n!.oz ? (
               <input
                 data-rename

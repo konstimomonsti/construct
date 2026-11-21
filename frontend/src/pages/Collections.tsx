@@ -8,10 +8,11 @@ export function Archived() {
     <FolderCollection
       title="Archived"
       crumb="Archived"
+      subtitle="Archived projects don't count toward totals"
       filter={isArchived}
       emptyIcon="archive"
       emptyTitle="Nothing archived"
-      emptyText="Archive a folder from its menu (⋮) and it will be kept here, out of your active projects."
+      emptyText="Archive a project from its ⋯ menu to set it aside. It stops counting toward your totals."
     />
   )
 }

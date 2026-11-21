@@ -15,11 +15,11 @@ import { startSync } from './lib/sync'
 
 function NotFound() {
   return (
-    <Page className="mx-auto flex w-full max-w-7xl flex-col items-center px-6 py-24 text-center">
-      <p className="font-mono text-xs text-slate-400">404</p>
-      <h1 className="mt-1 text-xl font-bold tracking-tight text-slate-900">Page not found</h1>
-      <p className="mt-1 text-sm text-slate-500">The page you are looking for does not exist.</p>
-      <Link to="/" className="mt-5 inline-flex h-8 items-center rounded-lg bg-brand-600 px-3.5 text-xs font-semibold text-white hover:bg-brand-700">
+    <Page className="mx-auto flex w-full max-w-5xl flex-col items-center px-6 py-24 text-center">
+      <p className="text-sm font-medium text-slate-600">Error 404</p>
+      <h1 className="mt-1 font-heading text-[28px] font-bold tracking-tight text-slate-900">Page not found</h1>
+      <p className="mt-2 text-[15px] text-slate-600">This page doesn’t exist or was moved.</p>
+      <Link to="/" className="mt-6 inline-flex h-10 items-center rounded-full bg-brand-600 px-5 text-sm font-semibold text-white hover:bg-brand-700">
         Back to All Projects
       </Link>
     </Page>
@@ -28,8 +28,8 @@ function NotFound() {
 
 function Boot() {
   return (
-    <div className="mx-auto w-full max-w-7xl px-6 pt-6" role="status" aria-label="Loading library">
-      <Skeleton className="mb-4 h-8 w-64" />
+    <div className="mx-auto w-full max-w-5xl px-4 pt-8 sm:px-8" role="status" aria-label="Loading library">
+      <Skeleton className="mb-6 h-8 w-64" />
       <GridSkeleton />
     </div>
   )

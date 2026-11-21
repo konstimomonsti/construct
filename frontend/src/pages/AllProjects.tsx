@@ -1,13 +1,13 @@
 import { useMemo, useState } from 'react'
+import { Button, toast } from '../components/ui'
 import { Link } from 'react-router-dom'
-import { Button, Icon, Menu, toast } from '../components/ui'
-import { Page, EmptyNote } from '../components/Page'
+import { Chips, EmptyState, PageFrame, PageHeader, RowMenu, Section, SortMenu, Summary, ToolButton } from '../components/Kit'
 import { FolderGrid } from '../components/FolderCard'
 import { Dock } from '../components/Dock'
-import { SORT_LABEL, useModel, useStore, type FolderView, type SortKey } from '../lib/store'
+import { SORT_LABEL, portfolioBudget, useModel, useStore, type FolderView, type SortKey } from '../lib/store'
 import { useUi } from '../lib/ui-store'
 import { useActions } from '../lib/actions'
-import { plural } from '../lib/format'
+import { moneyWhole, needsAttention, plural } from '../lib/format'
 
 export function sortFolders(folders: FolderView[], sort: SortKey): FolderView[] {
   const a = [...folders]
@@ -20,10 +20,11 @@ export function sortFolders(folders: FolderView[], sort: SortKey): FolderView[] 
 }
 
 export function FolderCollection({
-  title, filter, crumb, emptyTitle, emptyText, emptyIcon, withOpenAll,
+  title, subtitle, filter, emptyTitle, emptyText, emptyIcon, withOpenAll,
 }: {
   title: string
-  crumb: string
+  subtitle?: string
+  crumb?: string
   filter: (f: FolderView) => boolean
   emptyTitle: string
   emptyText: string
@@ -37,8 +38,14 @@ export function FolderCollection({
   const { openLists } = useActions()
   const [selectMode, setSelectMode] = useState(false)
   const [sel, setSel] = useState<Set<string>>(new Set())
+  const [view, setView] = useState<'all' | 'attention'>('all')
 
-  const folders = useMemo(() => sortFolders(all.filter((f) => !f.trashedAt && filter(f)), sort), [all, sort, filter])
+  const scoped = useMemo(() => all.filter((f) => !f.trashedAt && filter(f)), [all, filter])
+  const flagged = scoped.filter((f) => needsAttention(f.total, f.cap))
+  const folders = useMemo(
+    () => sortFolders(view === 'attention' ? scoped.filter((f) => needsAttention(f.total, f.cap)) : scoped, sort),
+    [scoped, sort, view],
+  )
   const listsOf = (ids: Iterable<string>) => {
     const set = new Set(ids)
     return folders.filter((f) => set.has(f.id)).flatMap((f) => f.listMetas.map((l) => l.id))
@@ -57,92 +64,106 @@ export function FolderCollection({
     setSel(new Set())
   }
 
-  return (
-    <Page className="mx-auto w-full max-w-7xl px-4 pt-6 pb-28 sm:px-6">
-      <div className="flex flex-col justify-between gap-3 pb-4 lg:flex-row lg:items-center">
-        <div className="min-w-0">
-          <nav aria-label="Breadcrumb" className="mb-1 flex min-w-0 items-center gap-1.5 overflow-hidden text-xs whitespace-nowrap text-slate-500">
-            <Link to="/" className="transition-colors hover:text-slate-900">Home</Link>
-            <Icon name="chevron_right" size={12} />
-            <Link to="/" className="transition-colors hover:text-slate-900">Workspace</Link>
-            <Icon name="chevron_right" size={12} />
-            <span className="truncate font-medium text-slate-900">{crumb}</span>
-          </nav>
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold tracking-tight text-slate-900">{title}</h1>
-            <span className="rounded-full border border-slate-200 bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500">
-              {plural(folders.length, 'Folder', 'Folders')}
-            </span>
-          </div>
-        </div>
-        <div className="flex w-full flex-wrap items-center gap-2 lg:w-auto">
-          <Button size="lg" icon="create_new_folder" iconClass="text-brand-600" onClick={() => openDialog({ kind: 'new-folder' })}>
-            New Folder
-          </Button>
-          {withOpenAll && (
-            <Button variant="primary" size="lg" icon="tab_group" onClick={() => openLists(openAllIds)} disabled={!openAllIds.length}>
-              Open All
-              <span className="ml-1 rounded bg-white/20 px-1.5 text-[11px] font-normal">{openAllIds.length}</span>
-            </Button>
-          )}
-          <div className="mx-1 h-4 w-px bg-slate-200" />
-          <div className="flex items-center gap-2 text-xs text-slate-500">
-            <Icon name="sort" size={18} />
-            <Menu
-              label="Sort folders"
-              width="w-48"
-              items={(Object.keys(SORT_LABEL) as SortKey[]).map((k) => ({ label: SORT_LABEL[k], checked: sort === k, onSelect: () => setSort(k) }))}
-              trigger={(p) => (
-                <button {...p} type="button" className="flex items-center gap-1 font-medium text-slate-900 transition-colors hover:text-brand-600">
-                  <span>{SORT_LABEL[sort]}</span>
-                  <Icon name="expand_more" size={15} />
-                </button>
-              )}
-            />
-          </div>
-          <div className="mx-1 h-4 w-px bg-slate-200" />
-          <button
-            type="button"
-            aria-pressed={selectMode}
-            onClick={() => (selectMode ? done() : setSelectMode(true))}
-            className={
-              selectMode
-                ? 'flex h-7 items-center gap-1.5 rounded-md border border-brand-600/30 bg-brand-50 px-2.5 text-xs font-semibold text-brand-700 transition-all hover:bg-brand-100'
-                : 'flex h-7 items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-2.5 text-xs font-medium text-slate-500 transition-all hover:bg-white hover:text-slate-900'
-            }
-          >
-            <Icon name={selectMode ? 'check' : 'checklist'} size={15} />
-            {selectMode ? (sel.size ? `${sel.size} Selected` : 'Done') : 'Select'}
-          </button>
-          {selectMode && (
-            <button
-              type="button"
-              className="text-xs font-medium text-brand-600 hover:underline"
-              onClick={() => setSel(sel.size === folders.length ? new Set() : new Set(folders.map((f) => f.id)))}
-            >
-              {sel.size === folders.length ? 'Deselect All' : 'Select All'}
-            </button>
-          )}
-        </div>
-      </div>
+  const budget = portfolioBudget(all)
+  const listCount = scoped.reduce((x, f) => x + f.listMetas.length, 0)
+  const newProject = () => openDialog({ kind: 'new-folder' })
 
-      {folders.length ? (
-        <FolderGrid folders={folders} selectMode={selectMode} selected={sel} onToggle={toggle} />
+  return (
+    <PageFrame>
+      <PageHeader
+        title={title}
+        subtitle={subtitle ?? (scoped.length ? `${plural(scoped.length, 'project', 'projects')} · ${plural(listCount, 'list', 'lists')}` : undefined)}
+        aside={withOpenAll && scoped.length > 0 && openAllIds.length > 0 ? (
+          <RowMenu label="More actions" items={[{ label: `Open all ${plural(openAllIds.length, 'list', 'lists')} in tabs`, icon: 'tab_group', onSelect: () => openLists(openAllIds) }]} />
+        ) : undefined}
+      />
+
+      {withOpenAll && scoped.length > 0 && (
+        <Summary
+          label="Total across projects"
+          amount={moneyWhole(budget.total)}
+          total={budget.total}
+          cap={budget.cap}
+          capLabel="in project caps"
+          statusWord={flagged.length && !needsAttention(budget.total, budget.cap) ? 'On track overall' : undefined}
+          meta={
+            flagged.length ? (
+              <button type="button" onClick={() => setView('attention')} className="rounded font-medium text-slate-900 underline decoration-slate-500 underline-offset-4 hover:decoration-slate-800">
+                {plural(flagged.length, 'project', 'projects')} near {flagged.length === 1 ? 'its' : 'their'} cap
+              </button>
+            ) : (
+              'No project is near its cap'
+            )
+          }
+          actions={
+            <>
+              <Button variant="primary" size="lg" icon="add" onClick={newProject}>New project</Button>
+              <Button size="lg" icon="upload" onClick={() => openDialog({ kind: 'folder-target', action: 'import' })}>Upload files</Button>
+            </>
+          }
+        />
+      )}
+
+      {scoped.length ? (
+        <Section
+          title="Projects"
+          count={folders.length}
+          tools={
+            <>
+              <SortMenu value={sort} options={SORT_LABEL} onChange={(k: SortKey) => setSort(k)} noun="projects" />
+              <ToolButton icon={selectMode ? 'close' : 'checklist'} active={selectMode} aria-pressed={selectMode} onClick={() => (selectMode ? done() : setSelectMode(true))}>
+                {selectMode ? 'Cancel' : 'Select'}
+              </ToolButton>
+            </>
+          }
+        >
+          {(flagged.length > 0 || view === 'attention') && (
+            <div className="mb-3 px-1">
+              <Chips
+                label="Filter projects"
+                value={view}
+                onChange={setView}
+                options={[
+                  { key: 'all', label: 'All' },
+                  { key: 'attention', label: 'Needs attention', count: flagged.length },
+                ]}
+              />
+            </div>
+          )}
+          {selectMode && (
+            <div className="mb-2 flex justify-end px-1">
+              <button type="button" className="h-10 rounded-full px-3 text-sm font-semibold text-brand-700 hover:bg-brand-50" onClick={() => setSel(sel.size === folders.length ? new Set() : new Set(folders.map((f) => f.id)))}>
+                {sel.size === folders.length ? 'Deselect all' : 'Select all'}
+              </button>
+            </div>
+          )}
+          {folders.length ? (
+            <FolderGrid folders={folders} selectMode={selectMode} selected={sel} onToggle={toggle} />
+          ) : (
+            <EmptyState icon="check_circle" title="Nothing needs attention" text="Every project is below 75% of its cap." />
+          )}
+        </Section>
       ) : (
-        <EmptyNote icon={emptyIcon} title={emptyTitle} text={emptyText} />
+        <EmptyState icon={emptyIcon} title={emptyTitle} text={emptyText}>
+          {withOpenAll ? (
+            <Button variant="primary" size="lg" icon="add" onClick={newProject}>New project</Button>
+          ) : (
+            <Link to="/" className="inline-flex h-10 items-center rounded-full bg-slate-100 px-5 text-sm font-semibold text-slate-900 hover:bg-slate-200">Go to All Projects</Link>
+          )}
+        </EmptyState>
       )}
 
       <Dock
         open={selectMode}
         count={sel.size}
-        noun="folder"
+        noun="project"
         moveItems={[
           {
             label: 'Move to Archive',
             icon: 'archive',
             onSelect: () => {
               sel.forEach((id) => useStore.getState().patchFolder(id, { archived: true }))
-              toast(`Archived ${plural(sel.size, 'folder', 'folders')}`)
+              toast(`Archived ${plural(sel.size, 'project', 'projects')}`)
               done()
             },
           },
@@ -154,7 +175,7 @@ export function FolderCollection({
         onDelete={() => {
           const chosen = folders.filter((f) => sel.has(f.id))
           chosen.forEach((f) => useStore.getState().patchFolder(f.id, { trashedAt: new Date().toISOString() }))
-          toast(`Moved ${plural(chosen.length, 'folder', 'folders')} to Trash`, 'ok', {
+          toast(`Moved ${plural(chosen.length, 'project', 'projects')} to Trash`, 'ok', {
             label: 'Undo',
             run: () => chosen.forEach((f) => useStore.getState().patchFolder(f.id, { trashedAt: undefined })),
           })
@@ -162,7 +183,7 @@ export function FolderCollection({
         }}
         onDone={done}
       />
-    </Page>
+    </PageFrame>
   )
 }
 
@@ -175,8 +196,8 @@ export function AllProjects() {
       filter={notArchived}
       withOpenAll
       emptyIcon="folder_off"
-      emptyTitle="No folders yet"
-      emptyText="Create a folder to start organising your item lists."
+      emptyTitle="No projects yet"
+      emptyText="Create a project, then upload GAEB, CSV or PDF lists into it."
     />
   )
 }

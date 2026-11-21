@@ -1,9 +1,9 @@
 import { Link } from 'react-router-dom'
-import { Button, Icon, toast } from '../components/ui'
-import { EmptyNote, Page } from '../components/Page'
+import { Button, toast } from '../components/ui'
+import { Avatar, EmptyState, PageFrame, PageHeader, RowList, Section } from '../components/Kit'
 import { useModel, useStore } from '../lib/store'
 import { useUi } from '../lib/ui-store'
-import { relativeDate } from '../lib/format'
+import { plural, relativeDate } from '../lib/format'
 
 export function Trash() {
   const { folders, lists } = useModel()
@@ -37,44 +37,38 @@ export function Trash() {
       },
     })
 
-  const Row = ({ icon, title, sub, when, onRestore, onPurge, link }: { icon: string; title: string; sub: string; when?: string; onRestore: () => void; onPurge: () => void; link?: string }) => (
-    <li className="flex items-center gap-3 px-4 py-3">
-      <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-500">
-        <Icon name={icon} size={18} />
-      </span>
+  const Row = ({ icon, title, sub, when, onRestore, onPurge }: { icon: string; title: string; sub: string; when?: string; onRestore: () => void; onPurge: () => void }) => (
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl px-3 py-3 sm:flex-nowrap sm:px-4">
+      <Avatar icon={icon} tone="slate" />
       <div className="min-w-0 flex-1">
-        {link ? <Link to={link} className="block truncate text-sm font-semibold text-slate-900 hover:text-brand-600">{title}</Link> : <div className="truncate text-sm font-semibold text-slate-900">{title}</div>}
-        <div className="truncate text-xs text-slate-500">{sub}{when ? ` · deleted ${relativeDate(when)}` : ''}</div>
+        <div className="truncate text-[15px] font-semibold text-slate-900">{title}</div>
+        <div className="truncate text-sm text-slate-600">{sub}{when ? ` · deleted ${relativeDate(when)}` : ''}</div>
       </div>
-      <Button icon="restore_from_trash" onClick={onRestore}>Restore</Button>
-      <Button variant="danger" icon="delete_forever" onClick={onPurge}>Delete forever</Button>
-    </li>
+      <div className="flex w-full shrink-0 gap-2 pl-15 sm:w-auto sm:pl-0">
+        <Button icon="restore_from_trash" onClick={onRestore} aria-label={`Restore ${title}`}>Restore</Button>
+        <Button variant="ghost" className="text-rose-700 hover:bg-rose-50 hover:text-rose-800" onClick={onPurge} aria-label={`Delete ${title} forever`}>Delete forever</Button>
+      </div>
+    </div>
   )
 
   return (
-    <Page className="mx-auto w-full max-w-7xl px-4 pt-5 pb-16 sm:px-6">
-      <div className="pb-4">
-        <nav aria-label="Breadcrumb" className="mb-1 flex items-center gap-1.5 text-xs text-slate-500">
-          <Link to="/" className="hover:text-slate-900">Home</Link>
-          <Icon name="chevron_right" size={12} />
-          <span className="font-medium text-slate-900">Trash</span>
-        </nav>
-        <h1 className="text-xl font-bold tracking-tight text-slate-900">Trash</h1>
-      </div>
+    <PageFrame>
+      <PageHeader title="Trash" subtitle="Items stay here until you delete them forever" />
       {!tf.length && !tl.length ? (
-        <EmptyNote icon="delete" title="Trash is empty" text="Folders and lists you move to Trash can be restored from here." />
+        <EmptyState icon="delete" title="Trash is empty" text="Projects and lists you move to Trash can be restored from here.">
+          <Link to="/" className="inline-flex h-10 items-center rounded-full bg-slate-100 px-5 text-sm font-semibold text-slate-900 hover:bg-slate-200">Go to All Projects</Link>
+        </EmptyState>
       ) : (
-        <div className="space-y-5">
+        <div>
           {tf.length > 0 && (
-            <section aria-label="Trashed folders">
-              <h2 className="mb-2 text-xs font-semibold tracking-wider text-slate-400 uppercase">Folders</h2>
-              <ul className="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200 bg-white">
+            <Section title="Projects" count={tf.length}>
+              <RowList>
                 {tf.map((f) => (
                   <Row
                     key={f.id}
                     icon={f.icon}
                     title={f.name}
-                    sub={`${f.listMetas.length} lists`}
+                    sub={plural(f.listMetas.length, 'list', 'lists')}
                     when={f.trashedAt}
                     onRestore={() => {
                       useStore.getState().patchFolder(f.id, { trashedAt: undefined })
@@ -83,17 +77,16 @@ export function Trash() {
                     onPurge={() => purgeFolder(f.id, f.name)}
                   />
                 ))}
-              </ul>
-            </section>
+              </RowList>
+            </Section>
           )}
           {tl.length > 0 && (
-            <section aria-label="Trashed lists">
-              <h2 className="mb-2 text-xs font-semibold tracking-wider text-slate-400 uppercase">Lists</h2>
-              <ul className="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200 bg-white">
+            <Section title="Lists" count={tl.length}>
+              <RowList>
                 {tl.map((l) => (
                   <Row
                     key={l.id}
-                    icon="description"
+                    icon="request_quote"
                     title={l.title}
                     sub={l.fileName}
                     when={l.trashedAt}
@@ -104,11 +97,11 @@ export function Trash() {
                     onPurge={() => purgeList(l.id, l.title)}
                   />
                 ))}
-              </ul>
-            </section>
+              </RowList>
+            </Section>
           )}
         </div>
       )}
-    </Page>
+    </PageFrame>
   )
 }
