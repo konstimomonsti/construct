@@ -19,17 +19,17 @@ Use `--backend x83` on the report to reproduce the per-file counts for one forma
 
 The optional `run --layers 1,2,3` uses the configured provider from the existing analysis pipeline. The evaluation command checks the included synthetic seed checksum and the generated files' checksums before sending excerpts to a model. Real-file labelling runs Layers 1 and 2. Provider setup and credentials stay in the environment. For a deterministic check of unavailable-layer scoring use `ANALYSIS_L3_PROVIDER=none python -m analysis.eval run --layers 1,2,3`.
 
-## Snapshot at Task 05
+## Snapshot after Task 01 merged
 
-These figures describe the labelled fixtures with Layers 1 and 2 on the task's main baseline. X83 and JSON produced the same planted-label outcomes. The figures exclude the combined presenter files from recall and rule precision.
+These figures describe the labelled fixtures with Layers 1 and 2 on `main` after Task 01 (deterministic DIN, precast and text-defect rules). X83 and JSON produced the same planted-label outcomes. The figures exclude the combined presenter files from recall and rule precision.
 
 | Suite per format | Caught | Missed | Known gaps | Layer not run |
 | --- | ---: | ---: | ---: | ---: |
-| Building hall | 76 | 0 | 13 | 0 |
-| Precast LV 11 | 1 | 5 | 0 | 2 |
+| Building hall | 81 | 0 | 8 | 0 |
+| Precast LV 11 | 6 | 0 | 0 | 2 |
 
-- The building hall matched the archived result of 76/76 for cases with a supporting rule. The 13 known gaps remain represented in overall recall.
-- The precast billing-unit conflict is detected by the existing rule. The five misses cover the planned strength, layer sum, placeholder, description conflict, and workshop drawing checks. The two Layer 3 cases cover missing specifications and ambiguous rebar scope.
+- The building hall catches every case that has a supporting rule (81/81). `L1.TEXT.VALUE_CONFLICT` turned the concrete-class and DN conflicts from known gaps into catches; 8 known gaps remain (reworded duplicate, typo, vague 'nach Aufwand').
+- The precast suite catches all six deterministic faults: exposure strength, layer sum, trade unit, placeholder, description conflict and missing workshop drawings. The two Layer 3 cases (missing specification, ambiguous rebar scope) are 'not run' until Task 02 merges and a model is configured.
 - Both clean seeds and all harmless controls produced zero findings. The default replay checks 46 controls across both formats, including the underlying clean seeds.
 - The generated report includes recall by mutation, precision by rule, individual cases, and expected consequences such as changes in subtotals. A finding counts as a catch when its rule and affected position or scope match a label.
 

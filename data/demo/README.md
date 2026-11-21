@@ -8,10 +8,10 @@ Both files are generated GAEB X83 tenders. They contain deliberately damaged syn
 | Building hall, `01.04.0035` | Copy of `01.04.0030` under a new OZ | Layer 1 flags a possible duplicate. |
 | Building hall, `05.02.0040` | Priced line has zero quantity | Layer 1 flags the quantity. |
 | Building hall, `01.02.0010` | Amount changed from €12,420.00 to €12,792.60 | The CLI identifies the wrong line amount and its subtotal and net consequences. The current X83 upload check omits the source amount. |
-| `precast_lv11_planted.X83`, `3.2.20` | C20/25 with XF4 | Expected exposure-strength finding from Task 01. |
-| Precast, `3.2.30` | Insulation changed to 10 cm, bringing layers to 32 cm against a stated total of 30 cm | Expected layer-sum finding from Task 01. |
-| Precast, `3.2.80` | Surcharge unit changed to metres while the description says billing by piece | Layer 1 flags the billing-unit conflict today. The additional trade-specific unit rule belongs to Task 01. |
-| Precast, `3.2.90` | Embedded product type replaced by a placeholder | Expected specification-placeholder finding from Task 01. |
+| `precast_lv11_planted.X83`, `3.2.20` | C20/25 with XF4 | `L1.DIN.EXPOSURE_STRENGTH` (error), plus the XF4 LP-concrete note. |
+| Precast, `3.2.30` | Insulation changed to 10 cm, bringing layers to 32 cm against a stated total of 30 cm | `L1.PRECAST.LAYER_SUM` (error). |
+| Precast, `3.2.80` | Surcharge unit changed to metres while the description says billing by piece | `L1.UNIT.TEXT_MISMATCH` and `L1.UNIT.TRADE_MISMATCH`. |
+| Precast, `3.2.90` | Embedded product type replaced by a placeholder | `L1.TEXT.SPEC_PLACEHOLDER`. |
 | Precast, `3.2.40` | Height and colour specification removed from a through-coloured element | Expected specification finding from Task 02 when Layer 3 runs. |
 
 ## Three-minute walkthrough

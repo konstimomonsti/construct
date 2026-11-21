@@ -25,12 +25,12 @@ def build():
             length = line["short_text"].split("l=")[-1].strip()
             line["short_text"] = line["short_text"].split(", l=")[0] + ", C35/45"
             line["long_text"] = (
-                f"Stahlbetonfertigteil als Sandwichelement aus Beton C35/45, Expositionsklasse XC4 und XF4. "
+                f"Stahlbetonfertigteil als Sandwichelement aus Beton C35/45, Expositionsklasse XC4 und XF1. "
                 f"Länge {length}, Höhe 60 cm, Gesamtdicke 30 cm. "
                 "Dicke Vorsatzschale: 7 cm; Dicke Tragschale: 15 cm; Dämmstoffdicke: 8 cm. "
                 "Wärmedämmung aus extrudierten Polystyrol-Hartschaumplatten. "
                 "Sichtbeton der Vorsatzschale durchgefärbt in RAL 7032. "
-                "Werkseitige Herstellung einschließlich Bewehrung und Transportanker; Montage auf der Baustelle."
+                "Werkseitige Herstellung mit Bewehrung und Transportankern. Einschl. Transport und Montage auf der Baustelle."
             )
         elif code == "3.2.70":
             line["long_text"] = (

@@ -18,7 +18,8 @@ def plans(doc):
         return Plan(name, name, description, [op], expected, {"position": code}, whitespace_only=raw)
 
     strength = changed("PRECAST-STRENGTH", "3.2.20", "C20/25 stated with XF4", "long_text",
-                       lines["3.2.20"]["long_text"].replace("C35/45", "C20/25"), ["L1.DIN.EXPOSURE_STRENGTH"])
+                       lines["3.2.20"]["long_text"].replace("C35/45", "C20/25").replace("XF1", "XF4"), ["L1.DIN.EXPOSURE_STRENGTH"],
+                       also=["L1.DIN.NOTE"])
     strength.ops.append(set_op(lines["3.2.20"], "short_text", lines["3.2.20"]["short_text"].replace("C35/45", "C20/25")))
 
     return [

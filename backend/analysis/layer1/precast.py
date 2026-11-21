@@ -17,14 +17,24 @@ ITEM_TYPES = (
 LAYERS = {
     "facing_shell_cm": re.compile(rf"\b(?:Dicke\s+)?Vorsatzschale\s*[:=]?\s*{MEASURE}", re.I),
     "structural_shell_cm": re.compile(rf"\b(?:Dicke\s+)?Tragschale\s*[:=]?\s*{MEASURE}", re.I),
-    "insulation_cm": re.compile(rf"\bDämmschicht\s*:\s*(?:[^\n;]*?\bd\s*=\s*)?{MEASURE}", re.I),
-    "total_thickness_cm": re.compile(rf"\bd\s*=\s*{MEASURE}\s*gesamt\b", re.I),
+    "insulation_cm": re.compile(
+        rf"\b(?:Dämmschicht|Dämmstoffdicke|Dämmstärke|Dicke\s+Dämmung)\s*:?\s*(?:[^\n;]*?\bd\s*=\s*)?{MEASURE}", re.I),
+    "total_thickness_cm": re.compile(
+        rf"\bd\s*=\s*{MEASURE}\s*gesamt\b|\b(?:Gesamtdicke|Gesamtstärke|Elementdicke)\s*:?\s*(?:d\s*=\s*)?{MEASURE}", re.I),
 }
 
 
+# The item noun leads the short text ("Halfen …", "FS 01: FT-Sockel …"); a later mention such as
+# "Abdeckarbeiten, Böden und Einbauteile schützen" describes protective work, not an embedded part.
+ELEMENT_PREFIX = re.compile(r"^\s*[A-Z]{1,4}\s*\d+\s*:\s*")
+LEAD_CHARS = 20
+
+
 def item_type(text: str) -> tuple[str, tuple[str, ...]] | None:
+    head = ELEMENT_PREFIX.sub("", text)
     for name, pattern, allowed in ITEM_TYPES:
-        if re.search(pattern, text, re.I):
+        match = re.search(pattern, head, re.I)
+        if match and match.start() <= LEAD_CHARS:
             return name, allowed
     return None
 
@@ -38,7 +48,7 @@ def layer_sum(ctx):
             continue
         layers = {}
         for name, pattern in LAYERS.items():
-            found = {centimetres(m[1], m[2]) for m in pattern.finditer(text)}
+            found = {centimetres(*[g for g in m.groups() if g][:2]) for m in pattern.finditer(text)}
             if len(found) == 1:
                 layers[name] = found.pop()
         if len(layers) != 4:

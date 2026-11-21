@@ -122,9 +122,10 @@ def test_dependency_is_removed_only_if_no_remaining_text_names_it(seed_doc):
 def test_gaps_and_controls_are_labelled(seed_doc):
     plans = catalogue.plan_all(seed_doc, 1, 1)
     by_type = {p.type: p for p in plans}
-    for name in ("DUP-REWORDED", "TEXT-TYPO", "TEXT-VAGUE", "TEXT-CONFLICT-CLASS", "TEXT-CONFLICT-DN"):
+    for name in ("DUP-REWORDED", "TEXT-TYPO", "TEXT-VAGUE"):
         assert by_type[name].label["gap"] is True and by_type[name].label["expect"]
     conflict = by_type["TEXT-CONFLICT-CLASS"].label
+    assert conflict["gap"] is False
     assert "L1.TEXT.VALUE_CONFLICT" in conflict["expect"] and conflict["layers"] == [1, 3]
     for name in ("CTRL-INLINE", "CTRL-REORDER", "CTRL-WHITESPACE", "CTRL-PLUS5"):
         assert by_type[name].label["control"] is True and by_type[name].label["expect"] == []
