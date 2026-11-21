@@ -15,9 +15,10 @@ export function Header() {
   const navigate = useNavigate()
   const folderMatch = useMatch('/folder/:folderId')
   const listMatch = useMatch('/list/:listId')
+  const catalogueMatch = useMatch('/catalogues/*')
   const { lists } = useModel()
 
-  const showToggle = true
+  const showToggle = !catalogueMatch
 
   const chooseImport = () => {
     if (folderMatch?.params.folderId) return pickAndImport(folderMatch.params.folderId)
@@ -88,9 +89,11 @@ export function Header() {
             <span className="hidden xl:inline">New Subfolder</span>
           </Button>
         )}
-        <Button variant="primary" size="lg" icon="file_present" aria-label="Import" onClick={chooseImport}>
-          Import
-        </Button>
+        {!catalogueMatch && (
+          <Button variant="primary" size="lg" icon="file_present" aria-label="Import" onClick={chooseImport}>
+            Import
+          </Button>
+        )}
         <Menu
           label="Account"
           width="w-56"

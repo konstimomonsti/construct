@@ -14,6 +14,7 @@ from tender_import.common import MAX_FILE_BYTES
 from tender_import.store import original
 
 import analysis_api
+import catalogues
 import mvp
 import workspace
 import workspace_catalogue
@@ -66,6 +67,7 @@ FRIENDLY_LABELS = {
     "quote": "quote_number",
     "source_document": "filename",
     "supplier": "name",
+    "subcontractor": "name",
 }
 PREVIEW_LENGTH = 480
 RECORD_LENGTH = 48_000
@@ -336,6 +338,9 @@ class BrowserHandler(BaseHTTPRequestHandler):
         if request.path.startswith("/api/workspace/"):
             self.workspace_request(request, write=False)
             return
+        if request.path.startswith("/api/catalogues/"):
+            self.catalogue_request(request, write=False)
+            return
         if request.path not in {"/api/tables", "/api/rows", "/api/record"}:
             if request.path.startswith(("/api/", "/admin/")) or not self.frontend(request.path):
                 self.json(HTTPStatus.NOT_FOUND, {"error": "Page not found"})
@@ -377,7 +382,46 @@ class BrowserHandler(BaseHTTPRequestHandler):
         if request.path.startswith("/api/workspace/"):
             self.workspace_request(request, write=True)
             return
+        if request.path.startswith("/api/catalogues/"):
+            self.catalogue_request(request, write=True)
+            return
         self.mvp_request(request, write=True)
+
+    def catalogue_request(self, request, write):
+        kind = request.path.removeprefix("/api/catalogues/")
+        if kind not in (catalogues.COMPANIES if write else catalogues.KINDS):
+            self.json(HTTPStatus.NOT_FOUND, {"error": "Catalogue not found."})
+            return
+        try:
+            if write:
+                length = int(self.headers.get("Content-Length", 0))
+                if not 0 < length <= 4096:
+                    self.json(HTTPStatus.REQUEST_ENTITY_TOO_LARGE, {"error": "The request is empty or too large."})
+                    return
+                payload = json.loads(self.rfile.read(length))
+                if not isinstance(payload, dict):
+                    raise ValueError("Enter a valid company record.")
+            else:
+                params = {key: values[-1] for key, values in parse_qs(request.query, max_num_fields=5).items()}
+            with psycopg.connect("", row_factory=dict_row, connect_timeout=3,
+                                 options="-c statement_timeout=10000") as connection:
+                if write:
+                    result = catalogues.save_company(connection, kind, payload)
+                else:
+                    connection.read_only = True
+                    result = catalogues.listing(connection, kind, params)
+            self.json(HTTPStatus.OK, result)
+        except (ValueError, TypeError) as error:
+            self.json(HTTPStatus.BAD_REQUEST, {"error": str(error)})
+        except LookupError as error:
+            self.json(HTTPStatus.NOT_FOUND, {"error": str(error)})
+        except psycopg.errors.UniqueViolation:
+            self.json(HTTPStatus.CONFLICT, {"error": "A company with this name already exists in this catalogue."})
+        except psycopg.Error as error:
+            self.log_error("Catalogue request failed (%s)", type(error).__name__)
+            self.json(HTTPStatus.SERVICE_UNAVAILABLE, {"error": "The catalogue is temporarily unavailable."})
+        except (BrokenPipeError, ConnectionResetError):
+            pass
 
     def redirect(self, location):
         self.send_response(HTTPStatus.FOUND)

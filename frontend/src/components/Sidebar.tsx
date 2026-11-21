@@ -8,10 +8,17 @@ import { useStore, useWorkspaceBudget } from '../lib/store'
 import { useUi } from '../lib/ui-store'
 import { useMedia } from '../lib/hooks'
 
-const NAV = [
-  { to: '/', label: 'All Projects', icon: 'source', end: true },
-  { to: '/active', label: 'Active Budgets', icon: 'account_balance_wallet', end: false },
-  { to: '/archived', label: 'Archived', icon: 'archive', end: false },
+const NAV_GROUPS = [
+  { label: 'Repositories', links: [
+    { to: '/', label: 'All Projects', icon: 'source', end: true },
+    { to: '/active', label: 'Active Budgets', icon: 'account_balance_wallet', end: false },
+    { to: '/archived', label: 'Archived', icon: 'archive', end: false },
+  ] },
+  { label: 'Catalogues', links: [
+    { to: '/catalogues/products', label: 'Products', icon: 'inventory_2', end: true },
+    { to: '/catalogues/suppliers', label: 'Suppliers', icon: 'local_shipping', end: true },
+    { to: '/catalogues/subcontractors', label: 'Subcontractors', icon: 'engineering', end: true },
+  ] },
 ]
 
 export function Sidebar() {
@@ -36,8 +43,8 @@ export function Sidebar() {
         mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
       )}
     >
-      <div className="flex flex-col">
-        <div className={clsx('flex h-14 items-center border-b border-slate-100', rail ? 'justify-center px-2' : 'justify-between px-5')}>
+      <div className="flex min-h-0 flex-col">
+        <div className={clsx('flex h-14 shrink-0 items-center border-b border-slate-100', rail ? 'justify-center px-2' : 'justify-between px-5')}>
           <div className="flex items-center gap-2.5">
             <div className="flex size-7 items-center justify-center rounded-lg bg-brand-600 text-white shadow-sm shadow-brand-500/20">
               <Icon name="folder_supervised" size={17} />
@@ -56,7 +63,7 @@ export function Sidebar() {
           )}
         </div>
 
-        <div className={clsx('py-3', rail ? 'px-2' : 'px-3')}>
+        <div className={clsx('shrink-0 py-3', rail ? 'px-2' : 'px-3')}>
           <Menu
             label="Workspaces"
             align="start"
@@ -87,36 +94,41 @@ export function Sidebar() {
           />
         </div>
 
-        <div className={clsx('mt-1', rail ? 'px-2' : 'px-3')}>
-          {!rail && <div className="mb-1.5 px-3 text-[11px] font-semibold tracking-wider text-slate-400 uppercase">Repositories</div>}
-          <nav aria-label="Repositories" className="space-y-0.5">
-            {NAV.map((n) => (
-              <NavLink
-                key={n.to}
-                to={n.to}
-                end={n.end}
-                title={n.label}
-                className={({ isActive }) =>
-                  clsx(
-                    'flex items-center gap-2.5 rounded-lg py-1.5 text-[13px] transition-colors',
-                    rail ? 'justify-center px-0' : 'px-3',
-                    isActive ? 'bg-brand-50 font-medium text-brand-700' : 'font-normal text-slate-600 hover:bg-slate-100 hover:text-slate-900',
-                  )
-                }
-              >
-                {({ isActive }) => (
-                  <>
-                    <Icon name={n.icon} size={18} className={isActive ? 'text-brand-600' : 'text-slate-400'} />
-                    {!rail && <span>{n.label}</span>}
-                  </>
-                )}
-              </NavLink>
-            ))}
-          </nav>
+        <div className="min-h-0 space-y-4 overflow-y-auto py-1">
+          {NAV_GROUPS.map(({ label, links }) => (
+            <div key={label} className={rail ? 'px-2' : 'px-3'}>
+              {!rail && <div className="mb-1.5 px-3 text-[11px] font-semibold tracking-wider text-slate-400 uppercase">{label}</div>}
+              <nav aria-label={label} className="space-y-0.5">
+                {links.map((n) => (
+                  <NavLink
+                    key={n.to}
+                    to={n.to}
+                    end={n.end}
+                    title={n.label}
+                    aria-label={n.label}
+                    className={({ isActive }) =>
+                      clsx(
+                        'flex items-center gap-2.5 rounded-lg py-1.5 text-[13px] transition-colors',
+                        rail ? 'justify-center px-0' : 'px-3',
+                        isActive ? 'bg-brand-50 font-medium text-brand-700' : 'font-normal text-slate-600 hover:bg-slate-100 hover:text-slate-900',
+                      )
+                    }
+                  >
+                    {({ isActive }) => (
+                      <>
+                        <Icon name={n.icon} size={18} className={isActive ? 'text-brand-600' : 'text-slate-400'} />
+                        {!rail && <span>{n.label}</span>}
+                      </>
+                    )}
+                  </NavLink>
+                ))}
+              </nav>
+            </div>
+          ))}
         </div>
       </div>
 
-      <div className="border-t border-slate-100 bg-white p-4">
+      <div className="shrink-0 border-t border-slate-100 bg-white p-4">
         {rail ? (
           <button
             type="button"

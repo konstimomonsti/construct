@@ -114,5 +114,13 @@ SELECT NOT EXISTS (
     INSERT INTO db_migration.applied_version (version) VALUES (13);
 \endif
 
+SELECT NOT EXISTS (
+    SELECT FROM db_migration.applied_version WHERE version = 14
+) AS apply_company_catalogues \gset
+\if :apply_company_catalogues
+    \ir migrations/014_company_catalogues.sql
+    INSERT INTO db_migration.applied_version (version) VALUES (14);
+\endif
+
 \ir runtime_role.sql
 COMMIT;
