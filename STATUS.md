@@ -38,13 +38,15 @@ Priority for free workers: **15 (rest)** → 10 → 11 → 12. Before the hand-i
 | #33, #38, #39 | Group positions by OZ prefix, section-wide selection, exports scoped to selected subsections | Marcos |
 | #36 | Bid simulator for GAEB X83 lists (standard vs price-only vs quantity-aware bids) | Marcos |
 | #37 | Hand-in readiness: source amounts on uploads (task 09), partial-analysis label, import opens the list | Marcos |
+| #41, #43–#48 | X83 → Subcontractors → X84 → X86 project workflow, calendar, audit fixes, crane visuals, import loader, no price caps | Marcos and others |
+| (lead) | Biel's extended DIN checks from `feat/extended-din-rules` (never sent as a PR): `L1.DIN.WATERPROOFING_MISSING`, `FIRE_RATING_CONFLICT`, `VOB_DEDUCTION_VIOLATION`, `REBAR_UNKNOWN_GRADE`, `TOLERANCE_UNSPECIFIED`; catalogue tab-switch fix from `feat/task-13` | Biel, lead |
 
 ## Open PRs to review before merging
 
 | PR | What | Note |
 |---|---|---|
 | #35 | Extend BOM risk evaluation, OCR for raster PDFs, evidence across uploads (branch `feat/task-05`) | 96 files across contracts, adapter, eval and bid pricing. Needs a careful review, a check that `python -m analysis.eval fp` still exits 0, and no regressions in the measured results below |
-| #41 | Project page as an X83 → Subcontractors → X84 → X86 workflow | Redesigns `ListPage.tsx`, which task 10 also needs. Merge it before task 10 starts, or have task 10 build on its branch |
+| #46 | Construction loading screen with percentage for PDF imports | Not reviewed yet |
 
 ## Lead checklist
 
@@ -63,6 +65,7 @@ Priority for free workers: **15 (rest)** → 10 → 11 → 12. Before the hand-i
 | `AnalysisInput.notes` (preamble / Vorbemerkungen) for layer 3 and risk | 02, 03 | Contract change |
 | Layer 3 calibration on real labels, precision table in `docs/EVALUATION.md` | 02, 05 | |
 | Demo rehearsal on the VPS and pitch numbers | all | Next up for the lead |
+| `L1.DIN.SICHTBETON_MISSING_CLASS` (Biel's branch) | 01, 05 | Held back: the real LV_11 text ("Sichtbeton der Vorsatzschale durchgefärbt in RAL 7032", no SB class) makes the clean precast eval seed fire. Decide whether it is a true finding, then update the seed and eval baseline together |
 | Import subcontractor offers (D84/Excel) back into a package and compare with the budget (Preisspiegel) | 13, 16 | Listed in task 13 as "later"; #41 adds the X84 phase tab |
 | Real email sending through SMTP on the VPS | 13, 16 | Needs explicit configuration; drafts (`.eml`) work today |
 

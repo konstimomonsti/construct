@@ -98,12 +98,6 @@ def extended(rule, short, long=""):
     return findings
 
 
-def test_sichtbeton_missing_class_and_valid():
-    assert extended("SICHTBETON_MISSING_CLASS", "Sichtbeton herstellen")
-    assert not extended("SICHTBETON_MISSING_CLASS", "Sichtbeton", "Klasse SB 3")
-    assert not extended("SICHTBETON_MISSING_CLASS", "Beton")
-
-
 def test_waterproofing_ground_contact():
     assert extended("WATERPROOFING_MISSING", "FT-Sockel im Erdreich")
     assert not extended("WATERPROOFING_MISSING", "FT-Sockel im Erdreich W1.2-E")

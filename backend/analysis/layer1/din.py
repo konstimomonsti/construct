@@ -75,16 +75,6 @@ from decimal import Decimal
 from . import textvalues as tv
 
 
-@rule("L1.DIN.SICHTBETON_MISSING_CLASS", layer=1, category="din", severity="warning",
-      title="Fair-faced concrete class missing", description="Checks for a DBV fair-faced concrete class.")
-def sichtbeton_missing_class(ctx):
-    for line in ctx.input.lines:
-        text = text_of(line)
-        if tv.SICHTBETON_KEYWORD.search(text) and not tv.SICHTBETON_CLASS.search(text):
-            yield ctx.finding(line=line, field="long_text", message=f"{label(line)}: Fair-faced concrete is specified without an SB1–SB4 class.",
-                evidence={"standard": "DIN 18217 / DBV", "class": None, "bieterfrage_de": f"Zu Pos. {line.code}: Es wird Sichtbeton gefordert, jedoch fehlt die Angabe der Sichtbetonklasse nach DBV/DIN 18217 (SB1 bis SB4) sowie die Schalungshaut- und Texturanforderung. Welche Klasse ist geschuldet?"})
-
-
 @rule("L1.DIN.WATERPROOFING_MISSING", layer=1, category="din", severity="warning",
       title="Waterproofing specification missing", description="Checks ground-contact precast and plinth specifications.")
 def waterproofing_missing(ctx):

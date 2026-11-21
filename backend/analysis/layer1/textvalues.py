@@ -47,8 +47,6 @@ def values(text: str) -> dict[str, set[str]]:
         result[family] = {str(centimetres(m[1], m[2]).normalize()) for m in pattern.finditer(text)}
     return result
 
-SICHTBETON_CLASS = re.compile(r"\bSB\s*[1-4]\b", re.I)
-SICHTBETON_KEYWORD = re.compile(r"\b(?:Sichtbeton\w*|fair[ -]faced\s+concrete)\b", re.I)
 WATER_IMPACT = re.compile(r"\bW\s*[1-4](?:\.[1-2])?\s*-\s*E\b", re.I)
 GROUND_CONTACT = re.compile(r"\b(?:erdberührt\w*|erdberuehrt\w*|Erdreich|Bodenkontakt|Spritzwasser\w*)\b", re.I)
 PRECAST_PLINTH = re.compile(r"\b(?:FT[ -]Sockel\w*|Sockel\w*|Sandwich\w*|Fertigteil\w*)\b", re.I)

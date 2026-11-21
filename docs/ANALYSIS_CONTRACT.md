@@ -335,7 +335,6 @@ expected (info), while in a bid or award (84/86) they're a defect (warning).
 | `L1.DIN.EXPOSURE_STRENGTH` | error | one unambiguous concrete grade below the supplied DIN 1045-2 exposure minimum; no inferred pairing of multiple grades | - |
 | `L1.DIN.UNKNOWN_GRADE` | warning | stated C/LC grade absent from the screening rank table; this does not assert the grade is invalid | - |
 | `L1.DIN.NOTE` | info | one LP-concrete note per line/exposure XF2 or XF4, and an alkali-guideline note for WA | - |
-| `L1.DIN.SICHTBETON_MISSING_CLASS` | warning | fair-faced concrete without an SB1–SB4 class | - |
 | `L1.DIN.WATERPROOFING_MISSING` | warning | ground-contact precast or plinth without a water-impact class or waterproofing specification | - |
 | `L1.DIN.FIRE_RATING_CONFLICT` | error | conflicting short/long fire ratings or a fire wall without a rating | - |
 | `L1.DIN.VOB_DEDUCTION_VIOLATION` | warning | explicit opening deduction limit at or below the DIN 18331 screening threshold | - |
