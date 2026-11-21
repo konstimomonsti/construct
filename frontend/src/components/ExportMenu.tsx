@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { Button, Menu, toast, type MenuItem } from './ui'
 import { ExportDialog } from './ExportDialog'
 import { SubcontractOverlay } from './subcontract/SubcontractOverlay'
+import { RequestQuotesOverlay } from './quotes/RequestQuotesOverlay'
 import { useStore } from '../lib/store'
 import { resolveList } from '../lib/resolve'
 import { FORMATS, downloadResult, exportList, isEdited, layoutLoader, originalLoader, ownFormat, type FormatId } from '../lib/export/index'
@@ -10,6 +11,7 @@ import type { DocMeta, ListDoc } from '../lib/types'
 export function ExportMenu({ listId, doc, selectedIds, original }: { listId: string; doc: ListDoc; selectedIds?: string[]; original?: DocMeta }) {
   const [dialog, setDialog] = useState<FormatId | null>(null)
   const [subcontract, setSubcontract] = useState(false)
+  const [quotes, setQuotes] = useState(false)
   const edits = useStore((s) => s.edits[listId])
   const resolved = useMemo(() => resolveList(doc, edits), [doc, edits])
   const own = ownFormat(doc)
@@ -40,6 +42,7 @@ export function ExportMenu({ listId, doc, selectedIds, original }: { listId: str
     items.push({ label: `${f.label} (original format)`, icon: f.icon, onSelect: () => quick(own) })
   }
   items.push('sep', { label: 'More formats…', icon: 'tune', onSelect: () => setDialog(own ?? 'xlsx') })
+  items.push({ label: 'Request quotes from suppliers…', icon: 'request_quote', onSelect: () => setQuotes(true) })
   items.push({ label: 'Send to subcontractor…', icon: 'engineering', onSelect: () => setSubcontract(true) })
 
   return (
@@ -56,6 +59,7 @@ export function ExportMenu({ listId, doc, selectedIds, original }: { listId: str
       />
       {dialog && <ExportDialog open onClose={() => setDialog(null)} listId={listId} doc={doc} original={original} selectedIds={selectedIds} initial={dialog} />}
       <SubcontractOverlay open={subcontract} onClose={() => setSubcontract(false)} listId={listId} doc={doc} resolved={resolved} selectedIds={selectedIds} />
+      <RequestQuotesOverlay open={quotes} onClose={() => setQuotes(false)} listId={listId} doc={doc} resolved={resolved} selectedIds={selectedIds} />
     </>
   )
 }

@@ -128,4 +128,12 @@ post /api/catalogues/subcontractors "{$company_fields,\"billing_address\":\"\"}"
 [ "$(get "$company_path" | json 'd["rows"][0]["billing_address"] is None')" = True ] || fail "billing address was not cleared"
 echo "subcontractor billing address ok"
 
+party="\"party_kind\":\"subcontractor\",\"party_id\":\"$company\""
+request=$(post /api/crm/log "{\"kind\":\"rfq_sent\",$party,\"list_id\":\"$list_id\",\"list_title\":\"CI\",\"remind_at\":\"2030-01-01T10:00:00Z\"}" | json 'd["events"][0]["id"]')
+answer=$(post /api/crm/log "{\"kind\":\"offer_received\",$party}" | json 'd["events"][0]')
+[ "$(echo "$answer" | python3 -c "import ast,sys; d=ast.literal_eval(sys.stdin.read()); print(d['request_id'], d['list_id'])")" = "$request $list_id" ] || fail "the offer was not linked to its request"
+[ "$(get "/api/crm/log?party_id=$company" | json 'd["events"][-1]["answered_at"] is not None')" = True ] || fail "the request was not marked answered"
+[ "$(get /api/crm/overview | json "[p['answered'] for p in d['parties'] if p['id'] == '$company'][0]")" = 1 ] || fail "overview does not count the answer"
+echo "request log ok"
+
 echo "API smoke test passed"
