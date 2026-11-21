@@ -20,6 +20,12 @@ then finds what is wrong or risky **before** the contractor prices and submits a
 4. **Export.** It produces client clarification questions in German (Bieterfragen) and an Excel risk matrix,
    and the report can be printed.
 5. **Prove it works.** We plant known errors in tenders and measure recall and precision per rule.
+6. **Hand work out and price it.** Subcontractor requests (positions + subcontractors + internal budget → price-free
+   request file and `.eml` drafts), supplier quote requests with a communication log (`/requests`), and a bid
+   simulator for GAEB X83 lists.
+
+**State (2026-11-21, evening):** wave 1 (tasks 01–08) and tasks 09, 13, 14 and 16 are merged. Live on the VPS the
+hall demo runs layers 1–3 in about 31 s with full layer 3 coverage. Open work is in `STATUS.md`.
 
 The demo runs on the **VPS** (`backend/deploy/compose.prod.yaml`). The lead deploys `main` after merging; the CI deploy job stays off until `VPS_HOST` is set.
 Layer 3 **must work live** with `ANALYSIS_L3_PROVIDER=anthropic`.
@@ -35,11 +41,14 @@ project, and with Anthropic instead of Gemini.** Its checks map onto our rule ID
 |---|---|---|
 | `frontend/` | React workspace UI (lists, editing, findings on rows, exports) | React 19, Vite 8, TypeScript 7, Tailwind 4, zustand, exceljs, pdf-lib |
 | `backend/server.py` | HTTP API (plain `http.server`, no framework) + upload-assessment worker | Python 3.11+ (CI 3.12), psycopg 3 |
-| `backend/analysis/` | Analysis package: `contracts.py`, `adapter.py`, `runner.py`, `layer1/`, `layer2/`, `layer3/` | Pydantic v2, `Decimal` |
+| `backend/workspace_*.py`, `crm.py` | Workspace endpoints: assessment (`workspace_analysis`), server-side PDF/XLS parsing (`workspace_parse`), bid simulator (`workspace_bid_pricing`), product matching (`workspace_product_*`), supplier requests and communication log (`crm`) | |
+| `backend/analysis/` | Analysis package: `contracts.py`, `adapter.py`, `runner.py`, `layer1/`, `layer2/`, `layer3/`, `risk/` (score, change-order signals), `questions.py` (Bieterfragen), `eval/` (planted-error harness), `bid_pricing.py` | Pydantic v2, `Decimal` |
 | `backend/importer/tender_import/` | GAEB/PDF/Word importer into Postgres | lxml, Poppler `pdftotext` |
 | `db/migrations/` | PostgreSQL 18 schema, numbered SQL files registered in `db/migrate.sql` | |
 | `data/tenders/` | Real (anonymized) tender files. **Never send them to an external API except through layer 3.** | |
-| `docs/` | API reference (`API.md`), analysis docs (`ANALYSIS_*.md`, `DEPENDENCY_VALIDATOR.md`) | |
+| `data/demo/` | Presenter files with planted errors (`building_hall_planted.X83`, `precast_lv11_planted.X83`) and the 3-minute script | |
+| `docs/` | API reference (`API.md`), analysis docs (`ANALYSIS_*.md`, `DEPENDENCY_VALIDATOR.md`), `RISK.md`, `EVALUATION.md`, `OPERATIONS.md`, `ui-review/` (walkthrough) | |
+| `tasks/`, `STATUS.md` | One self-contained file per task; the status table | |
 
 How an upload flows through the system:
 
@@ -65,6 +74,8 @@ $env:PYTHONPATH="backend;backend/importer"; python -m pytest -q backend/tests ba
 # Run the analysis on a file or AnalysisInput JSON
 $env:PYTHONPATH="backend;backend/importer"; python -m analysis run backend/analysis/tests/fixtures/lv11_precast.json --layers 1,2
 $env:PYTHONPATH="backend;backend/importer"; python -m analysis rules
+# Planted-error evaluation: plant, run, report; `fp` must exit 0 (no false alarms on clean seeds and controls)
+$env:PYTHONPATH="backend;backend/importer"; python -m analysis.eval mutate; python -m analysis.eval run; python -m analysis.eval report; python -m analysis.eval fp
 # Frontend
 cd frontend; npm ci; npm run lint; npm run build; npm test
 # Full local stack (Docker): DB + backend on http://127.0.0.1:8080, then `npm run dev` proxies /api to it
@@ -73,10 +84,11 @@ cd frontend; npm ci; npm run lint; npm run build; npm test
 
 - **Poppler, not xpdf.** On Windows, Git Bash's `pdftotext` is xpdf 4.00, and PDF import breaks with it
   without any error. Use Poppler (MiKTeX ships it) or run from PowerShell. Check with `pdftotext -v`.
-- `python -m analysis run` accepts GAEB XML / GAEB 90 files or an `AnalysisInput` JSON. PDFs are not accepted
-  yet (task 06 fixes that).
-- The fixture `backend/analysis/tests/fixtures/lv11_precast.json` is LV_11 (9 positions) as an
-  `AnalysisInput`. Today it yields **0 findings**. Tasks 01 and 02 make it light up.
+- `python -m analysis run` accepts GAEB XML / GAEB 90, tender PDFs (Poppler needed), and `AnalysisInput` JSON.
+- The fixture `backend/analysis/tests/fixtures/lv11_precast.json` is LV_11 (9 positions) as an `AnalysisInput`:
+  13 findings with layers 1–2 (10 `L1.DIN.NOTE`, 2 `L1.TEXT.SPEC_PLACEHOLDER`, 1 `L1.UNIT.TRADE_MISMATCH`).
+- **Deploying:** the lead deploys `main` to the VPS by hand after merging (`./backend/deploy/deploy.sh update`); see
+  `STATUS.md` "Lead checklist" for the last deployed commit.
 
 ## 4. Conventions
 
@@ -112,7 +124,7 @@ cd frontend; npm ci; npm run lint; npm run build; npm test
 
 ## 5. Shared interface contracts
 
-These are fixed for wave 1. If you need to change one, ask the lead first.
+These are fixed. If you need to change one, ask the lead first. Sections marked *(planned)* belong to a queued task.
 
 ### 5.1 Analysis input and output (existing, `backend/analysis/contracts.py`, SCHEMA_VERSION 0.1 → 0.2 by task 03)
 
@@ -145,6 +157,8 @@ Map Biel's severities: `HIGH` → `error` (`warning` in layer 3), `MEDIUM` → `
 | 01 | `L1.DIN.*`, `L1.PRECAST.*`, `L1.UNIT.TRADE_MISMATCH`, `L1.TEXT.VALUE_CONFLICT`, `L1.TEXT.SPEC_PLACEHOLDER`, `L1.TEXT.UNCLEAR_DIMENSION`, `L1.TEXT.REFERENCE_UNRESOLVED`, `L1.TEXT.SPEC_ATTRIBUTE_MISSING`, `L2.PRECAST.*` (+ any new `L2.<TRADE>.*` group) | `DIN_001`, `DIN_NOTE_*`, `MATH_001`, `DEP_003`, `VOB_001` |
 | 02 | `L3.PRECAST.*`, `L3.SCOPE.*`, `L3.OPT.*`, `L3.TEXT.UNDERSPECIFIED`, `L3.QTY.IMPLAUSIBLE` | Step 2 extraction, `DEP_001`, `DEP_002`, `LLM_SCOPE_01..03`, `LLM_OPT_01` |
 | 03 | no rules. Change-order wording signals (Stundenlohn, nach Aufwand, bauseits, nach Angabe des AG, ggf., ca., Zulage, ground risk, …) and quantity signals live in `AnalysisResult.risk.change_order_signals`, not in findings | Step 5 data |
+| 11 *(planned)* | `L1.QTY.PLACEHOLDER`, `L1.QTY.ROUND_SHARE`, `L1.QTY.IMPLIED_DURATION`, `L1.QTY.SURCHARGE_EXCEEDS_BASE`, `L1.QTY.UNIT_OUTLIER`, `L1.UNIT.CROSS_SECTION_MISMATCH`, layer 2 `Ratio` checks (`L2.<GROUP>.RATIO_<DEP>`) | |
+| 12 *(planned)* | `L1.PRICE.FILE_OUTLIER`, `L1.PRICE.COVERAGE` | |
 
 ### 5.4 Contract v0.2: `AnalysisResult.risk` and `AnalysisResult.questions` (task 03 implements, task 04 consumes)
 
@@ -158,10 +172,10 @@ Decimals are strings.
   "version": "risk/1",
   "score": 62,                       // 0..100 = round(100 * S / (S + scale)), S = sum of points of OPEN items
   "level": "high",                   // low <25, medium <50, high <75, critical >=75
-  "scale": 40,                       // constant used above, so the UI can re-score after decisions
+  "scale": 79,                       // per report (task 08: 40 + round(0.65 × measured lines)); the UI re-scores with it
   "priced": false,                   // true if any line has a unit price
   "currency": "EUR",
-  "money_at_stake": null,            // decimal string, sum of amounts tied to open items, null if not priced
+  "money_at_stake": null,            // decimal string, EXPECTED value of open items (task 08), null if not priced
   "points": {"f_ab12…": 8, "co_3.2.70_rebar": 5},   // finding id or signal id -> points
   "open_counts": {"error": 3, "warning": 7, "info": 12},
   "top_risks": [                     // max 10, sorted by points desc
@@ -183,9 +197,8 @@ Decimals are strings.
 ]
 ```
 
-Default points per finding are `error` 8, `warning` 4 and `info` 1, multiplied by 1.5 if
-`evidence.change_order` is set. When the tender is priced, add `min(10, amount_at_stake / 1000)`. Task 03 may
-tune these weights. **The field names, the score formula and the meaning of `points` are fixed.** A question comes from `evidence.bieterfrage_de` first, then a
+Points per item and the calibration are documented in `docs/RISK.md` (task 08 capped signal families per section
+and made the scale size-aware). **The field names, the score formula and the meaning of `points` are fixed.** A question comes from `evidence.bieterfrage_de` first, then a
 per-rule template in `analysis/questions.py`. Otherwise there is no question. Price, arithmetic and bidder-input
 rules produce no questions.
 
@@ -195,7 +208,8 @@ Decisions are stored in the list patch: `listPatch[listId].findingDecisions: Rec
 `itemId` is a finding id or a change-order signal id:
 
 ```ts
-type Decision = { status: 'accepted' | 'dismissed'; reason?: 'not_an_error' | 'covered_elsewhere' | 'by_client' | 'will_ask_client' | 'other'; note?: string; at: string }
+type Decision = { status: 'accepted' | 'dismissed'; reason?: 'not_an_error' | 'covered_elsewhere' | 'by_client' | 'will_ask_client' | 'other'; note?: string; at: string
+                  applied?: string }   // (planned, task 10) ISO time a suggested fix was applied as tracked edits
 ```
 
 Keep writing the legacy `reviewedFindings` array (ids with any decision) so older code keeps working.
@@ -216,7 +230,12 @@ Keep writing the legacy `reviewedFindings` array (ids with any decision) so olde
 
 `ANALYSIS_L3_PROVIDER=anthropic`, `ANTHROPIC_API_KEY`, `ANALYSIS_L3_MODEL` (default `claude-haiku-5-5`),
 `ANALYSIS_L3_AUDIT_MODEL` (new, default `claude-sonnet-5-5`, for whole-LV audits), `ANALYSIS_L3_MAX_CALLS`,
-`ANALYSIS_L3_TIMEOUT`. Responses are cached on disk (`ANALYSIS_L3_CACHE`), so a re-run of the demo costs nothing.
+`ANALYSIS_L3_TIMEOUT` (prod 30 s), `ANALYSIS_L3_DEADLINE` (prod 75 s). Prod `ANALYSIS_L3_MAX_CALLS` is 48 (task 14).
+Responses are cached on disk (`ANALYSIS_L3_CACHE`), so a re-run of the demo costs nothing.
+
+**Coverage line (task 14, parsed by the UI in `frontend/src/lib/risk-labels.ts`):** whenever layer 3 ran,
+`AnalysisResult.errors` contains exactly one line
+`layer 3 coverage: <run>/<planned> batches[; skipped: <RULE_ID>×<n>, …]`. Keep this format.
 
 ### 5.8 Evaluation labels (task 05)
 
@@ -224,3 +243,11 @@ Mutated files carry `<name>.labels.json` with schema `construct-eval-labels/1`. 
 (`line_codes`, `trigger_codes`), `expect` (rule-id fnmatch patterns), `match`
 (`line|section|dependency|bom`), `also_acceptable` and `gap`. Labels key on OZ codes, never on line ids
 (ids depend on the file hash).
+
+### 5.9 Subcontractor packages (task 13)
+
+`listPatch[listId].subcontractPackages: SubcontractPackage[]` (`frontend/src/lib/subcontract.ts`): `id`, `name`,
+`positionIds`, `subcontractorIds` (catalogue ids), `budget` (`perPosition`, `total`; **internal, never exported**),
+`dueDate`, `format` (`x83|xlsx|pdf`), `status` (`draft|sent|offer_received`), `sentAt`, `notes`. A position belongs to
+at most one package. Sending and offers are also logged in the supplier communication log (`backend/crm.py`,
+migration 020, see `docs/API.md`).
