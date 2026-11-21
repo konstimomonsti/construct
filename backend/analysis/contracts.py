@@ -16,7 +16,7 @@ from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict, Field
 
-SCHEMA_VERSION = "0.1"
+SCHEMA_VERSION = "0.2"
 
 
 class _Model(BaseModel):
@@ -306,6 +306,61 @@ class Summary(_Model):
     by_rule: dict[str, int] = Field(default_factory=dict)
 
 
+class ChangeOrderSignal(_Model):
+    id: str
+    kind: Literal["scope_gap", "provisional", "hourly_work", "by_client", "vague_quantity",
+                  "missing_dependency", "zero_qty_priced"]
+    line_id: str
+    line_code: str | None = None
+    title: str
+    message: str
+    points: float = Field(ge=0, allow_inf_nan=False)
+    finding_ids: list[str] = Field(default_factory=list)
+
+
+class TopRisk(_Model):
+    line_id: str
+    line_code: str | None = None
+    short_text: str | None = None
+    points: float = Field(ge=0, allow_inf_nan=False)
+    amount: Decimal | None = None
+    reasons: list[str] = Field(default_factory=list)
+    item_ids: list[str] = Field(default_factory=list)
+
+
+class SectionRisk(_Model):
+    section_id: str | None = None
+    code: str | None = None
+    title: str | None = None
+    points: float = Field(ge=0, allow_inf_nan=False)
+    open: int = Field(ge=0)
+
+
+class RiskReport(_Model):
+    version: Literal["risk/1"] = "risk/1"
+    score: int = Field(ge=0, le=100)
+    level: Literal["low", "medium", "high", "critical"]
+    scale: Literal[40] = 40
+    priced: bool
+    currency: str | None = None
+    money_at_stake: Decimal | None = None
+    points: dict[str, float] = Field(default_factory=dict)
+    open_counts: dict[str, int] = Field(default_factory=dict)
+    top_risks: list[TopRisk] = Field(default_factory=list, max_length=10)
+    by_section: list[SectionRisk] = Field(default_factory=list)
+    by_category: dict[str, float] = Field(default_factory=dict)
+    change_order_signals: list[ChangeOrderSignal] = Field(default_factory=list)
+
+
+class BidderQuestion(_Model):
+    id: str
+    topic: str
+    text_de: str
+    line_codes: list[str] = Field(default_factory=list)
+    finding_ids: list[str] = Field(default_factory=list)
+    rule_id: str
+
+
 class AnalysisResult(_Model):
     run_id: str = Field(default_factory=lambda: str(uuid4()))
     schema_version: str = SCHEMA_VERSION
@@ -316,3 +371,5 @@ class AnalysisResult(_Model):
     findings: list[Finding] = Field(default_factory=list)
     summary: Summary = Field(default_factory=Summary)
     errors: list[str] = Field(default_factory=list)  # rules that crashed, layers not available
+    risk: RiskReport | None = None
+    questions: list[BidderQuestion] = Field(default_factory=list)

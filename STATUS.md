@@ -9,7 +9,7 @@ The lead merges PRs and resolves conflicts in this file. Contracts are in [CLAUD
 |---|---|---|---|---|
 | 01 | [Deterministic DIN 1045-2, precast and text-defect rules](tasks/01-deterministic-din-precast-rules.md) | `feat/task-01` | todo | |
 | 02 | [Layer 3 on Claude: precast extraction, scope audit, live demo](tasks/02-layer3-claude-checks.md) | `feat/task-02` | todo | |
-| 03 | [Risk score, change-order signals, Bieterfragen (contract v0.2)](tasks/03-risk-score-bieterfragen.md) | `feat/task-03` | todo | |
+| 03 | [Risk score, change-order signals, Bieterfragen (contract v0.2)](tasks/03-risk-score-bieterfragen.md) | `feat/task-03` | in progress | Implementation complete; 246 analysis tests passed; preparing PR. |
 | 04 | [Risk report UI, reviewer decisions, exports](tasks/04-risk-report-ui.md) | `feat/task-04` | todo | Uses a fixture until 03 lands |
 | 05 | [Planted-error evaluation and demo files](tasks/05-planted-error-evaluation.md) | `feat/task-05` | todo | Precast labels show "missed" until 01/02 merge |
 | 06 | [Upload real tender PDFs and .xls (queued)](tasks/06-real-pdf-excel-upload.md) | `feat/task-06` | queued | First worker to finish takes it |
