@@ -2,10 +2,13 @@ from base64 import b64encode
 from collections.abc import Mapping
 from io import BytesIO
 import json
+import os
 from pathlib import Path
 import re
+import shutil
 from subprocess import run
 from tempfile import TemporaryDirectory
+import warnings
 
 from pypdf import PdfReader
 from pypdf.errors import PdfReadError
@@ -19,7 +22,15 @@ _SECTION = re.compile(
     r"^(?P<indent> *)(?P<code>\d+(?:\.\d+)*)[ \t]+(?:Titel|Bereich|Los|Abschnitt|Gewerk)[ \t]+(?P<label>\S.*)$", re.I
 )
 _HEADER = re.compile(r"^(?P<indent> *)(?P<code>OZ\b|Ordnungszahl\b|Pos-Nr\.|Pos\b|Nr\.).*(?:Menge|Stl-Nr)", re.I)
-_QUANTITY = re.compile(rf"^(?P<quantity>{_NUMBER})\s+(?P<unit>[^\s]+)(?P<tail>(?:[ \t]{{2,}}.*)?)$")
+# A header whose cells wrapped over several lines: the first cell starts the line, "Menge" follows within two lines.
+_HEADER_START = re.compile(r"^(?P<indent> *)(?P<code>OZ\b|Ordnungszahl\b|Pos-Nr\.|Pos\b|Nr\.)", re.I)
+# "*** Bedarfsposition ohne GB" and similar marker lines are not a short text.
+_FALLBACK_QUANTITY = re.compile(rf"(?<![\w.,])(?P<quantity>{_NUMBER})[ \t]+(?P<unit>\S+?)[ \t]*\.{{3,}}")
+_MARKER_LINE = re.compile(r"^\*{2,}\s*(?:Bedarfs|Wahl|Grund|Eventual|Alternativ)-?position", re.I)
+# One space is enough before a dotted price tail ("1,000 PSCH ....."); otherwise the tail needs two.
+_QUANTITY = re.compile(
+    rf"^(?P<quantity>{_NUMBER})\s+(?P<unit>\S+)(?P<tail>(?:(?:[ \t]{{2,}}|[ \t]+(?=\.{{3,}}))\S.*)?)$"
+)
 _JOINED_QUANTITY = re.compile(rf"^(?P<quantity>{_NUMBER})(?P<unit>[^\s\d]\S*)(?P<tail>[ \t]+EP\b.*)$", re.I)
 _UNIT = re.compile(r"^(?:m(?:[²³23])?(?:wo|d)?|cm[²23]?|mm|km[²2]?|kg|t|to|l|kwh|st(?:k|ck)?\.?|stwo|satz|set|pau|psch\.?|h|std\.?|wo\.?|mt\.?|mo\.?|d|j(?:r|ahre?)|lfm)$", re.I)
 _TOTAL = re.compile(rf"^\s*(?P<label>(?:Summe|Gesamt(?:betrag|summe|preis)|Angebotssumme|Übertrag|MwSt|USt|zzgl\. Mehrwertsteuer|Mehrwertsteuer|Nachlass)[^\n]*?)[ \t]{{2,}}(?:EUR\s+)?(?P<amount>{_NUMBER})\s*(?:EUR|€)?\s*$", re.I)
@@ -29,7 +40,54 @@ _SUMMARY_TITLE = re.compile(r"^\s*(?:LV-Zusammenfassung|(?:Gesamt)?Zusammenstell
 _XML_CONTROLS = re.compile(rb"[\x00-\x08\x0b\x0c\x0e-\x1f]")
 
 
+_POPPLER_CHECKED: set[str] = set()
+
+
+def poppler_program(program):
+    """Resolve a Poppler tool, from the folder in POPPLER_BIN when that variable is set."""
+    base = os.environ.get("POPPLER_BIN", "").strip().strip('"')
+    if not base:
+        return program
+    folder = Path(base)
+    if folder.is_file():
+        folder = folder.parent
+    found = shutil.which(program, path=str(folder))
+    if not found:
+        raise ValueError(f"{program} was not found in POPPLER_BIN={base}")
+    return found
+
+
+def check_poppler_banner(banner, program="pdftotext"):
+    """Refuse xpdf: it also calls itself pdftotext but scrambles the column layout of tables."""
+    lowered = banner.casefold()
+    if "poppler" in lowered:
+        return
+    if "xpdf" in lowered or "glyph & cog" in lowered:
+        raise ValueError(
+            f"{program} is xpdf, not Poppler, and scrambles the table layout of PDF files. "
+            "Install Poppler (https://poppler.freedesktop.org) and put it first on the PATH, "
+            "or set POPPLER_BIN to the folder that holds Poppler's tools.")
+    warnings.warn(f"Could not tell whether {program} is Poppler (its version banner is unrecognised); "
+                  "PDF table extraction needs Poppler.", stacklevel=3)
+
+
+def check_poppler():
+    """Run `pdftotext -v` once per binary and refuse a non-Poppler build."""
+    program = poppler_program("pdftotext")
+    if program in _POPPLER_CHECKED:
+        return
+    try:
+        completed = run([program, "-v"], capture_output=True, timeout=30, check=False)
+    except FileNotFoundError:
+        raise ValueError("pdftotext was not found. Install Poppler and put it on the PATH, "
+                         "or set POPPLER_BIN to the folder that holds Poppler's tools.") from None
+    check_poppler_banner((completed.stdout + completed.stderr).decode("utf-8", errors="replace"), program)
+    _POPPLER_CHECKED.add(program)
+
+
 def poppler(program, *args):
+    check_poppler()
+    program = poppler_program(program)
     completed = run([program, *map(str, args)], capture_output=True, timeout=90, check=False)
     if completed.returncode:
         message = completed.stderr.decode("utf-8", errors="replace").strip()
@@ -184,19 +242,35 @@ def read_quantity(body):
         return None
     qty = match["quantity"]
     cells = re.split(r"[ \t]{2,}", match["tail"].strip()) if match["tail"].strip() else []
-    values = [german_decimal(re.sub(r"^(?:EP|GP)\s*", "", cell, flags=re.I)) for cell in cells]
+    unit = match["unit"]
+    if re.fullmatch(r"\.{3,}", unit):
+        # "N  ....." has a quantity but no unit: the dots are the empty price cells.
+        cells = [unit, *cells]
+        unit = None
+    values =[german_decimal(re.sub(r"^(?:EP|GP)\s*", "", cell, flags=re.I)) for cell in cells]
     price_only = bool(_PRICE_ONLY.search(match["tail"]))
-    if not _UNIT.fullmatch(match["unit"]) and not (
+    if unit is not None and not _UNIT.fullmatch(unit) and not (
         len(cells) >= 2 and all(value is not None or re.fullmatch(r"\.{2,}", cell) for value, cell in zip(values, cells))
     ):
         return None
     # Two right-hand cells preserve the distinction between an actual zero and a blank placeholder.
     return {
-        "quantity_raw": qty, "quantity": german_decimal(qty), "unit": match["unit"],
+        "quantity_raw": qty, "quantity": german_decimal(qty), "unit": unit,
         "unit_price": values[0] if values else None,
         "line_amount": values[1] if len(values) > 1 else None,
         "price_cells_raw": cells, "unit_price_only": price_only,
     }
+
+
+def fallback_quantity(text):
+    """Safety net: a `<number> <unit> .....` anywhere in the item's lines, where the table layout failed."""
+    for line in reversed(text.splitlines()):
+        match = _FALLBACK_QUANTITY.search(line)
+        if match and _UNIT.fullmatch(match["unit"]):
+            return {"quantity_raw": match["quantity"], "quantity": german_decimal(match["quantity"]),
+                    "unit": match["unit"], "unit_price": None, "line_amount": None, "price_cells_raw": [],
+                    "unit_price_only": False, "quantity_source": "fallback"}
+    return None
 
 
 def quantity_rank(amounts):
@@ -226,6 +300,41 @@ def item_flags(description):
     }
 
 
+def find_header(lines):
+    """Return (line number the header ends on, regex match) for the page's table header, or None."""
+    for number, line in enumerate(lines, 1):
+        if match := _HEADER.match(line):
+            # Some continuation layouts place "Menge" on the first wrapped line.
+            # The remaining header cells can resemble quantities with trailing prose.
+            for offset, other in enumerate(lines[number:number + 4], 1):
+                if other.strip().startswith("Nr.)"):
+                    return number + offset, match
+            return number, match
+    for number, line in enumerate(lines, 1):
+        match = _HEADER_START.match(line)
+        if not match:
+            continue
+        following = lines[number:number + 2]
+        if not any("menge" in other.casefold() for other in following):
+            continue
+        # Cells that wrapped over several lines end on the line that begins with "Nr.)".
+        end = number
+        for offset, other in enumerate(lines[number:number + 3], 1):
+            if other.strip().startswith("Nr.)"):
+                end = number + offset
+                break
+        else:
+            end = number + 1 + next((i for i, other in enumerate(following) if "menge" in other.casefold()), 0)
+        return end, match
+    return None
+
+
+def extends_code(code, parent):
+    """True when `code` is a descendant of `parent` ("1.3.1.1" extends "1.3.1.")."""
+    parent = parent.rstrip(".")
+    return code.rstrip(".").startswith(parent + ".") and len(code.rstrip(".")) > len(parent)
+
+
 def extract_pdf_tables(pages, result):
     current = None
     section_paths = []
@@ -239,6 +348,11 @@ def extract_pdf_tables(pages, result):
         body = "\n".join(current.pop("description_lines")).strip()
         numbers = current.pop("amounts")
         flags = item_flags(body)
+        if not numbers:
+            numbers = fallback_quantity(body)
+            if numbers:
+                result.warn("pdf_quantity_fallback", {**locator, "code": current["code"]},
+                            "The quantity was found by a loose scan of the item text; check it against the source")
         if numbers:
             flags["unit_price_only"] |= numbers["unit_price_only"]
         else:
@@ -261,9 +375,16 @@ def extract_pdf_tables(pages, result):
         sections_seen.add(key)
         result.add("section_candidate", locator, code=code, label=label, section_path=section_paths[:-1])
 
+    def demote_to_section():
+        """An item with no amounts that is followed by its own sub-items is a heading, not an item."""
+        nonlocal current
+        locator = {key: current["locator"][key] for key in ("page", "line")}
+        section_row(current["code"], current["short_description"] or "", locator)
+        current = None
+
     for page_number, page in enumerate(pages, 1):
         lines = page.splitlines()
-        header_row = next(((i, match) for i, line in enumerate(lines, 1) if (match := _HEADER.match(line))), None)
+        header_row = find_header(lines)
         form = next((m[1] for line in lines[:10] if (m := _FORM.fullmatch(line))), None)
         if form:
             result.add("form_page", {"page": page_number}, form_code=form, rows=layout_rows(lines))
@@ -305,11 +426,13 @@ def extract_pdf_tables(pages, result):
                             current["description_lines"].append(body.strip())
                         current["locator"].update(end_page=page_number, end_line=line_number)
                         continue
+                    if current is not None and current["amounts"] is None and extends_code(code, current["code"]):
+                        demote_to_section()
                     flush()
                     current = {
                         "locator": {**locator, "end_page": page_number, "end_line": line_number},
                         "code": code, "section_path": list(section_paths),
-                        "short_description": None if amounts else body.strip(),
+                        "short_description": None if amounts or _MARKER_LINE.match(body.strip()) else body.strip(),
                         "description_lines": [] if amounts else [body.strip()], "amounts": amounts,
                         "quantity_locator": locator if amounts else None,
                     }
@@ -335,7 +458,7 @@ def extract_pdf_tables(pages, result):
                 else:
                     line = raw.strip()
                     current["description_lines"].append(line)
-                    if current["short_description"] is None:
+                    if current["short_description"] is None and not _MARKER_LINE.match(line):
                         current["short_description"] = line
                 current["locator"].update(end_page=page_number, end_line=line_number)
         if "EUR" in page_head:

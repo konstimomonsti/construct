@@ -62,3 +62,7 @@ fixes and the `.xls` import that are sitting on unmerged branches.
 ## Notes / blockers (fill in)
 
 -
+
+- The preview uses the existing importer and the same content-derived line IDs as the upload assessment. It retains page/row locations, pricing flags and missing source quantities.
+- Real LV_11 extracts all nine positions. A two-sheet BIFF .xls with repeated position numbers imports both sheets and produces distinct position IDs.
+- The archived PDF changes preserve the existing BillBuild embedded attachment path. The golden test also covers wrapped headers whose first line already contains “Menge”.

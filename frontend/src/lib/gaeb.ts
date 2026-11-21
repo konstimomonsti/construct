@@ -58,6 +58,7 @@ export interface ParsedList {
   positions: Position[]
   tree?: CategoryNode[]
   source?: SourceInfo
+  warnings?: string[]
 }
 
 export { newNode, flatTree } from './cat'

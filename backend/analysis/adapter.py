@@ -67,15 +67,15 @@ def currency_code(raw: str | None) -> str | None:
 def clean_flags(flags: dict | None) -> dict[str, str]:
     result = {}
     for key, value in (flags or {}).items():
-        if value is None:
+        if value is None or value is False:
             continue
-        text = str(value).strip()
+        text = "Yes" if value is True else str(value).strip()
         if text:
             result[key] = text
     return result
 
 
-def derive_pricing(flags: dict[str, str]) -> tuple[str, str]:
+def derive_pricing(flags: dict[str, str], unit: str | None = None) -> tuple[str, str]:
     """(pricing_basis, total_rule) from GAEB XML and GAEB 90 flags.
 
     Mirrors importer/tender_import/draft.py so DB and file sources agree. GAEB 90:
@@ -83,11 +83,12 @@ def derive_pricing(flags: dict[str, str]) -> tuple[str, str]:
     provisional_flag E = optional without total; extra_type_flag L = lump sum.
     A GAEB XML MarkupItem (surcharge) has a fixed amount and no quantity, so it is priced as a lump sum.
     """
-    lump = flags.get("LumpSumItem") == "Yes" or flags.get("extra_type_flag") == "L" or flags.get("MarkupItem") == "Yes"
+    lump = flags.get("LumpSumItem") == "Yes" or flags.get("extra_type_flag") == "L" or flags.get("MarkupItem") == "Yes" or unit == "lump_sum"
     pricing = "lump_sum" if lump else "unit_rate"
-    if flags.get("Provis") == "WithoutTotal" or flags.get("provisional_flag") == "E":
+    if flags.get("Provis") == "WithoutTotal" or flags.get("provisional_flag") == "E" or flags.get("unit_price_only") == "Yes":
         total_rule = "unit_price_only"
-    elif flags.get("Provis") or flags.get("AltItem") or flags.get("position_type") == "A":
+    elif (flags.get("Provis") or flags.get("AltItem") or flags.get("position_type") == "A"
+          or flags.get("provisional_included") == "Yes" or flags.get("alternative_item") == "Yes"):
         total_rule = "conditional"
     else:
         total_rule = "include"
@@ -251,22 +252,21 @@ def _importer_on_path() -> None:
 
 
 def from_file(path: str | Path, *, boq_index: int | None = None, legacy_encoding: str | None = None) -> AnalysisInput:
-    """Parse a GAEB XML (X8x) or GAEB 90 (D8x) file directly, without the database."""
+    """Parse a supported tender file without the database."""
+    path = Path(path)
+    return from_bytes(path.name, path.read_bytes(), boq_index=boq_index, legacy_encoding=legacy_encoding)
+
+
+def from_bytes(
+    filename: str, data: bytes, *, boq_index: int | None = None, legacy_encoding: str | None = None,
+) -> AnalysisInput:
     _importer_on_path()
     from tender_import.common import detect_format
-    from tender_import.legacy import gaeb_1990
-    from tender_import.structured import gaeb_xml
+    from tender_import.ingest import parse_document
 
-    path = Path(path)
-    data = path.read_bytes()
-    document_format = detect_format(path.name, data)
-    if document_format == "gaeb_xml":
-        result = gaeb_xml(data)
-    elif document_format == "gaeb_1990":
-        result = gaeb_1990(data, encoding_override=legacy_encoding)
-    else:
-        raise ValueError(f"from_file supports GAEB XML and GAEB 90, got {document_format!r}")
-    document = SourceDocument(id=sha256(data).hexdigest(), filename=path.name, format=document_format)
+    document_format = detect_format(filename, data)
+    result = parse_document(document_format, data, legacy_encoding)
+    document = SourceDocument(id=sha256(data).hexdigest(), filename=filename, format=document_format)
     return from_import(result, document=document, boq_index=boq_index)
 
 
@@ -276,7 +276,7 @@ def from_import(result: Any, *, document: SourceDocument | None = None, boq_inde
     doc_key = document.id or document.filename or "document"
     records = list(result.records)
 
-    boq_indexes = sorted({r.payload.get("boq_index") for r in records if r.kind == "boq_header"})
+    boq_indexes = sorted({index for r in records if r.kind == "boq_header" if (index := r.payload.get("boq_index")) is not None})
     if boq_index is None and len(boq_indexes) > 1:
         raise ValueError(f"The file has several BoQs. Choose boq_index from {boq_indexes}")
     if boq_index is not None:
@@ -321,7 +321,7 @@ def _sections_from_records(records, doc_key) -> tuple[list[Section], dict]:
         payload, locator = record.payload, record.locator
         parts = [str(part) for part in payload.get("code_parts") or []] or _code_parts(payload.get("code"))
         section_id = stable_id(doc_key, "section", locator.get("xml_path") or locator.get("record") or ordinal)
-        parent = keys.get(payload.get("parent_section")) or (keys.get(tuple(parts[:-1])) if len(parts) > 1 else None)
+        parent = keys.get(payload.get("parent_section")) or (keys.get((payload.get("boq_index"), tuple(parts[:-1]))) if len(parts) > 1 else None)
         sections.append(Section(
             id=section_id, parent_id=parent, code=payload.get("code") or ".".join(parts) or None,
             code_parts=parts, title=clean_short(payload.get("label")), sort_order=ordinal,
@@ -329,9 +329,9 @@ def _sections_from_records(records, doc_key) -> tuple[list[Section], dict]:
         if locator.get("xml_path"):
             keys[locator["xml_path"]] = section_id
         if parts:
-            keys[tuple(parts)] = section_id
+            keys[(payload.get("boq_index"), tuple(parts))] = section_id
         if payload.get("code"):
-            keys[str(payload["code"])] = section_id  # PDF items name their section by its printed code
+            keys[(payload.get("boq_index"), str(payload["code"]))] = section_id  # PDF items name their section by its printed code
     return sections, keys
 
 
@@ -351,21 +351,22 @@ def _lines_from_records(records, doc_key, sections, section_keys) -> list[Line]:
         section_ref = payload.get("section_path")
         if isinstance(section_ref, list):
             section_ref = section_ref[-1] if section_ref else None
-        section_id = section_keys.get(section_ref) if section_ref else None
+        section_id = (section_keys.get(section_ref) or section_keys.get((payload.get("boq_index"), section_ref))) if section_ref else None
         if section_id is None and len(parts) > 1:
-            section_id = section_keys.get(tuple(parts[:-1]))
+            section_id = section_keys.get((payload.get("boq_index"), tuple(parts[:-1])))
 
         flags = clean_flags(payload.get("flags"))
-        pricing_basis, total_rule = derive_pricing(flags)
         unit_raw = payload.get("unit")
+        unit = units.normalize(unit_raw)
+        pricing_basis, total_rule = derive_pricing(flags, unit)
         quantity_raw = payload.get("quantity_raw", payload.get("quantity"))
 
         line_id = stable_id(doc_key, "line", locator.get("xml_path") or locator.get("record") or ordinal)
         alternative_for = None
         position_type = flags.get("position_type")
-        if position_type == "G":
+        if position_type == "G" or flags.get("base_item") == "Yes":
             last_base_by_section[section_id] = line_id
-        elif position_type == "A":
+        elif position_type == "A" or flags.get("alternative_item") == "Yes":
             alternative_for = last_base_by_section.get(section_id)
 
         lines.append(Line(
