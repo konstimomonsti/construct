@@ -315,7 +315,7 @@ def _sections_from_records(records, doc_key) -> tuple[list[Section], dict]:
         if record.kind not in {"section", "section_candidate"}:
             continue
         payload, locator = record.payload, record.locator
-        parts = [str(part) for part in payload.get("code_parts") or []]
+        parts = [str(part) for part in payload.get("code_parts") or []] or _code_parts(payload.get("code"))
         section_id = stable_id(doc_key, "section", locator.get("xml_path") or locator.get("record") or ordinal)
         parent = keys.get(payload.get("parent_section")) or (keys.get(tuple(parts[:-1])) if len(parts) > 1 else None)
         sections.append(Section(
@@ -326,7 +326,14 @@ def _sections_from_records(records, doc_key) -> tuple[list[Section], dict]:
             keys[locator["xml_path"]] = section_id
         if parts:
             keys[tuple(parts)] = section_id
+        if payload.get("code"):
+            keys[str(payload["code"])] = section_id  # PDF items name their section by its printed code
     return sections, keys
+
+
+def _code_parts(code) -> list[str]:
+    """'10.2.30.' -> ['10', '2', '30'] for sources (PDF, Word) that print the OZ but don't split it."""
+    return [part for part in str(code or "").strip().split(".") if part] if code else []
 
 
 def _lines_from_records(records, doc_key, sections, section_keys) -> list[Line]:
@@ -336,7 +343,7 @@ def _lines_from_records(records, doc_key, sections, section_keys) -> list[Line]:
         if record.kind not in {"item", "item_candidate"}:
             continue
         payload, locator = record.payload, record.locator
-        parts = [str(part) for part in payload.get("code_parts") or []]
+        parts = [str(part) for part in payload.get("code_parts") or []] or _code_parts(payload.get("code"))
         section_ref = payload.get("section_path")
         if isinstance(section_ref, list):
             section_ref = section_ref[-1] if section_ref else None

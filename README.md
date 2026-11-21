@@ -12,6 +12,17 @@ Created in [T3 Code](https://t3.codes).
 
 The database uses PostgreSQL 18 and Docker Compose locally and on a VPS. The [schema dashboard](schema-dashboard.html) shows the application and document-intake tables. The SQL migrations create the schema and its integrity checks.
 
+## Web UI: upload a BoQ and get a report
+
+A basic web page for testing the analysis on real documents. It needs no database: the file is parsed in memory, layers 1 and 2 run, and the findings are shown. Nothing is stored.
+
+```sh
+python -m pip install -r webapp/requirements.txt
+python -m webapp            # http://127.0.0.1:8000
+```
+
+PDF files also need the Poppler tools (`pdftotext`) on the `PATH`. Upload a GAEB XML (X8x), GAEB 90 (D8x), PDF or Word file, or pick one of the files in `Data/`. The report shows counts by severity and the findings, which you can filter by severity, layer, rule or text. Click a finding to see the message, evidence, proposed fix and the position's full text. The Positions tab lists what was extracted from the file. Use Download JSON to save the full result. Layer 3 is off by default. When it's on, its model is set with the layer 3 environment variables. If the model can't be reached, the report says so and layers 1 and 2 still run.
+
 ## Run the database
 
 Run this from the checkout on a machine with Docker Engine or Docker Desktop, Docker Compose v2, and OpenSSL. The script creates `.env` with separate generated passwords, starts PostgreSQL, applies pending migrations, and grants the application role access.
