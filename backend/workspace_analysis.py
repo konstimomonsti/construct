@@ -127,8 +127,17 @@ def run(payload, connection=None, workspace=None, list_id=None, file_id=None, fi
             if isinstance(original_codes, dict):
                 used_source = _attach_source(snapshot, source, original_codes)
             snapshot = snapshot.with_hash()
-    return {**analyze(snapshot, layers).model_dump(mode="json"),
-            "used_source": used_source, "source_notice": source_notice}
+    try:
+        result = analyze(snapshot, layers)
+    except Exception:
+        if 3 not in layers:
+            raise
+        # Layer 3 handles provider failures itself; this is the last line of defence, so an unexpected
+        # crash there still leaves the reviewer with the layer 1 and 2 findings.
+        LOG.exception("Layer 3 failed; storing the layer 1 and 2 findings only")
+        result = analyze(snapshot, [layer for layer in layers if layer != 3])
+        result.errors.append("layer 3: failed unexpectedly; findings are from layers 1 and 2 only")
+    return {**result.model_dump(mode="json"), "used_source": used_source, "source_notice": source_notice}
 
 
 def _uploaded_input(document):
