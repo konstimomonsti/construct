@@ -8,13 +8,18 @@ from .common import local_name, parse_xml
 
 _DESCRIPTION = "Leistungsbeschreibung"
 _PLAIN_CODE = re.compile(r"^ *\d{1,5}[ \t]{2,}\S")
-_TRAILING_DIGITS = re.compile(r"\.?\d{1,5}")
+_SHORT_CODE = re.compile(r"\.?\d{1,5}")
+_COMPOUND_CODE = re.compile(r"\d{1,5}(?:\.\d{1,5}){1,6}\.?")
+_VISIBLE_CODE_ROW = re.compile(r"^ *(?:\.\d+|\d+(?:\.\d+)+\.?)[ \t]{2,}\S")
+_MEASURE_ROW = re.compile(r"^[ \t]+[+-]?[\d.]+,\d+[ \t]+[^\s\d.]+")
 
 
 def _code_boxes(tsv):
     for row in tsv.decode("utf-8", errors="replace").splitlines():
         fields = row.split("\t")
-        if len(fields) == 12 and fields[0] == "5" and _TRAILING_DIGITS.fullmatch(fields[11]):
+        if len(fields) == 12 and fields[0] == "5" and (
+            _SHORT_CODE.fullmatch(fields[11]) or _COMPOUND_CODE.fullmatch(fields[11])
+        ):
             yield (*map(int, fields[6:10]), fields[11])
 
 
@@ -46,9 +51,15 @@ def _has_leading_dot(pixels, width, height, code_box):
 
 
 def reread_codes(layout, header, boxes, render, recognize, *, dpi, raster_size):
-    """Verify both digits and the printed leading dot before attaching an OCR code."""
+    """Recover a code from the isolated column when the body and crop align."""
     lines = layout.splitlines(keepends=True)
-    if not header or len([line for line in lines[header[0]:] if _PLAIN_CODE.match(line)]) < 2:
+    if not header:
+        return layout, []
+    body = lines[header[0]:]
+    visible = sum(bool(_VISIBLE_CODE_ROW.match(line)) for line in body)
+    measurements = sum(bool(_MEASURE_ROW.match(line)) for line in body)
+    plain = sum(bool(_PLAIN_CODE.match(line)) for line in body)
+    if plain < 2 and not 0 < visible < measurements:
         return layout, []
     header_text = header[1].string
     description = re.search(rf"\b{_DESCRIPTION}\b", header_text, re.I)
@@ -72,7 +83,7 @@ def reread_codes(layout, header, boxes, render, recognize, *, dpi, raster_size):
     for index, line in enumerate(lines[header[0]:], header[0]):
         lead = next((word for word in re.finditer(r"\S+", line)
                      if abs(word.start() - description.start()) <= 2), None)
-        if lead and re.fullmatch(r"\.?[\w]{0,5}", line[:lead.start()].strip()):
+        if lead and re.fullmatch(r"[\w.]{0,24}", line[:lead.start()].strip()):
             text_rows[lead[0]].append((index, lead.start()))
     visual_rows = defaultdict(list)
     for word, bbox in words:
@@ -101,12 +112,15 @@ def reread_codes(layout, header, boxes, render, recognize, *, dpi, raster_size):
     evidence = []
     for reading in first:
         x, y, w, h, token = reading
-        digits = token.lstrip(".")
-        confirmations = [other[-1] for other in second
-                         if other[-1].lstrip(".") == digits and abs(other[1] - y) <= 6]
+        compound = bool(_COMPOUND_CODE.fullmatch(token))
+        if not (0 <= x < x + w <= width and 0 <= y < y + h <= height):
+            continue
+        expected = token if compound else token.lstrip(".")
+        confirmations = [other[-1] for other in second if abs(other[1] - y) <= 6
+                         and (other[-1] if compound else other[-1].lstrip(".")) == expected]
         if len(confirmations) != 1:
             continue
-        if not _has_leading_dot(pixels, width, height, reading):
+        if not compound and not _has_leading_dot(pixels, width, height, reading):
             continue
         center = top + (y + h / 2) / 2
         matches = [(index, start) for bbox, index, start in anchors if bbox[1] - 4 <= center <= bbox[3] + 7]
@@ -114,8 +128,9 @@ def reread_codes(layout, header, boxes, render, recognize, *, dpi, raster_size):
             continue
         index, start = matches[0]
         original = lines[index][:start].strip()
-        code = f".{digits}"
-        if original.startswith(".") or original.isdecimal() and original != digits:
+        code = token if compound else f".{expected}"
+        if (_COMPOUND_CODE.fullmatch(original) or original.startswith(".")
+                or original.isdecimal() and original != code.replace(".", "")):
             continue
         indent = header[1]["indent"]
         padding = max(2, start - len(indent) - len(code))

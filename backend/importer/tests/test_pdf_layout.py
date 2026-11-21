@@ -150,6 +150,62 @@ def test_scanned_dotted_positions_require_ink_and_preserve_numeric_sections():
                               lambda _, mode: tsv if mode == "6" else disagreement, dpi=72, raster_size=900)
     assert [item["code"] for item in partial] == [".41"]
 
+    compound = (layout.replace("OZ   ", "OZ     ").replace("41   Halter", "1.41   Halter")
+                .replace("     Spange", "       Spange").replace("12   Abdeckungen", "       Abdeckungen"))
+    full_codes = tsv.replace(b"\t41\n", b"\t1.41\n").replace(b"\t87\n", b"\t1.87\n")
+    _, evidence = reread_codes(compound, pdf_module.find_header(compound.splitlines()),
+                               lambda: boxes, render, lambda *_: full_codes, dpi=72, raster_size=900)
+    assert [(item["original"], item["code"]) for item in evidence] == [(None, "1.87")]
+
+def test_missing_scanned_measurement_requires_matching_position_and_printed_digits():
+    header = "OZ   Leistungsbeschreibung        Menge ME       Einheitspreis   Gesamtbetrag\n"
+    original = header + (
+        ".44   Abdeckung liefern\n"
+        "                            GAS    eee\n"
+        ".47   Tragschale liefern\n"
+        ".87   Schelle liefern\n"
+    )
+    alternate = header + (
+        "44   Abdeckung liefern\n"
+        "                            8,000 St = eeee\n"
+        "47   Tragschale liefern\n"
+        "87   Anderer Titel\n"
+        "                            8,000 St = eeee\n"
+    )
+    boxes = b"""
+        <html>
+        <word xMin="269" yMin="106" xMax="296" yMax="114">Menge</word>
+        <word xMin="302" yMin="106" xMax="310" yMax="114">ME</word>
+        <word xMin="335" yMin="106" xMax="380" yMax="114">Einheitspreis</word>
+        <word xMin="263" yMin="180" xMax="295" yMax="188">8,000</word>
+        <word xMin="302" yMin="180" xMax="310" yMax="188">St</word>
+        <word xMin="263" yMin="201" xMax="295" yMax="209">8,000</word>
+        <word xMin="302" yMin="201" xMax="310" yMax="209">St</word>
+        </html>
+    """
+    missing = pdf_module._missing_measurement_positions(original)
+    codes = [{"code": code} for code in missing]
+    render = mock.Mock()
+    recognize = mock.Mock(return_value=b"8,000 St")
+    evidence = pdf_module._recover_missing_measurements(missing, alternate, lambda: boxes, render, recognize, codes)
+    [recovered] = evidence
+    assert (recovered["line"], recovered["quantity"], recovered["unit"]) == (2, "8,000", "St")
+    result = Result("pdf")
+    extract_pdf_tables([original], result, ocr_pages=(1,),
+                       ocr_evidence={(1, 2): {"recovered_measurement_ocr": recovered}})
+    items = [item for item in result.records if item.kind == "item_candidate"]
+    assert [(item.payload["code"], item.payload.get("quantity")) for item in items] == [
+        (".44", "8.000"), (".47", None), (".87", None),
+    ]
+    assert items[0].payload["unit_price"] is None
+    assert items[0].locator["recovered_measurement_ocr"] == recovered
+    render.assert_called_once()
+
+    recognize.return_value = b"9,000 St"
+    assert pdf_module._recover_missing_measurements(
+        missing, alternate, lambda: boxes, render, recognize, codes,
+    ) == []
+
 
 def warning_codes(result):
     return [issue["code"] for issue in result.issues]

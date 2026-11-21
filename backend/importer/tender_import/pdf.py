@@ -1,5 +1,5 @@
 from base64 import b64encode
-from collections import defaultdict
+from collections import Counter, defaultdict
 from collections.abc import Mapping
 from functools import cache
 from io import BytesIO
@@ -224,26 +224,21 @@ _OCR_NUMBER = re.compile(_NUMBER)
 _NUMERIC_PUNCTUATION = str.maketrans("", "", ".,")
 
 
-def _reread_ocr_measurements(layout, boxes, render, recognize):
-    """Re-read OCR-damaged, unpriced measurement cells using the printed table columns."""
-    lines = layout.splitlines(keepends=True)
-    header = find_header(lines)
-    if not header or not _OCR_MEASUREMENT_HEADER.search(header[1].string):
-        return layout, []
+def _measurement_rows(lines, header):
     rows = defaultdict(list)
     for number, line in enumerate(lines[header[0]:], header[0] + 1):
         if row := _OCR_MEASUREMENT_ROW.fullmatch(line.rstrip("\r\n")):
             rows[(row["quantity"], row["unit"])].append((number, row))
+    return rows
 
-    def eligible(row):
-        quantity, unit, tail = row["quantity"], row["unit"].casefold(), row["tail"]
-        if _UNIT.fullmatch(unit) and unit not in {"mo", "mm"} and quantity.count(".") < 2:
-            return False
-        cells = re.split(r"[ \t]{2,}", tail.strip())
-        return not any(german_decimal(_PRICE_PREFIX.sub("", cell)) is not None for cell in cells)
 
-    if not any(eligible(row) for entries in rows.values() for _, row in entries):
-        return layout, []
+def _has_written_price(tail):
+    cells = re.split(r"[ \t]{2,}", tail.strip())
+    return any(german_decimal(_PRICE_PREFIX.sub("", cell)) is not None for cell in cells)
+
+
+def _measurement_cells(rows, boxes):
+    """Associate each raw layout row with the crop bounded by the printed column headers."""
     xml = parse_xml(boxes(), generated=True)
     scale = OCR_DPI / 72
     words = sorted(
@@ -252,13 +247,13 @@ def _reread_ocr_measurements(layout, boxes, render, recognize):
     )
     headings = [bbox for bbox, word in words if word.casefold() == "menge"]
     if len(headings) != 1:
-        return layout, []
+        return
     top, left, bottom, _ = headings[0]
     same_row = [(bbox, word.casefold()) for bbox, word in words if top <= bbox[0] <= bottom and bbox[1] > left]
     columns = {word: bbox[1] for bbox, word in same_row if word in {"me", "einheitspreis"}}
     unit_x, price_x = columns.get("me", 0), columns.get("einheitspreis", 0)
     if not 0 < left < unit_x < price_x <= OCR_RASTER_SIZE or price_x - unit_x < 80:
-        return layout, []
+        return
 
     coordinates = defaultdict(list)
     for index, (quantity_box, quantity) in enumerate(words):
@@ -271,38 +266,110 @@ def _reread_ocr_measurements(layout, boxes, render, recognize):
             unit_box, token = candidates[0]
             coordinates[(quantity, token)].append((min(y, unit_box[0]), x, max(y_end, unit_box[2])))
 
-    evidence = []
-    attempts = 0
     for key, entries in rows.items():
         matched = coordinates.get(key, [])
         if len(matched) != len(entries):
             continue
         for (number, row), (y, x, bottom) in zip(entries, matched):
-            if attempts >= _OCR_MEASUREMENT_LIMIT or not eligible(row):
-                continue
             left, top = x - 8, y - 10
             right, end = price_x - 28, bottom + 8
-            if not (0 <= left < right <= OCR_RASTER_SIZE and 0 <= top < end <= OCR_RASTER_SIZE):
-                continue
-            attempts += 1
-            image = render(["-x", str(left), "-y", str(top), "-W", str(right - left), "-H", str(end - top)])
-            readings = [recognize(image, mode).decode("utf-8", errors="replace").split() for mode in ("6", "7")]
-            if len(readings[0]) != 2 or readings[0] != readings[1]:
-                continue
-            quantity, unit = readings[0]
-            if (not _OCR_NUMBER.fullmatch(quantity) or not _UNIT.fullmatch(unit)
-                    or quantity.translate(_NUMERIC_PUNCTUATION) != key[0].translate(_NUMERIC_PUNCTUATION)):
-                continue
-            if (quantity, unit.casefold()) == (key[0], key[1].casefold()):
-                continue
-            new_line = f'{row["indent"]}{quantity} {unit}{row["tail"]}'
-            if read_quantity(new_line) is None:
-                continue
-            lines[number - 1] = new_line + "\n"
-            evidence.append({"line": number, "original_quantity": key[0], "original_unit": key[1],
-                             "readings": readings, "quantity": quantity, "unit": unit,
-                             "bbox_px": [left, top, right, end]})
+            if 0 <= left < right <= OCR_RASTER_SIZE and 0 <= top < end <= OCR_RASTER_SIZE:
+                yield number, row, (left, top, right, end)
+
+
+def _verify_measurement(row, bounds, render, recognize):
+    left, top, right, end = bounds
+    image = render(["-x", str(left), "-y", str(top), "-W", str(right - left), "-H", str(end - top)])
+    readings = [recognize(image, mode).decode("utf-8", errors="replace").split() for mode in ("6", "7")]
+    if len(readings[0]) != 2 or readings[0] != readings[1]:
+        return None
+    quantity, unit = readings[0]
+    if (not _OCR_NUMBER.fullmatch(quantity) or not _UNIT.fullmatch(unit)
+            or quantity.translate(_NUMERIC_PUNCTUATION) != row["quantity"].translate(_NUMERIC_PUNCTUATION)):
+        return None
+    return {"quantity": quantity, "unit": unit, "readings": readings, "bbox_px": list(bounds)}
+
+
+def _reread_ocr_measurements(layout, boxes, render, recognize):
+    """Re-read OCR-damaged, unpriced measurement cells using the printed table columns."""
+    lines = layout.splitlines(keepends=True)
+    header = find_header(lines)
+    if not header or not _OCR_MEASUREMENT_HEADER.search(header[1].string):
+        return layout, []
+    rows = _measurement_rows(lines, header)
+
+    def eligible(row):
+        quantity, unit = row["quantity"], row["unit"].casefold()
+        suspect = not _UNIT.fullmatch(unit) or unit in {"mo", "mm"} or quantity.count(".") >= 2
+        return suspect and not _has_written_price(row["tail"])
+
+    if not any(eligible(row) for entries in rows.values() for _, row in entries):
+        return layout, []
+    evidence = []
+    attempts = 0
+    for number, row, bounds in _measurement_cells(rows, boxes):
+        if not eligible(row):
+            continue
+        if attempts >= _OCR_MEASUREMENT_LIMIT:
+            break
+        attempts += 1
+        verified = _verify_measurement(row, bounds, render, recognize)
+        if not verified:
+            continue
+        quantity, unit = verified["quantity"], verified["unit"]
+        if (quantity, unit.casefold()) == (row["quantity"], row["unit"].casefold()):
+            continue
+        new_line = f'{row["indent"]}{quantity} {unit}{row["tail"]}'
+        if read_quantity(new_line) is None:
+            continue
+        lines[number - 1] = new_line + "\n"
+        evidence.append({"line": number, "original_quantity": row["quantity"], "original_unit": row["unit"], **verified})
     return "".join(lines), evidence
+
+
+def _missing_measurement_positions(layout):
+    page = Result("pdf")
+    extract_pdf_tables([layout], page)
+    positions = [record for record in page.records if record.kind == "item_candidate"]
+    counts = Counter(record.payload["code"] for record in positions)
+    return {record.payload["code"]: record for record in positions
+            if counts[record.payload["code"]] == 1 and record.payload.get("quantity") is None
+            and record.payload.get("unit") is None and record.payload.get("short_description")}
+
+
+def _recover_missing_measurements(missing, higher_layout, boxes, render, recognize, code_evidence):
+    lines = higher_layout.splitlines()
+    header = find_header(lines)
+    if not missing or not header or not _OCR_MEASUREMENT_HEADER.search(header[1].string):
+        return []
+    # A bare integer is accepted only for a code with pixel-backed leading punctuation.
+    dotted = {item["code"].lstrip("."): item["code"] for item in code_evidence}
+    starts = []
+    indent = len(header[1]["indent"])
+    for index, line in enumerate(lines[header[0]:], header[0] + 1):
+        if (match := _CODE.fullmatch(line)) and abs(len(match["indent"]) - indent) <= 3:
+            starts.append((index, dotted.get(match["code"], match["code"]), match["body"]))
+    counts = Counter(code for _, code, _ in starts)
+    rows = _measurement_rows(lines, header)
+    cells = sorted(_measurement_cells(rows, boxes))
+    candidates = []
+    for (start, code, title), (end, _, _) in zip(starts, [*starts[1:], (len(lines) + 1, "", "")]):
+        original = missing.get(code)
+        if not original or counts[code] != 1:
+            continue
+        old_title = original.payload["short_description"]
+        title_key = re.findall(r"\w+", title.casefold())[:2]
+        if not title_key or title_key != re.findall(r"\w+", old_title.casefold())[:2]:
+            continue
+        measurements = [(row, bounds) for line, row, bounds in cells if start < line < end]
+        if len(measurements) == 1 and not _has_written_price(measurements[0][0]["tail"]):
+            candidates.append((original, *measurements[0]))
+
+    evidence = []
+    for original, row, bounds in candidates[:_OCR_MEASUREMENT_LIMIT]:
+        if verified := _verify_measurement(row, bounds, render, recognize):
+            evidence.append({"line": original.locator["line"], "high_resolution_row": row[0].strip(), **verified})
+    return evidence
 
 
 def _ocr_layout(source, pages, result):
@@ -395,10 +462,31 @@ def _ocr_layout(source, pages, result):
                 line = item["line"]
                 revised_lines[line - 1] = code_lines[line - 1]
                 evidence[line] = {"code_ocr": item}
-            found[number] = "".join(revised_lines), evidence
+            combined = "".join(revised_lines)
+            recovered = []
+            if missing := _missing_measurement_positions(combined):
+                try:
+                    higher = execute([rasterizer, "-f", str(number), "-l", str(number), "-scale-to",
+                                      str(OCR_RASTER_SIZE * 3 // 2), "-singlefile", "-png", str(source)])
+                    higher_pdf = execute([tesseract, "stdin", "stdout", "-l", language,
+                                          "--dpi", str(OCR_DPI * 3 // 2), "pdf"], data=higher)
+                    higher_layouts = split_layout(execute([text_extractor, "-enc", "UTF-8", "-layout", "-", "-"],
+                                                          data=higher_pdf))
+                    if len(higher_layouts) == 1:
+                        recovered = _recover_missing_measurements(
+                            missing, higher_layouts[0],
+                            lambda: execute([text_extractor, "-enc", "UTF-8", "-bbox", "-", "-"], data=higher_pdf),
+                            render, recognize, code_rereads,
+                        )
+                except (OSError, SyntaxError, ValueError, TimeoutExpired):
+                    # A failed second pass leaves the initial missing fields available for review.
+                    pass
+            for item in recovered:
+                evidence.setdefault(item["line"], {})["recovered_measurement_ocr"] = item
+            found[number] = combined, evidence
             result.add("pdf_ocr_page", {"page": number, "ocr_pages": [number]}, layout=original,
                        language=language, unit_rereads=unit_rereads, measurement_rereads=measurement_rereads,
-                       code_rereads=code_rereads)
+                       code_rereads=code_rereads, recovered_measurements=recovered)
     if len(pages) > OCR_PAGE_LIMIT:
         result.warn("pdf_ocr_page_limit", {"page": pages[OCR_PAGE_LIMIT]},
                     f"Only the first {OCR_PAGE_LIMIT} raster-only pages are eligible for local OCR in one import.")
@@ -653,6 +741,8 @@ def extract_pdf_tables(pages, result, *, ocr_pages=(), ocr_evidence=None):
         body = "\n".join(current.pop("description_lines")).strip()
         numbers = current.pop("amounts")
         flags = item_flags(body)
+        if not numbers and (verified := locator.get("recovered_measurement_ocr")):
+            numbers = read_quantity(f'{verified["quantity"]} {verified["unit"]}')
         if not numbers:
             numbers = fallback_quantity(body)
             if numbers:

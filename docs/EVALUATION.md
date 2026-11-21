@@ -164,15 +164,17 @@ The following preliminary comparison rasterized the original repository page wit
 | LV 18 screed | 3 | 5 | 5 | 5 |
 | LV 13 electrical | 9 | 9 | 9 | 9 |
 | LV 17 drywall | 5 | 6 | 6 | 6 |
-| LV 14b roof drainage | 10 | 8 | 8 | 6 |
-| LV 11 precast | 1 | 3 | 3 | 1 |
+| LV 14b roof drainage | 10 | 8 | 8 | 8 |
+| LV 11 precast | 1 | 3 | 3 | 3 |
 | LV 22 joinery | 14 | 4 | 4 | 4 |
 
 Blank price placeholders originally caused the OCR pass to concatenate text such as `Meee` into the unit. One electrical quantity came back as `1.250.000` instead of the printed `1.250,000`. For damaged rows with no readable price, the importer aligns the `Menge`, `ME`, and `Einheitspreis` headers and re-reads the first two fields in isolation. Both crop readings must agree and preserve the first pass’s quantity digits and sign. The locator keeps the original quantity and unit, both focused readings, and the crop coordinates.
 
 The measurement update increased quantity and unit agreement from 13 to 25 of 35 positions. It removed 15 false quantity, unit, and import findings on the electrical page and restored all measurements on the drywall and joinery pages. Notation checks now use directly extracted text because OCR can change the casing and spacing the checks compare.
 
-The roof drainage scan initially linked zero positions after OCR dropped leading dots and damaged two digit strings. For tables with an OZ column and multiple numeric candidates, the importer now reads the position column twice at higher resolution and checks for separated dot-shaped ink before the digits. Each recovered number must align with one description. Its locator keeps the original transcription, both digit readings, and the crop coordinates. This restored all eight roof drainage positions, bringing the six-page comparison to 35 of 35 linked and 31 of 35 matching in quantity and unit. The two roof drainage and two precast measurements still need review.
+The roof drainage scan initially linked zero positions after OCR dropped leading dots and damaged two digit strings. For tables with an OZ column and possible missing codes, the importer now reads the position column twice at higher resolution. A leading dot requires separated dot-shaped ink before the digits. Compound codes such as `1.10` require agreement on the entire written code. Each recovered number must align with one description. Its locator keeps the original transcription, both digit readings, and the crop coordinates. This restored all eight roof drainage positions. When the first pass leaves both measurement fields blank, a higher-resolution pass must identify the same unique position and heading with a single measurement row. Two focused crops must agree on the unit and the quantity with the same digits and sign. The original text, recovered values, and image coordinates stay with the evidence. This pass recovers quantities and units on unpriced rows. It recovered both missing roof drainage measurements and both missing precast measurements, bringing the six-page comparison to 35 of 35 linked with quantity and unit agreement.
+
+Four additional repository pages exposed six missing position numbers on the sanitary page. The two position-column reads recovered all six complete codes from the source. On the latest replay, all 25 positions on those four pages linked and 24 matched quantities and units. The excavation page kept all eight positions, with one native quantity attached to a blank unit still unreadable in OCR. Across the ten sampled pages, all 60 positions linked and 59 matched the native quantity and unit. These rasterized repository pages provide a preliminary comparison with the native parser. Independent real scans and finding labels are still needed to measure accuracy.
 
 The `dotted` synthetic suite exercises non-consecutive position numbers. Its scanned amount error cites position .47 and the source page, and the clean control produces zero findings.
 
