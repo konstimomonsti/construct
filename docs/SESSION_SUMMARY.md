@@ -119,7 +119,7 @@ land in their sections.
 |---|---|
 | Contract, adapter, runner, CLI | Done |
 | Layer 1 (34 rules) | Done, tested on the real files |
-| Layer 2 (16 checks) | First version; false positives fixed. Real detections only tested on synthetic examples (`Data/` has no building projects) |
+| Layer 2 (46 checks) | 15 trade groups. The 10 new groups were tested on the `LV_xx` building PDFs in `Data/` (the earlier "no building projects" note was wrong) |
 | Layer 3 (2 checks) | First version; precision not measured yet |
 | Web report | Minimal version works |
 | Tests | 142 passing (`python -m pytest`) |

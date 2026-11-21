@@ -43,6 +43,9 @@ class DependencySpec(BaseModel):
     suggested_text: str | None = Field(default=None, alias="SuggestedText")
     # Unit of a proposed line when the quantity can't be derived (Boolean checks), e.g. "m" for skirting.
     suggested_unit: str | None = Field(default=None, alias="SuggestedUnit")
+    # "info" for items that are usually tendered in another package (RCD protection in the
+    # distribution board, emergency lighting, window sills), so a gap is a question, not a warning.
+    severity: Literal["warning", "info"] = Field(default="warning", alias="Severity")
 
     @field_validator("regex", "trigger_regex", "exclude_regex")
     @classmethod
@@ -114,7 +117,7 @@ def load_rules(path: str | Path | None = None) -> list[RuleSpec]:
 def rule_metadata(rules: list[RuleSpec] | None = None) -> list[dict]:
     return [{
         "rule_id": f"{rule.rule_id}_NEEDS_{dep.key}", "layer": 2,
-        "category": "dependency", "default_severity": "warning",
+        "category": "dependency", "default_severity": dep.severity,
         "trade_category": rule.category,
         "description": f"{rule.category} requires {dep.name.lower()} ({dep.check_type}).",
     } for rule in (load_rules() if rules is None else rules) for dep in rule.dependencies]

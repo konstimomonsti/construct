@@ -13,7 +13,7 @@ def _register(rule_spec, dependency):
 
     @register_rule(
         f"{rule_spec.rule_id}_NEEDS_{dependency.key}", layer=2, category="dependency",
-        severity="warning", title=f"{dependency.name} dependency",
+        severity=dependency.severity, title=f"{dependency.name} dependency",
         description=f"{rule_spec.category} requires {dependency.name.lower()} ({dependency.check_type}).",
     )
     def evaluate(context):
