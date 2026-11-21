@@ -46,3 +46,20 @@ def values(text: str) -> dict[str, set[str]]:
     for family, pattern in DIMENSIONS.items():
         result[family] = {str(centimetres(m[1], m[2]).normalize()) for m in pattern.finditer(text)}
     return result
+
+SICHTBETON_CLASS = re.compile(r"\bSB\s*[1-4]\b", re.I)
+SICHTBETON_KEYWORD = re.compile(r"\b(?:Sichtbeton\w*|fair[ -]faced\s+concrete)\b", re.I)
+WATER_IMPACT = re.compile(r"\bW\s*[1-4](?:\.[1-2])?\s*-\s*E\b", re.I)
+GROUND_CONTACT = re.compile(r"\b(?:erdberührt\w*|erdberuehrt\w*|Erdreich|Bodenkontakt|Spritzwasser\w*)\b", re.I)
+PRECAST_PLINTH = re.compile(r"\b(?:FT[ -]Sockel\w*|Sockel\w*|Sandwich\w*|Fertigteil\w*)\b", re.I)
+WATERPROOFING = re.compile(r"\b(?:Abdichtung\w*|abdichten|Abdichtungsbahn\w*|waterproofing)\b", re.I)
+FIRE_RATING = re.compile(r"\b(REI|F)\s*-?\s*(30|60|90|120)\b", re.I)
+FIRE_WALL = re.compile(r"\b(?:Brandwand\w*|Brandschutzwand\w*|fire[ -]wall)\b", re.I)
+REBAR_KEYWORD = re.compile(r"\b(?:Betonstahl\w*|Bewehrung\w*|Betonstabstahl\w*)\b", re.I)
+REBAR_GRADE = re.compile(r"\b(Bst\s*\d{3}\s*[A-Za-z]*|B\s*\d{3}\s*[A-Za-z]*)\b", re.I)
+REBAR_VALID = re.compile(r"(?:B\s*500\s*(?:A|B|NR)|Bst\s*500\s*[SM])", re.I)
+TOLERANCE_DEMAND = re.compile(r"\b(?:erhöhte[rmns]?\s+Genauigkeit|erhoehte[rmns]?\s+Genauigkeit|Sondertoleranz\w*)\b", re.I)
+TOLERANCE_SPEC = re.compile(r"(?:DIN\s*18202[^.;\n]{0,80}Tab(?:elle)?\.?\s*3[^.;\n]{0,40}(?:Zeile|Z\.)\s*\d+|DIN\s*18203\s*-\s*1[^.;\n]{0,80}Klasse\s*[\w-]+)", re.I)
+VOB_OPENING = re.compile(r"\b(?:Aussparung\w*|Öffnung\w*|Oeffnung\w*)\b", re.I)
+VOB_DEDUCTION = re.compile(r"\b(?:Abzug|abziehen|abzuziehen|abgezogen)\b", re.I)
+VOB_LIMIT = re.compile(r"(?:\b(?:unter|bis|kleiner\s+als|höchstens|max(?:imal)?\.?)\s*|<=?\s*)(\d+(?:[,.]\d+)?)\s*(m²|m2|qm|m³|m3|cbm)(?!\w)", re.I)
