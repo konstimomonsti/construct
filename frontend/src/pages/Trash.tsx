@@ -55,7 +55,7 @@ export function Trash() {
     <PageFrame>
       <PageHeader title="Trash" subtitle={tf.length || tl.length ? "Items stay here until you restore them or delete them forever." : undefined} />
       {!tf.length && !tl.length ? (
-        <EmptyState icon="delete" title="Trash is empty" text="Projects and lists you move to Trash show up here.">
+        <EmptyState icon="delete" title="Trash is empty" text="Projects and lists you move to Trash stay here until you restore them or delete them forever.">
           <PillLink to="/" icon="arrow_back">Go to All Projects</PillLink>
         </EmptyState>
       ) : (

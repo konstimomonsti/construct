@@ -16,7 +16,7 @@ const NAV_GROUPS = [
     { to: '/trash', label: 'Trash', icon: 'delete', end: false },
   ] },
   { label: 'Catalogues', links: [
-    { to: '/catalogues/products', label: 'Products', icon: 'inventory_2', end: true },
+    { to: '/catalogues/products', label: 'Products', icon: 'package_2', end: true },
     { to: '/catalogues/suppliers', label: 'Suppliers', icon: 'local_shipping', end: true },
     { to: '/catalogues/subcontractors', label: 'Subcontractors', icon: 'engineering', end: true },
   ] },

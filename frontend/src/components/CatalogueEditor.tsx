@@ -1,4 +1,4 @@
-import { useEffect, useId, useState, type FormEvent } from 'react'
+import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
 import { clsx } from 'clsx'
 import { Button, Dialog, Field, Icon, inputCls, Menu, toast } from './ui'
 import { MOD_KEY } from '../lib/keys'
@@ -30,8 +30,8 @@ function ProductFields({ entry, options }: { entry: CatalogueEntry | null; optio
             {options.categories.map(({ name }) => <option key={name} value={name} />)}
           </datalist>
         </Field>
-        <div className="space-y-1.5">
-          <span id={`${categoriesId}-sup`} className="block text-sm font-semibold text-slate-800">Supplier</span>
+        {/* the same Field as Category, so both labels and controls share one baseline */}
+        <Field label="Supplier" hint={locked ? 'Fixed for approved products' : undefined}>
           <input type="hidden" name="supplier_id" value={supplierId} />
           <Menu
             label="Choose a supplier"
@@ -43,15 +43,14 @@ function ProductFields({ entry, options }: { entry: CatalogueEntry | null; optio
               ...suppliers.map(({ id, name }) => ({ label: name, checked: supplierId === id, onSelect: () => setSupplierId(id) })),
             ]}
             trigger={(t) => (
-              <button {...t} type="button" disabled={locked} aria-labelledby={`${categoriesId}-sup ${categoriesId}-supv`}
-                className={clsx(inputCls, 'flex items-center justify-between gap-2 text-left disabled:opacity-60')}>
-                <span id={`${categoriesId}-supv`} className={clsx('truncate', !supplierName && 'text-slate-500')}>{supplierName ?? 'No supplier'}</span>
+              <button {...t} type="button" disabled={locked} aria-label={`Supplier: ${supplierName ?? 'No supplier'}`}
+                className={clsx(inputCls, 'flex h-10 items-center justify-between gap-2 text-left disabled:opacity-60')}>
+                <span className={clsx('truncate', !supplierName && 'text-slate-500')}>{supplierName ?? 'No supplier'}</span>
                 <Icon name="expand_more" size={20} className="shrink-0 text-slate-600" />
               </button>
             )}
           />
-          {locked && <span className="block text-xs text-slate-600">Fixed for approved products</span>}
-        </div>
+        </Field>
         <Field label="Item code" hint="The supplier's article number">
           <input name="sku" maxLength={160} defaultValue={entry?.sku ?? ''} className={inputCls} />
         </Field>
@@ -81,8 +80,8 @@ function ProductFields({ entry, options }: { entry: CatalogueEntry | null; optio
               <span aria-hidden className="pointer-events-none absolute top-1/2 right-3.5 -translate-y-1/2 text-sm text-slate-600">{symbol}</span>
             </span>
           </Field>
-          <Field label="Effective from" hint="Day.Month.Year">
-            <input name="valid_from" inputMode="numeric" pattern="\d{1,2}\.\d{1,2}\.\d{4}" title="For example 21.11.2026" defaultValue={today} className={clsx(inputCls, 'num')} />
+          <Field label="Effective from" hint={`DD.MM.YYYY, for example ${today}`}>
+            <input name="valid_from" inputMode="numeric" pattern="\d{1,2}\.\d{1,2}\.\d{4}" title={`DD.MM.YYYY, for example ${today}`} defaultValue={today} className={clsx(inputCls, 'num')} />
           </Field>
         </div>
       </section>
@@ -141,10 +140,44 @@ export function CatalogueEditor({ kind, entry, onClose, onSaved }: {
   const isProduct = kind === 'products'
   const ready = !isProduct || !!product
   const current = isProduct ? product?.detail : entry
+  const nameRef = useRef<HTMLInputElement>(null)
+  const submitting = useRef(false)
+
+  // while product details load, the dialog can only focus its close button; once the form is there,
+  // move to Product name, unless the user already tabbed or clicked somewhere themselves
+  const moved = useRef(false)
+  useEffect(() => {
+    if (ready) return
+    const mark = () => { moved.current = true }
+    window.addEventListener('pointerdown', mark, true)
+    window.addEventListener('keydown', mark, true)
+    return () => {
+      window.removeEventListener('pointerdown', mark, true)
+      window.removeEventListener('keydown', mark, true)
+    }
+  }, [ready])
+  useEffect(() => {
+    if (ready && isProduct && !moved.current) nameRef.current?.focus()
+  }, [ready, isProduct])
+
+  // ⌘/Ctrl+Enter saves from anywhere in the dialog: any field, the supplier menu or the footer buttons
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== 'Enter' || !(event.metaKey || event.ctrlKey) || event.defaultPrevented) return
+      const form = document.getElementById(formId)
+      if (!(form instanceof HTMLFormElement)) return
+      event.preventDefault()
+      form.requestSubmit()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [formId])
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (saving || !ready) return
+    // a ref, not state: two quick submits in one frame would both still see saving === false
+    if (submitting.current || !ready) return
+    submitting.current = true
     setSaving(true)
     setError('')
     const values = Object.fromEntries(new FormData(event.currentTarget))
@@ -161,6 +194,7 @@ export function CatalogueEditor({ kind, entry, onClose, onSaved }: {
     } catch (error) {
       setError((error as Error).message)
     } finally {
+      submitting.current = false
       setSaving(false)
     }
   }
@@ -183,10 +217,9 @@ export function CatalogueEditor({ kind, entry, onClose, onSaved }: {
           <Button size="sm" onClick={() => { setLoadError(''); setRetry((n) => n + 1) }}>Retry</Button>
         </div> : <p role="status" className="text-sm text-slate-600">Loading product details…</p>
       ) : (
-        <form id={formId} onSubmit={submit} className="space-y-4"
-          onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); e.currentTarget.requestSubmit() } }}>
+        <form id={formId} onSubmit={submit} className="space-y-4">
           <Field label={isProduct ? 'Product name' : 'Company name'}>
-            <input data-autofocus required name="name" maxLength={isProduct ? 300 : 160} defaultValue={current?.name} className={inputCls} />
+            <input ref={nameRef} data-autofocus required name="name" maxLength={isProduct ? 300 : 160} defaultValue={current?.name} className={inputCls} />
           </Field>
           {isProduct && product
             ? <ProductFields options={product.options} entry={product.detail} />

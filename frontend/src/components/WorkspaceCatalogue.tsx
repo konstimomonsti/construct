@@ -47,12 +47,16 @@ export function CatalogueOverview({ report, error, retryFailed, positions, onOpe
         </span>
         {report?.state === 'ready' && (
           <>
-            <MetaLink pressed={show === 'matched'} onClick={() => setShow(show === 'matched' ? null : 'matched')}>
-              <span className="num">{count('matched')}</span> catalogue {count('matched') === 1 ? 'match' : 'matches'}
-            </MetaLink>
-            <MetaLink pressed={show === 'suggested'} onClick={() => setShow(show === 'suggested' ? null : 'suggested')}>
-              <span className="num">{count('suggested')}</span> web {count('suggested') === 1 ? 'suggestion' : 'suggestions'}
-            </MetaLink>
+            {count('matched') > 0 ? (
+              <MetaLink pressed={show === 'matched'} onClick={() => setShow(show === 'matched' ? null : 'matched')}>
+                <span className="num">{count('matched')}</span> catalogue {count('matched') === 1 ? 'match' : 'matches'}
+              </MetaLink>
+            ) : <span className="text-slate-600">No catalogue matches</span>}
+            {count('suggested') > 0 ? (
+              <MetaLink pressed={show === 'suggested'} onClick={() => setShow(show === 'suggested' ? null : 'suggested')}>
+                <span className="num">{count('suggested')}</span> web {count('suggested') === 1 ? 'suggestion' : 'suggestions'}
+              </MetaLink>
+            ) : <span className="text-slate-600">No web suggestions</span>}
             {unresolved > 0 && (
               <MetaLink pressed={show === 'unresolved'} onClick={() => setShow(show === 'unresolved' ? null : 'unresolved')}>
                 <span className="num">{unresolved}</span> unresolved
@@ -89,8 +93,9 @@ export function CatalogueDetails({ result, position, onApply }: {
   const note = suggestion ? `${suggestion.name} — ${suggestion.description}\nWikipedia (CC BY-SA 4.0) ${suggestion.url}` : ''
   const applied = Boolean(note && position.long?.includes(note))
   return (
-    <section aria-label="Catalogue result" className="space-y-1.5 border-l-[3px] border-slate-300 pl-3 text-sm leading-relaxed text-slate-700">
-      <h3 className="text-[15px] font-semibold text-slate-900">{labels[result.state]}</h3>
+    <section aria-labelledby="drawer-catalogue-h" className="space-y-1.5 text-sm leading-relaxed text-slate-700">
+      <h3 id="drawer-catalogue-h" className="text-[15px] font-semibold text-slate-900">Catalogue research</h3>
+      <p className="font-medium text-slate-800">{labels[result.state]}</p>
       {result.recovered?.source && <p>Missing description recovered from the companion offer PDF.</p>}
       {result.product && <p><strong>{result.product.name}</strong> · {result.product.category}</p>}
       {suggestion && <>

@@ -23,14 +23,33 @@ const EMPTY_TEXT: Record<CatalogueKind, string> = {
 
 type Listing = { rows: CatalogueEntry[]; has_more: boolean }
 
+/** products get a package, so the catalogue never borrows the archive box that means "Archived" */
+const catalogueIcon = (kind: CatalogueKind) => (kind === 'products' ? 'package_2' : CATALOGUES[kind].icon)
+
+const squash = (text: string) => text.replace(/\s+/g, ' ').trim()
+
+/** a short piece of the description that tells same-named products apart; nothing when it only repeats the name */
+function excerpt(name: string, description?: string) {
+  const title = squash(name).toLowerCase()
+  let text = squash(description ?? '')
+  // descriptions often open with the product name: keep only what they add
+  if (title && text.toLowerCase().startsWith(title)) text = text.slice(title.length).replace(/^[\s,.;:–—-]+/, '')
+  if (!text || text.toLowerCase() === title) return ''
+  if (text.length <= 60) return text
+  const cut = text.slice(0, 60)
+  const space = cut.lastIndexOf(' ')
+  return `${(space > 40 ? cut.slice(0, space) : cut).replace(/[\s,.;:–—-]+$/, '')}…`
+}
+
 /** the second line of a row: only the details that exist, so empty columns never become a wall of dashes */
 function details(kind: CatalogueKind, entry: CatalogueEntry) {
-  const parts = kind === 'products'
-    ? [entry.category, entry.supplier, entry.sku && `Item code ${entry.sku}`]
-    : [kind === 'subcontractors' ? entry.trade : null, entry.contact_name, entry.email, entry.phone]
-  const shown = parts.filter(Boolean)
-  if (shown.length) return shown.join(' · ')
-  return kind === 'products' ? 'No supplier or item code yet' : 'No contact details yet'
+  if (kind === 'products') {
+    const specifics = [entry.unit, entry.sku && `Item code ${entry.sku}`, entry.supplier].filter(Boolean)
+    const parts = [entry.category, ...specifics, !specifics.length && excerpt(entry.name, entry.description)].filter(Boolean)
+    return parts.length ? parts.join(' · ') : 'No supplier or item code yet'
+  }
+  const shown = [kind === 'subcontractors' ? entry.trade : null, entry.contact_name, entry.email, entry.phone].filter(Boolean)
+  return shown.length ? shown.join(' · ') : 'No contact details yet'
 }
 
 function CatalogueRows({ kind, entries, onEdit, onArchive, onRestore }: {
@@ -41,7 +60,8 @@ function CatalogueRows({ kind, entries, onEdit, onArchive, onRestore }: {
   onRestore: (entry: CatalogueEntry) => void
 }) {
   const navigate = useNavigate()
-  const { icon } = CATALOGUES[kind]
+  const icon = catalogueIcon(kind)
+  const showProducts = (entry: CatalogueEntry) => navigate(`/catalogues/products?supplier=${entry.id}`)
   return (
     <RowList>
       {entries.map((entry) => {
@@ -60,7 +80,18 @@ function CatalogueRows({ kind, entries, onEdit, onArchive, onRestore }: {
             subtitle={details(kind, entry)}
             amount={kind === 'products'
               ? (priced ? price : <span className="font-normal text-slate-600">Not priced</span>)
-              : kind === 'suppliers' ? <span className="font-normal text-slate-600">{plural(products, 'product', 'products')}</span> : undefined}
+              : kind === 'suppliers' ? (products && !archived ? (
+                // a link to the supplier's products; above the row's own button, so it never opens the editor
+                <button
+                  type="button"
+                  aria-label={`View ${plural(products, 'product', 'products')} from ${entry.name}`}
+                  onClick={(event) => { event.stopPropagation(); showProducts(entry) }}
+                  className="pointer-events-auto relative z-10 -my-1 inline-flex items-center gap-0.5 rounded py-1 text-sm font-normal text-slate-600 underline-offset-2 transition-colors after:absolute after:-inset-x-2 after:-inset-y-1.5 after:content-[''] hover:text-brand-700 hover:underline"
+                >
+                  {plural(products, 'product', 'products')}
+                  <Icon name="chevron_right" size={18} className="-mr-1" />
+                </button>
+              ) : <span className="text-sm font-normal text-slate-600">{plural(products, 'product', 'products')}</span>) : undefined}
             meta={kind === 'products' && priced
               ? <span className="text-sm text-slate-600">{entry.unit ? `per ${entry.unit}` : 'no unit'}{entry.valid_from ? ` · ${cataloguePriceSource(entry)}` : ''}</span>
               : undefined}
@@ -71,7 +102,7 @@ function CatalogueRows({ kind, entries, onEdit, onArchive, onRestore }: {
                   { label: 'Restore', icon: 'restore', onSelect: () => onRestore(entry) },
                 ] : [
                   { label: 'Edit', icon: 'edit', onSelect: () => onEdit(entry) },
-                  ...(products ? [{ label: `View ${plural(products, 'product', 'products')}`, icon: 'inventory_2', onSelect: () => navigate(`/catalogues/products?supplier=${entry.id}`) }] : []),
+                  ...(products ? [{ label: `View ${plural(products, 'product', 'products')}`, icon: 'package_2', onSelect: () => showProducts(entry) }] : []),
                   'sep' as const,
                   { label: 'Archive', icon: 'archive', danger: true, onSelect: () => onArchive(entry) },
                 ]}
@@ -85,7 +116,8 @@ function CatalogueRows({ kind, entries, onEdit, onArchive, onRestore }: {
 }
 
 function Catalogue({ kind }: { kind: CatalogueKind }) {
-  const { title, item, icon } = CATALOGUES[kind]
+  const { title, item } = CATALOGUES[kind]
+  const icon = catalogueIcon(kind)
   const [filters, setFilters] = useSearchParams()
   const supplier = kind === 'products' ? filters.get('supplier') : null
   const archived = filters.get('view') === 'archived'
@@ -155,7 +187,7 @@ function Catalogue({ kind }: { kind: CatalogueKind }) {
       <PageHeader
         title={title}
         subtitle={SUBTITLE[kind]}
-        aside={!blank && <Button variant="primary" size="lg" icon="add" onClick={() => setEditing(null)} aria-label={`Add ${item}`} className="max-sm:w-11 max-sm:px-0"><span className="max-sm:hidden">Add {item}</span></Button>}
+        aside={!blank && <Button variant="primary" size="lg" icon="add" onClick={() => setEditing(null)} aria-label={`Add ${item}`} className="max-sm:px-4">Add<span className="max-sm:hidden"> {item}</span></Button>}
       />
 
       {!blank && <div className="mb-6 flex flex-wrap items-center gap-2">
@@ -192,7 +224,7 @@ function Catalogue({ kind }: { kind: CatalogueKind }) {
         </div>
       )}
       {current?.data && (rows.length ? (
-        <Section title={archived ? `Archived ${title.toLowerCase()}` : title} count={count} id="catalogue-rows">
+        <Section title={archived ? 'Archived' : 'Active'} count={count} id="catalogue-rows">
           <CatalogueRows kind={kind} entries={rows} onEdit={setEditing}
             onArchive={(entry) => setConfirm({ entry, action: 'archive' })}
             onRestore={(entry) => setConfirm({ entry, action: 'restore' })} />
@@ -200,16 +232,18 @@ function Catalogue({ kind }: { kind: CatalogueKind }) {
       ) : (
         <EmptyState
           icon={query.trim() || supplier ? 'search_off' : icon}
+          hint={!query.trim() && !archived && !supplier && (
+            <button type="button" onClick={() => setFilter('view', 'archived')} className="relative font-medium text-slate-600 underline underline-offset-2 transition-colors after:absolute after:-inset-x-2 after:-inset-y-3 after:content-[''] hover:text-brand-700">
+              Show archived
+            </button>
+          )}
           title={query.trim() || supplier ? 'No matching entries' : `No ${archived ? 'archived ' : ''}${title.toLowerCase()} yet`}
           text={query.trim() ? 'Try a different search, or clear it to see everything.'
             : archived ? `Archived ${title.toLowerCase()} land here, and you can restore them any time.`
             : EMPTY_TEXT[kind]}
         >
           {query.trim() ? <Button size="lg" onClick={() => setQuery('')}>Clear search</Button>
-            : !archived && !supplier && <>
-              <Button variant="primary" size="lg" icon="add" onClick={() => setEditing(null)}>Add {item}</Button>
-              <Button size="lg" icon="archive" onClick={() => setFilter('view', 'archived')}>Show archived</Button>
-            </>}
+            : !archived && !supplier && <Button variant="primary" size="lg" icon="add" onClick={() => setEditing(null)}>Add {item}</Button>}
         </EmptyState>
       ))}
       {current?.data && (page > 1 || current.data.has_more) && (

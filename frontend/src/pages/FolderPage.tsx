@@ -100,8 +100,16 @@ export function FolderPage() {
       <PageHeader
         crumbs={crumbs}
         title={f.name}
-        subtitle={folderDescription(f) || undefined}
-        aside={<RowMenu items={menu} label={`More actions for ${f.name}`} />}
+        subtitle={[folderDescription(f), f.positions ? plural(f.positions, 'position', 'positions') : ''].filter(Boolean).join(' · ') || undefined}
+        aside={
+          <div className="flex items-center gap-2">
+            <Button variant="primary" icon="upload" onClick={() => pickAndImport(f.id)} aria-label="Import files" className="max-sm:w-10 max-sm:px-0">
+              <span className="max-sm:hidden">Import files</span>
+            </Button>
+            <Button icon="add" onClick={() => openDialog({ kind: 'blank-list', folderId: f.id })} aria-label="New list" className="max-sm:w-10 max-sm:px-0"><span className="max-sm:hidden">New list</span></Button>
+            <RowMenu items={menu} label={`More actions for ${f.name}`} />
+          </div>
+        }
       />
 
       <Summary
@@ -112,20 +120,7 @@ export function FolderPage() {
         status={status}
         note={capNote}
         onEditCap={() => openDialog({ kind: 'edit-cap', target: 'folder', id: f.id })}
-        meta={
-          f.positions ? (
-            <span className="num">
-              {plural(f.positions, 'position', 'positions')}
-              {toPrice > 0 && <> · <strong className="font-semibold text-slate-900">{int(toPrice)}</strong> still to price</>}
-            </span>
-          ) : undefined
-        }
-        actions={
-          <>
-            <Button variant="primary" size="lg" icon="upload" onClick={() => pickAndImport(f.id)}>Import files</Button>
-            <Button size="lg" icon="add" onClick={() => openDialog({ kind: 'blank-list', folderId: f.id })}>New list</Button>
-          </>
-        }
+        meta={toPrice > 0 ? <span className="num"><strong className="font-semibold text-slate-900">{int(toPrice)}</strong> still to price</span> : undefined}
       />
 
       {subfolders.length > 0 && (

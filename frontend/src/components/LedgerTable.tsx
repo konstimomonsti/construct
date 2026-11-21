@@ -188,7 +188,7 @@ const Row = memo(function Row({ listId, p, showCategory, selected, flash, edited
             { label: 'Remove', icon: 'delete', danger: true, onSelect: remove },
           ]}
           trigger={(t) => (
-            <button {...t} type="button" aria-label={`Actions for ${p.oz}`} className="inline-flex size-10 items-center justify-center rounded-md text-slate-600 transition-colors hover:bg-slate-200/70 hover:text-slate-900">
+            <button {...t} type="button" aria-label={`Actions for ${p.oz}`} className="inline-flex size-10 items-center justify-center rounded-md text-slate-600 transition-[color,background-color,opacity] group-hover:opacity-100 group-focus-within:opacity-100 hover:bg-slate-200/70 hover:text-slate-900 focus-visible:opacity-100 aria-expanded:opacity-100 [@media(hover:hover)]:opacity-0">
               <Icon name="more_horiz" size={20} />
             </button>
           )}
@@ -372,16 +372,16 @@ EP (€)
                       type="button"
                       aria-expanded={open}
                       onClick={() => toggleCat(cat.oz)}
-                      className="-ml-1 flex min-h-10 max-w-full items-center gap-1.5 rounded-lg pr-2 text-left hover:bg-slate-100"
+                      className="-ml-1 flex min-h-10 max-w-full items-center gap-1.5 rounded-lg pr-2 text-left hover:bg-slate-100 max-sm:w-full"
                       style={{ marginLeft: b.depth * 20 }}
                     >
                       <Icon name="expand_more" size={20} className={clsx('shrink-0 text-slate-500 transition-transform', !open && '-rotate-90')} />
                       <span className="shrink-0 font-mono text-[13px] font-medium text-slate-600">{cat.oz}</span>
                       {/* phones wrap the title to two lines and drop the count under it, so "Baust…" never happens */}
                       <span className="flex min-w-0 flex-col py-1 sm:flex-row sm:items-baseline sm:gap-2 sm:py-0">
-                        <span lang="de" className="min-w-0 hyphens-auto max-sm:line-clamp-2 sm:truncate">{cat.label || cat.oz}</span>
+                        <span lang="de" className="min-w-0 hyphens-auto max-sm:line-clamp-2 max-sm:break-words sm:truncate">{cat.label || cat.oz}</span>
                         {!open && stats.has(cat.oz) && (
-                          <span className="num shrink-0 font-sans text-[13px] font-normal text-slate-600">{plural(stats.get(cat.oz)!.count, 'position', 'positions')}</span>
+                          <span className="num shrink-0 font-sans text-sm font-normal text-slate-600 sm:text-[13px]">{plural(stats.get(cat.oz)!.count, 'position', 'positions')}</span>
                         )}
                       </span>
                     </button>

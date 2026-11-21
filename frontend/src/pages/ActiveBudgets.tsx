@@ -70,7 +70,7 @@ export function ActiveBudgets() {
             cap={budget.cap}
             capLabel="in list caps"
             status={heroStatus(budget, live.map((l) => ({ tone: budgetStatus(l.total, l.cap).tone })), ['list', 'lists'])}
-            meta={total !== budget.total ? <span className="num">{money(total)} across all {plural(live.length, 'list', 'lists')}</span> : plural(live.length, 'list', 'lists')}
+            meta={total !== budget.total ? <span className="num">{money(total)} across all {plural(live.length, 'list', 'lists')}</span> : undefined}
             note="Measured against each list's own cap."
           />
           <Section

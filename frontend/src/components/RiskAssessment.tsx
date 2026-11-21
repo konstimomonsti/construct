@@ -25,18 +25,24 @@ export function FindingBadge({ severity, children }: { severity: Severity; child
 }
 
 /** one finding: a severity bar on the leading edge, the badge and title, then the explanation */
-export function FindingText({ finding, reviewed }: { finding: Finding; reviewed?: boolean }) {
+export function FindingText({ finding, reviewed, changed }: { finding: Finding; reviewed?: boolean; changed?: boolean }) {
+  const muted = reviewed || changed
   return (
-    <div className={clsx('min-w-0 border-l-[3px] pl-3', reviewed ? 'border-slate-300' : RISK_UI[finding.severity].bar)}>
+    <div className={clsx('min-w-0 border-l-[3px] pl-3', muted ? 'border-slate-300' : RISK_UI[finding.severity].bar)}>
       <div className="flex flex-wrap items-center gap-2">
         {reviewed ? (
           <span className="inline-flex h-6 items-center gap-1 rounded-md bg-slate-100 px-1.5 text-[13px] font-semibold text-slate-700">
             <Icon name="check" size={15} className="shrink-0" />Reviewed
           </span>
+        ) : changed ? (
+          <span className="inline-flex h-6 items-center gap-1 rounded-md bg-slate-100 px-1.5 text-[13px] font-semibold text-slate-700">
+            <Icon name="edit" size={15} className="shrink-0" />Changed since upload
+          </span>
         ) : <FindingBadge severity={finding.severity} />}
-        <h4 className="text-[15px] font-semibold text-slate-900">{finding.title}</h4>
+        <h4 className={clsx('text-[15px] font-semibold', muted ? 'text-slate-700' : 'text-slate-900')}>{finding.title}</h4>
       </div>
-      <p className="mt-1 text-sm leading-relaxed text-pretty text-slate-700">{finding.message}</p>
+      {changed && !reviewed && <p className="mt-1 text-sm leading-relaxed text-pretty text-slate-700">You edited this value after the upload check. The note below describes the uploaded version.</p>}
+      <p className={clsx('mt-1 text-sm leading-relaxed text-pretty', muted ? 'text-slate-600' : 'text-slate-700')}>{finding.message}</p>
       {finding.suggested_fix?.rationale && <p className="mt-1 text-sm leading-relaxed text-pretty text-slate-600">{finding.suggested_fix.rationale}</p>}
     </div>
   )

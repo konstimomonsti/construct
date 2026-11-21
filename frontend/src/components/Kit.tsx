@@ -26,8 +26,8 @@ export function Crumbs({ items }: { items: Crumb[] }) {
     <nav aria-label="Breadcrumb" className="mb-1.5 flex min-w-0 items-center gap-1 overflow-hidden text-sm whitespace-nowrap text-slate-600">
       {items.map((c, i) => (
         <Fragment key={c.to + i}>
-          {i > 0 && <Icon name="chevron_right" size={16} className="shrink-0 text-slate-400" />}
           <Link to={c.to} className="truncate rounded transition-colors hover:text-slate-900 hover:underline">{c.label}</Link>
+          <Icon name="chevron_right" size={16} className="shrink-0 text-slate-400" />
         </Fragment>
       ))}
     </nav>
@@ -286,7 +286,7 @@ export function Summary({
           <div className="flex flex-wrap items-center gap-3">
             <StatusTag tone="none" word="No cap set" />
             {onEditCap && (
-              <button type="button" onClick={onEditCap} className="h-9 rounded-md bg-white px-3 font-medium text-slate-900 ring-1 ring-slate-400 ring-inset hover:bg-slate-100">Set a cap</button>
+              <button type="button" onClick={onEditCap} className="h-9 rounded-md bg-slate-100 px-3 font-medium text-slate-900 hover:bg-slate-200">Set a cap</button>
             )}
           </div>
           {meta && <div>{meta}</div>}
@@ -388,7 +388,7 @@ export function worstTone(own: { total: number; cap: number }, children: { total
 /** a filter link inside hero meta: only the action words are underlined */
 export function MetaLink({ children, onClick, pressed }: { children: ReactNode; onClick: () => void; pressed?: boolean }) {
   return (
-    <button type="button" aria-pressed={pressed} onClick={onClick} className="relative inline-flex h-7 items-center gap-1 rounded-md px-2 font-medium text-slate-900 ring-1 after:absolute after:inset-x-0 after:-inset-y-2 after:content-[''] ring-slate-400 ring-inset hover:bg-slate-100 aria-pressed:bg-slate-900 aria-pressed:text-white">
+    <button type="button" aria-pressed={pressed} onClick={onClick} className="relative inline-flex h-7 items-center gap-1 rounded-md bg-slate-100 px-2 font-medium text-slate-900 after:absolute after:inset-x-0 after:-inset-y-2 after:content-[''] hover:bg-slate-200 aria-pressed:bg-slate-900 aria-pressed:text-white">
       {children}
     </button>
   )
@@ -514,7 +514,7 @@ export function ToolButton({ icon, children, className, active, ...rest }: React
       type="button"
       className={clsx(
         'inline-flex h-10 shrink-0 items-center gap-1.5 rounded-md px-3.5 text-sm font-medium whitespace-nowrap transition-colors',
-        active ? 'bg-slate-900 text-white hover:bg-slate-800' : 'bg-white text-slate-800 ring-1 ring-inset ring-slate-400 hover:bg-slate-100',
+        active ? 'bg-slate-900 text-white hover:bg-slate-800' : 'bg-slate-100 text-slate-800 hover:bg-slate-200',
         className,
       )}
       {...rest}
@@ -555,7 +555,7 @@ export function Chips<K extends string>({ value, options, onChange, label }: { v
             onClick={() => onChange(o.key)}
             className={clsx(
               'inline-flex h-10 items-center gap-2 rounded-md px-4 text-sm font-medium transition-colors',
-              on ? 'bg-slate-900 font-semibold text-white' : 'bg-white text-slate-800 ring-1 ring-inset ring-slate-400 hover:bg-slate-100',
+              on ? 'bg-slate-900 font-semibold text-white' : 'bg-slate-100 text-slate-800 hover:bg-slate-200',
             )}
           >
             {o.label}
@@ -576,19 +576,19 @@ export function EmptyState({ icon, title, text, children, hint, className, activ
   return (
     <div
       className={clsx(
-        'flex flex-col items-center rounded-lg border-2 border-dashed px-5 text-center transition-colors',
+        'flex flex-col items-center rounded-lg px-5 text-center transition-colors',
         compact ? 'py-10' : 'py-12 sm:py-16',
-        active ? 'border-brand-600 bg-brand-50' : 'border-slate-300 bg-slate-50',
+        active === undefined ? 'border border-slate-300' : active ? 'border-2 border-dashed border-brand-600 bg-brand-50' : 'border-2 border-dashed border-slate-300',
         className,
       )}
     >
       {icon && (
-        <span className={clsx('flex items-center justify-center rounded-lg bg-white text-brand-700 ring-1 ring-slate-300 ring-inset', compact ? 'mb-3 size-12' : 'mb-5 size-16')}>
+        <span className={clsx('flex items-center justify-center rounded-lg bg-brand-50 text-brand-700', compact ? 'mb-3 size-12' : 'mb-5 size-16')}>
           <Icon name={icon} size={compact ? 24 : 30} />
         </span>
       )}
       <h2 className={clsx('font-heading font-bold tracking-tight text-balance text-slate-900', compact ? 'text-lg' : 'text-xl sm:text-2xl')}>{title}</h2>
-      {text && <p className="mt-2 max-w-md text-[15px] leading-relaxed text-pretty text-slate-600">{text}</p>}
+      {text && <p className="mt-2 max-w-[52ch] text-[15px] leading-relaxed text-balance text-slate-600">{text}</p>}
       {children && <div className="mt-7 flex w-full flex-col items-stretch justify-center gap-2 sm:w-auto sm:flex-row sm:flex-wrap">{children}</div>}
       {hint && <p className="mt-6 max-w-md text-sm leading-relaxed text-pretty text-slate-500">{hint}</p>}
     </div>
@@ -598,7 +598,7 @@ export function EmptyState({ icon, title, text, children, hint, className, activ
 /** secondary pill as a link ("Go to All Projects") */
 export function PillLink({ to, icon, children }: { to: string; icon?: string; children: ReactNode }) {
   return (
-    <Link to={to} className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-white px-5 text-sm font-semibold text-slate-900 ring-1 ring-slate-400 ring-inset hover:bg-slate-100">
+    <Link to={to} className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-slate-100 px-5 text-sm font-semibold text-slate-900 hover:bg-slate-200">
       {icon && <Icon name={icon} size={18} />}
       {children}
     </Link>

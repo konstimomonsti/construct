@@ -29,7 +29,6 @@ interface Result {
   key: string
   group: Group
   icon: string
-  tile?: string
   title: string
   sub: string
   /** a position's OZ, set in the code face ahead of `sub` */
@@ -45,21 +44,24 @@ interface Result {
 }
 type Option =
   | { kind: 'result'; key: string; r: Result }
-  | { kind: 'more'; key: string; group: Group; next: number; top?: number }
+  | { kind: 'more'; key: string; group: Group; next: number }
 interface GroupView {
   group: Group
   count: number
   options: { o: Option; i: number }[]
   /** expanded but capped at POS_MAX: how many are listed */
   capped?: number
+  /** none of the group's results has a price: said once in the header instead of on every row */
+  nonePriced?: boolean
 }
 
 /** rows per group before the "Show N more" row */
 const CAP = 3
 /** most positions listed when the group is expanded */
 const POS_MAX = 50
-/** every result tile is neutral; yellow is kept for the selection bar and the match highlight */
-const NEUTRAL = 'bg-slate-100 text-slate-700 ring-1 ring-inset ring-slate-300'
+/** the same filled tile as the app's list rows; one step deeper on the selected row so it doesn't melt into the fill */
+const TILE = 'bg-brand-50 text-brand-700'
+const TILE_ON = 'bg-brand-100 text-brand-700'
 const GROUP_ORDER: Group[] = ['Actions', 'Projects', 'Lists', 'Positions']
 const NOUN: Record<Group, [string, string]> = { Actions: ['action', 'actions'], Projects: ['project', 'projects'], Lists: ['list', 'lists'], Positions: ['position', 'positions'] }
 
@@ -170,20 +172,20 @@ export function CommandPalette() {
     const displayName = (l: ListView) => listLabel(l, live.filter((x) => x.folderId === l.folderId)).title
     const fRes: Result[] = rank(folders.filter((f) => !f.trashedAt), (f) => f.name, (f) => f.description ?? '')
       .map(({ x: f, s }) => ({
-        key: `f-${f.id}`, group: 'Projects', icon: f.icon, tile: NEUTRAL, title: f.name,
+        key: `f-${f.id}`, group: 'Projects', icon: f.icon, title: f.name,
         sub: [plural(f.listMetas.length, 'list', 'lists'), folderDescription(f)].filter(Boolean).join(' · '),
         right: f.total ? money(f.total) : undefined, priced: !!f.total, score: s,
         go: go(`/folder/${f.id}`),
       }))
     const lRes: Result[] = rank(live, displayName, (l) => `${l.title} ${folderName.get(l.folderId) ?? ''} ${l.projectLabel ?? ''}`)
       .map(({ x: l, s }) => ({
-        key: `l-${l.id}`, group: 'Lists', icon: 'request_quote', tile: NEUTRAL, title: displayName(l),
+        key: `l-${l.id}`, group: 'Lists', icon: 'request_quote', title: displayName(l),
         sub: [folderName.get(l.folderId), phaseLabel(l) ?? plural(l.positionsCount, 'position', 'positions')].filter(Boolean).join(' · '),
         right: l.total ? money(l.total) : undefined, priced: !!l.total, score: s, go: go(`/list/${l.id}`, l.id),
       }))
     // commands: all of them on an empty query, otherwise the ones whose name matches
     const act = (key: string, icon: string, title: string, sub: string, run: () => void): Result => ({
-      key: `a-${key}`, group: 'Actions', icon, tile: NEUTRAL, title, sub, priced: false, score: t ? score(title) : 1,
+      key: `a-${key}`, group: 'Actions', icon, title, sub, priced: false, score: t ? score(title) : 1,
       go: () => { setOpen(false); run() },
     })
     const aRes = [
@@ -192,7 +194,7 @@ export function CommandPalette() {
       act('budgets', 'account_balance_wallet', 'Go to Active Budgets', 'Every priced list against its cap', go('/active')),
       act('archived', 'archive', 'Go to Archived', 'Projects set aside', go('/archived')),
       act('trash', 'delete', 'Go to Trash', 'Restore or delete forever', go('/trash')),
-      act('products', 'inventory_2', 'Go to Products', 'Catalogue items and prices', go('/catalogues/products')),
+      act('products', 'package_2', 'Go to Products', 'Catalogue items and prices', go('/catalogues/products')),
       act('suppliers', 'local_shipping', 'Go to Suppliers', 'Companies you buy from', go('/catalogues/suppliers')),
       act('subcontractors', 'engineering', 'Go to Subcontractors', 'Companies you hire for trades', go('/catalogues/subcontractors')),
       act('theme', theme === 'dark' ? 'light_mode' : 'dark_mode', theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode', 'Remembered on this device', () => setTheme(theme === 'dark' ? 'light' : 'dark')),
@@ -221,7 +223,6 @@ export function CommandPalette() {
           // category first, then the list it lives in, so the two don't read alike
           oz: e.oz,
           sub: [e.category, where].filter(Boolean).join(' · '),
-          tile: NEUTRAL,
           right: !e.priced ? undefined : ep ?? money(e.total),
           rightSub: e.priced && ep ? `GP ${money(e.total)}` : undefined,
           priced: e.priced,
@@ -247,12 +248,12 @@ export function CommandPalette() {
       const open = expanded.has(g)
       const limit = open || g === 'Actions' ? max : CAP
       const shown = rs.slice(0, limit)
-      const view: GroupView = { group: g, count: rs.length, options: [] }
+      const view: GroupView = { group: g, count: rs.length, options: [], nonePriced: g !== 'Actions' && rs.every((r) => !r.priced) }
       const push = (o: Option) => { view.options.push({ o, i: options.length }); options.push(o) }
       shown.forEach((r) => push({ kind: 'result', key: r.key, r }))
       if (rs.length > limit) {
         // collapsed: offer the next batch; expanded and capped: explain the rest in a note row
-        if (!open) push({ kind: 'more', key: `more-${g}`, group: g, next: Math.min(rs.length, max) - limit, top: rs.length > max ? max : undefined })
+        if (!open) push({ kind: 'more', key: `more-${g}`, group: g, next: Math.min(rs.length, max) - limit })
         else view.capped = limit
       }
       return view
@@ -346,7 +347,7 @@ export function CommandPalette() {
                 className="h-16 flex-1 bg-transparent text-base text-slate-900 outline-none placeholder:text-slate-500"
               />
               {loading && <Icon name="progress_activity" size={18} className="animate-spin text-slate-500" />}
-              <button ref={closeRef} type="button" onClick={close} aria-label="Close search (Esc)" className="h-7 rounded-md bg-slate-100 px-2 text-xs font-medium text-slate-700 hover:bg-slate-200">
+              <button ref={closeRef} type="button" onClick={close} aria-label="Close search (Esc)" className="relative h-7 min-w-11 rounded-md bg-slate-100 px-2 text-xs font-medium text-slate-700 after:absolute after:inset-x-0 after:-inset-y-2 after:content-[''] hover:bg-slate-200">
                 <span className="max-sm:hidden">Esc</span><span className="sm:hidden">Cancel</span>
               </button>
             </div>
@@ -363,8 +364,7 @@ export function CommandPalette() {
                     {/* labels the group below; hidden from browse mode so it isn't read twice */}
                     <div id={headingId} aria-hidden="true" className="flex items-baseline gap-2 px-3 pt-5 pb-2 text-xs text-slate-600">
                       <span className="font-semibold text-slate-800">{g.group}</span>
-                      {g.group !== 'Actions' && <span className="num font-medium">{int(g.count)}</span>}
-                      {g.group === 'Positions' && g.count > POS_MAX && !g.capped && <span className="font-medium">· top {int(POS_MAX)} listed when expanded</span>}
+                      {g.group !== 'Actions' && <span className="num font-medium">{int(g.count)}{g.nonePriced && ' · none priced'}</span>}
                     </div>
                     <div role="group" aria-labelledby={headingId}>
                       {g.options.map(({ o, i }) => {
@@ -389,7 +389,7 @@ export function CommandPalette() {
                               className={clsx(rowCls, 'py-2 text-sm font-medium text-brand-700')}
                             >
                               <span className="flex w-10 shrink-0 justify-center"><Icon name="expand_more" size={20} /></span>
-                              {o.top ? `Show the top ${int(o.top)} ${NOUN[o.group][1]}` : `Show ${int(o.next)} more ${NOUN[o.group][o.next === 1 ? 0 : 1]}`}
+                              {`Show ${int(o.next)} more ${NOUN[o.group][o.next === 1 ? 0 : 1]}`}
                             </button>
                           )
                         }
@@ -407,7 +407,7 @@ export function CommandPalette() {
                             onClick={r.go}
                             className={clsx(rowCls, 'py-2.5')}
                           >
-                            <span className={clsx('flex size-10 shrink-0 items-center justify-center rounded-md', r.tile ?? 'bg-brand-50 text-brand-700')}>
+                            <span className={clsx('flex size-10 shrink-0 items-center justify-center rounded-md', on ? TILE_ON : TILE)}>
                               <Icon name={r.icon} size={20} />
                             </span>
                             <span className="min-w-0 flex-1">
@@ -423,7 +423,7 @@ export function CommandPalette() {
                                 <span className="num text-sm font-semibold text-slate-900">{r.right}</span>
                                 {r.rightSub && <span className="num text-xs text-slate-600">{r.rightSub}</span>}
                               </span>
-                            ) : r.group !== 'Actions' && (
+                            ) : r.group !== 'Actions' && !g.nonePriced && (
                               <span className="shrink-0 text-sm text-slate-600">Not priced</span>
                             )}
                           </button>
@@ -447,7 +447,6 @@ export function CommandPalette() {
               <span className="flex items-center gap-1.5"><Kbd label="Up arrow">↑</Kbd><Kbd label="Down arrow">↓</Kbd> to move</span>
               <span className="flex items-center gap-1.5"><Kbd label="Enter">↵</Kbd> to open</span>
               <span className="ml-auto flex items-center gap-1.5"><Kbd label="Slash">/</Kbd> search a list</span>
-              <span className="flex items-center gap-1.5"><Kbd label="j">j</Kbd><Kbd label="k">k</Kbd> next or previous row</span>
             </div>
           </motion.div>
         </div>

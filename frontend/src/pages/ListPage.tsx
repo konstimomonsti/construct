@@ -117,7 +117,7 @@ function TabsBar({ activeId, folderId }: { activeId: string; folderId: string })
 const pillCls = (on: boolean) =>
   clsx(
     'inline-flex h-10 shrink-0 items-center gap-2 rounded-md px-3.5 text-sm whitespace-nowrap transition-colors',
-    on ? 'bg-slate-900 font-semibold text-white hover:bg-slate-800' : 'bg-white font-medium text-slate-800 ring-1 ring-slate-400 ring-inset hover:bg-slate-100',
+    on ? 'bg-slate-900 font-semibold text-white hover:bg-slate-800' : 'bg-slate-100 font-medium text-slate-800 hover:bg-slate-200',
   )
 
 /** toggles one quick filter; the pressed state is the filter's only visible state */
@@ -343,13 +343,36 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   const { byRow: findingsByRow, listWide } = useMemo(
     () => indexFindings(uploadReport?.findings ?? [], imported.positions), [uploadReport, imported.positions],
   )
+  // a finding about a field the user has since edited no longer describes the position: show it as
+  // "changed since upload" instead of flagging the row with an error the edit may already have fixed
+  const changedFindings = useMemo(() => {
+    const out = new Set<string>()
+    for (const finding of uploadReport?.findings ?? []) {
+      const id = finding.target.line_id
+      if (!id || !edits) continue
+      const patch = edits.patch[id] ?? {}
+      const field = finding.target.field
+      const touched =
+        field === 'quantity' ? id in edits.qty
+        : field === 'unit_price' ? id in edits.up
+        : field === 'line_amount' ? id in edits.qty || id in edits.up
+        : field === 'long_text' ? 'long' in patch
+        : field === 'short_text' ? 'short' in patch
+        : field === 'unit' ? 'unit' in patch
+        : field === 'code' ? 'oz' in patch
+        : false
+      if (touched) out.add(finding.id)
+    }
+    return out
+  }, [uploadReport, edits])
+  const settled = useMemo(() => new Set([...reviewed, ...changedFindings]), [reviewed, changedFindings])
   const risks = useMemo(() => {
     return new Map([...findingsByRow].flatMap(([id, findings]) => {
-      const open = findings.filter((finding) => !reviewed.has(finding.id))
+      const open = findings.filter((finding) => !reviewed.has(finding.id) && !changedFindings.has(finding.id))
       const severity = SEVERITIES.find((level) => open.some((finding) => finding.severity === level))
       return severity ? [[id, { severity, count: open.length, label: open.map((finding) => finding.title).join(', ') }] as const] : []
     }))
-  }, [findingsByRow, reviewed])
+  }, [findingsByRow, reviewed, changedFindings])
   const filterFindings = useMemo(
     () => positions.flatMap(({ id }) => {
       const findings = findingsByRow.get(id)
@@ -357,7 +380,6 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
     }),
     [positions, findingsByRow],
   )
-  const flaggedCount = useMemo(() => positions.filter((p) => risks.has(p.id)).length, [positions, risks])
 
   const [q, setQ] = useState('')
   const [cats, setCats] = useState<Set<string> | null>(null)
@@ -425,11 +447,11 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   const rows = useMemo(() => {
     const t = q.trim().toLowerCase()
     let r = positions.filter(
-      (p) => matchesFindingFilter(findingFilter, findingsByRow.get(p.id) ?? [], reviewed) && (!cats || cats.has(leafOz(p))) && (!onlyUnpriced || p.up == null) && (!onlyZero || (p.up != null && p.qty === 0)) && (!onlyEdited || editedIds.has(p.id) || addedIds.has(p.id)) && (!t || p.oz.toLowerCase().includes(t) || p.short.toLowerCase().includes(t) || p.path?.some((part) => part.label.toLowerCase().includes(t))),
+      (p) => matchesFindingFilter(findingFilter, findingsByRow.get(p.id) ?? [], settled) && (!cats || cats.has(leafOz(p))) && (!onlyUnpriced || p.up == null) && (!onlyZero || (p.up != null && p.qty === 0)) && (!onlyEdited || editedIds.has(p.id) || addedIds.has(p.id)) && (!t || p.oz.toLowerCase().includes(t) || p.short.toLowerCase().includes(t) || p.path?.some((part) => part.label.toLowerCase().includes(t))),
     )
     if (sortTotal) r = [...r].sort((a, b) => positionTotal(b) - positionTotal(a))
     return r
-  }, [positions, q, cats, sortTotal, onlyUnpriced, onlyZero, onlyEdited, editedIds, addedIds, findingFilter, findingsByRow, reviewed])
+  }, [positions, q, cats, sortTotal, onlyUnpriced, onlyZero, onlyEdited, editedIds, addedIds, findingFilter, findingsByRow, settled])
 
   const largest = useMemo(() => {
     let best: Position | null = null
@@ -595,12 +617,6 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
                 <MetaLink onClick={() => only('zero')} pressed={onlyZero}><span className="num">{int(zeroQty)}</span> with quantity 0</MetaLink>
               </span>
             )}
-            {flaggedCount > 0 && (
-              <span className="inline-flex items-center gap-x-1.5">
-                <span aria-hidden className="max-sm:hidden">·</span>
-                <MetaLink onClick={() => { setFindingFilter((f) => (f === 'flagged' ? 'all' : 'flagged')); toTable() }} pressed={findingFilter === 'flagged'}><span className="num">{int(flaggedCount)}</span> flagged by the upload check</MetaLink>
-              </span>
-            )}
             {editedCount > 0 && (
               <span className="inline-flex items-center gap-x-1.5">
                 <span aria-hidden className="max-sm:hidden">·</span>
@@ -610,7 +626,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
             {sections.length > 1 && (
               <span className="inline-flex items-center gap-x-1.5">
                 <span aria-hidden className="max-sm:hidden">·</span>
-                <button type="button" aria-expanded={showSections} aria-controls="pricing-legend" onClick={() => setShowSections((v) => !v)} className="relative inline-flex h-7 items-center gap-0.5 rounded-md pr-1 pl-2 font-medium after:absolute after:inset-x-0 after:-inset-y-2 after:content-[''] text-slate-900 ring-1 ring-slate-400 ring-inset hover:bg-slate-100">
+                <button type="button" aria-expanded={showSections} aria-controls="pricing-legend" onClick={() => setShowSections((v) => !v)} className="relative inline-flex h-7 items-center gap-0.5 rounded-md pr-1 pl-2 font-medium after:absolute after:inset-x-0 after:-inset-y-2 after:content-[''] text-slate-900 bg-slate-100 hover:bg-slate-200">
                   <span>Cost by section</span><Icon name="expand_more" size={18} className={clsx('text-slate-500 transition-transform', showSections && 'rotate-180')} />
                 </button>
               </span>
@@ -655,7 +671,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
             {!q && <kbd aria-hidden className="pointer-events-none absolute top-1/2 right-3 hidden -translate-y-1/2 rounded border border-slate-300 px-1.5 font-mono text-xs text-slate-600 peer-focus:hidden [@media(hover:hover)]:block">/</kbd>}
           </div>
           <CategoryFilter tree={tree} stats={catStats} value={cats} onChange={setCats} />
-          <FindingFilter rows={filterFindings} reviewed={reviewed} value={findingFilter} onChange={setFindingFilter} />
+          <FindingFilter rows={filterFindings} reviewed={settled} value={findingFilter} onChange={setFindingFilter} />
           {assessment?.state === 'waiting' && (
             <span role="status" className="inline-flex h-10 items-center gap-1.5 text-sm text-slate-600">
               <Icon name="progress_activity" size={18} className="animate-spin" />Checking the uploaded list
@@ -729,7 +745,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
               <button type="button" onClick={removeSelected} className="inline-flex h-10 items-center gap-1.5 rounded-md px-3 font-medium text-rose-700 hover:bg-rose-50">
                 <Icon name="delete" size={18} />Remove
               </button>
-              <button type="button" onClick={() => { setSelected(new Set()); setSelectMode(false) }} className="ml-auto inline-flex h-10 items-center rounded-md bg-white px-4 font-semibold text-slate-900 ring-1 ring-slate-400 ring-inset hover:bg-slate-100">Clear</button>
+              <button type="button" onClick={() => { setSelected(new Set()); setSelectMode(false) }} className="ml-auto inline-flex h-10 items-center rounded-md bg-slate-100 px-4 font-semibold text-slate-900 hover:bg-slate-200">Clear</button>
             </div>
           ) : (
             <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-sm text-slate-600">
@@ -738,7 +754,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
                   type="button"
                   aria-label="Search positions"
                   onClick={() => { tableRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); searchRef.current?.focus({ preventScroll: true }) }}
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-md text-slate-700 ring-1 ring-slate-400 ring-inset hover:bg-slate-100"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-md text-slate-700 bg-slate-100 hover:bg-slate-200"
                 >
                   <Icon name="search" size={20} />
                 </button>
@@ -827,7 +843,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
                 const done = reviewed.has(finding.id)
                 return (
                   <li key={finding.id} className="space-y-3">
-                    <FindingText finding={finding} reviewed={done} />
+                    <FindingText finding={finding} reviewed={done} changed={changedFindings.has(finding.id)} />
                     <Button size="sm" className="ml-[15px]" icon={done ? 'undo' : 'check'} onClick={() => toggleReviewed(finding.id, finding.title)}
                       aria-label={`${done ? 'Reopen' : 'Mark reviewed'}: ${finding.title}`}>
                       {done ? 'Reopen' : 'Mark reviewed'}

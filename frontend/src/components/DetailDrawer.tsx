@@ -215,7 +215,7 @@ export function DetailDrawer({
                       if (e.key === 'Enter') e.currentTarget.blur()
                       if (e.key === 'Escape') { e.stopPropagation(); e.currentTarget.value = p.oz; e.currentTarget.blur() }
                     }}
-                    className="num mt-0.5 h-8 min-w-[3ch] shrink-0 rounded-md border border-transparent bg-transparent px-1 text-base text-slate-600 tabular-nums outline-none [field-sizing:content] hover:border-slate-400 focus:border-brand-600 focus:bg-white focus:ring-1 focus:ring-brand-600"
+                    className="mt-0.5 h-8 min-w-[3ch] shrink-0 rounded-md border border-transparent bg-transparent px-1 font-mono text-[15px] text-slate-600 outline-none [field-sizing:content] hover:border-slate-400 focus:border-brand-600 focus:bg-white focus:ring-1 focus:ring-brand-600"
                   />
                   <div className="group relative min-w-0 flex-1">
                     <label htmlFor={`${uid}-short`} className="sr-only">Kurztext</label>
@@ -242,7 +242,7 @@ export function DetailDrawer({
                   </div>
                   {(edited || added) && (
                     <div className="flex shrink-0 flex-col items-end gap-1 pt-2">
-                      {edited && <span className="rounded-md bg-brand-50 px-2 py-0.5 text-xs font-semibold text-brand-700" data-testid="edited-badge">Edited</span>}
+                      {edited && <span className="rounded-md px-2 py-0.5 text-xs font-semibold text-slate-700 ring-1 ring-slate-300 ring-inset" data-testid="edited-badge">Edited</span>}
                       {added && <span className="rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-800">Added by you</span>}
                     </div>
                   )}

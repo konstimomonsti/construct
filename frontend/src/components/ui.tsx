@@ -27,7 +27,7 @@ type Size = 'sm' | 'md' | 'lg'
 
 const variants: Record<Variant, string> = {
   primary: 'bg-brand-600 hover:bg-brand-500 text-ink font-semibold',
-  secondary: 'bg-white ring-1 ring-inset ring-slate-400 hover:bg-slate-100 text-slate-900 font-semibold',
+  secondary: 'bg-slate-100 hover:bg-slate-200 text-slate-900 font-semibold',
   ghost: 'text-slate-700 hover:text-slate-900 hover:bg-slate-100 font-medium',
   danger: 'bg-rose-600 hover:bg-rose-700 text-white font-semibold',
   soft: 'bg-brand-50 text-brand-700 hover:bg-brand-100 font-semibold',
@@ -367,7 +367,7 @@ function ToastItem({ t, drop }: { t: Toast; drop: (id: number) => void }) {
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, x: 24, transition: { duration: 0.15 } }}
       transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-      className="pointer-events-auto flex w-full items-center gap-2.5 rounded-lg border-l-2 border-[#edb03e] bg-[#1a0c01] py-2 pr-2 pl-4 text-sm text-[#fffaf2] shadow-[0_8px_24px_var(--pop-shadow)] ring-1 ring-[#7a6649]/60"
+      className="pointer-events-auto flex w-full items-center gap-2.5 rounded-lg border-l-2 border-[#edb03e] bg-[#1a0c01] py-2 pr-2 pl-4 text-sm text-[#fffaf2] ring-1 ring-[#7a6649]"
     >
       <Icon
         name={t.tone === 'error' ? 'error' : t.tone === 'info' ? 'info' : 'check_circle'}
@@ -376,7 +376,7 @@ function ToastItem({ t, drop }: { t: Toast; drop: (id: number) => void }) {
       />
       <span className="min-w-0 flex-1 py-1.5 font-medium">{t.text}</span>
       {t.action && (
-        <button type="button" className="h-9 rounded-md px-3 font-semibold text-[#f3c160] hover:bg-white/10" onClick={() => { t.action!.run(); drop(t.id) }}>
+        <button type="button" className="h-10 rounded-md bg-white/10 px-3 font-semibold text-[#f3c160] hover:bg-white/20" onClick={() => { t.action!.run(); drop(t.id) }}>
           {t.action.label}
         </button>
       )}
