@@ -17,6 +17,7 @@ import analysis_api
 import catalogues
 import mvp
 import workspace
+import workspace_analysis
 import workspace_catalogue
 from exports import export
 
@@ -478,7 +479,7 @@ class BrowserHandler(BaseHTTPRequestHandler):
     def workspace_request(self, request, write):
         """Shared workspace sync: GET/POST state, GET/POST file, POST file-delete."""
         path = request.path.removeprefix("/api/workspace/")
-        operations = {"state", "file", "file-delete", "catalogue"} if write else {"state", "file", "catalogue"}
+        operations = {"state", "file", "file-delete", "catalogue", "analysis"} if write else {"state", "file", "catalogue", "analysis"}
         if path not in operations:
             self.json(HTTPStatus.NOT_FOUND, {"error": "Action not found"})
             return
@@ -486,7 +487,7 @@ class BrowserHandler(BaseHTTPRequestHandler):
             params = {key: value[-1] for key, value in parse_qs(request.query, max_num_fields=4).items()}
             content = None
             if write:
-                limit = {"file": MAX_FILE_BYTES, "catalogue": 1024}.get(path, workspace.MAX_STATE_BYTES)
+                limit = {"file": MAX_FILE_BYTES, "catalogue": 1024, "analysis": 16 * 1024 * 1024}.get(path, workspace.MAX_STATE_BYTES)
                 length = int(self.headers.get("Content-Length", 0))
                 if not 0 < length <= limit:
                     self.json(HTTPStatus.REQUEST_ENTITY_TOO_LARGE, {"error": "The request is empty or too large."})
@@ -498,6 +499,10 @@ class BrowserHandler(BaseHTTPRequestHandler):
                 payload = json.loads(content)
                 if not isinstance(payload, dict):
                     raise ValueError("Invalid request body.")
+            if path == "analysis" and (not write or "original" not in params):
+                response = workspace_analysis.run(payload) if write else workspace_analysis.options()
+                self.json(HTTPStatus.OK, response)
+                return
             with psycopg.connect("", autocommit=True, row_factory=dict_row, connect_timeout=3,
                                  options="-c statement_timeout=30000") as connection:
                 if path == "state" and write:
@@ -515,6 +520,11 @@ class BrowserHandler(BaseHTTPRequestHandler):
                     response = workspace_catalogue.status(connection, workspace.WORKSPACE,
                                                           workspace.record_id(params.get("id")), start=write,
                                                           retry=write and payload.get("retry") is True)
+                elif path == "analysis":
+                    response = workspace_analysis.run(
+                        payload, connection, workspace.WORKSPACE, workspace.record_id(params.get("id")),
+                        workspace.file_id(params["original"]),
+                    )
                 else:
                     response = workspace.delete_files(connection, payload)
             self.json(HTTPStatus.OK, response)

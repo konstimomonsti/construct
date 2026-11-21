@@ -34,8 +34,8 @@ export interface ListEdits {
   up: Record<string, number | null>
   removed: string[]
   added: Position[]
-  /** per-position text/unit overrides */
-  patch: Record<string, Partial<Pick<Position, 'short' | 'long' | 'unit'>>>
+  /** per-position text, unit, and position-number overrides */
+  patch: Record<string, Partial<Pick<Position, 'short' | 'long' | 'unit' | 'oz'>>>
   /** position id → target category OZ (renumbered by resolveList) */
   moves: Record<string, string>
   categories: { added: { oz: string; label: string; parentOz: string | null }[]; renamed: Record<string, string> }
@@ -90,7 +90,7 @@ interface State {
   setUp: (listId: string, pid: string, up: number | null) => void
   removePositions: (listId: string, pids: string[]) => void
   restorePositions: (listId: string, pids: string[]) => void
-  patchPosition: (listId: string, pid: string, p: Partial<Pick<Position, 'short' | 'long' | 'unit'>>) => void
+  patchPosition: (listId: string, pid: string, p: ListEdits['patch'][string]) => void
   /** drop every user change (qty/price/text/move) of one position */
   resetPosition: (listId: string, pid: string) => void
   movePositions: (listId: string, pids: string[], targetOz: string) => void
@@ -263,11 +263,17 @@ export const useStore = create<State>()(
         set((s) => {
           const e = norm(s.edits[listId])
           const moves = { ...e.moves }
+          const patch = { ...e.patch }
           for (const id of pids) {
             delete moves[id] // re-insert so move order == call order
             moves[id] = targetOz
+            if (patch[id]?.oz !== undefined) {
+              const { oz: _number, ...otherFields } = patch[id]
+              if (Object.keys(otherFields).length) patch[id] = otherFields
+              else delete patch[id]
+            }
           }
-          return { edits: { ...s.edits, [listId]: { ...e, moves } } }
+          return { edits: { ...s.edits, [listId]: { ...e, moves, patch } } }
         }),
       unmovePositions: (listId, pids) =>
         set((s) => {

@@ -1,5 +1,5 @@
 import { clsx } from 'clsx'
-import { lazy, Suspense, use, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type FormEvent } from 'react'
+import { lazy, Suspense, use, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import { Button, Dialog, Field, Icon, inputCls, Menu, toast } from '../components/ui'
@@ -7,6 +7,8 @@ import { Page, TableSkeleton } from '../components/Page'
 import { ErrorBoundary } from '../components/ErrorBoundary'
 import { LedgerTable } from '../components/LedgerTable'
 import { BudgetAlert } from '../components/BudgetAlert'
+import { FindingText, RiskAssessment } from '../components/RiskAssessment'
+import { buildAssessment, findingRows, SEVERITIES, useRiskAssessment, type Finding } from '../lib/risk-assessment'
 import { PricingBudget } from '../components/PricingBudget'
 import { MoreMenu } from '../components/FolderCard'
 import { useActions } from '../lib/actions'
@@ -401,12 +403,39 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   const tree = resolved.tree
   const catStats = useMemo(() => treeStats(positions), [positions])
   const st = useMemo(() => statsOf(positions), [positions])
+  const assessment = useRiskAssessment(useMemo(() => buildAssessment(doc, positions, tree), [doc, positions, tree]),
+    doc, original?.stored ? original.id : undefined)
+  const { affected, findingsByRow, risks } = useMemo(() => {
+    const affected = new Map<string, Set<string>>()
+    const findingsByRow = new Map<string, Finding[]>()
+    for (const finding of assessment.report?.findings ?? []) {
+      const ids = findingRows(finding, positions)
+      affected.set(finding.id, ids)
+      for (const id of ids) {
+        const current = findingsByRow.get(id)
+        if (current) current.push(finding)
+        else findingsByRow.set(id, [finding])
+      }
+    }
+    const risks = new Map([...findingsByRow].map(([id, findings]) => [
+      id, { severity: SEVERITIES.find((severity) => findings.some((finding) => finding.severity === severity)) ?? 'info', count: findings.length },
+    ]))
+    return { affected, findingsByRow, risks }
+  }, [assessment.report, positions])
 
   const [q, setQ] = useState('')
   const [cats, setCats] = useState<Set<string> | null>(null)
   const [sortTotal, setSortTotal] = useState(false)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [detailId, setDetailId] = useState<string | null>(null)
+  const [detailField, setDetailField] = useState<string | null>(null)
+  const [onlyFlagged, setOnlyFlagged] = useState(false)
+  const filterFlagged = onlyFlagged && risks.size > 0
+  const openDetail = useCallback((id: string, field: string | null = null) => {
+    setDetailField(field)
+    setDetailId(id)
+  }, [])
+  const closeDetail = useCallback(() => setDetailId(null), [])
   const [adding, setAdding] = useState(false)
   const [notesOpen, setNotesOpen] = useState(false)
   const [splitPre, setSplitPre] = useState<string[] | null>(null)
@@ -431,11 +460,12 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   const rows = useMemo(() => {
     const t = q.trim().toLowerCase()
     let r = positions.filter(
-      (p) => (!cats || cats.has(leafOz(p))) && (!t || p.oz.toLowerCase().includes(t) || p.short.toLowerCase().includes(t) || p.path?.some((part) => part.label.toLowerCase().includes(t))),
+      (p) => (!filterFlagged || risks.has(p.id)) && (!cats || cats.has(leafOz(p))) &&
+        (!t || p.oz.toLowerCase().includes(t) || p.short.toLowerCase().includes(t) || p.path?.some((part) => part.label.toLowerCase().includes(t))),
     )
     if (sortTotal) r = [...r].sort((a, b) => positionTotal(b) - positionTotal(a))
     return r
-  }, [positions, q, cats, sortTotal])
+  }, [positions, q, cats, sortTotal, filterFlagged, risks])
 
   const largest = useMemo(() => {
     let best: Position | null = null
@@ -444,6 +474,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   }, [positions])
 
   const detail = detailId ? positions.find((p) => p.id === detailId) ?? null : null
+  const detailFindings = detail ? findingsByRow.get(detail.id) : undefined
   const detailCatalogue = detail && report?.positions[detail.id]
 
   const removeSelected = () => {
@@ -483,6 +514,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
     setSortTotal(true)
     setQ('')
     setCats(null)
+    setOnlyFlagged(false)
     setTimeout(() => tableRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 40)
   }
 
@@ -538,8 +570,11 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
       </div>
 
       {catalogueEnabled && (
-        <CatalogueOverview report={report} error={error} retryFailed={retryFailed} positions={positions} onOpen={setDetailId} />
+        <CatalogueOverview report={report} error={error} retryFailed={retryFailed} positions={positions} onOpen={openDetail} />
       )}
+
+      <RiskAssessment assessment={assessment} positions={positions} affected={affected} onEdit={openDetail}
+        onlyFlagged={filterFlagged} onToggleFlagged={() => setOnlyFlagged((value) => !value)} />
 
       <PricingBudget tree={tree} stats={catStats} total={st.total} cap={cap} onAdd={(name) => {
         addCategory(null, name)
@@ -601,15 +636,16 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
           listId={doc.id}
           rows={rows}
           tree={tree}
-          showEmpty={!q.trim() && !cats}
+          showEmpty={!q.trim() && !cats && !filterFlagged}
           allPositions={positions}
           selected={selected}
           setSelected={setSelected}
           over75={cap > 0 && used >= 75}
           focusId={focusId}
-          onOpen={(p) => setDetailId(p.id)}
+          onOpen={(p) => openDetail(p.id)}
           onMove={(pid) => setMovePids([pid])}
           editedIds={editedIds}
+          risks={risks}
           sortActive={sortTotal}
           onResetSort={() => setSortTotal(false)}
           footer={
@@ -618,7 +654,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
               <span>Total <strong className="font-mono text-slate-700">{money(st.total)}</strong></span>
             </div>
           }
-          resetKey={`${q}|${cats ? [...cats].join(',') : '*'}|${sortTotal}`}
+          resetKey={`${q}|${cats ? [...cats].join(',') : '*'}|${sortTotal}|${filterFlagged}`}
         />
       </div>
 
@@ -657,10 +693,25 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
           <CatalogueDetails result={detailCatalogue} position={detail}
             onApply={(long) => useStore.getState().patchPosition(doc.id, detail.id, { long })} />
         ) : undefined}
-        onClose={() => setDetailId(null)}
+        findings={detailFindings?.length ? <section aria-label="Risk findings for this position" className="space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs">
+          <h3 className="font-semibold text-slate-900">Risk findings</h3>
+          {assessment.stale && <p className="text-amber-800">Previous assessment. Run it again after editing.</p>}
+          {detailFindings.map((finding) => <FindingText key={finding.id} finding={finding} />)}
+        </section> : undefined}
+        focusField={detailField}
+        onClose={closeDetail}
         edited={!!detail && editedIds.has(detail.id)}
         added={!!detail && addedIds.has(detail.id)}
         onPatch={(patch) => detail && useStore.getState().patchPosition(doc.id, detail.id, patch)}
+        onCode={(code) => {
+          if (!detail || code === detail.oz) return true
+          if (!code || positions.some((position) => position.id !== detail.id && position.oz === code)) {
+            toast(code ? 'That OZ is already in use' : 'Enter a position number', 'error')
+            return false
+          }
+          useStore.getState().patchPosition(doc.id, detail.id, { oz: code })
+          return true
+        }}
         onQty={(n) => detail && useStore.getState().setQty(doc.id, detail.id, n)}
         onUp={(n) => detail && useStore.getState().setUp(doc.id, detail.id, n)}
         onReset={() => detail && useStore.getState().resetPosition(doc.id, detail.id)}

@@ -2,11 +2,13 @@ import { clsx } from 'clsx'
 import { memo, useEffect, useMemo, useRef, useState } from 'react'
 import { Icon, Menu, toast } from './ui'
 import { QtyStepper } from './QtyStepper'
+import { FindingBadge } from './RiskAssessment'
 import { inputNumber, money, parseNumber } from '../lib/format'
 import { positionTotal } from '../lib/money'
 import { unitIcon } from '../lib/actions'
 import { useStore } from '../lib/store'
 import { leafOz, treeStats } from '../lib/resolve'
+import { RISK_STYLE, type Severity } from '../lib/risk-assessment'
 import type { CategoryNode, Position } from '../lib/types'
 
 const PAGE = 100
@@ -82,11 +84,12 @@ interface RowProps {
   flash: boolean
   onToggle: (id: string) => void
   edited: boolean
+  risk?: { severity: Severity; count: number }
   onOpen: (p: Position) => void
   onMove: (pid: string) => void
 }
 
-const Row = memo(function Row({ listId, depth, showCategory, p, selected, hot, flash, edited, onToggle, onOpen, onMove }: RowProps) {
+const Row = memo(function Row({ listId, depth, showCategory, p, selected, hot, flash, edited, risk, onToggle, onOpen, onMove }: RowProps) {
   const total = positionTotal(p)
   const remove = () => {
     const st = useStore.getState()
@@ -94,11 +97,14 @@ const Row = memo(function Row({ listId, depth, showCategory, p, selected, hot, f
     toast(`Removed ${p.oz}`, 'ok', { label: 'Undo', run: () => useStore.getState().restorePositions(listId, [p.id]) })
   }
   return (
-    <tr data-pid={p.id} className={clsx('group transition-colors hover:bg-slate-50/80', selected && 'bg-brand-50/40', flash && 'bg-brand-50 outline outline-1 -outline-offset-1 outline-brand-300')}>
+    <tr data-pid={p.id} data-risk={risk?.severity} className={clsx(
+      'group transition-colors', risk ? RISK_STYLE[risk.severity].row : 'hover:bg-slate-50/80',
+      selected && !risk && 'bg-brand-50/40', flash && 'outline outline-1 -outline-offset-1 outline-brand-300',
+    )}>
       <td className="py-4 pr-2 pl-4 max-lg:sticky max-lg:left-0 max-lg:z-[1] max-lg:bg-white">
         <input type="checkbox" className="checkbox" checked={selected} onChange={() => onToggle(p.id)} aria-label={`Select ${p.oz} ${p.short}`} />
       </td>
-      <td className="px-3 py-4 max-lg:sticky max-lg:left-10 max-lg:z-[1] max-lg:bg-white">
+      <td className={clsx('px-3 py-4 max-lg:sticky max-lg:left-10 max-lg:z-[1]', risk ? RISK_STYLE[risk.severity].row : 'max-lg:bg-white')}>
         <div className="flex min-w-0 items-center gap-3 border-slate-200" style={{ marginInlineStart: depth * 16, paddingInlineStart: depth ? 10 : 0, borderInlineStartWidth: depth ? 1 : 0 }}>
           <div className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-100 text-slate-600">
             <Icon name={unitIcon(p.unit)} size={18} />
@@ -108,6 +114,11 @@ const Row = memo(function Row({ listId, depth, showCategory, p, selected, hot, f
               {p.short && p.short !== '(ohne Kurztext)' ? p.short : <span className="font-normal text-slate-400 italic">(ohne Kurztext)</span>}
             </button>
             <div className="truncate font-mono text-[11px] text-slate-400">OZ: {p.oz}</div>
+            {risk && (
+              <button type="button" className="mt-1 rounded-md hover:underline" aria-label={`Review findings for ${p.oz}`} onClick={() => onOpen(p)}>
+                <FindingBadge severity={risk.severity}>{RISK_STYLE[risk.severity].label}{risk.count > 1 ? ` · ${risk.count} findings` : ''}</FindingBadge>
+              </button>
+            )}
           </div>
         </div>
       </td>
@@ -158,7 +169,7 @@ const Row = memo(function Row({ listId, depth, showCategory, p, selected, hot, f
 })
 
 export function LedgerTable({
-  listId, rows, tree, showEmpty, allPositions, selected, setSelected, over75, focusId, onOpen, onMove, editedIds, sortActive, onResetSort, resetKey, footer,
+  listId, rows, tree, showEmpty, allPositions, selected, setSelected, over75, focusId, onOpen, onMove, editedIds, risks, sortActive, onResetSort, resetKey, footer,
 }: {
   listId: string
   /** already filtered + sorted */
@@ -173,6 +184,7 @@ export function LedgerTable({
   onOpen: (p: Position) => void
   onMove: (pid: string) => void
   editedIds: Set<string>
+  risks?: Map<string, { severity: Severity; count: number }>
   sortActive: boolean
   onResetSort: () => void
   resetKey: string
@@ -318,7 +330,7 @@ export function LedgerTable({
             {shown.map((entry) => {
               if ('item' in entry) {
                 const p = entry.item
-                return <Row key={`p-${p.id}`} listId={listId} depth={entry.depth} showCategory={sortActive} p={p} selected={selected.has(p.id)} hot={p.id === hotId} flash={flash === p.id} edited={editedIds.has(p.id)} onToggle={toggle} onOpen={onOpen} onMove={onMove} />
+                return <Row key={`p-${p.id}`} listId={listId} depth={entry.depth} showCategory={sortActive} p={p} selected={selected.has(p.id)} hot={p.id === hotId} flash={flash === p.id} edited={editedIds.has(p.id)} risk={risks?.get(p.id)} onToggle={toggle} onOpen={onOpen} onMove={onMove} />
               }
               const { category, depth } = entry
               const isOpen = !collapsed.has(category.oz)

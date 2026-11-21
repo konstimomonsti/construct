@@ -299,7 +299,7 @@ export function resolveList(doc: ListDoc, editsIn?: Partial<ListEdits>): Resolve
   const decorated = base.map((p, i) => {
     const path = (p.path ?? []).map((r) => ({ oz: r.oz, label: idx.node.get(r.oz)?.label ?? r.label }))
     const leaf = path[path.length - 1]
-    const q: Position = { ...p, path, category: leaf?.label ?? p.category, group: path[0]?.label ?? p.group }
+    const q: Position = { ...p, oz: e.patch[p.id]?.oz ?? p.oz, path, category: leaf?.label ?? p.category, group: path[0]?.label ?? p.group }
     return { q, o: idx.order.get(leaf?.oz ?? '') ?? 1e9, i }
   })
   decorated.sort((a, b) => a.o - b.o || naturalCompare(a.q.oz, b.q.oz) || a.i - b.i)

@@ -20,32 +20,37 @@ function Labeled({ label, children, className }: { label: string; children: Reac
 }
 
 export function DetailDrawer({
-  p, catalogue, onClose, edited, added, onPatch, onQty, onUp, onReset, onMoveCategory,
+  p, catalogue, findings, focusField, onClose, edited, added, onPatch, onCode, onQty, onUp, onReset, onMoveCategory,
 }: {
   p: Position | null
   catalogue?: React.ReactNode
+  findings?: React.ReactNode
+  focusField?: string | null
   onClose: () => void
   edited: boolean
   added: boolean
   onPatch: (patch: Partial<Pick<Position, 'short' | 'long' | 'unit'>>) => void
+  onCode: (code: string) => boolean
   onQty: (n: number) => void
   onUp: (n: number | null) => void
   onReset: () => void
   onMoveCategory: () => void
 }) {
   const closeRef = useRef<HTMLButtonElement>(null)
+  const drawerRef = useRef<HTMLElement>(null)
   const [moving, setMoving] = useState(false)
   useEffect(() => {
     if (!p) return
     const prev = document.activeElement as HTMLElement | null
-    closeRef.current?.focus()
+    const target = focusField ? drawerRef.current?.querySelector<HTMLElement>(`[data-risk-field="${CSS.escape(focusField)}"]`) : null
+    ;(target ?? closeRef.current)?.focus()
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && !document.querySelector('[role=dialog][aria-labelledby]:not([aria-label])') && onClose()
     window.addEventListener('keydown', onKey)
     return () => {
       window.removeEventListener('keydown', onKey)
       prev?.focus?.()
     }
-  }, [p?.id, onClose]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [p?.id, focusField, onClose]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const leaf = p?.path?.[p.path.length - 1]
 
@@ -55,6 +60,7 @@ export function DetailDrawer({
         <div className="fixed inset-0 z-[75]">
           <motion.div className="absolute inset-0 bg-slate-900/20" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} onClick={onClose} />
           <motion.aside
+            ref={drawerRef}
             role="dialog"
             aria-modal="true"
             aria-label={`Position ${p.oz}`}
@@ -81,11 +87,18 @@ export function DetailDrawer({
               <IconButton ref={closeRef} icon="close" label="Close details" onClick={onClose} />
             </div>
             <div className="flex-1 space-y-4 overflow-y-auto px-5 py-4" key={p.id}>
+              {findings}
               {catalogue}
+              <Labeled label="OZ">
+                <input key={p.oz} aria-label="OZ" data-risk-field="code" className={inputCls} maxLength={80} defaultValue={p.oz}
+                  onBlur={(e) => { if (!onCode(e.currentTarget.value.trim())) e.currentTarget.value = p.oz }}
+                  onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()} />
+              </Labeled>
               <Labeled label="Kurztext">
                 <input
                   key={`s-${p.short}`}
                   aria-label="Kurztext"
+                  data-risk-field="short_text"
                   className={inputCls}
                   defaultValue={p.short === '(ohne Kurztext)' ? '' : p.short}
                   onBlur={(e) => e.target.value.trim() !== p.short && onPatch({ short: e.target.value.trim() })}
@@ -98,6 +111,7 @@ export function DetailDrawer({
                   <input
                     key={`q-${p.qty}`}
                     aria-label="Menge"
+                    data-risk-field="quantity"
                     inputMode="decimal"
                     className={`${inputCls} font-mono`}
                     defaultValue={numStr(p.qty)}
@@ -110,12 +124,13 @@ export function DetailDrawer({
                   />
                 </Labeled>
                 <Labeled label="Einheit">
-                  <input key={`u-${p.unit}`} aria-label="Einheit" className={inputCls} defaultValue={p.unit} onBlur={(e) => e.target.value.trim() !== p.unit && onPatch({ unit: e.target.value.trim() })} onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()} maxLength={12} />
+                  <input key={`u-${p.unit}`} aria-label="Einheit" data-risk-field="unit" className={inputCls} defaultValue={p.unit} onBlur={(e) => e.target.value.trim() !== p.unit && onPatch({ unit: e.target.value.trim() })} onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()} maxLength={12} />
                 </Labeled>
                 <Labeled label="Einheitspreis €">
                   <input
                     key={`e-${p.up}`}
                     aria-label="Einheitspreis"
+                    data-risk-field="unit_price"
                     inputMode="decimal"
                     className={`${inputCls} font-mono`}
                     defaultValue={p.up == null ? '' : numStr(p.up)}
@@ -158,6 +173,7 @@ export function DetailDrawer({
                 <textarea
                   key={`l-${p.long ?? ''}`}
                   aria-label="Langtext"
+                  data-risk-field="long_text"
                   rows={12}
                   className={`${inputCls} h-auto resize-y py-2 leading-relaxed`}
                   defaultValue={p.long ?? ''}
