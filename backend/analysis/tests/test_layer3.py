@@ -9,6 +9,7 @@ from analysis.layer2.adapter import from_data
 from analysis.layer3.provider import (
     FakeProvider, LLMRequest, OllamaProvider, ProviderError, ProviderUnavailable, ResponseCache, provider_from_env,
 )
+from analysis.layer3.prompts import CONTRADICTION_VERSION
 from analysis.layer3.schema import CONTRADICTION_SCHEMA, L2_CONFIRM_SCHEMA, MAX_CONFIDENCE, quote_in
 from analysis.registry import rules_for
 from analysis.runner import analyze
@@ -31,7 +32,9 @@ def pipe_input():
 
 
 def contradiction_answer(request):
-    """Report the first item whose short text says DN 150 and long text DN 200."""
+    """Report the first item whose short text says DN 150 and long text DN 200 (other checks: nothing)."""
+    if request.prompt_version != CONTRADICTION_VERSION:
+        return {"findings": [], "items": [], "reviews": []}
     items = json.loads(request.prompt.split("\n\n", 1)[1])["items"]
     findings = []
     for item in items:
@@ -47,6 +50,11 @@ def run3(analysis_input, provider, prior=None, **kwargs):
     findings = layer3.run(analysis_input, prior or [], errors, provider=provider, cache=ResponseCache(None),
                           **kwargs)
     return findings, errors
+
+
+def sent(provider, version=CONTRADICTION_VERSION):
+    """The requests of one check (the other layer 3 checks also run on these inputs)."""
+    return [request for request in provider.requests if request.prompt_version == version]
 
 
 def by_rule(findings, rule_id):
@@ -112,9 +120,9 @@ def test_prefilter_sends_only_lines_with_values_and_two_texts():
         line("d", "Rohr DN 100", "Rohr DN 100"),                                  # identical texts
     ]})
     run3(analysis_input, provider)
-    assert len(provider.requests) == 1
-    sent = json.loads(provider.requests[0].prompt.split("\n\n", 1)[1])["items"]
-    assert [item["code"] for item in sent] == ["a"]
+    assert len(sent(provider)) == 1
+    items = json.loads(sent(provider)[0].prompt.split("\n\n", 1)[1])["items"]
+    assert [item["code"] for item in items] == ["a"]
 
 
 @pytest.mark.parametrize("bad", [
@@ -160,8 +168,8 @@ def test_layer1_text_errors_skip_the_line():
                      target=Target(line_id=pipe_input().lines[0].id, field="long_text"), title="t", message="m")]
     provider = FakeProvider(lambda request: {"findings": []})
     run3(pipe_input(), provider, prior=prior)
-    sent = json.loads(provider.requests[0].prompt.split("\n\n", 1)[1])["items"]
-    assert "01.0010" not in [item["code"] for item in sent]
+    items = json.loads(sent(provider)[0].prompt.split("\n\n", 1)[1])["items"]
+    assert "01.0010" not in [item["code"] for item in items]
 
 
 def test_finding_id_is_stable_across_runs():
@@ -177,7 +185,7 @@ def test_cache_answers_repeat_run_without_calling_the_model(tmp_path):
     cache_dir = tmp_path / "cache"
     first = FakeProvider(contradiction_answer)
     layer3.run(pipe_input(), [], [], provider=first, cache=ResponseCache(cache_dir))
-    assert len(first.requests) == 1 and list(cache_dir.glob("*.json"))
+    assert len(sent(first)) == 1 and list(cache_dir.glob("*.json"))
 
     second = FakeProvider([RuntimeError("must not be called")])
     errors = []
@@ -194,8 +202,8 @@ def test_call_budget_caps_requests_and_is_reported(monkeypatch):
     provider = FakeProvider(lambda request: {"findings": []})
     errors = []
     layer3.run(analysis_input, [], errors, provider=provider, cache=ResponseCache(None), max_calls=2)
-    assert len(provider.requests) == 2
-    assert any("3 batch(es) not checked (call budget of 2 reached)" in error for error in errors)
+    assert len(provider.requests) == 2 and len(sent(provider)) == 2
+    assert any(f"{CONTRA}: 3 batch(es) not checked (call budget of 2 reached)" in error for error in errors)
 
 
 def test_request_failure_goes_to_errors_and_other_batches_still_run(monkeypatch):
@@ -206,7 +214,8 @@ def test_request_failure_goes_to_errors_and_other_batches_still_run(monkeypatch)
     ]})
     provider = FakeProvider([ProviderError("timed out"), contradiction_answer(
         LLMRequest("", "x\n\n" + json.dumps({"items": [{"ref": "#1", "short_text": "PVC-Rohr DN 150",
-                                                      "long_text": "PVC-Rohr DN 200 verlegen."}]}), {}, "v"))])
+                                                      "long_text": "PVC-Rohr DN 200 verlegen."}]}), {},
+                   CONTRADICTION_VERSION))])
     findings, errors = run3(analysis_input, provider)
     assert any("timed out" in error for error in errors)
     assert len(by_rule(findings, CONTRA)) == 1
@@ -241,8 +250,8 @@ def test_repeated_timeouts_stop_calling_the_provider(monkeypatch):
     analysis_input = from_data({"lines": [line(c, "Rohr DN 150", "Rohr DN 200 verlegen.") for c in "abcdef"]})
     provider = FakeProvider(lambda request: ProviderError("timed out"))
     findings, errors = run3(analysis_input, provider)
-    assert len(provider.requests) == 3
-    assert any("unavailable: 3 requests failed in a row" in e and "3 batch(es) not checked" in e for e in errors)
+    assert len(provider.requests) == 3 and len(sent(provider)) == 3
+    assert any("unavailable: 3 requests failed in a row" in e and "batch(es) not checked" in e for e in errors)
 
 
 def test_disabled_provider(monkeypatch):
