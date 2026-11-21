@@ -1,0 +1,51 @@
+{
+  "currency": "EUR",
+  "prices": {
+    "01.0010": {
+      "unit_cost": "100",
+      "standard_rate": "120",
+      "min_rate": "100"
+    },
+    "01.0020": {
+      "unit_cost": "20",
+      "standard_rate": "30",
+      "max_rate": "40"
+    }
+  },
+  "scenarios": [
+    {
+      "name": "Tight market, quantity corrected",
+      "probability": "0.64",
+      "winning_bid_ceiling": "1120",
+      "changes": {
+        "01.0020": {
+          "extra_quantity": "27",
+          "quoted_rate_share": "1",
+          "other_unit_rate": "20"
+        }
+      }
+    },
+    {
+      "name": "Tight market, no quantity change",
+      "probability": "0.16",
+      "winning_bid_ceiling": "1120"
+    },
+    {
+      "name": "Loose market, quantity corrected",
+      "probability": "0.16",
+      "winning_bid_ceiling": "1300",
+      "changes": {
+        "01.0020": {
+          "extra_quantity": "27",
+          "quoted_rate_share": "1",
+          "other_unit_rate": "20"
+        }
+      }
+    },
+    {
+      "name": "Loose market, no quantity change",
+      "probability": "0.04",
+      "winning_bid_ceiling": "1300"
+    }
+  ]
+}

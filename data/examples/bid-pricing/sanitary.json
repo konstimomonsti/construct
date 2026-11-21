@@ -1,0 +1,59 @@
+{
+  "currency": "EUR",
+  "prices": {
+    "01.0010": {
+      "unit_cost": "180",
+      "standard_rate": "210",
+      "min_rate": "180"
+    },
+    "01.0020": {
+      "unit_cost": "20",
+      "standard_rate": "32",
+      "max_rate": "52"
+    },
+    "01.0030": {
+      "unit_cost": "25",
+      "standard_rate": "30"
+    },
+    "01.0040": {
+      "unit_cost": "40",
+      "standard_rate": "50"
+    }
+  },
+  "scenarios": [
+    {
+      "name": "Tight market, quantity corrected",
+      "probability": "0.5525",
+      "winning_bid_ceiling": "2756",
+      "changes": {
+        "01.0020": {
+          "finding_rule": "L2.SANITARY.WC_NEEDS_WC_SEAT",
+          "quoted_rate_share": "1",
+          "other_unit_rate": "20"
+        }
+      }
+    },
+    {
+      "name": "Tight market, no quantity change",
+      "probability": "0.2975",
+      "winning_bid_ceiling": "2756"
+    },
+    {
+      "name": "Loose market, quantity corrected",
+      "probability": "0.0975",
+      "winning_bid_ceiling": "3010",
+      "changes": {
+        "01.0020": {
+          "finding_rule": "L2.SANITARY.WC_NEEDS_WC_SEAT",
+          "quoted_rate_share": "1",
+          "other_unit_rate": "20"
+        }
+      }
+    },
+    {
+      "name": "Loose market, no quantity change",
+      "probability": "0.0525",
+      "winning_bid_ceiling": "3010"
+    }
+  ]
+}
