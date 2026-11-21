@@ -66,7 +66,7 @@ export function Sidebar() {
         <div className={clsx('flex h-16 shrink-0 items-center', rail ? 'justify-center px-2' : 'justify-between pr-3 pl-5')}>
           <div className="flex items-center gap-2.5">
             <img
-              src="/billbuild-logo.png"
+              src="/billbuild-logo-transparent.png"
               width={32}
               height={32}
               alt={rail ? 'BillBuild' : ''}
