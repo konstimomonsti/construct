@@ -72,6 +72,9 @@ export type Risk = {
 }
 export type Question = { id: string; topic: string; text_de: string; line_codes: string[]; finding_ids: string[]; rule_id: string | null }
 
+export const openQuestions = (questions: Question[], decisions: Decisions) =>
+  questions.filter((question) => !question.finding_ids.length || question.finding_ids.some((id) => decisions[id]?.status !== 'dismissed'))
+
 export type AdvisoryStatus = {
   state: 'disabled' | 'no-candidates' | 'complete' | 'degraded' | 'unavailable'
   provider: string | null

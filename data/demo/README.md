@@ -17,7 +17,7 @@ Both files are generated GAEB X83 tenders. They contain deliberately damaged syn
 ## Three-minute walkthrough
 
 1. **0:00–0:35.** Drop the building hall X83 into a project folder. The list opens and shows the status of the upload assessment.
-2. **0:35–1:35.** Open the finding on `01.02.0010` and compare the written and calculated amounts. Show the missing edge insulation and open its bidder question to show how the estimator can verify scope before pricing the tender.
+2. **0:35–1:35.** Open the finding on `01.02.0010` and compare the written and calculated amounts. Review the missing edge insulation, expand the **client clarification draft** on the finding, and copy the German email draft.
 3. **1:35–2:35.** Import the precast X83. Open the proven billing-unit mismatch at `3.2.80`. Show the concrete class, sandwich layer thicknesses, and placeholder findings. Show the missing-specification case if Layer 3 is available.
 4. **2:35–3:00.** Show the generated Markdown results. Explain the difference between a catch, a known gap, and a layer that did not run. Mention that both synthetic seeds and the harmless controls were clean on the deterministic replay.
 
