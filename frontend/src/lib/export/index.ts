@@ -46,7 +46,7 @@ export function ownFormat(doc: ListDoc): FormatId | null {
   const k = sourceKindOf(doc)
   if (k === 'gaeb-xml') {
     const phase = doc.phase?.match(/^(?:X|DA)?(\d{2})$/i)?.[1] ?? extOf(doc.fileName).match(/^x(\d{2})$/i)?.[1]
-    if (phase === '84' && /3.2/.test(doc.source?.version ?? doc.format)) return 'x84'
+    if (phase === '84' && /\b3\.2\b/.test(doc.source?.version ?? doc.format)) return 'x84'
     if (phase !== '83') return null
     const version = doc.source?.version ?? doc.format
     if (/\b3\.2\b/.test(version)) return 'x83'
