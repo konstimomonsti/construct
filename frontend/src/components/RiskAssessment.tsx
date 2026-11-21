@@ -11,7 +11,7 @@ import { findingCategory, REASONS, SEVERITIES, type ChangeOrderSignal, type Cove
  * a flagged row carries a 3px severity bar on its leading edge and a light tint of the same colour across the row.
  */
 export const RISK_UI: Record<Severity, { label: string; plural: string; icon: string; chip: string; ink: string; tint: string; row: string; bar: string }> = {
-  error: { label: 'Error', plural: 'Errors', icon: 'flag', chip: 'bg-rose-100 text-rose-800', ink: 'text-rose-800', tint: 'bg-rose-50 hover:bg-rose-100', row: '[&>td:first-child]:shadow-[inset_3px_0_0_var(--color-rose-600)]', bar: 'border-rose-600' },
+  error: { label: 'Critical', plural: 'Critical warnings', icon: 'flag', chip: 'bg-rose-100 text-rose-800', ink: 'text-rose-800', tint: 'bg-rose-50 hover:bg-rose-100', row: '[&>td:first-child]:shadow-[inset_3px_0_0_var(--color-rose-600)]', bar: 'border-rose-600' },
   warning: { label: 'Warning', plural: 'Warnings', icon: 'flag', chip: 'bg-amber-100 text-amber-900', ink: 'text-amber-900', tint: 'bg-amber-50 hover:bg-amber-100', row: '[&>td:first-child]:shadow-[inset_3px_0_0_var(--color-amber-500)]', bar: 'border-amber-500' },
   info: { label: 'Note', plural: 'Notes', icon: 'flag', chip: 'bg-slate-200 text-slate-800', ink: 'text-slate-700', tint: 'bg-slate-50 hover:bg-slate-100', row: '[&>td:first-child]:shadow-[inset_3px_0_0_var(--color-slate-400)]', bar: 'border-slate-400' },
 }

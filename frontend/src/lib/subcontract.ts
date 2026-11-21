@@ -25,6 +25,8 @@ export type SubcontractOffer = {
   matched?: number
   /** package position ids the offer did not price */
   missing?: string[]
+  /** unit price (EUR) the offer gives each package position, by position id; fills the X84 for the client */
+  prices?: Record<string, number>
   /** we declined this offer */
   declined?: boolean
   /** id of the stored offer file (a `DocMeta`), when the file was imported */

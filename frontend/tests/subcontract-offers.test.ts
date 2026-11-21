@@ -82,18 +82,27 @@ test('matchOffer: partial match lists missing ids and counts extras', () => {
   assert.equal(r.amount, 30)
 })
 
-test('matchOffer: unpriced offer lines count as missing, and our quantity is the fallback', () => {
+test('matchOffer: unpriced offer lines count as missing', () => {
   const offer = { positions: [{ oz: '1.2.10', qty: 0, up: 2 }, { oz: '1.2.20', qty: 5, up: null }] }
   const r = matchOffer(ours.slice(0, 2), offer)
-  assert.equal(r.amount, 20, 'qty 0 in the offer falls back to our 10')
+  assert.equal(r.amount, 20)
+  assert.equal(r.qtyDiffs, 0, 'a qty of 0 in the offer is not a difference')
   assert.deepEqual(r.missing, ['b'])
 })
 
-test('matchOffer: leading zeros in the OZ are normalized, and the offer quantity wins', () => {
+test('matchOffer: leading zeros in the OZ are normalized, and our LV quantity is used', () => {
   const r = matchOffer([{ id: 'a', oz: '01.02.0010', qty: 10 }], { positions: [{ oz: '1.2.10', qty: 12, up: 1.5 }] })
-  assert.equal(r.amount, 18)
+  assert.equal(r.amount, 15)
+  assert.equal(r.qtyDiffs, 1)
+  assert.deepEqual(r.prices, { a: 1.5 })
 })
 
 test('ozOverlap counts package positions present in the file', () => {
   assert.equal(ozOverlap(ours, { positions: [{ oz: '1.2.10' }, { oz: '1.2.30' }, { oz: '5' }] }), 2)
+})
+
+test('matchOffer: a PDF-style OZ with a trailing dot matches the GAEB reply', () => {
+  const r = matchOffer([{ id: 'a', oz: '1.1.10.', qty: 1 }], { positions: [{ oz: '1.1.10', qty: 1, up: 5 }] })
+  assert.equal(r.matched, 1)
+  assert.equal(ozOverlap([{ oz: '1.1.10.' }], { positions: [{ oz: '1.1.10' }] }), 1)
 })

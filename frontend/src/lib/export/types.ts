@@ -1,6 +1,6 @@
 import type { CategoryNode, ListDoc, Position } from '../types'
 
-export type FormatId = 'csv' | 'xlsx' | 'pdf' | 'x83' | 'x83-2004' | 'd83' | 'd84' | 'd86' | 'docx' | 'json'
+export type FormatId = 'csv' | 'xlsx' | 'pdf' | 'x83' | 'x83-2004' | 'x84' | 'd83' | 'd84' | 'd86' | 'docx' | 'json'
 
 export type Scope = 'all' | 'selection' | 'categories'
 

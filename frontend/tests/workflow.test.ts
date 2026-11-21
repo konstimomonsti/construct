@@ -46,3 +46,9 @@ test('the stored email text never reaches a request', () => {
   assert.equal('sentText' in request, false)
   assert.equal('notes' in request, false)
 })
+
+test('without packages, a list whose positions are all priced is already in X84', () => {
+  assert.equal(currentPhase([], false, true).phase, 'x84')
+  assert.equal(currentPhase([], false, false).phase, 'x83')
+  assert.equal(currentPhase([pkg()], false, true).phase, 'x83', 'an unchosen package still blocks X84')
+})

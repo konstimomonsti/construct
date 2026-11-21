@@ -26,13 +26,14 @@ const wasSent = (p: PackageState) => p.status !== 'draft' || !!p.sentAt
 /**
  * The current phase, by the first rule that holds:
  * 1. `x86`: an award document exists (the project is complete, everything is lit).
- * 2. `x84`: at least one package, and every package has a chosen subcontractor.
+ * 2. `x84`: every package has a chosen subcontractor and there is at least one package, or there is no package at all
+ *    and every position already has a price (a list priced entirely in-house).
  * 3. `subcontractors`: at least one package was sent.
  * 4. `x83`: otherwise (nothing sent yet, or only drafts).
  */
-export function currentPhase(packages: readonly PackageState[], hasAward: boolean): WorkflowState {
+export function currentPhase(packages: readonly PackageState[], hasAward: boolean, allPriced = false): WorkflowState {
   const phase: WorkflowPhase = hasAward ? 'x86'
-    : packages.length > 0 && packages.every((p) => !!p.chosenId) ? 'x84'
+    : (packages.length > 0 ? packages.every((p) => !!p.chosenId) : allPriced) ? 'x84'
     : packages.some(wasSent) ? 'subcontractors'
     : 'x83'
   const index = WORKFLOW_PHASES.indexOf(phase)

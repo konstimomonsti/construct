@@ -513,3 +513,20 @@ def test_aligned_copy_can_use_full_specification_when_title_is_abbreviated():
     full = {"short": "Absperrklappe mit Messstutzen DN 100", "long": body}
     assert compatible_specification(short, full)
     assert not compatible_specification(short, {**full, "short": "Absperrklappe mit Messstutzen DN 200"})
+
+
+def test_research_falls_back_to_single_words_and_compound_heads(monkeypatch):
+    queries = []
+
+    def wiki(path):
+        if "search/page" in path:
+            queries.append(path)
+            if "q=zementestrich&" in path:
+                return {"pages": [{"title": "Estrich", "key": "Estrich"}]}
+            return {"pages": []}
+        return {"type": "standard", "extract": "Estrich is a floor layer."}
+
+    monkeypatch.setattr(catalogue, "wiki_json", wiki)
+    assert catalogue.research("Zementestrich Festigkeitsklasse")["name"] == "Estrich"
+    assert len(queries) == 3
+    assert catalogue.related("zementestrich", "estrich") and not catalogue.related("beton", "betonstahl")
