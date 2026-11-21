@@ -6,8 +6,8 @@ from difflib import SequenceMatcher
 import re
 
 from workspace_product_match import (
-    begins, descriptions, labelled_values, number_conflict, numbered_terms, reference_override, review_similarity,
-    tender_unit, tokens,
+    begins, clean_description, descriptions, duct_bundle, labelled_values, number_conflict, numbered_terms,
+    reference_override, review_similarity, tender_unit, tokens,
 )
 from workspace_product_references import PositionReferences
 
@@ -155,6 +155,21 @@ def compatible_specification(original, companion, summary=False):
     return SequenceMatcher(None, own_details, other_details, autojunk=False).ratio() >= .78
 
 
+def compatible_duct_summary(original, companion):
+    """Corroborate a short item using the complete bundle dimensions and scope."""
+    heading = clean_description(original.get("short"))
+    detail = clean_description(original.get("long"))
+    if detail and tokens(detail) != tokens(heading):
+        return False
+    supporting_text = f"{clean_description(companion.get('short'))}\n{clean_description(companion.get('long'))}"
+    bundle = duct_bundle(heading)
+    if not bundle or bundle != duct_bundle(supporting_text):
+        return False
+    listed, supporting = set(tokens(heading)), set(tokens(supporting_text))
+    scope = SCOPE_WORDS & listed
+    return bool(scope and scope == SCOPE_WORDS & supporting and not (VARIANT_MARKERS & listed) - supporting)
+
+
 def catalogue_matches(primary, siblings, matcher):
     """Use agreement among independently matched tender copies to resolve gaps."""
     original = indexed_positions(primary)
@@ -170,8 +185,15 @@ def catalogue_matches(primary, siblings, matcher):
                 continue
             prepared = references.resolve(row)
             number = position_number(row)
-            if aligned.get(number) is not row or not compatible_specification(original[number], prepared, summary):
+            if aligned.get(number) is not row:
+                continue
+            same_bundle = summary and compatible_duct_summary(original[number], prepared)
+            if not same_bundle and not compatible_specification(original[number], prepared, summary):
                 continue
             if product := matcher.match(prepared):
                 options[number][product["id"]] = {"product": product, "position": prepared}
+            elif same_bundle and (candidate := matcher.review_candidate(prepared)):
+                options[number].setdefault(candidate["id"], {
+                    "product": candidate, "position": prepared, "requires_catalogue_review": True,
+                })
     return {number: next(iter(products.values())) for number, products in options.items() if len(products) == 1}
