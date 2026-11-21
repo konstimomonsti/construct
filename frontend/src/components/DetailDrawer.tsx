@@ -3,7 +3,6 @@ import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import { Button, Icon, Menu, useInertRoot } from './ui'
 import { LOCALE, amount, budgetStatus, money, nbHyphen, parseNumber, qty } from '../lib/format'
-import { statusText } from './Kit'
 import { positionTotal } from '../lib/money'
 import type { CategoryRef, Position } from '../lib/types'
 
@@ -149,7 +148,7 @@ export function DetailDrawer({
     <AnimatePresence>
       {p && (
         <div className="fixed inset-0 z-[75]">
-          <motion.div className="absolute inset-0 bg-black/60" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} onClick={onClose} />
+          <motion.div className="absolute inset-0 bg-[var(--scrim)]" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} onClick={onClose} />
           <motion.aside
             ref={asideRef}
             onKeyDown={trap}
@@ -169,11 +168,11 @@ export function DetailDrawer({
               </button>
               <div className="ml-auto flex items-center gap-0.5 sm:gap-1">
                 {navCounter('px-1')}
-                <button type="button" aria-label="Previous position" aria-keyshortcuts="k" title="Previous position (k)" onClick={onPrev} disabled={!onPrev} className={`${headBtn} sm:w-auto sm:px-2`}>
-                  <Icon name="keyboard_arrow_up" size={22} /><kbd aria-hidden className="ml-0.5 hidden rounded border border-slate-300 px-1 font-mono text-[11px] leading-4 text-slate-600 [@media(hover:hover)]:inline">k</kbd>
+                <button type="button" aria-label="Previous position" aria-keyshortcuts="k" title="Previous position (k)" onClick={onPrev} disabled={!onPrev} className={headBtn}>
+                  <Icon name="keyboard_arrow_up" size={22} />
                 </button>
-                <button type="button" aria-label="Next position" aria-keyshortcuts="j" title="Next position (j)" onClick={onNext} disabled={!onNext} className={`${headBtn} sm:w-auto sm:px-2`}>
-                  <Icon name="keyboard_arrow_down" size={22} /><kbd aria-hidden className="ml-0.5 hidden rounded border border-slate-300 px-1 font-mono text-[11px] leading-4 text-slate-600 [@media(hover:hover)]:inline">j</kbd>
+                <button type="button" aria-label="Next position" aria-keyshortcuts="j" title="Next position (j)" onClick={onNext} disabled={!onNext} className={headBtn}>
+                  <Icon name="keyboard_arrow_down" size={22} />
                 </button>
               </div>
               <Menu
@@ -247,8 +246,6 @@ export function DetailDrawer({
                     </div>
                   )}
                 </div>
-                {findings}
-                {catalogue}
                 <div className="border-y border-slate-200 py-4">
                   <div className="text-sm font-medium text-slate-600">Gesamtpreis (GP)</div>
                   <div className="num display mt-1 text-[32px] leading-tight text-slate-900">{p.up == null ? 'Not priced yet' : money(total)}</div>
@@ -262,8 +259,8 @@ export function DetailDrawer({
                       {share != null && headroom != null && <span aria-hidden>·</span>}
                       {headroom != null && st && (
                         headroom >= 0
-                          ? <span className={st.tone === 'ok' ? '' : `font-semibold ${statusText[st.tone]}`}>{money(headroom)} left in the list cap</span>
-                          : <span className={`font-semibold ${statusText.over}`}>{money(-headroom)} over the list cap</span>
+                          ? <span className={st.tone === 'ok' ? '' : 'font-semibold text-slate-900'}>{money(headroom)} left in the list cap</span>
+                          : <span className="font-semibold text-slate-900">{money(-headroom)} over the list cap</span>
                       )}
                     </div>
                   )}
@@ -367,6 +364,8 @@ export function DetailDrawer({
                     </p>
                   )}
                 </div>
+                {findings}
+                {catalogue}
                 <div className="space-y-1.5">
                   <span id={`${uid}-cat`} className="block text-[13px] font-semibold text-slate-600">Kategorie</span>
                   <button
@@ -383,18 +382,6 @@ export function DetailDrawer({
                     className="flex min-h-11 w-full items-center gap-3 rounded-md bg-slate-100 px-3.5 py-2 text-left text-sm text-slate-900 ring-1 ring-slate-400 ring-inset transition-colors hover:bg-slate-200/70"
                   >
                     <span className="min-w-0 flex-1">
-                      {parents.length > 0 && (
-                        <span className="line-clamp-2 text-[13px] text-slate-600">
-                          {parents.map((r, i) => (
-                            <span key={r.oz || i}>
-                              {i > 0 && <span aria-hidden className="px-1 text-slate-500">›</span>}
-                              <span className="num">{r.oz}</span>
-                              {r.label && r.label !== leafLabel && <> {r.label}</>}
-                            </span>
-                          ))}
-                          <span aria-hidden className="px-1 text-slate-500">›</span>
-                        </span>
-                      )}
                       <span className="line-clamp-2">{leaf?.oz ? <span className="num text-slate-600">{leaf.oz} </span> : null}{leafLabel}</span>
                     </span>
                     <span className="sr-only">. Change category</span>

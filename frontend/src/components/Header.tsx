@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom'
-import { Icon, Menu, toast } from './ui'
+import { clsx } from 'clsx'
+import { Icon, kbdCls, Menu, toast } from './ui'
 import { useStore } from '../lib/store'
 import { useUi } from '../lib/ui-store'
 import { clearDocuments } from '../lib/documents'
@@ -35,7 +36,7 @@ export function Header() {
         >
           <Icon name="search" size={20} className="text-slate-600" />
           <span className="flex-1 truncate"><span className="sm:hidden">Search</span><span className="max-sm:hidden">Search projects, lists, positions</span></span>
-          <kbd className="hidden rounded-md bg-white px-1.5 py-0.5 text-xs font-medium text-slate-600 shadow-xs sm:inline">{MOD_KEY === '⌘' ? '⌘K' : 'Ctrl K'}</kbd>
+          <kbd className={clsx(kbdCls, 'max-sm:hidden')}>{MOD_KEY === '⌘' ? '⌘K' : 'Ctrl K'}</kbd>
         </button>
       </div>
 

@@ -46,7 +46,7 @@ export function ExportMenu({ listId, doc, selectedIds, original }: { listId: str
         width="w-64"
         items={items}
         trigger={(p) => (
-          <Button {...p} size="lg" icon="download" className="max-sm:w-11 max-sm:px-0">
+          <Button {...p} icon="download" className="max-sm:w-10 max-sm:px-0">
             <span className="max-sm:sr-only">Export{selectedIds?.length ? ` ${selectedIds.length}` : ''}</span>
           </Button>
         )}

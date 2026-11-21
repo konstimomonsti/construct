@@ -73,6 +73,7 @@
 :root[data-theme='dark'] {
   color-scheme: dark;
   --pop-shadow: rgba(0, 0, 0, 0.7);
+  --scrim: rgba(0, 0, 0, 0.6);
   --color-white: #0d0502;
   --color-slate-50: #140a03;
   --color-slate-100: #1a0c01;
@@ -112,7 +113,7 @@
   --color-rose-700: #ff7f73;
   --color-rose-800: #ff978c;
 }
-:root { color-scheme: light; --pop-shadow: rgba(13, 5, 2, 0.22); }
+:root { color-scheme: light; --pop-shadow: rgba(13, 5, 2, 0.22); --scrim: rgba(13, 5, 2, 0.45); }
 
 @layer base {
   html {

@@ -66,8 +66,7 @@ export function FolderPage() {
   // list caps are set independently; say when they promise more than the project cap allows
   const listCaps = allLists.filter(counts).reduce((x, l) => x + (l.cap || 0), 0)
   const capNote = f.cap > 0 && listCaps > f.cap ? (
-    <span className="inline-flex items-center gap-1.5 font-medium text-amber-900">
-      <Icon name="warning" size={16} fill className="shrink-0 text-amber-600" />
+    <span>
       List caps add up to {moneyWhole(listCaps)}, {moneyWhole(listCaps - f.cap)} over the project cap.
     </span>
   ) : undefined

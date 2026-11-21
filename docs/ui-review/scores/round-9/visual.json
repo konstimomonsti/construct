@@ -1,0 +1,154 @@
+{
+  "member": "visual",
+  "screens": {
+    "S1": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 8, "consistency": 7, "clarity": 8, "interaction": 8, "accessibility": 8, "responsive": 8, "wise": 8},
+      "issues": [
+        "Consistency: Sort, Select, New project and the unselected filter chips are ringed outline buttons (ui.tsx secondary: 'bg-white ring-1 ring-slate-400'), against the settled 'secondary buttons are borderless tinted fills'. Change the secondary variant to bg-slate-100 hover:bg-slate-200 with no ring, in both themes; keep rings for inputs only.",
+        "Consistency: on desktop the row amounts end at x≈1316 while the header buttons and hero end at 1368, because the hidden kebab still reserves its column. Let the amount column extend to the right edge and overlay the kebab on hover (absolute right-0), or keep the slot but align the hero/Sort buttons to the same 1316 edge.",
+        "Clarity: hero footnote 'Measured against project caps. List caps are on Active Budgets.' still sits as a sentence beside the warning chip. Move it into an info tooltip on 'Used' and keep the row to chip + '5 of 14 projects priced'.",
+        "Clarity: row badges still mix two grammars ('Near cap' = this project, '1 list almost at cap' = a roll-up) in the same filled chip. Give roll-up badges a list icon and plain text (no fill) so they read as a pointer, not a status.",
+        "Responsive: on mobile the warning chip and '5 of 14 projects priced' take two separate lines under the jib; put 'priced' on the 'Projects 14' header line as a muted suffix so the first row moves up ~40px.",
+        "Wise/Theo: mobile rows show '75%' without the cap amount; append the cap ('75% of 2 Mio. €') as desktop does, or the percentage has no anchor."
+      ]
+    },
+    "S2": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 8, "consistency": 7, "clarity": 8, "interaction": 8, "accessibility": 8, "responsive": 7, "wise": 8},
+      "issues": [
+        "Consistency: Import files / New list sit in their own row between the hero and 'Lists 2', while on S1 the same actions are in the page header. Move them to the header right (before ⋯) as on S1, which also lifts the list rows ~60px.",
+        "Consistency: the breadcrumb 'All Projects' has no chevron here but S3/S14 show 'All Projects ›'. Always render the chevron after each ancestor crumb.",
+        "Hierarchy: the status line stacks two amber warnings ('Near cap' chip and the 'List caps add up to…' sentence with its own warning icon). Keep the chip, render the cap-overallocation as a single muted line under the 'of 2.000.000 €' cap figure with one icon, so only one amber element remains.",
+        "Density: '314 positions' floats alone at the far right of the status line. Move it to the subtitle ('Projekt 2024-001 · … · 314 positions') or to the 'Lists 2' header.",
+        "Responsive: no mobile capture; make sure the header action move above also applies at <640px (icon-only buttons as on S1) and that the cap-overallocation line wraps under the hero, not beside the chip."
+      ]
+    },
+    "S3": {
+      "scores": {"hierarchy": 7, "density": 7, "typography": 8, "consistency": 7, "clarity": 7, "interaction": 8, "accessibility": 7, "responsive": 6, "wise": 7},
+      "issues": [
+        "Responsive: mobile section titles still break badly: 'Baustellenein-/richtung - Mont…' (hyphenated then ellipsised) and 'Demontagearbei-/ten', because the heavy expanded cut is too wide at ~20px on 390px. Below 640px set top-level section titles in the normal-width Archivo at 17px semibold, hyphens:none, line-clamp-2; keep the expanded cut for desktop only.",
+        "Responsive: '23 positions' under the mobile title is set in the expanded display cut; use the body cut 14px slate-600 like every other meta line.",
+        "Responsive: mobile still has five rows above the first section (On track chip, meta chips, Add/Export, search, toolbar); first section starts at y≈607 of 844. Put the status chip inline with '67% of 800.000 € …', move Export into the page ⋯ menu on <640px, so Add position shares the row with search.",
+        "Interaction/Density: every ledger position row shows an always-visible ⋯ button (LedgerTable.tsx:191), 197 of them in the full list, while RowItem kebabs are hover-only. Apply the same [@media(hover:hover)]:opacity-0 group-hover/focus-within reveal on ledger rows.",
+        "Density: Menge and EP inputs draw a permanent underline on every row (two lines per row across 197 rows). Show the underline only on row hover/focus and when the cell is edited; keep the right-aligned value at rest.",
+        "Consistency: the meta controls '38 with quantity 0' and 'Cost by section' are 26px ringed chips, a third button size next to the 40px toolbar buttons. Render them as text links (underline on hover) or as size-sm 32px buttons used elsewhere.",
+        "Accessibility: those 26px meta chips are below the 24px+spacing / 44px touch guideline on mobile (where they are ~28px tall). Give them min-h-10 on <640px.",
+        "Hierarchy: the toolbar has two visual rows of five equally weighted outline buttons plus search, competing with the hero. Collapse 'Expand all' and 'Sort' into one 'View' menu on desktop, leaving search + Categories + Select."
+      ]
+    },
+    "S4": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 7, "consistency": 8, "clarity": 8, "interaction": 8, "accessibility": 8, "responsive": 7, "wise": 8},
+      "issues": [
+        "Typography: Langtext still keeps the GAEB hard line breaks: lines end early ('Die Kosten für das Vorhalten und' / 'den Betrieb…', 'Sicherung' / 'der Baustelle.') leaving a ragged right edge. Reflow single newlines to spaces in render (keep blank lines as paragraphs); the words stay verbatim.",
+        "Typography: the drawer OZ '1.1.1' is proportional Archivo, while the ledger shows OZ in JetBrains Mono. Use the same mono style for the drawer OZ.",
+        "Density: the header nav shows '1 of 197', an up arrow, a 'k' kbd box, a down arrow and a 'j' kbd box — five items. Drop the visible kbd boxes and put 'k'/'j' in the button tooltips (title is already set), or show them only while ⌘/? is held.",
+        "Clarity: the Kategorie field shows the parent path as a truncated 12px first line ('1 Baustelleneinrichtung - Montagepläne - I ›'). Show only the leaf ('1.1 Baustelleneinrichtung und Dokumentation') in the field and put the full path in the tooltip/picker.",
+        "Responsive: the mobile bottom sheet is still not captured; verify GP, Menge/EP and the j/k arrows fit in the first 60% of the sheet with the drag handle visible."
+      ]
+    },
+    "S5": {
+      "scores": {"hierarchy": 8, "density": 7, "typography": 8, "consistency": 8, "clarity": 7, "interaction": 8, "accessibility": 8, "responsive": 7, "wise": 8},
+      "issues": [
+        "Density: the count of lists appears three times: subtitle '6 priced lists in 5 projects', the hero row '6 lists' at the right, and 'Budgets 6'. Drop the right-hand '6 lists' and keep the subtitle and section count.",
+        "Clarity: the hero cap here is 4.407.000 € vs 4.356.000 € on All Projects for the same 2.945.090,49 € total; 'Measured against each list's own cap' doesn't explain the 51.000 € gap. Add 'List caps total 51.000 € more than project caps' as a tooltip on 'of 4.407.000 €'.",
+        "Interaction: S1 offers a 'Not priced' filter but this list view only has All / Needs attention. Add the same chip here or remove it from S1, so both money views share one filter set.",
+        "Responsive: no mobile capture; RowItem fix from S1 applies, but check the long list names ('LV-Positionen nach Aufmaß-Gruppen' + 'Near cap' badge) wrap the badge to its own line rather than truncating the name."
+      ]
+    },
+    "S6": {
+      "scores": {"hierarchy": 8, "density": 7, "typography": 8, "consistency": 8, "clarity": 8, "interaction": 8, "accessibility": 8, "responsive": 8, "wise": 8},
+      "issues": [
+        "Density: the empty state is still a ~400px dashed box with a slate fill, holding a ringed white icon tile — box in a box. Drop the fill (dashed border only, or none), drop the ring on the tile (filled brand-50 tile as in RowItem), and use py-12.",
+        "Typography: the centred body text breaks into three lines with a 3-word orphan ('them any time.'). Set max-w-[52ch] and text-wrap:balance on EmptyState text.",
+        "Wise/Theo: an empty archive is a dead end; show a '⌘K to jump to a project' hint under the button, using the same kbd chip as the header search."
+      ]
+    },
+    "S7": {
+      "scores": {"hierarchy": 8, "density": 7, "typography": 8, "consistency": 8, "clarity": 8, "interaction": 8, "accessibility": 8, "responsive": 8, "wise": 8},
+      "issues": [
+        "Density: same filled dashed box with a ringed icon tile as S6; drop the fill and the tile ring, use py-12.",
+        "Clarity: no retention rule is stated. Add 'Items stay here until you empty the trash' (or the real rule) to the empty-state text.",
+        "Wise/Theo: show a count badge next to 'Trash' in the sidebar when it holds items, so the empty page rarely needs visiting."
+      ]
+    },
+    "S8": {
+      "scores": {"hierarchy": 9, "density": 8, "typography": 8, "consistency": 7, "clarity": 7, "interaction": 8, "accessibility": 8, "responsive": 8, "wise": 8},
+      "issues": [
+        "Consistency: result icon tiles are still outlined squares (ring-1) while every RowItem uses a filled brand-50 tile with no ring. Use the RowItem tile style.",
+        "Clarity: 'Positions 106 · top 50 listed when expanded' is still awkward. Show 'Positions 106' and let the expander say 'Show 47 more (top 50)'.",
+        "Clarity: the footer advertises 'j k next or previous row', which does nothing inside the palette (arrows do). Move j/k to a '?' shortcut sheet or show it only when the palette is empty with a 'On pages:' label.",
+        "Density: every result here ends with 'Not priced'. When a whole group shares the same status, state it once in the group header ('Lists 5 · none priced') and leave the right column for amounts.",
+        "Consistency: footer kbd chips are bordered boxes, the Esc chip and header ⌘K chip are filled. Use one Kbd style (filled slate-100, no border) everywhere."
+      ]
+    },
+    "S9": {
+      "scores": {"hierarchy": 8, "density": 8, "typography": 8, "consistency": 8, "clarity": 8, "interaction": 8, "accessibility": 8, "responsive": 8, "wise": 8},
+      "issues": [
+        "Density: the empty folder is a 420px filled dashed box with a ringed icon tile. Drop the fill and the tile ring; the box should read as a drop target only while dragging (show the dashed border + tint on dragover).",
+        "Consistency: the toast's right edge sits at 1424 (16px from the viewport) while all content aligns to 1368, and it carries a soft drop shadow against the 'no glassy shadows' brief. Align toasts to the content gutter (right-[max(1rem,calc((100vw-1056px)/2))]) or the page padding, and replace the shadow with the ring alone.",
+        "Interaction: Undo is a text-only yellow word on the toast; give it px-3 py-2 and a visible focus ring so it is a 40px target."
+      ]
+    },
+    "S10": {
+      "scores": {"hierarchy": 7, "density": 7, "typography": 8, "consistency": 8, "clarity": 6, "interaction": 7, "accessibility": 8, "responsive": 7, "wise": 7},
+      "issues": [
+        "Clarity: rows are now RowItems, but duplicates are still indistinguishable ('Abdichtung Sockelbereich Fassade' x3, 'Abdeckung, PE-Folie, 0,2 mm' x2) because the second line is only the category. Put item code / unit / supplier on the second line ('Waterproofing · m² · no supplier') or the source list when those are empty.",
+        "Clarity: the product icon is an archive box, the same metaphor as the 'Archived' chip and sidebar item. Use a package/cube icon for products.",
+        "Hierarchy: the page title 'Products' is repeated as the section header 'Products' with no count (count is suppressed when has_more). Show 'Products 1.000+' or the server total, or drop the section header and put the count in the subtitle.",
+        "Density: every visible row says 'Not priced' in the price column. Add a 'Not priced N' filter chip next to Active/Archived and, when all rows on screen are unpriced, let the column stay quiet (e.g. '—' slate-400) so priced products stand out.",
+        "Interaction: rows show no affordance at rest (no chevron, no kebab) and no way to archive without opening. Add the hover-reveal ⋯ menu (Edit, Archive) that RowItem uses on project rows.",
+        "Responsive: no mobile capture; confirm RowItem stacks the price under the name on <640px as on S1."
+      ]
+    },
+    "S11": {
+      "scores": {"hierarchy": 7, "density": 8, "typography": 8, "consistency": 8, "clarity": 7, "interaction": 7, "accessibility": 8, "responsive": 7, "wise": 7},
+      "issues": [
+        "Clarity/Interaction: '17 products' on the right is plain slate text with no cue that it opens the supplier's products. Render it as a link (bronze text, underline on hover, chevron) to the Products page filtered by this supplier.",
+        "Hierarchy: the right column of S1/S5 is money; here it is a count in the same position and weight. Make the count muted (slate-600, 14px) so the supplier name is the only focal point.",
+        "Interaction: same as S10 — add the hover ⋯ menu (Edit, Archive) on supplier rows.",
+        "Responsive: no mobile capture; ensure '17 products' moves under the name on <640px rather than squeezing the bracketed name."
+      ]
+    },
+    "S12": {
+      "scores": {"hierarchy": 8, "density": 7, "typography": 8, "consistency": 8, "clarity": 8, "interaction": 8, "accessibility": 8, "responsive": 8, "wise": 8},
+      "issues": [
+        "Density: same filled dashed box with ringed icon tile as S6; drop the fill and the tile ring.",
+        "Interaction: 'Show archived' sits as an equal-weight outline button next to the primary even when there are no archived subcontractors. Render it only when archived records exist, as a text link under the buttons."
+      ]
+    },
+    "S13": {
+      "scores": {"hierarchy": 7, "density": 8, "typography": 8, "consistency": 7, "clarity": 7, "interaction": 8, "accessibility": 8, "responsive": 7, "wise": 7},
+      "issues": [
+        "Consistency: the Category and Supplier columns are misaligned: 'Supplier' label sits ~2px higher and its field ~3px lower than Category's. Use the same Field wrapper (label mb-1.5, h-10 control) for the Supplier select so the row baselines match.",
+        "Consistency: Supplier still looks like a styled native select. Use the app's Menu/listbox trigger (as the drawer unit picker does).",
+        "Consistency: Cancel/Save are 36px (size sm) while dialog buttons elsewhere are 40px; use the default size.",
+        "Hierarchy: the dialog title 'Edit product' is plain bold Archivo and is visually weaker than the 'Price (optional)' subheading below. Use the display cut at 20px for dialog titles and set 'Price' as a 14px semibold section label.",
+        "Clarity: Unit is free text here but a picker in the drawer, and the Unit price hint says 'Per unit' even when a unit is set. Reuse the drawer's unit picker and make the hint 'per {unit}' from the Unit field.",
+        "Consistency: the close × sits 5px below the title baseline; vertically centre it on the title row.",
+        "Responsive: on <640px the two-column rows (Category/Supplier, Item code/Unit, Unit price/Effective from) should stack to one column, and the dialog should become a bottom sheet like the drawer."
+      ]
+    },
+    "S14": {
+      "scores": {"hierarchy": 6, "density": 6, "typography": 8, "consistency": 7, "clarity": 6, "interaction": 7, "accessibility": 7, "responsive": 6, "wise": 6},
+      "issues": [
+        "Clarity: the row and drawer still show 'Error · Unit missing' while the same row shows unit 'm' and the drawer 'Menge 8 m' (the position is 'Edited'). When the user fixes the field, mark the finding 'Resolved by your edit' (check icon, muted) or re-run the check; never show an error that contradicts the visible value.",
+        "Hierarchy/Density: four control bands sit above the ledger (file tabs, meta chips, 'Catalogue research' chips, toolbar) and the first section starts at y≈700. Fold 'Catalogue research' into one 'Research: 1 suggestion' meta link on the status line and open the detail in a popover; move the file tabs into the page ⋯ menu or a 'Sources' line.",
+        "Consistency: findings are filterable twice: '3 flagged by the upload check' meta chip and the 'Findings 3' toolbar button. Keep the toolbar 'Findings' filter only and make the meta text a plain count.",
+        "Interaction: '0 catalogue matches' is a clickable chip that can only show nothing. Hide zero-count research chips or render them as non-interactive muted text.",
+        "Clarity: the file tabs '[ORT_024] LV24069.D86 ×' and 'risk-assessment-demo.json ×' have no label explaining they are the uploaded source files, and × reads as 'delete the list'. Label the group 'Source files' and use a ⋯ per file with 'Remove source' instead of ×.",
+        "Accessibility: the second drawer finding 'No reliable web evidence' has a neutral grey bar and no severity chip/word, so its status is conveyed only by bar colour. Add an 'Info' outlined chip like the 'Error' chip.",
+        "Accessibility: 'Mark reviewed' is 32px tall and the meta chips 26px; give both min-h-10 on touch.",
+        "Consistency: the drawer 'Edited' badge uses the amber fill used for budget status chips. Render it as a neutral outlined tag (slate ring, pencil icon) so edit state is not read as a budget warning.",
+        "Responsive: no mobile capture; with four control bands this page will stack to ~8 rows before the ledger on a phone. Collapse research + findings into one 'Checks' disclosure on <640px."
+      ]
+    }
+  },
+  "global_issues": [
+    "Secondary buttons and unselected chips are ringed outlines everywhere (ui.tsx secondary variant), contradicting the settled 'secondary buttons are borderless tinted fills'. Switch the variant to a tinted fill with no ring in both themes; this alone removes most of the boxy, form-like feel of the toolbars.",
+    "Mobile ledger section titles still hyphenate and truncate ('Baustellenein-/richtung - Mont…') in the expanded display cut. Use the normal-width cut below 640px for section titles and their counts.",
+    "Ledger rows keep an always-visible ⋯ and permanent input underlines on every position; RowItem rows already hide the kebab until hover. Apply the same hover/focus reveal to ledger kebabs and input underlines.",
+    "Empty states (S6, S7, S9, S12) are tall filled dashed boxes containing a ringed icon tile — box in a box. Drop the fill and the tile ring, shorten to py-12, balance the centred text.",
+    "Three button heights coexist (26px meta chips, 36px dialog buttons, 40px toolbar buttons). Settle on 32px for inline/meta and 40px for everything else.",
+    "Upload-check findings can contradict the visible data (Unit missing on a row whose unit is 'm'), and the list page with findings stacks four control bands above the ledger. Resolve findings on edit and fold research/findings into one line.",
+    "Catalogue rows now match the app, but products are still indistinguishable (same name, same category, all 'Not priced') and the Products icon is an archive box. Put unit/code/supplier on line two and use a package icon."
+  ]
+}

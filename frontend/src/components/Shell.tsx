@@ -1,5 +1,5 @@
 import { clsx } from 'clsx'
-import { lazy, Suspense, useEffect } from 'react'
+import { lazy, Suspense, useEffect, type CSSProperties } from 'react'
 import { Outlet } from 'react-router-dom'
 import { GridSkeleton } from './Page'
 import { Sidebar } from './Sidebar'
@@ -31,11 +31,12 @@ function useRowKeys() {
   }, [])
 }
 
+/** --side on the root lets fixed layers (toasts) line up with the centred content column */
 export function Shell() {
   const collapsed = useStore((s) => s.sidebarCollapsed)
   useRowKeys()
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white" style={{ '--side': collapsed ? '72px' : '240px' } as CSSProperties}>
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:rounded-lg focus:bg-white focus:px-3 focus:py-2 focus:text-sm focus:font-semibold focus:shadow-lg">
         Skip to content
       </a>

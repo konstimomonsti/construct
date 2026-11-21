@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import { useNavigate } from 'react-router-dom'
-import { Icon, useInertRoot } from './ui'
+import { Icon, kbdCls, useInertRoot } from './ui'
 import { loadList } from '../lib/data'
 import { int, money, plural } from '../lib/format'
 import { listLabel, phaseLabel } from './ListCard'
@@ -74,7 +74,7 @@ function Hl({ text, q }: { text: string; q: string }) {
 
 /** footer key hint, same chip as the Esc button */
 const Kbd = ({ children, label }: { children: string; label: string }) => (
-  <kbd aria-label={label} className="inline-flex h-6 min-w-6 items-center justify-center rounded-md bg-slate-100 px-2 font-sans text-xs font-medium text-slate-700">{children}</kbd>
+  <kbd aria-label={label} className={kbdCls}>{children}</kbd>
 )
 
 export function CommandPalette() {
@@ -313,7 +313,7 @@ export function CommandPalette() {
       {open && (
         <div className="fixed inset-0 z-[85] flex items-start justify-center sm:px-4 sm:pt-[12vh]">
           <motion.div
-            className="absolute inset-0 bg-black/60"
+            className="absolute inset-0 bg-[var(--scrim)]"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -347,7 +347,8 @@ export function CommandPalette() {
                 className="h-16 flex-1 bg-transparent text-base text-slate-900 outline-none placeholder:text-slate-500"
               />
               {loading && <Icon name="progress_activity" size={18} className="animate-spin text-slate-500" />}
-              <button ref={closeRef} type="button" onClick={close} aria-label="Close search (Esc)" className="relative h-7 min-w-11 rounded-md bg-slate-100 px-2 text-xs font-medium text-slate-700 after:absolute after:inset-x-0 after:-inset-y-2 after:content-[''] hover:bg-slate-200">
+              {/* the same chip as the footer's key hints; an invisible pad keeps the 44px hit area */}
+              <button ref={closeRef} type="button" onClick={close} aria-label="Close search (Esc)" className={clsx(kbdCls, "relative shrink-0 transition-colors after:absolute after:-inset-x-2.5 after:-inset-y-2.5 after:content-[''] hover:bg-slate-300 max-sm:h-7 max-sm:px-2.5")}>
                 <span className="max-sm:hidden">Esc</span><span className="sm:hidden">Cancel</span>
               </button>
             </div>
@@ -443,7 +444,7 @@ export function CommandPalette() {
             </div>
             <div aria-hidden="true" className={clsx('pointer-events-none absolute inset-x-0 bottom-0 h-px bg-slate-300 transition-opacity', fade ? 'opacity-100' : 'opacity-0')} />
             </div>
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-slate-200 px-5 py-3 text-[13px] text-slate-600 max-sm:hidden [@media(pointer:coarse)]:hidden">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-slate-200 px-5 py-3 text-[13px] text-slate-600 max-sm:hidden [@media(hover:none)]:hidden">
               <span className="flex items-center gap-1.5"><Kbd label="Up arrow">↑</Kbd><Kbd label="Down arrow">↓</Kbd> to move</span>
               <span className="flex items-center gap-1.5"><Kbd label="Enter">↵</Kbd> to open</span>
               <span className="ml-auto flex items-center gap-1.5"><Kbd label="Slash">/</Kbd> search a list</span>

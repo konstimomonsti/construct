@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { CatalogueEditor } from '../components/CatalogueEditor'
 import { Skeleton } from '../components/Page'
 import { Chips, EmptyState, PageFrame, PageHeader, Row, RowList, RowMenu, Section } from '../components/Kit'
 import { Button, Dialog, Icon, toast } from '../components/ui'
 import { plural } from '../lib/format'
+import { useMedia } from '../lib/hooks'
 import {
   CATALOGUES, cataloguePriceSource, formatCataloguePrice, requestCatalogue, writeCatalogue,
   type CatalogueEntry, type CatalogueKind,
@@ -61,6 +62,8 @@ function CatalogueRows({ kind, entries, onEdit, onArchive, onRestore }: {
 }) {
   const navigate = useNavigate()
   const icon = catalogueIcon(kind)
+  // touch screens can't hover, so the ⋯ stays visible in its own column there
+  const touch = useMedia('(hover: none)')
   const showProducts = (entry: CatalogueEntry) => navigate(`/catalogues/products?supplier=${entry.id}`)
   return (
     <RowList>
@@ -69,6 +72,36 @@ function CatalogueRows({ kind, entries, onEdit, onArchive, onRestore }: {
         const price = kind === 'products' ? formatCataloguePrice(entry) : null
         const priced = price && price !== '—'
         const products = kind === 'suppliers' ? entry.product_count ?? 0 : 0
+        const menu = (
+          <RowMenu
+            label={`Actions for ${entry.name}`}
+            items={archived ? [
+              { label: 'Restore', icon: 'restore', onSelect: () => onRestore(entry) },
+            ] : [
+              { label: 'Edit', icon: 'edit', onSelect: () => onEdit(entry) },
+              ...(products ? [{ label: `View ${plural(products, 'product', 'products')}`, icon: 'package_2', onSelect: () => showProducts(entry) }] : []),
+              'sep' as const,
+              { label: 'Archive', icon: 'archive', danger: true, onSelect: () => onArchive(entry) },
+            ]}
+          />
+        )
+        const amount: ReactNode = kind === 'products'
+          ? (priced ? price : <span className="font-normal text-slate-500"><span aria-hidden>—</span><span className="sr-only">Not priced</span></span>)
+          : kind === 'suppliers' ? (products && !archived ? (
+            // a link to the supplier's products; above the row's own button, so it never opens the editor
+            <button
+              type="button"
+              aria-label={`View ${plural(products, 'product', 'products')} from ${entry.name}`}
+              onClick={(event) => { event.stopPropagation(); showProducts(entry) }}
+              className="pointer-events-auto relative z-10 -my-1 inline-flex items-center gap-0.5 rounded py-1 text-sm font-normal text-slate-600 underline-offset-2 transition-colors after:absolute after:-inset-x-2 after:-inset-y-1.5 after:content-[''] hover:text-brand-700 hover:underline"
+            >
+              {plural(products, 'product', 'products')}
+              <Icon name="chevron_right" size={18} className="-mr-1" />
+            </button>
+          ) : <span className="text-sm font-normal text-slate-600">{plural(products, 'product', 'products')}</span>) : null
+        const meta: ReactNode = kind === 'products' && priced
+          ? <span className="text-sm text-slate-600">{entry.unit ? `per ${entry.unit}` : 'no unit'}{entry.valid_from ? ` · ${cataloguePriceSource(entry)}` : ''}</span>
+          : null
         return (
           <Row
             key={entry.id}
@@ -78,40 +111,29 @@ function CatalogueRows({ kind, entries, onEdit, onArchive, onRestore }: {
             icon={icon}
             title={entry.name}
             subtitle={details(kind, entry)}
-            amount={kind === 'products'
-              ? (priced ? price : <span className="font-normal text-slate-600">Not priced</span>)
-              : kind === 'suppliers' ? (products && !archived ? (
-                // a link to the supplier's products; above the row's own button, so it never opens the editor
-                <button
-                  type="button"
-                  aria-label={`View ${plural(products, 'product', 'products')} from ${entry.name}`}
-                  onClick={(event) => { event.stopPropagation(); showProducts(entry) }}
-                  className="pointer-events-auto relative z-10 -my-1 inline-flex items-center gap-0.5 rounded py-1 text-sm font-normal text-slate-600 underline-offset-2 transition-colors after:absolute after:-inset-x-2 after:-inset-y-1.5 after:content-[''] hover:text-brand-700 hover:underline"
-                >
-                  {plural(products, 'product', 'products')}
-                  <Icon name="chevron_right" size={18} className="-mr-1" />
-                </button>
-              ) : <span className="text-sm font-normal text-slate-600">{plural(products, 'product', 'products')}</span>) : undefined}
-            meta={kind === 'products' && priced
-              ? <span className="text-sm text-slate-600">{entry.unit ? `per ${entry.unit}` : 'no unit'}{entry.valid_from ? ` · ${cataloguePriceSource(entry)}` : ''}</span>
-              : undefined}
-            menu={(
-              <RowMenu
-                label={`Actions for ${entry.name}`}
-                items={archived ? [
-                  { label: 'Restore', icon: 'restore', onSelect: () => onRestore(entry) },
-                ] : [
-                  { label: 'Edit', icon: 'edit', onSelect: () => onEdit(entry) },
-                  ...(products ? [{ label: `View ${plural(products, 'product', 'products')}`, icon: 'package_2', onSelect: () => showProducts(entry) }] : []),
-                  'sep' as const,
-                  { label: 'Archive', icon: 'archive', danger: true, onSelect: () => onArchive(entry) },
-                ]}
-              />
+            // with a mouse, the ⋯ floats over the row's right end instead of keeping a column of its own,
+            // so prices and product links end on the same edge as the header's Add button
+            amount={touch ? amount ?? undefined : (
+              <>
+                {amount != null && <Reveal>{amount}</Reveal>}
+                <span className="pointer-events-auto absolute top-1/2 -right-2 z-10 -translate-y-1/2 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 has-[[aria-expanded=true]]:opacity-100">{menu}</span>
+              </>
             )}
+            meta={meta == null ? undefined : touch ? meta : <Reveal>{meta}</Reveal>}
+            menu={touch ? menu : undefined}
           />
         )
       })}
     </RowList>
+  )
+}
+
+/** the trailing text slides aside while the floating ⋯ shows, on the row's hover fill so it never runs into a long name */
+function Reveal({ children }: { children: ReactNode }) {
+  return (
+    <span className="-ml-2 inline-block rounded pl-2 transition-transform duration-150 group-hover:-translate-x-11 group-hover:bg-slate-100 group-focus-within:-translate-x-11 group-has-[[aria-expanded=true]]:-translate-x-11">
+      {children}
+    </span>
   )
 }
 
@@ -177,7 +199,7 @@ function Catalogue({ kind }: { kind: CatalogueKind }) {
   }
 
   const searching = !!query.trim() || !!supplier
-  // a brand-new catalogue: one call to action in the empty state, no toolbar over nothing
+  // a brand-new catalogue: one call to action in the empty state (the header's Add button steps aside)
   const blank = !!current?.data && !current.data.rows.length && !searching && !archived && page === 1
   const rows = current?.data?.rows ?? []
   const count = current?.data && !current.data.has_more && page === 1 ? rows.length : undefined
@@ -187,10 +209,11 @@ function Catalogue({ kind }: { kind: CatalogueKind }) {
       <PageHeader
         title={title}
         subtitle={SUBTITLE[kind]}
-        aside={!blank && <Button variant="primary" size="lg" icon="add" onClick={() => setEditing(null)} aria-label={`Add ${item}`} className="max-sm:px-4">Add<span className="max-sm:hidden"> {item}</span></Button>}
+        aside={!blank && <Button variant="primary" size="lg" icon="add" onClick={() => setEditing(null)} aria-label={`Add ${item}`} className="max-sm:px-4"><span>Add<span className="max-sm:hidden"> {item}</span></span></Button>}
       />
 
-      {!blank && <div className="mb-6 flex flex-wrap items-center gap-2">
+      {/* kept on an empty catalogue too (search disabled), so switching catalogues never shifts the page */}
+      <div className="mb-6 flex flex-wrap items-center gap-2">
         <div className="relative w-full sm:w-72">
           <Icon name="search" size={20} className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-slate-600" />
           <input
@@ -198,9 +221,10 @@ function Catalogue({ kind }: { kind: CatalogueKind }) {
             aria-label={`Search ${title.toLowerCase()}`}
             placeholder={`Search ${title.toLowerCase()}`}
             value={query}
+            disabled={blank}
             maxLength={200}
             onChange={(event) => { setQuery(event.target.value); setPage(1) }}
-            className="h-10 w-full rounded-md bg-slate-100 pr-3 pl-11 text-sm text-slate-900 ring-1 ring-slate-400 transition-[background-color,box-shadow] outline-none ring-inset placeholder:text-slate-600 hover:bg-slate-200/70 focus:bg-white focus:ring-2 focus:ring-brand-700"
+            className="h-10 w-full rounded-md bg-slate-100 pr-3 pl-11 text-sm text-slate-900 ring-1 ring-slate-400 transition-[background-color,box-shadow] outline-none ring-inset placeholder:text-slate-600 hover:bg-slate-200/70 focus:bg-white focus:ring-2 focus:ring-brand-700 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-slate-100"
           />
         </div>
         <Chips
@@ -214,7 +238,7 @@ function Catalogue({ kind }: { kind: CatalogueKind }) {
             One supplier<Icon name="close" size={18} /><span className="sr-only">Clear supplier filter</span>
           </button>
         )}
-      </div>}
+      </div>
 
       {!current && <div role="status" aria-label="Loading catalogue"><Skeleton className="h-40 rounded-lg" /></div>}
       {current?.error && (
@@ -233,7 +257,7 @@ function Catalogue({ kind }: { kind: CatalogueKind }) {
         <EmptyState
           icon={query.trim() || supplier ? 'search_off' : icon}
           hint={!query.trim() && !archived && !supplier && (
-            <button type="button" onClick={() => setFilter('view', 'archived')} className="relative font-medium text-slate-600 underline underline-offset-2 transition-colors after:absolute after:-inset-x-2 after:-inset-y-3 after:content-[''] hover:text-brand-700">
+            <button type="button" onClick={() => setFilter('view', 'archived')} className="relative inline-block py-2 font-medium text-slate-600 underline underline-offset-2 transition-colors after:absolute after:-inset-x-2 after:inset-y-0 after:content-[''] hover:text-brand-700">
               Show archived
             </button>
           )}

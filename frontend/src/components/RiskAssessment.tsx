@@ -25,7 +25,7 @@ export function FindingBadge({ severity, children }: { severity: Severity; child
 }
 
 /** one finding: a severity bar on the leading edge, the badge and title, then the explanation */
-export function FindingText({ finding, reviewed, changed }: { finding: Finding; reviewed?: boolean; changed?: boolean }) {
+export function FindingText({ finding, reviewed, changed, hideRationale }: { finding: Finding; reviewed?: boolean; changed?: boolean; hideRationale?: boolean }) {
   const muted = reviewed || changed
   return (
     <div className={clsx('min-w-0 border-l-[3px] pl-3', muted ? 'border-slate-300' : RISK_UI[finding.severity].bar)}>
@@ -43,7 +43,7 @@ export function FindingText({ finding, reviewed, changed }: { finding: Finding; 
       </div>
       {changed && !reviewed && <p className="mt-1 text-sm leading-relaxed text-pretty text-slate-700">You edited this value after the upload check. The note below describes the uploaded version.</p>}
       <p className={clsx('mt-1 text-sm leading-relaxed text-pretty', muted ? 'text-slate-600' : 'text-slate-700')}>{finding.message}</p>
-      {finding.suggested_fix?.rationale && <p className="mt-1 text-sm leading-relaxed text-pretty text-slate-600">{finding.suggested_fix.rationale}</p>}
+      {!hideRationale && finding.suggested_fix?.rationale && <p className="mt-1 text-sm leading-relaxed text-pretty text-slate-600">{finding.suggested_fix.rationale}</p>}
     </div>
   )
 }

@@ -105,7 +105,7 @@ export function FolderCollection({
           capLabel="in project caps"
           status={heroStatus(budget, flagged.map((f) => ({ tone: projectTone(f) })), ['project', 'projects'])}
           meta={unpriced.length > 0 && <span className="num">{budget.projects} of {plural(scoped.length, 'project', 'projects')} priced</span>}
-          note="Measured against project caps. List caps are on Active Budgets."
+          hint="Measured against project caps. List caps are on Active Budgets."
         />
       )}
 

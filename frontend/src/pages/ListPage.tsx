@@ -2,7 +2,7 @@ import { clsx } from 'clsx'
 import { lazy, Suspense, use, useEffect, useId, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
-import { Button, Dialog, Field, Icon, inputCls, toast, type MenuItem } from '../components/ui'
+import { Button, Dialog, Field, Icon, inputCls, kbdCls, toast, type MenuItem } from '../components/ui'
 import { TableSkeleton } from '../components/Page'
 import { MetaLink, PageFrame, PageHeader, RowMenu, SortMenu, Summary, ToolButton, statusText } from '../components/Kit'
 import { phaseLabel } from '../components/ListCard'
@@ -463,6 +463,11 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   const detailIdx = detailId ? rows.findIndex((r) => r.id === detailId) : -1
   const detailCatalogue = detail && report?.positions[detail.id]
   const detailFindings = detail ? findingsByRow.get(detail.id) : undefined
+  // several findings often carry the same advice; say it once under the heading instead of under each
+  const sharedRationale = useMemo(() => {
+    const notes = detailFindings?.map((finding) => finding.suggested_fix?.rationale ?? '') ?? []
+    return notes.length > 1 && notes[0] && notes.every((note) => note === notes[0]) ? notes[0] : ''
+  }, [detailFindings])
 
   // screen readers hear the outcome, since the button they pressed changes its own label
   const [reviewNote, setReviewNote] = useState('')
@@ -570,7 +575,15 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
         crumbs={[{ label: 'All Projects', to: '/' }, { label: folder?.name ?? 'Project', to: `/folder/${folder?.id ?? doc.folderId}` }]}
         title={heading}
         subtitle={[sameAsFile ? null : doc.fileName, ...meta].filter(Boolean).join(' · ')}
-        aside={<RowMenu items={more} label={`More actions for ${title}`} />}
+        aside={
+          <div className="flex items-center gap-2">
+            <Button variant="primary" icon="add" onClick={() => setAdding(true)} aria-label="Add position" className="max-sm:w-10 max-sm:px-0">
+              <span className="max-sm:hidden">Add position</span>
+            </Button>
+            <ExportMenu listId={doc.id} doc={doc} original={original} selectedIds={[...selected]} />
+            <RowMenu items={more} label={`More actions for ${title}`} />
+          </div>
+        }
       />
 
       {view?.trashedAt && (
@@ -639,12 +652,6 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
             )}
           </span>
         }
-        actions={
-          <>
-            <Button variant="primary" size="lg" icon="add" onClick={() => setAdding(true)}>Add position</Button>
-            <ExportMenu listId={doc.id} doc={doc} original={original} selectedIds={[...selected]} />
-          </>
-        }
       />
 
       {catalogueEnabled && (
@@ -668,7 +675,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
               placeholder="Search positions"
               className="peer h-10 w-full rounded-md bg-slate-100 pr-10 pl-11 text-sm text-slate-900 ring-1 ring-slate-400 transition-[background-color,box-shadow] outline-none ring-inset placeholder:text-slate-600 hover:bg-slate-200/70 focus:bg-white focus:ring-2 focus:ring-brand-700"
             />
-            {!q && <kbd aria-hidden className="pointer-events-none absolute top-1/2 right-3 hidden -translate-y-1/2 rounded border border-slate-300 px-1.5 font-mono text-xs text-slate-600 peer-focus:hidden [@media(hover:hover)]:block">/</kbd>}
+            {!q && <kbd aria-hidden className={clsx(kbdCls, 'pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 peer-focus:hidden [@media(hover:none)]:hidden')}>/</kbd>}
           </div>
           <CategoryFilter tree={tree} stats={catStats} value={cats} onChange={setCats} />
           <FindingFilter rows={filterFindings} reviewed={settled} value={findingFilter} onChange={setFindingFilter} />
@@ -838,13 +845,14 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
         findings={detailFindings?.length ? (
           <section aria-labelledby="drawer-findings-h">
             <h3 id="drawer-findings-h" className="text-[15px] font-semibold text-slate-900">Findings from the upload check</h3>
+            {sharedRationale && <p className="mt-1 text-sm leading-relaxed text-pretty text-slate-600">{sharedRationale}</p>}
             <ul className="mt-3 space-y-5">
               {detailFindings.map((finding) => {
                 const done = reviewed.has(finding.id)
                 return (
                   <li key={finding.id} className="space-y-3">
-                    <FindingText finding={finding} reviewed={done} changed={changedFindings.has(finding.id)} />
-                    <Button size="sm" className="ml-[15px]" icon={done ? 'undo' : 'check'} onClick={() => toggleReviewed(finding.id, finding.title)}
+                    <FindingText finding={finding} reviewed={done} changed={changedFindings.has(finding.id)} hideRationale={!!sharedRationale} />
+                    <Button className="ml-[15px]" icon={done ? 'undo' : 'check'} onClick={() => toggleReviewed(finding.id, finding.title)}
                       aria-label={`${done ? 'Reopen' : 'Mark reviewed'}: ${finding.title}`}>
                       {done ? 'Reopen' : 'Mark reviewed'}
                     </Button>

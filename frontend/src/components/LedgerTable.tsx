@@ -112,7 +112,7 @@ const Row = memo(function Row({ listId, p, showCategory, selected, flash, edited
       data-row="position"
       data-risk={risk?.severity}
       className={clsx(
-        'group transition-colors',
+        'group transition-colors lg:relative',
         selected ? 'bg-brand-50/70' : 'hover:bg-slate-100',
         risk && RISK_UI[risk.severity].row,
         flash && 'bg-brand-50 outline-2 -outline-offset-2 outline-brand-300',
@@ -171,12 +171,12 @@ const Row = memo(function Row({ listId, p, showCategory, selected, flash, edited
         <PriceCell value={p.up} oz={p.oz} edited={upEdited} muted={zero} onSave={setUp} />
       </td>
       {/* desktop GP sits under the "GP (€)" header; cards have no header, so they carry the € */}
-      <td data-a="total" className={clsx('num w-32 px-2 py-1 text-right text-sm whitespace-nowrap', p.up == null || zero ? 'text-slate-500' : 'font-medium text-slate-900')}>
+      <td data-a="total" className={clsx('num w-32 px-2 py-1 text-right text-sm whitespace-nowrap lg:[@media(hover:hover)]:transition-[padding] lg:[@media(hover:hover)]:group-focus-within:pr-12 lg:[@media(hover:hover)]:group-hover:pr-12 lg:[@media(hover:hover)]:group-has-[[aria-expanded=true]]:pr-12', p.up == null || zero ? 'text-slate-500' : 'font-medium text-slate-900')}>
         <span className="inline-flex h-9 items-center justify-end">
           {p.up == null ? 'Not priced' : zero ? <span aria-label="0 €, quantity 0">—</span> : <>{amount(total)}<span className="lg:hidden">&nbsp;€</span></>}
         </span>
       </td>
-      <td data-a="menu" className="w-11 py-1 pr-1 text-right">
+      <td data-a="menu" className="w-11 py-1 pr-1 text-right lg:[@media(hover:hover)]:absolute lg:[@media(hover:hover)]:top-1/2 lg:[@media(hover:hover)]:right-0 lg:[@media(hover:hover)]:w-auto lg:[@media(hover:hover)]:-translate-y-1/2 lg:[@media(hover:hover)]:p-0">
         <Menu
           label={`Actions for ${p.oz}`}
           width="w-56"
@@ -355,7 +355,7 @@ Menge
 EP (€)
             </th>
             <th scope="col" className="w-32 px-2 py-2 text-right font-medium">GP (€)</th>
-            <th scope="col" className="w-11 py-2 pr-1"><span className="sr-only">Actions</span></th>
+            <th scope="col" className="w-11 py-2 pr-1 lg:[@media(hover:hover)]:w-0 lg:[@media(hover:hover)]:p-0"><span className="sr-only">Actions</span></th>
           </tr>
         </thead>
         {blocks.map((b) => {
@@ -372,16 +372,16 @@ EP (€)
                       type="button"
                       aria-expanded={open}
                       onClick={() => toggleCat(cat.oz)}
-                      className="-ml-1 flex min-h-10 max-w-full items-center gap-1.5 rounded-lg pr-2 text-left hover:bg-slate-100 max-sm:w-full"
+                      className="-ml-1 flex min-h-10 max-w-full items-center gap-1.5 rounded-lg pr-2 text-left hover:bg-slate-100 max-sm:w-full max-sm:items-start"
                       style={{ marginLeft: b.depth * 20 }}
                     >
-                      <Icon name="expand_more" size={20} className={clsx('shrink-0 text-slate-500 transition-transform', !open && '-rotate-90')} />
-                      <span className="shrink-0 font-mono text-[13px] font-medium text-slate-600">{cat.oz}</span>
+                      <Icon name="expand_more" size={20} className={clsx('shrink-0 text-slate-500 transition-transform max-sm:mt-1.5', !open && '-rotate-90')} />
+                      <span className="shrink-0 font-mono text-[13px] font-medium text-slate-600 max-sm:mt-1.5">{cat.oz}</span>
                       {/* phones wrap the title to two lines and drop the count under it, so "Baust…" never happens */}
                       <span className="flex min-w-0 flex-col py-1 sm:flex-row sm:items-baseline sm:gap-2 sm:py-0">
-                        <span lang="de" className="min-w-0 hyphens-auto max-sm:line-clamp-2 max-sm:break-words sm:truncate">{cat.label || cat.oz}</span>
+                        <span lang="de" className="min-w-0 hyphens-auto max-sm:line-clamp-2 max-sm:text-balance max-sm:break-words sm:truncate">{cat.label || cat.oz}</span>
                         {!open && stats.has(cat.oz) && (
-                          <span className="num shrink-0 font-sans text-sm font-normal text-slate-600 sm:text-[13px]">{plural(stats.get(cat.oz)!.count, 'position', 'positions')}</span>
+                          <span className="num shrink-0 font-sans text-sm font-normal tracking-normal text-slate-600 [font-variation-settings:normal] sm:text-[13px]">{plural(stats.get(cat.oz)!.count, 'position', 'positions')}</span>
                         )}
                       </span>
                     </button>
@@ -391,7 +391,7 @@ EP (€)
                       </span>
                     )}
                   </th>
-                  <td colSpan={2} className={clsx('num px-2 pr-[3.25rem] text-right whitespace-nowrap', top ? clsx('display text-base text-slate-900', open ? 'pt-6' : 'pt-2') : 'pt-3 text-sm font-semibold text-slate-800')}>
+                  <td colSpan={2} className={clsx('num px-2 pr-[3.25rem] text-right whitespace-nowrap lg:[@media(hover:hover)]:pr-2', top ? clsx('display text-base text-slate-900', open ? 'pt-6' : 'pt-2') : 'pt-3 text-sm font-semibold text-slate-800')}>
                     {!stats.has(cat.oz) ? (
                       <span className="text-sm font-normal text-slate-600">No positions yet</span>
                     ) : stats.get(cat.oz)!.total === 0 ? (

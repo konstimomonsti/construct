@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
 import { clsx } from 'clsx'
-import { Button, Dialog, Field, Icon, inputCls, Menu, toast } from './ui'
+import { Button, Dialog, Field, Icon, inputCls, Menu, toast, kbdCls } from './ui'
 import { MOD_KEY } from '../lib/keys'
 import {
   CATALOGUES, cataloguePriceSource, formatCataloguePrice, requestCatalogue, writeCatalogue,
@@ -44,6 +44,10 @@ function ProductFields({ entry, options }: { entry: CatalogueEntry | null; optio
             ]}
             trigger={(t) => (
               <button {...t} type="button" disabled={locked} aria-label={`Supplier: ${supplierName ?? 'No supplier'}`}
+                // like a native select: the arrow keys open the list too (Enter and Space already do)
+                onKeyDown={(event) => {
+                  if ((event.key === 'ArrowDown' || event.key === 'ArrowUp') && !t['aria-expanded']) { event.preventDefault(); t.onClick() }
+                }}
                 className={clsx(inputCls, 'flex h-10 items-center justify-between gap-2 text-left disabled:opacity-60')}>
                 <span className={clsx('truncate', !supplierName && 'text-slate-500')}>{supplierName ?? 'No supplier'}</span>
                 <Icon name="expand_more" size={20} className="shrink-0 text-slate-600" />
@@ -63,7 +67,7 @@ function ProductFields({ entry, options }: { entry: CatalogueEntry | null; optio
       </Field>
       <section aria-labelledby={`${categoriesId}-price`} className="space-y-3 border-t border-slate-200 pt-4">
         <div>
-          <h3 id={`${categoriesId}-price`} className="text-[15px] font-semibold text-slate-900">Price <span className="font-normal text-slate-600">(optional)</span></h3>
+          <h3 id={`${categoriesId}-price`} className="text-sm font-semibold text-slate-900">Price <span className="font-normal text-slate-600">(optional)</span></h3>
           <p className="mt-0.5 text-sm text-slate-600">{entry?.unit_price != null ? 'A new price is added to the history from its date. Leave it blank to keep the current one.' : 'A price is stored with the date it applies from. You can add it later.'}</p>
         </div>
         {entry?.unit_price != null && (
@@ -74,7 +78,7 @@ function ProductFields({ entry, options }: { entry: CatalogueEntry | null; optio
         )}
         <input type="hidden" name="currency" value={currency} />
         <div className="grid items-start gap-4 sm:grid-cols-2">
-          <Field label={entry?.unit_price != null ? 'New unit price' : 'Unit price'} hint={unit.trim() ? `Per ${unit.trim()}` : 'Per unit'}>
+          <Field label={entry?.unit_price != null ? 'New unit price' : 'Unit price'} hint={unit.trim() ? `per ${unit.trim()}` : undefined}>
             <span className="relative block">
               <input name="unit_price" inputMode="decimal" maxLength={24} placeholder="0,00" className={clsx(inputCls, 'num pr-9 text-right')} />
               <span aria-hidden className="pointer-events-none absolute top-1/2 right-3.5 -translate-y-1/2 text-sm text-slate-600">{symbol}</span>
@@ -206,9 +210,9 @@ export function CatalogueEditor({ kind, entry, onClose, onSaved }: {
       title={`${entry ? 'Edit' : 'Add'} ${CATALOGUES[kind].item}`}
       width={isProduct ? 'max-w-xl' : undefined}
       footer={<>
-        <span className="mr-auto text-[13px] text-slate-500 max-sm:hidden"><kbd className="inline-flex h-6 min-w-6 items-center justify-center rounded-md bg-slate-100 px-1.5 font-sans text-xs font-medium text-slate-700">{MOD_KEY}</kbd> <kbd className="inline-flex h-6 min-w-6 items-center justify-center rounded-md bg-slate-100 px-1.5 font-sans text-xs font-medium text-slate-700">↵</kbd> to save</span>
-        <Button disabled={saving} onClick={onClose}>Cancel</Button>
-        <Button variant="primary" type="submit" form={formId} disabled={saving || !ready}>{saving ? 'Saving…' : 'Save'}</Button>
+        <span className="mr-auto text-[13px] text-slate-500 max-sm:hidden"><kbd className={kbdCls}>{MOD_KEY}</kbd> <kbd className={kbdCls}>↵</kbd> to save</span>
+        <Button size="lg" disabled={saving} onClick={onClose}>Cancel</Button>
+        <Button size="lg" variant="primary" type="submit" form={formId} disabled={saving || !ready}>{saving ? 'Saving…' : 'Save'}</Button>
       </>}
     >
       {!ready ? (

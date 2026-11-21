@@ -206,13 +206,29 @@ function CapButton({ cap, capLabel, onClick }: { cap: number; capLabel: string; 
   )
 }
 
+/** an info button whose explanation shows on hover or focus; the text is also its accessible name */
+export function InfoTip({ text }: { text: string }) {
+  return (
+    <span className="group/tip relative inline-flex">
+      <button type="button" aria-label={text} className="relative grid size-6 place-items-center rounded-full text-slate-500 after:absolute after:-inset-2 after:content-[''] hover:text-slate-900">
+        <Icon name="info" size={18} />
+      </button>
+      <span role="tooltip" aria-hidden className="pointer-events-none absolute top-full left-1/2 z-30 mt-2 w-max max-w-64 -translate-x-1/2 rounded-md bg-slate-900 px-2.5 py-1.5 text-[13px] leading-snug text-white opacity-0 transition-opacity group-hover/tip:opacity-100 group-has-focus-visible/tip:opacity-100">
+        {text}
+      </span>
+    </span>
+  )
+}
+
 /**
  * One hero per screen: label, number, bar, ONE status line, at most one muted line, actions.
  * The pill always shows the worst state (a project near its cap makes the whole page "1 near cap").
  */
 export function Summary({
-  label, amount, total, cap, actions, meta, capLabel = 'cap', compact, status, bar, extra, hideLeft, note, onEditCap,
+  label, amount, total, cap, actions, meta, capLabel = 'cap', compact, status, bar, extra, hideLeft, note, hint, onEditCap,
 }: {
+  /** how the figure is measured, shown on demand behind an info button */
+  hint?: string
   /** one muted line under the status line, e.g. which caps the figure is measured against */
   note?: ReactNode
   /** makes "x% of cap" a button that opens the cap editor */
@@ -235,7 +251,6 @@ export function Summary({
 }) {
   const st = budgetStatus(total, cap)
   const left = cap - total
-  const pill = status ?? { tone: st.tone, word: st.word }
   return (
     <section aria-label={label} className={compact ? 'mb-6' : actions ? 'mb-10' : 'mb-8'}>
       {/* the figure on the left, the two numbers it is judged by on the right, the jib across the full width */}
@@ -275,7 +290,9 @@ export function Summary({
           <div className={compact ? 'mt-3 sm:mt-4' : 'mt-5'}>{bar ?? <TrussMeter total={total} cap={cap} tone={st.tone} label={`${label}: share of ${capLabel} used`} />}</div>
           <div className="mt-2 flex flex-wrap items-center justify-between gap-x-6 gap-y-2 text-sm text-slate-600">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-              <StatusTag tone={pill.tone} word={pill.word} hint />
+              <StatusTag tone={st.tone} word={st.word} hint />
+              {status && <span className="font-medium text-slate-800">{status.word}</span>}
+              {hint && <InfoTip text={hint} />}
               {note && <span className="max-sm:hidden">{note}</span>}
             </div>
             {meta && <div>{meta}</div>}
@@ -482,7 +499,12 @@ export function Row({
       ) : (
         <Avatar icon={icon} tone={tone} />
       )}
-      <div className="pointer-events-none relative grid min-w-0 flex-1 grid-cols-[auto_minmax(0,1fr)] items-baseline sm:grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-0.5 sm:gap-x-6">
+      {/* hover devices: the ⋯ overlays the row's right end and the figures slide over to make room,
+          so at rest money columns end on the same edge as the page header and toolbars */}
+      <div className={clsx(
+        'pointer-events-none relative grid min-w-0 flex-1 grid-cols-[auto_minmax(0,1fr)] items-baseline gap-x-3 gap-y-0.5 sm:grid-cols-[minmax(0,1fr)_auto] sm:gap-x-6',
+        menu && !selectMode && '[@media(hover:hover)]:transition-[padding] [@media(hover:hover)]:group-focus-within:pr-12 [@media(hover:hover)]:group-hover:pr-12 [@media(hover:hover)]:group-has-[[aria-expanded=true]]:pr-12',
+      )}>
         <div className="col-span-2 row-start-1 flex min-w-0 items-center gap-2 sm:col-span-1">
           <span lang="de" className="line-clamp-2 text-[15px] leading-snug font-semibold break-normal hyphens-auto text-slate-900 sm:line-clamp-1">{title}</span>
           {badge && <span className="shrink-0 empty:hidden max-sm:hidden">{badge}</span>}
@@ -497,7 +519,7 @@ export function Row({
         {meta && <div className="col-start-2 row-start-3 flex min-w-0 justify-end sm:row-start-2">{meta}</div>}
       </div>
       {menu && !selectMode && (
-        <div className="relative z-10 -my-1.5 -mr-1 transition-opacity sm:my-0 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-focus-within:opacity-100 [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:has-[[aria-expanded=true]]:opacity-100">{menu}</div>
+        <div className="relative z-10 -my-1.5 -mr-1 transition-opacity sm:my-0 [@media(hover:hover)]:absolute [@media(hover:hover)]:top-1/2 [@media(hover:hover)]:right-1 [@media(hover:hover)]:my-0 [@media(hover:hover)]:mr-0 [@media(hover:hover)]:-translate-y-1/2 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-focus-within:opacity-100 [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:has-[[aria-expanded=true]]:opacity-100 sm:[@media(hover:hover)]:right-2">{menu}</div>
       )}
     </div>
   )

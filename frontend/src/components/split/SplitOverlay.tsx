@@ -292,7 +292,7 @@ function Panel({ onClose, doc, title, positions, tree, folders, folderId, presel
 
   return (
     <div className="fixed inset-0 z-[78]">
-      <motion.div className="absolute inset-0 bg-black/60" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} onClick={onClose} />
+      <motion.div className="absolute inset-0 bg-[var(--scrim)]" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} onClick={onClose} />
       <motion.div
         ref={panel}
         role="dialog"

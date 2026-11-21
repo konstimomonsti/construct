@@ -286,7 +286,7 @@ export function Dialog({
       {open && (
         <div className="fixed inset-0 z-[80] flex items-end justify-center p-0 sm:items-center sm:p-4">
           <motion.div
-            className="absolute inset-0 bg-black/60"
+            className="absolute inset-0 bg-[var(--scrim)]"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -387,6 +387,9 @@ function ToastItem({ t, drop }: { t: Toast; drop: (id: number) => void }) {
   )
 }
 
+/** the one keyboard-key chip, used for every shortcut hint */
+export const kbdCls = 'inline-flex h-6 min-w-6 items-center justify-center rounded-md bg-slate-200 px-1.5 font-sans text-xs font-medium text-slate-700'
+
 export const toast = (text: string, tone: Toast['tone'] = 'ok', action?: Toast['action']) =>
   useToasts.getState().push({ text, tone, action })
 
@@ -410,7 +413,7 @@ export function Toaster() {
     <>
       <div className="sr-only" aria-live="polite" aria-atomic="true">{polite ? `${polite.text}${polite.action ? `. ${polite.action.label} is available.` : ''}` : ''}</div>
       <div className="sr-only" aria-live="assertive" aria-atomic="true">{urgent?.text ?? ''}</div>
-      <div className="pointer-events-none fixed right-4 bottom-24 z-[90] flex w-[calc(100%-2rem)] max-w-md flex-col items-end gap-2 sm:bottom-20">
+      <div className="pointer-events-none fixed right-4 bottom-24 z-[90] flex w-[calc(100%-2rem)] max-w-md flex-col items-end gap-2 sm:right-8 sm:bottom-20 lg:right-[max(2rem,calc((100vw-var(--side)-1120px)/2+2rem))]">
         <AnimatePresence initial={false}>
           {toasts.map((t) => <ToastItem key={t.id} t={t} drop={drop} />)}
         </AnimatePresence>
