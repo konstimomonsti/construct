@@ -2,6 +2,7 @@
 
 from collections import defaultdict
 from dataclasses import dataclass
+from decimal import DecimalException, Inexact, localcontext
 import re
 
 from .. import adapter, units
@@ -143,8 +144,9 @@ def ring_stiffness(ctx):
 
 def _value_in_unit(property, target_unit):
     value = adapter.parse_number(property.value)
-    if property.unit or target_unit:
-        return units.convert(value, units.normalize(property.unit), units.normalize(target_unit)) if value is not None else None
+    source, target = units.normalize(property.unit), units.normalize(target_unit)
+    if source or target:
+        return value if source == target or value is None else units.convert(value, source, target)
     return value if value is not None else " ".join(str(property.value).casefold().split()) or None
 
 
@@ -161,6 +163,84 @@ def _requirement_positions(snapshot):
         matches = [line for line in candidates if all(line.source_locator.get(key) == value
                                                        for key, value in locator.items())]
         yield requirement, candidates, matches
+
+
+def _requirement_bound(requirement):
+    unit = units.normalize(requirement.required.unit)
+    value = _value_in_unit(requirement.required, unit)
+    if value is None:
+        return None, None
+    if isinstance(value, str):
+        return ("text", None), value
+    factor = units.FACTORS.get(unit)
+    if factor is None or unit == "set":
+        return ("exact", unit), value
+    # Multiplication to the base unit keeps inclusive bounds exact and avoids division rounding.
+    with localcontext() as context:
+        context.prec = max(context.prec, len(value.as_tuple().digits) + len(factor.as_tuple().digits))
+        context.traps[Inexact] = True
+        try:
+            return ("base", units.dimension(unit)), value * factor
+        except DecimalException:
+            return ("exact", unit), value
+
+
+def _incompatible_pair(requirements):
+    bounds = {}
+    exact_text = None
+    for requirement in requirements:
+        basis, value = _requirement_bound(requirement)
+        if basis is None:
+            continue
+        comparison = requirement.comparison
+        if isinstance(value, str):
+            if comparison != "equal":
+                continue
+            if exact_text and value != exact_text[0]:
+                return exact_text[1], requirement
+            exact_text = value, requirement
+            continue
+        lower, upper = bounds.get(basis, (None, None))
+        if comparison != "at_most" and (lower is None or value > lower[0]):
+            lower = value, requirement
+        if comparison != "at_least" and (upper is None or value < upper[0]):
+            upper = value, requirement
+        if lower and upper and lower[0] > upper[0]:
+            return lower[1], upper[1]
+        bounds[basis] = lower, upper
+    return None
+
+
+def _incompatible_requirements(positions):
+    groups = defaultdict(list)
+    for requirement, _, matches in positions:
+        if len(matches) == 1:
+            groups[matches[0].id, requirement.property_name].append(requirement)
+    return {key: pair for key, requirements in groups.items()
+            if len(requirements) > 1 and (pair := _incompatible_pair(requirements))}
+
+
+def _constraint_text(requirement):
+    op = {"equal": "exactly", "at_least": "at least", "at_most": "at most"}[requirement.comparison]
+    return f"{op} {requirement.required.value} {requirement.required.unit or ''}".strip()
+
+
+@rule("L1.PRODUCT.REQUIREMENT_CONFLICT", layer=1, category="product", severity="warning",
+      title="Source requirements disagree",
+      description="Find incompatible requirements for the same property on one resolved position.")
+def conflicting_product_requirements(ctx):
+    lines = ctx.input.line_by_id()
+    for (line_id, property_name), pair in _incompatible_requirements(_requirement_positions(ctx.input)).items():
+        first, second = pair
+        yield ctx.finding(
+            line=lines[line_id], discriminator=property_name,
+            message=f"The requirements for {property_name} specify {_constraint_text(first)} and "
+                    f"{_constraint_text(second)} for the same position.",
+            evidence={"outcome": "requirement_conflict", "property_name": property_name,
+                      "requirements": [requirement.model_dump(mode="json") for requirement in pair]},
+            suggested_fix=review_fix("Ask the specification owner which cited requirement governs. "
+                                     "Align the source documents before comparing or selecting a product."),
+        )
 
 
 def _compare_property(line, requirement, source_format, declarations):
@@ -192,10 +272,14 @@ def _compare_property(line, requirement, source_format, declarations):
       description="Compare an identified product variant with a typed, source-linked requirement.")
 def declared_properties(ctx):
     declarations = _by_identity(ctx.input.declarations)
-    for requirement, codes, matches in _requirement_positions(ctx.input):
+    positions = list(_requirement_positions(ctx.input))
+    conflicts = _incompatible_requirements(positions)
+    for requirement, codes, matches in positions:
         line = matches[0] if len(matches) == 1 else None
         reason, candidates = None, []
         if line:
+            if (line.id, requirement.property_name) in conflicts:
+                continue
             offer, items, actual, outcome = _compare_property(line, requirement, ctx.input.project.source_document.format,
                                                                declarations)
         else:

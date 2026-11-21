@@ -165,6 +165,16 @@ The XLS and XLSX replay reused one code on two worksheets. It caught both plante
 
 Generate the workbook cases with `--suite product-position` and the same spreadsheet dependencies and upload replay as above. Pass `position-*.{xlsx,xls}` and the generated `product-evidence.json`.
 
+### Incompatible requirements from separate documents
+
+Layer 1 checks whether cited minimum, maximum, and exact requirements agree for the same property on the same resolved position. It converts comparable numeric units to a common basis. Numeric values in the same unit remain comparable even when that unit is outside the general bill vocabulary. Categorical equality uses the stated value with case and whitespace normalized. If a pair cannot be met together, the finding cites both documents and locations and asks the specification owner which one governs. Product comparison for that property resumes after the conflict is resolved.
+
+The `product-requirements` suite caught all 12 planted conflicts across PDF, Word, JSON, and GAEB X83. It covers drainage diameter, insulation compressive strength, and door colour. Each finding came with source-linked review guidance. All four compatible controls passed, including the same diameter written in millimetres and centimetres. The three-layer PDF and X83 replay with local Qwen 2.5 7B kept all six expected conflicts and passed both compatible controls. The workspace test attached two evidence packages independently, verified both attachment hashes in one finding, then removed one package and confirmed that the original product comparison resumed.
+
+A preliminary check on the repository sanitary, screed, and doors PDFs used synthetic document pairs to verify three links back to the original position and page. The unaffected bills supplied no paired requirements for this check. The probes do not identify actual project specification conflicts.
+
+Run the `product-requirements` generator through the same workspace replay setup. Replay `conflict` and `compatible` separately and pass the `product-evidence.json` from the matching directory. Include the compatible baseline files in that replay.
+
 ## GAEB workspace upload replay
 
 The workspace picker parses the test files. The replay saves each original file and its parsed list in PostgreSQL, runs the assessment worker, and checks the stored findings and input hash against analysis of the original file. The worker keeps the original file's quantities, prices, subtotals, flags, and source locators. Unambiguous position and section links carry those findings into the workspace. Separate draft assessments continue to use the edited values.

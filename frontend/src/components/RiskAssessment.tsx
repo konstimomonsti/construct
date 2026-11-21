@@ -62,6 +62,7 @@ function FindingEvidence({ finding }: { finding: Finding }) {
   const standard = finding.evidence?.din_standard
   const declarations = finding.evidence?.declarations ?? []
   const requirement = finding.rule_id === 'L1.PRODUCT.DECLARED_PROPERTY' ? finding.evidence?.requirement : undefined
+  const requirements = evidence?.requirements ?? []
   const extracted = Object.entries(finding.evidence?.extracted ?? {})
   const source = sourceLabel(finding.source_locator)
   const positionLink = sourceLabel(requirement?.position_locator)
@@ -77,7 +78,7 @@ function FindingEvidence({ finding }: { finding: Finding }) {
     ['Heading', concrete ? evidence.short_quote : undefined],
     ['Detail', concrete ? evidence.long_quote : undefined],
   ].filter(([, quote]) => !!quote)
-  if (!source && !din && !standard && !requirement && !declarations.length && !extracted.length && !quotes.length && !scopeStatements.length && !quantityCheck) return null
+  if (!source && !din && !standard && !requirement && !declarations.length && !requirements.length && !extracted.length && !quotes.length && !scopeStatements.length && !quantityCheck) return null
   const show = (v: unknown) => (v === null || v === undefined || v === '' ? '—' : Array.isArray(v) ? v.join(', ') || '—' : String(v))
   return (
     <div className="mt-2 space-y-2 text-[13px]">
@@ -127,6 +128,16 @@ function FindingEvidence({ finding }: { finding: Finding }) {
         </a>
       )}
       {requirement && <p className="text-slate-700"><span className="font-semibold">Requirement</span> — {requirement.document} · {requirement.locator}</p>}
+      {requirements.length > 0 && (
+        <ul className="space-y-1 text-slate-700">
+          {requirements.map(({ document, locator, comparison, required }, index) => (
+            <li key={index}>
+              <strong>{{ equal: 'Exactly', at_least: 'At least', at_most: 'At most' }[comparison]} {required.value}{required.unit && ` ${required.unit}`}</strong>
+              {' · '}{document}{' · '}{locator}
+            </li>
+          ))}
+        </ul>
+      )}
       {positionLink && <p className="text-slate-700"><span className="font-semibold">Required position</span> — {positionLink}</p>}
       {positionCandidates.length > 0 && (
         <div className="text-slate-700">

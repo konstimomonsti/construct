@@ -19,6 +19,7 @@ export type Evidence = {
   din_standard?: { identifier: string; edition: string; url: string }
   declarations?: { manufacturer: string; product_code: string; document: string; revision: string; locator: string }[]
   requirement?: { document: string; locator: string; position_locator?: SourceLocator }
+  requirements?: { document: string; locator: string; comparison: 'equal' | 'at_least' | 'at_most'; required: { value: string; unit?: string | null } }[]
   position_candidates?: { line_code: string; locator: SourceLocator }[]
   position_candidate_count?: number
   extracted?: Record<string, unknown>

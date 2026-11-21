@@ -344,6 +344,61 @@ def generate_product_position(out):
             write_fixture_labels(out / f"{name}.{ext}", f"position-matching.{ext}", *labels)
 
 
+def generate_product_requirements(out):
+    """Replay contradictions between two cited requirements across trades."""
+    products = [
+        ("01.0010", "Rohr für Grundstücksentwässerung", "m", "PIPE-125", "outside_diameter",
+         {"value": "12.5", "unit": "cm"},
+         ("at_least", "160", "mm", "at_most", "15", "cm"),
+         ("at_least", "125", "mm", "at_most", "12,5", "cm")),
+        ("01.0020", "Dämmplatte im Sockelbereich", "m²", "BOARD-425", "compressive_strength",
+         {"value": "425", "unit": "kPa"},
+         ("at_least", "450", "kPa", "at_most", "400", "kPa"),
+         ("at_least", "400", "kPa", "at_most", "450", "kPa")),
+        ("01.0030", "Revisionstür für Installationsschacht", "St", "DOOR-9010", "colour",
+         {"value": "RAL 9010"},
+         ("equal", "RAL 9010", None, "equal", "RAL 7016", None),
+         ("equal", "RAL 9010", None, "equal", "ral 9010", None)),
+    ]
+    for conflict in (False, True):
+        directory = out / ("conflict" if conflict else "compatible")
+        directory.mkdir(parents=True, exist_ok=True)
+        rows, declarations, requirements = [], [], []
+        for code, heading, unit, sku, property_name, value, bad, good in products:
+            rows.append(Item(code, heading, 10, unit, detail=f"Hersteller: Synthetic Works; SKU: {sku}"))
+            declarations.append({"manufacturer": "Synthetic Works", "product_code": sku,
+                                 "document": "Synthetic declaration " + sku, "revision": "A", "locator": "p. 2",
+                                 "properties": {property_name: value}})
+            first, minimum, min_unit, second, maximum, max_unit = bad if conflict else good
+            for comparison, number, measure, document in (
+                (first, minimum, min_unit, "Synthetic tender specification"),
+                (second, maximum, max_unit, "Synthetic construction schedule"),
+            ):
+                requirements.append({"position_code": code, "property_name": property_name, "comparison": comparison,
+                                     "required": {"value": number, "unit": measure}, "document": document,
+                                     "locator": f"Record {code}"})
+        package = {"schema": "billbuild.product-evidence.v1", "declarations": declarations,
+                   "product_requirements": requirements}
+        (directory / "product-evidence.json").write_text(json.dumps(package, indent=2), encoding="utf-8")
+
+        title = "Synthetic coordination tender"
+        locators = _write_text_case(directory, "requirements", title, rows[0], "requirements", additional=rows[1:])
+        if not conflict:
+            _write_text_case(directory, "baseline", title, rows[0], "requirements", additional=rows[1:])
+        for ext in locators:
+            labels = []
+            for index, item in enumerate(rows, 1):
+                locator = {
+                    "pdf": {"page": 1}, "docx": {"table": 1, "row": index + 1}, "json": {"row": index},
+                    "X83": {"source_id": "requirements-item" + (f"-{index}" if index > 1 else "")},
+                }[ext]
+                labels.append({"match": "line", "layers": [1], "expect": ["L1.PRODUCT.REQUIREMENT_CONFLICT"],
+                               "target": {"line_codes": [item.code], "severity": "warning", "source_locator": locator}})
+            write_fixture_labels(directory / f"requirements.{ext}",
+                                 f"{'requirements' if conflict else 'baseline'}.{ext}",
+                                 *(labels if conflict else [{"control": True, "layers": [1], "expect": []}]))
+
+
 def generate_grade_scope(out):
     """Test concrete grade conflicts, legitimate component differences and unclear attribution."""
     out.mkdir(parents=True, exist_ok=True)
@@ -453,7 +508,8 @@ if __name__ == "__main__":
     suites = {"tabular": generate, "precast": generate_precast, "gutter": generate_gutter,
               "dimensions": generate_dimensions, "dotted": generate_dotted, "grade-scope": generate_grade_scope,
               "exposure-scope": generate_exposure_scope, "dependency-scope": generate_dependency_scope,
-              "product-offer": generate_product_offer, "product-position": generate_product_position}
+              "product-offer": generate_product_offer, "product-position": generate_product_position,
+              "product-requirements": generate_product_requirements}
     parser.add_argument("--suite", choices=suites, default="tabular")
     args = parser.parse_args()
     suites[args.suite](args.out)

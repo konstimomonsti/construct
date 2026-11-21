@@ -15,6 +15,7 @@ EXAMPLES = Path(__file__).resolve().parents[3] / "data" / "examples"
 MATERIAL = "L1.PRODUCT.DIN_MATERIAL"
 STIFFNESS = "L1.PRODUCT.DRAINAGE_RING_STIFFNESS"
 PROPERTY = "L1.PRODUCT.DECLARED_PROPERTY"
+REQUIREMENT_CONFLICT = "L1.PRODUCT.REQUIREMENT_CONFLICT"
 SCOPE = "L1.DIN.PIPE_MATERIAL_SCOPE"
 EDITION = "L1.DIN.EDITION_UNCHECKED"
 
@@ -223,6 +224,83 @@ def test_existing_unqualified_requirements_keep_their_snapshot_hash(drainage):
     qualified = deepcopy(payload)
     qualified["product_requirements"][0]["position_locator"] = {"sheet": "First", "row": 3}
     assert adapter.from_data(qualified).input_hash != snapshot.input_hash
+
+
+def bind_requirements(drainage, entries, *, name="outside_diameter"):
+    template = drainage["product_requirements"][0]
+    drainage["product_requirements"] = [
+        {**template, "comparison": operator, "property_name": name, "required": {
+            "value": value, **({"unit": unit} if unit else {}),
+        }, "document": f"Document {index}", "locator": f"Detail {index}",
+         "attachment_id": f"attachment-{index}", "attachment_sha256": str(index) * 64}
+        for index, (operator, value, unit) in enumerate(entries, 1)
+    ]
+
+
+@pytest.mark.parametrize("requirements", [
+    [("at_least", "160", "mm"), ("at_most", "15", "cm")],
+    [("equal", "160", "mm"), ("equal", "15", "cm")],
+    [("equal", "15", "cm"), ("at_least", "0.16", "m")],
+    [("at_most", "10", None), ("at_least", "12", None)],
+    [("equal", "C-s1,d0", None), ("equal", "B-s1,d0", None)],
+    [("at_least", "300", "kPa"), ("at_most", "250", "kPa")],
+])
+def test_incompatible_requirements_cite_both_sources_before_comparing_the_offer(drainage, requirements):
+    bind_requirements(drainage, requirements)
+    report = findings(drainage)
+    conflict = report[REQUIREMENT_CONFLICT]
+    assert PROPERTY not in report
+    assert conflict.target.line_code == "01.10"
+    assert conflict.evidence["outcome"] == "requirement_conflict"
+    evidence = sorted(conflict.evidence["requirements"], key=lambda r: r["document"])
+    assert [(r["document"], r["locator"], r["attachment_id"]) for r in evidence] == [
+        ("Document 1", "Detail 1", "attachment-1"), ("Document 2", "Detail 2", "attachment-2"),
+    ]
+    assert conflict.suggested_fix and not conflict.suggested_fix.operations
+    assert "specification owner" in conflict.suggested_fix.rationale
+
+
+@pytest.mark.parametrize("requirements", [
+    [("at_least", "125", "mm"), ("at_most", "12,5", "cm")],
+    [("equal", "125", "mm"), ("equal", "12.50", "cm")],
+    [("at_least", "0.12", "m"), ("at_most", "13", "cm")],
+    [("at_least", "125", "mm"), ("at_least", "12", "cm")],
+])
+def test_compatible_requirements_preserve_product_checks(drainage, requirements):
+    bind_requirements(drainage, requirements)
+    report = findings(drainage)
+    assert REQUIREMENT_CONFLICT not in report
+    assert PROPERTY not in report
+    drainage["declarations"][0]["properties"]["outside_diameter"]["value"] = "11"
+    report = findings(drainage)
+    assert REQUIREMENT_CONFLICT not in report
+    assert report[PROPERTY].evidence["outcome"] == "conflict"
+
+
+@pytest.mark.parametrize("first,second", [
+    ("mm", "kg"), ("month", "day"), ("ea", "set"), ("kPa", "MPa"), ("mm", None),
+])
+def test_units_without_a_safe_conversion_do_not_prove_a_source_conflict(drainage, first, second):
+    bind_requirements(drainage, [("at_least", "300", first), ("at_most", "250", second)])
+    assert REQUIREMENT_CONFLICT not in findings(drainage)
+
+
+def test_conflict_detection_uses_only_requirements_attached_to_the_same_resolved_position(drainage):
+    first = drainage["items"][0]
+    first["source_locator"] = {"sheet": "Primary", "row": 3}
+    drainage["items"].append({**first, "id": "second", "source_locator": {"sheet": "Reserve", "row": 3}})
+    bind_requirements(drainage, [("at_least", "160", "mm"), ("at_most", "150", "mm")])
+    drainage["product_requirements"][0]["position_locator"] = {"sheet": "Primary"}
+    drainage["product_requirements"][1]["position_locator"] = {"sheet": "Reserve"}
+    report = findings(drainage)
+    assert REQUIREMENT_CONFLICT not in report
+    assert report[PROPERTY].target.line_id == first["id"]
+
+
+def test_identical_declared_and_required_units_can_be_compared_for_unlisted_property_units(drainage):
+    bind_requirements(drainage, [("at_least", "450", "kPa")], name="pressure")
+    drainage["declarations"][0]["properties"]["pressure"] = {"value": "425", "unit": "kPa"}
+    assert findings(drainage)[PROPERTY].evidence["outcome"] == "conflict"
 
 
 def test_x83_round_trip_preserves_offered_identity_and_din_reference(drainage):

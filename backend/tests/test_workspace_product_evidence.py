@@ -128,3 +128,46 @@ def test_evidence_update_during_analysis_discards_the_stale_report(monkeypatch):
             assert all(f["rule_id"] != MATERIAL for f in report["findings"])
         finally:
             writer.execute("DELETE FROM workspace_sync WHERE workspace=%s", (key,))
+
+
+@pytest.mark.skipif(not os.environ.get("CATALOGUE_TEST_DSN"), reason="Requires a disposable migrated PostgreSQL database")
+def test_worker_resolves_conflicting_requirements_across_independent_attachments(monkeypatch):
+    monkeypatch.setenv("ANALYSIS_L3_PROVIDER", "none")
+    monkeypatch.setattr(workspace, "WORKSPACE", f"test-{uuid4().hex}")
+    bom = EXAMPLES / "drainage-variant-bom.json"
+    document = {**json.loads(bom.read_text()), "fileName": bom.name, "source": {"kind": "json"}}
+    lower = json.loads((EXAMPLES / "drainage-variant-evidence.json").read_bytes())
+    requirement, = lower["product_requirements"]
+    requirement["comparison"] = "at_least"
+    upper = {"schema": lower["schema"], "product_requirements": [
+        {**requirement, "comparison": "at_most", "required": {"value": "15", "unit": "cm"},
+         "document": "Synthetic installation schedule", "locator": "Schedule row 9"},
+    ]}
+    packages = {key: json.dumps(value).encode() for key, value in (("lower", lower), ("upper", upper))}
+
+    with psycopg.connect(os.environ["CATALOGUE_TEST_DSN"], autocommit=True, row_factory=dict_row) as connection:
+        with connection.transaction(force_rollback=True):
+            connection.execute("INSERT INTO workspace_sync (workspace) VALUES (%s)", (workspace.WORKSPACE,))
+            for key, data in packages.items():
+                workspace.save_file(connection, key, "application/json", data)
+            workspace.apply(connection, {"changes": {
+                "userLists": {"set": {"bom": document}},
+                "userDocuments": {"set": {
+                    "original": {"name": bom.name, "listId": "bom", "original": True},
+                    **{key: {"name": f"{key}.json", "listId": "bom", "productEvidence": True} for key in packages},
+                }},
+            }})
+
+            assert workspace_analysis.assess_next(connection)
+            report = workspace_analysis.status(connection, workspace.WORKSPACE, "bom")["report"]
+            conflict, = [f for f in report["findings"] if f["rule_id"] == "L1.PRODUCT.REQUIREMENT_CONFLICT"]
+            cited = {item["attachment_id"]: item["attachment_sha256"] for item in conflict["evidence"]["requirements"]}
+            assert cited == {key: sha256(data).hexdigest() for key, data in packages.items()}
+            assert all(f["rule_id"] != "L1.PRODUCT.DECLARED_PROPERTY" for f in report["findings"])
+
+            workspace.apply(connection, {"changes": {"userDocuments": {"delete": ["upper"]}}})
+            assert workspace_analysis.assess_next(connection)
+            report = workspace_analysis.status(connection, workspace.WORKSPACE, "bom")["report"]
+            assert all(f["rule_id"] != "L1.PRODUCT.REQUIREMENT_CONFLICT" for f in report["findings"])
+            property_finding, = [f for f in report["findings"] if f["rule_id"] == "L1.PRODUCT.DECLARED_PROPERTY"]
+            assert property_finding["evidence"]["outcome"] == "conflict"
