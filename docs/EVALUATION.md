@@ -189,3 +189,27 @@ WORKSPACE_PARSE_ORIGIN=http://127.0.0.1:8080 \
   "$fixture_dir"/*.pdf "$fixture_dir"/*.docx "$fixture_dir"/*.X83 "$fixture_dir"/*.json \
   | python -m analysis.eval.uploads
 ```
+
+## Legacy Excel workbook replay
+
+The upload worker now assesses the original Excel 97–2003 workbook and retains its worksheet structure. It checks each printed section subtotal and worksheet net total against the positions in that worksheet, citing the worksheet and row. A single-sheet workbook retains its net total at bill level. A multi-sheet workbook keeps sheet totals at their own roots. Position codes can repeat on separate sheets, and the automatic dependency check uses each worksheet as its own bill. Explicit analysis scope overrides remain available in the standalone dependency runner.
+
+Layers 1 and 2 caught all nine labelled defects with guidance across the legacy Excel fixtures. The cases cover written line amounts, section subtotals, single-sheet net totals, totals in a multi-sheet workbook, missing quantities and units, repeated codes within one sheet, and missing screed edge insulation. One fixture puts an edge strip on the other worksheet. The flooring dependency still fires. All three controls passed, including a worksheet reorder. An existing two-sheet rehearsal workbook linked both positions and produced zero findings. This workspace did not contain a repository `.xls` tender with independently labelled errors.
+
+A separate two-sheet replay used local Qwen 2.5 7B through all three layers. The gutter material contradiction was reported with guidance and cited the Dach worksheet, row 3. The clean version with the same position number reused on the Elektro sheet produced zero findings.
+
+Generate the fixtures with the optional `xlwt` package and use the local preview server and disposable PostgreSQL database described above.
+
+```sh
+export PYTHONPATH=backend:backend/importer
+fixture_dir=$(mktemp -d)
+python -m analysis.eval.workbooks "$fixture_dir"
+WORKSPACE_PARSE_ORIGIN=http://127.0.0.1:8080 \
+  frontend/node_modules/.bin/tsx frontend/tests/risk-upload-fixtures.ts "$fixture_dir"/*.xls \
+  | python -m analysis.eval.uploads
+
+python -m analysis.eval.workbooks "$fixture_dir/model" --layer3
+WORKSPACE_PARSE_ORIGIN=http://127.0.0.1:8080 \
+  frontend/node_modules/.bin/tsx frontend/tests/risk-upload-fixtures.ts "$fixture_dir/model"/*.xls \
+  | python -m analysis.eval.uploads --local-layer3
+```

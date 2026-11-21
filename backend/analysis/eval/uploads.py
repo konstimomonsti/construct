@@ -21,11 +21,11 @@ from analysis.runner import analyze
 from . import harness, labels
 import workspace
 import workspace_analysis
-from workspace_parse import read_document
+from workspace_parse import original_document
 
 
 GAEB_SUFFIXES = {".x83", ".d83", ".x84", ".d84", ".x86", ".d86"}
-DOCUMENT_SUFFIXES = {".pdf", ".docx"}
+DOCUMENT_SUFFIXES = {".pdf", ".docx", ".xls"}
 TABLE_SUFFIXES = {".csv", ".tsv", ".xlsx", ".json"}
 
 
@@ -54,7 +54,7 @@ def assess(connection, path, document, layers):
     if path.suffix.lower() in DOCUMENT_SUFFIXES:
         if not report["used_source"]:
             raise RuntimeError(f"{path.name}: original document was not assessed")
-        source = read_document(path.name, path.read_bytes()).snapshots[0]
+        source = original_document(path.name, path.read_bytes())
         canonical = workspace_analysis._original_tender(editable, source, payload["original_refs"]).with_hash()
     result = AnalysisResult.model_validate({key: report[key] for key in AnalysisResult.model_fields if key in report})
     if result.input_hash != canonical.input_hash or labels.layers_that_ran(result, layers) != layers:

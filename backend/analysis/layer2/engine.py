@@ -65,7 +65,15 @@ def _active(line: Line) -> bool:
 def _contexts(input: AnalysisInput, mode: ScopeMode) -> list[Context]:
     lines = [line for line in input.lines if _active(line)]
     if mode == "auto":
-        mode = "area" if any(line.distributions for line in lines) else "document"
+        if any(line.distributions for line in lines):
+            mode = "area"
+        else:
+            mode = "document"
+            if input.project.source_document.format == "xls":
+                sheets = {str(line.source_locator["sheet"]) for line in input.lines if line.source_locator.get("sheet")}
+                if len(sheets) > 1:
+                    # Each sheet in an original legacy workbook is its own BoQ root.
+                    mode = "trade"
     if mode == "document":
         return [Context("bom", Target(), "Entire BoQ", [Entry(line, line.quantity) for line in lines])]
     if mode in ("trade", "section"):

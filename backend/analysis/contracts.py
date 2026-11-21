@@ -51,6 +51,7 @@ class Bom(_Model):
     title: str | None = None
     trade: str | None = None
     stated_net_total: Decimal | None = None  # total written in the source file, if any
+    stated_net_total_locator: dict[str, Any] = Field(default_factory=dict)
 
 
 class Area(_Model):
@@ -68,6 +69,7 @@ class Section(_Model):
     title: str | None = None
     sort_order: int
     stated_total: Decimal | None = None  # subtotal written in the source file, if any
+    stated_total_locator: dict[str, Any] = Field(default_factory=dict)
     # Subtotal after a section discount (GAEB XML TotAfterDisc). Parent sections add this amount, not stated_total.
     stated_total_after_discount: Decimal | None = None
     # Lump-sum price for the whole section (GAEB XML TotalLSUM). Without a discount, parents add this amount.

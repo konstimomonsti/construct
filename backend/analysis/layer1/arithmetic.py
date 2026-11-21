@@ -100,6 +100,7 @@ def section_total(ctx):
             continue
         if section.stated_total == 0:
             yield ctx.finding(section=section, severity="info", title="Section subtotal not filled in",
+                              source_locator=section.stated_total_locator or None,
                               message=f"Section {section_label(section)} states 0.00 but its items add up to {computed}.",
                               evidence={"stated": section.stated_total, "computed": computed})
             continue
@@ -108,6 +109,7 @@ def section_total(ctx):
         discounted = sums.discounted_children(section.id)
         basis = f" (using the discounted or lump-sum totals of {', '.join(discounted)})" if discounted else ""
         yield ctx.finding(section=section, related_line_ids=explained,
+                          source_locator=section.stated_total_locator or None,
                           message=f"Section {section_label(section)} states {section.stated_total}, its items add up "
                                   f"to {computed}{basis} (difference {difference}).{hint}",
                           evidence={"stated": section.stated_total, "computed": computed, "difference": difference,
@@ -129,12 +131,14 @@ def net_total(ctx):
         return
     if stated == 0:
         yield ctx.finding(severity="info", title="Net total not filled in",
+                          source_locator=ctx.input.bom.stated_net_total_locator or None,
                           message=f"The file states a net total of 0.00 but its items add up to {computed}.",
                           evidence={"stated": stated, "computed": computed})
         return
     yield ctx.finding(message=f"The file states a net total of {stated}, its items add up to {computed} "
                               f"(difference {difference}).",
                       related_line_ids=_unplaced_match(ctx, difference),
+                      source_locator=ctx.input.bom.stated_net_total_locator or None,
                       evidence={"stated": stated, "computed": computed, "difference": difference},
                       suggested_fix=Fix(operations=[], confidence=0.7,
                                         rationale="Reconcile the counted positions and corrected section totals, "

@@ -14,7 +14,7 @@ from psycopg.types.json import Jsonb
 from analysis import adapter
 from analysis.runner import DEFAULT_LAYERS, analyze
 from tender_import.common import detect_format
-from workspace_parse import read_document
+from workspace_parse import original_document
 from workspace_product_evidence import add_to_snapshot
 
 
@@ -51,12 +51,7 @@ def _source(connection, workspace, list_id, file_id, filename):
     content, name = bytes(row["content"]), row["name"]
     kind = detect_format(name, content)
     if kind in {"pdf", "xls", "docx"}:
-        snapshots, _ = read_document(name, content)
-        # The preview and upload use the same content-derived IDs. Combine sheets for position
-        # evidence without replacing the editable list's section hierarchy.
-        return snapshots[0].model_copy(update={
-            "lines": [line for source in snapshots for line in source.lines],
-        })
+        return original_document(name, content)
     if kind not in {"gaeb_xml", "gaeb_1990"}:
         return None
     return adapter.from_bytes(name, content)
@@ -181,7 +176,7 @@ def run(payload, connection=None, workspace=None, list_id=None, file_id=None, fi
             source_notice = "The original tender file could not be checked. Findings are based on the editable list."
         if source and source.lines:
             kind = source.project.source_document.format
-            native_preview = kind in {"pdf", "docx"} and source.line_by_id().keys() & snapshot.line_by_id().keys()
+            native_preview = kind in {"pdf", "docx", "xls"} and source.line_by_id().keys() & snapshot.line_by_id().keys()
             if original_upload and (native_preview or kind in {"gaeb_xml", "gaeb_1990"}):
                 snapshot = _original_tender(snapshot, source, payload.get("original_refs", {}))
                 used_source = True

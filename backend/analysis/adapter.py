@@ -287,13 +287,17 @@ def from_import(result: Any, *, document: SourceDocument | None = None, boq_inde
     sections, section_keys = _sections_from_records(records, doc_key)
     lines = _lines_from_records(records, doc_key, sections, section_keys)
 
-    subtotals = {tuple(r.payload.get("code_parts") or ()): r.payload for r in records if r.kind == "subtotal"}
+    subtotals = {tuple(r.payload.get("code_parts") or ()): r for r in records if r.kind == "subtotal"}
     for section in sections:
-        subtotal = subtotals.get(tuple(section.code_parts), {})
+        record = subtotals.get(tuple(section.code_parts))
+        if record is None:
+            continue
+        subtotal = record.payload
         section.stated_total = to_decimal(subtotal.get("reported_amount"))
+        section.stated_total_locator = record.locator
         section.stated_total_after_discount = to_decimal(subtotal.get("discounted_amount"))
         section.stated_lump_sum_total = to_decimal(subtotal.get("lump_sum_amount"))
-    summary = next((r.payload for r in records if r.kind == "summary"), {})
+    summary = next((r for r in records if r.kind == "summary"), None)
 
     analysis_input = AnalysisInput(
         project=Project(
@@ -303,7 +307,8 @@ def from_import(result: Any, *, document: SourceDocument | None = None, boq_inde
             source_document=document,
         ),
         bom=Bom(title=boq_title or metadata.get("title") or document.filename,
-                stated_net_total=to_decimal(summary.get("net_total"))),
+                stated_net_total=to_decimal(summary.payload.get("net_total")) if summary else None,
+                stated_net_total_locator=summary.locator if summary else {}),
         sections=sections,
         lines=lines,
         import_warnings=[ImportWarning(code=i["code"], message=i.get("detail"), locator=i.get("locator") or {})

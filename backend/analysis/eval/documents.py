@@ -16,6 +16,7 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.utils import simpleSplit
 
 from . import PRECAST_PATH, docio, gaeb_writer, ops, precast
+from .labels import write_fixture_labels
 
 
 @dataclass(frozen=True)
@@ -123,14 +124,7 @@ def generate(out):
             label = {"control": not rule, "layers": [2 if dependency else 1], "expect": [rule] if rule else [],
                      "match": "dependency" if dependency else "line",
                      "target": {"trigger_codes" if dependency else "line_codes": [code]}}
-            write_labels(path, f"clean.{ext}", label)
-
-
-def write_labels(path, baseline, label):
-    path.with_suffix(path.suffix + ".labels.json").write_text(json.dumps({
-        "schema": "construct-eval-labels/1", "file": path.name, "suite": "catalogue",
-        "backend": path.suffix[1:], "baseline": baseline, "labels": [label],
-    }), encoding="utf-8")
+            write_fixture_labels(path, f"clean.{ext}", label)
 
 
 def generate_precast(out):
@@ -149,12 +143,12 @@ def generate_precast(out):
             path = out / f"{name}.{ext}"
             writer(path, items, "Leistungsverzeichnis Stahlbetonfertigteile")
             if label.get("control"):
-                write_labels(path, f"precast-clean.{ext}", label)
+                write_fixture_labels(path, f"precast-clean.{ext}", label)
             else:
                 code = label["target"]["line_codes"][0]
                 row = next(index for index, item in enumerate(items, 2) if item.code == code)
                 locator = {"page": 1} if ext == "pdf" else {"table": 1, "row": row}
-                write_labels(path, f"precast-clean.{ext}", {**label, "target": {**label["target"], "source_locator": locator}})
+                write_fixture_labels(path, f"precast-clean.{ext}", {**label, "target": {**label["target"], "source_locator": locator}})
 
 
 
@@ -166,12 +160,12 @@ def generate_gutter(out):
     for ext, writer in (("pdf", pdf_file), ("docx", word_file)):
         clean = out / f"gutter-clean.{ext}"
         writer(clean, [base], "Leistungsverzeichnis Dachentwässerung")
-        write_labels(clean, clean.name, {"control": True, "expect": [], "layers": [3]})
+        write_fixture_labels(clean, clean.name, {"control": True, "expect": [], "layers": [3]})
         conflict = out / f"gutter-conflict.{ext}"
         writer(conflict, [replace(base, detail=base.detail.replace("Kupfer", "Titanzink"))],
                "Leistungsverzeichnis Dachentwässerung")
         locator = {"page": 1} if ext == "pdf" else {"table": 1, "row": 2}
-        write_labels(conflict, clean.name, {
+        write_fixture_labels(conflict, clean.name, {
             "layers": [3], "expect": ["L3.TEXT.SHORT_LONG_CONTRADICTION"],
             "match": "line", "target": {"line_codes": [base.code], "severity": "warning", "source_locator": locator},
         })
@@ -220,7 +214,7 @@ def generate_dimensions(out):
                     "line_codes": [item.code], "severity": "warning", "source_locator": locator,
                 })
             baseline = "board-clean" if board else "height-clean"
-            write_labels(out / f"{name}.{ext}", f"{baseline}.{ext}", label)
+            write_fixture_labels(out / f"{name}.{ext}", f"{baseline}.{ext}", label)
 
 
 if __name__ == "__main__":

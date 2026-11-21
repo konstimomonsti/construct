@@ -89,3 +89,52 @@ def test_pdf_missing_units_do_not_shift_printed_prices():
     assert line["unit"] is None
     assert line["unit_price"] == "10.00"
     assert line["line_amount"] == "50.00"
+
+
+def test_legacy_xls_upload_keeps_sheet_amounts_and_has_independent_dependency_scopes(monkeypatch):
+    from decimal import Decimal
+    from analysis.contracts import AnalysisInput, Bom, Line, Project, Section, SourceAmounts, SourceDocument
+    import workspace_analysis
+    import workspace_parse
+
+    def worksheet(name, short, quantity, rate, amount, printed_net):
+        locator = {"sheet": name, "row": 3, "record": f"{name}!3"}
+        return AnalysisInput(
+            project=Project(source_document=SourceDocument(format="xls")),
+            bom=Bom(title="Work", stated_net_total=Decimal(printed_net),
+                    stated_net_total_locator={"sheet": name, "row": 5}),
+            sections=[
+                Section(id=f"{name}-section", code="01", title="Work", sort_order=1,
+                        stated_total=Decimal(amount), stated_total_locator={"sheet": name, "row": 4}),
+            ],
+            lines=[
+                Line(id=f"{name}-line", code="01.0010", section_id=f"{name}-section",
+                     sort_order=1, short_text=short, quantity=Decimal(quantity), unit="m",
+                     source_amounts=SourceAmounts(unit_price=Decimal(rate), line_amount=Decimal(amount)),
+                     source_locator=locator),
+            ],
+        )
+
+    electricity = worksheet("Elektro", "Randdämmstreifen liefern", "2", "10", "20", "20")
+    floor = worksheet("Boden", "Zementestrich schwimmend, 65 mm", "5", "10", "50", "70")
+    monkeypatch.setattr(workspace_parse, "read_document", lambda *_: ([electricity, floor], []))
+    source = workspace_parse.original_document("sample.xls", b"fixture")
+    result = workspace_parse.preview("sample.xls", b"fixture")
+    assert [node["label"] for node in result["tree"]] == ["Elektro", "Boden"]
+    assert [row["path"][-1]["oz"] for row in result["positions"]] == ["S1.01", "S2.01"]
+    assert [line.section_id for line in source.lines] == ["S1.01", "S2.01"]
+    assert source.bom.stated_net_total is None
+
+    document = {**result, "fileName": "sample.xls", "source": {"kind": "xlsx"}}
+    monkeypatch.setenv("ANALYSIS_L3_PROVIDER", "none")
+    monkeypatch.setattr(workspace_analysis, "_source", lambda *_: source)
+    report = workspace_analysis.run(_uploaded_input(document), object(), filename="sample.xls", original_upload=True)
+    assert report["used_source"] and not report["errors"]
+    by_rule = {f["rule_id"]: f for f in report["findings"]}
+    assert "L1.CODE.DUPLICATE" not in by_rule
+    assert "L1.ARITH.NET_TOTAL" not in by_rule
+    total = by_rule["L1.ARITH.SECTION_TOTAL"]
+    assert total["target"]["section_id"] == "S2"
+    assert total["source_locator"] == {"sheet": "Boden", "row": 5}
+    assert Decimal(total["evidence"]["difference"]) == Decimal("20")
+    assert by_rule["L2.FLOOR.SCREED_NEEDS_EDGE_INSULATION"]["target"]["section_id"] == "S2"
