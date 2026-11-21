@@ -162,7 +162,7 @@ export async function exportList(req: ExportRequest): Promise<ExportResult> {
       const { generatePdf, pickTemplate } = await import('./pdf')
       const template = pickTemplate(doc)
       let layout: LayoutFile | null = null
-      if (own === 'pdf' && req.loadLayout) layout = await req.loadLayout()
+      if (req.loadLayout) layout = await req.loadLayout()
       const data = await generatePdf({ doc, positions, tree, longTexts, prices, template, layout, now })
       return mk(data, 'generated')
     }

@@ -7,6 +7,7 @@ PAIRS = [
     ('A', 'LV_03_Malerarbeiten.pdf', 'A-lv-03-malerarbeiten-pdf.pdf', 2),
     ('A3', 'LV_03_Malerarbeiten.pdf', 'A-lv-03-malerarbeiten-pdf.pdf', 6),
     ('C', 'Angebot AN24-0305.pdf', 'C-angebot-an24-0305-d84.pdf', 2),
+    ('CL', 'Angebot AN24-0305.pdf', 'C-angebot-an24-0305-d84.pdf', -1),
     ('C1', 'Angebot AN24-0305.pdf', 'C-angebot-an24-0305-d84.pdf', 1),
     ('D', 'LV-Ausdruck-[PROJEKT_004].pdf', 'D-gaeb-projekt-004-x83.pdf', 6),
     ('B', 'Leistungsverzeichnis.pdf', 'B-8209-003-leistungsverzeichnis-leer-x83.pdf', 2),
@@ -16,7 +17,7 @@ sel = sys.argv[1:]
 for tag, o, e, pn in PAIRS:
     if sel and tag not in sel: continue
     a = pymupdf.open(os.path.join(F, o)); b = pymupdf.open(os.path.join(S, e))
-    pa = a[min(pn-1, len(a)-1)]; pb = b[min(pn-1, len(b)-1)]
+    pa = a[pn-1 if pn>0 else len(a)+pn]; pb = b[min(pn-1, len(b)-1) if pn>0 else len(b)+pn]
     m = pymupdf.Matrix(1.3, 1.3)
     ia = pa.get_pixmap(matrix=m); ib = pb.get_pixmap(matrix=m)
     out = pymupdf.Pixmap(ia.colorspace, pymupdf.IRect(0, 0, ia.width + ib.width + 10, max(ia.height, ib.height)), False)

@@ -30,6 +30,8 @@ interface Row {
   between?: boolean
   /** minimum space the row needs below its baseline */
   after?: number
+  /** force a new page and place this row at this baseline */
+  newPage?: number
 }
 
 export interface PdfOpts {
@@ -370,6 +372,13 @@ const tplB: Tpl = {
 /* Template C — Angebot                                                */
 /* ------------------------------------------------------------------ */
 
+/** the original clips long labels at the right hand text edge */
+const clip = (ctx: Ctx, t: string, maxW = 413) => {
+  let o = t
+  while (o.length > 1 && ctx.width(o, 'r', 10) > maxW) o = o.slice(0, -1)
+  return o
+}
+
 const tplC: Tpl = {
   id: 'C_angebot',
   top1: 365.5,
@@ -439,7 +448,9 @@ const tplC: Tpl = {
         ...(o.prices && p.up != null ? [T(478.7, y, deNum(p.up, 2), 'r', 10, { right: true }), T(556.5, y, deNum(gp(p), 2), 'r', 10, { right: true })] : []),
       ],
     })
-    const short = ctx.wrap(p.short, 'r', 10, 290)
+    const lay = untouched(ctx, p) ? o.layout?.positions[p.oz] : undefined
+    const shortSrc = lay?.lines?.filter((l) => l.s).map((l) => l.t)
+    const short = shortSrc?.length ? shortSrc : ctx.wrap(p.short, 'r', 10, 290)
     short.forEach((t, i) => rows.push({ gap: i === 0 ? 11.3 : 11.3, brk: false, ops: (y) => [T(158.3, y, t, 'r', 10)] }))
     const body = bodyLines(ctx, p, 'r', 9, 290)
     let pending = 0
@@ -454,26 +465,42 @@ const tplC: Tpl = {
     return rows
   },
   sum(ctx, c, v) {
-    return [{ gap: 20, brk: true, ops: (y) => [hline(60.7, y - 9, 556.4, 0.6), T(60.7, y, `Summe ${c.depth === 1 ? 'Bereich' : 'Abschnitt'} ${c.oz}. ${c.label}`.slice(0, 80), 'b', 10), ...(ctx.o.prices ? [T(556.5, y, deNum(v, 2), 'b', 10, { right: true })] : []), hline(60.7, y + 8, 556.4, 2.4, [0.5, 0.5, 0.5])] }]
+    const o = ctx.o
+    const rule = (y: number) => fill(60.7, y, 495.7, 0.9, BLACK)
+    const dbl = (y: number) => [rule(y), rule(y + 1.4)]
+    const amt = (y: number, f: FontKey, val: number) => (o.prices ? [T(556.5, y, deNum(val, 2), f, 10, { right: true })] : [])
+    const kind = c.depth === 1 ? 'Bereich' : c.depth === 2 ? 'Abschnitt' : 'Unterabschnitt'
+    if (c.depth === 1) {
+      const rows: Row[] = []
+      if (c.cats.length) {
+        rows.push({ gap: 24.7, brk: true, ops: (y) => [T(60.7, y, `Zusammenstellung ${kind} ${c.oz}.`, 'b', 10)] })
+        c.cats.forEach((k, i) => rows.push({ gap: i === 0 ? 16.9 : 16.9, brk: false, ops: (y) => [T(60.7, y, clip(ctx, `Summe Abschnitt ${k.oz}. ${k.label}`), 'r', 10), ...amt(y, 'r', catSum(k))] }))
+        rows.push({ gap: 16.8, brk: false, ops: (y) => [rule(y - 12.2), T(60.7, y, `Summe ${kind} ${c.oz}.`, 'b', 10), ...amt(y, 'b', v), ...dbl(y + 5)] })
+      } else {
+        rows.push({ gap: 16.1, brk: true, ops: (y) => [rule(y - 12.3), T(60.7, y, `Summe ${kind} ${c.oz}.`, 'b', 10), ...amt(y, 'b', v), ...dbl(y + 5)] })
+      }
+      return rows
+    }
+    return [{ gap: 16.1, brk: true, ops: (y) => [rule(y - 12.3), T(60.7, y, `Summe ${kind} ${c.oz}.`, 'b', 10), ...amt(y, 'b', v), ...dbl(y + 5)] }]
   },
   end(ctx, total) {
     const o = ctx.o
     const net = round2(total)
     const vat = round2(net * 0.19)
-    const rows: Row[] = [{ gap: 30, brk: true, ops: (y) => [T(60.7, y, 'Gesamtzusammenstellung', 'b', 10)] }]
+    const rows: Row[] = [{ gap: 30, brk: true, newPage: 119.3, ops: (y) => [T(60.7, y, 'Gesamtzusammenstellung', 'b', 10)] }]
     let first = true
     for (const c of ctx.o.tree.roots) {
       rows.push({
         gap: first ? 17.1 : 17.2, brk: false,
-        ops: (y) => [T(60.7, y, `Summe ${c.depth === 1 ? 'Bereich' : 'Abschnitt'} ${c.oz}. ${c.label}`.slice(0, 80), 'r', 10), ...(o.prices ? [T(556.5, y, deNum(catSum(c), 2), 'r', 10, { right: true })] : [])],
+        ops: (y) => [T(60.7, y, clip(ctx, `Summe ${c.depth === 1 ? 'Bereich' : 'Abschnitt'} ${c.oz}. ${c.label}`), 'r', 10), ...(o.prices ? [T(556.5, y, deNum(catSum(c), 2), 'r', 10, { right: true })] : [])],
       })
       first = false
     }
-    rows.push({ gap: 17.1, brk: false, ops: (y) => [T(60.7, y, 'Summe (netto)', 'r', 10), ...(o.prices ? [T(556.5, y, deNum(net, 2), 'r', 10, { right: true })] : [])] })
-    rows.push({ gap: 17.3, brk: false, ops: (y) => [T(60.7, y, 'zzgl. Mehrwertsteuer', 'r', 10), T(469.5, y, '19,00 %', 'r', 10, { right: true }), ...(o.prices ? [T(556.5, y, deNum(vat, 2), 'r', 10, { right: true })] : [])] })
-    rows.push({ gap: 16.9, brk: false, ops: (y) => [T(60.7, y, 'Gesamtsumme:', 'b', 10), ...(o.prices ? [T(556.6, y, deNum(round2(net + vat), 2), 'b', 10, { right: true })] : [])] })
+    rows.push({ gap: 17.1, brk: false, ops: (y) => [fill(60.7, y - 11, 495.7, 0.9, BLACK), T(60.7, y, 'Summe (netto)', 'r', 10), ...(o.prices ? [T(556.5, y, deNum(net, 2), 'r', 10, { right: true })] : [])] })
+    rows.push({ gap: 17.3, brk: false, ops: (y) => [T(60.7, y, 'zzgl. Mehrwertsteuer', 'r', 10), T(469.5, y, '19,00 %', 'r', 10, { right: true }), ...(o.prices ? [T(556.5, y, deNum(vat, 2), 'r', 10, { right: true })] : []), fill(60.7, y + 4.7, 495.7, 0.9, BLACK)] })
+    rows.push({ gap: 16.9, brk: false, ops: (y) => [T(60.7, y, 'Gesamtsumme:', 'b', 10), ...(o.prices ? [T(556.6, y, deNum(round2(net + vat), 2), 'b', 10, { right: true })] : []), fill(60.7, y + 4.9, 495.7, 0.9, BLACK), fill(60.7, y + 6.4, 495.7, 0.9, BLACK)] })
     rows.push({ gap: 98.8, brk: false, ops: (y) => [T(202.4, y, 'Mit freundlichen Grüßen', 'r', 10)] })
-    rows.push({ gap: 22.3, brk: false, ops: (y) => [T(204.7, y, `Datum: ${o.doc.source?.header?.datum ?? dd(o.now)}               Unterschrift: ........................`, 'r', 10)] })
+    rows.push({ gap: 22.3, brk: false, ops: (y) => [T(204.7, y, `Datum: ${o.doc.source?.header?.datum ?? dd(o.now)}               Unterschrift: ${'.'.repeat(56)}`, 'r', 10)] })
     return rows
   },
   carryBottom: (ctx, y, v) => [T(478.5, y, 'Übertrag:', 'r', 10, { right: true }), T(556.7, y, ctx.o.prices ? deNum(v, 2) : '', 'r', 10, { right: true })],
@@ -767,7 +794,12 @@ export async function generatePdf(opts: PdfOpts): Promise<Uint8Array> {
       if (carryNext && tpl.carryTop) y += tpl.carryTop
       else if (carryNext) y += 0
     } else y = prevBaseline + r.gap
-    if (!firstOnPage && y + (r.after ? 0 : 0) > tpl.bottom && r.brk) {
+    if (r.newPage !== undefined && !firstOnPage) {
+      page++
+      firstOnPage = true
+      carryNext = false
+      y = r.newPage
+    } else if (!firstOnPage && y > tpl.bottom && r.brk) {
       // page break before this row
       const between = !!r.between
       if (between && tpl.carryBottom) carries.push({ page, yBottom: tpl.carryBottomY ?? prevBaseline + 15.3, value: val })
@@ -777,7 +809,7 @@ export async function generatePdf(opts: PdfOpts): Promise<Uint8Array> {
       y = topOf(page) + (carryNext && tpl.carryTop ? tpl.carryTop : 0)
       if (carryNext) carries.push({ page, yBottom: -(topOf(page) + (tpl.carryAt ?? 0)), value: val })
     }
-    // hard overflow protection for non-breakable rows
+    if (r.newPage !== undefined) y = r.newPage
     placed.push({ page, y, row: r })
     prevBaseline = y
     firstOnPage = false

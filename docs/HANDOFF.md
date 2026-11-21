@@ -14,7 +14,7 @@ Run: `cd app && npm run dev` (http://localhost:5173). Rebuild data: `npm run dat
 
 ## Exporters (done 2026-11-21, verified)
 - `src/lib/export/**`, `ExportMenu`/`ExportDialog` wired into ListPage. 10 formats. Tests: `npx tsx tests/export-roundtrip.ts` (byte-identical 9/9, cross-format 45/45, patch, PDF OZ/qty order), `node tests/export-ui.mjs` (all formats download via UI, UI byte-identity for X83/D86/PDF).
-- Known gaps: PDF pagination differs from originals; Angebot (C) lacks the 'Zusammenstellung Bereich' block and some 2-line short texts (e.g. 1.1.140) are cut to the first line; exceljs lazy chunk 929 kB triggers Vite warning (lazy only).
+- Known gaps: PDF pagination differs from originals; Angebot (C) Zusammenstellung blocks + multi-line short texts fixed (61 texts recovered, totals match original); exceljs lazy chunk 929 kB triggers Vite warning (lazy only).
 
 ## (historic) In progress when saved
 - Exporters (Sonnet subagent B, background): `src/lib/export/**`, `src/components/ExportMenu.tsx`, `src/components/ExportDialog.tsx`, `scripts/pdf-layout.py`, `public/data/layout/**`, `tests/export-roundtrip.ts`.
