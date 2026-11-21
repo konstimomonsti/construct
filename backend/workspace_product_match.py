@@ -45,6 +45,10 @@ def clean_description(value):
     return str(value or "").strip() if value != "(ohne Kurztext)" else ""
 
 
+def clipped_description(value):
+    return len(value) >= 3995 and value.endswith(("…", "..."))
+
+
 def tokens(value):
     text = unicodedata.normalize("NFKC", clean_description(value)).casefold()
     text = re.sub(r"\b(person_|per|firma_|telefon_|ort_)0*(\d+)\b",
@@ -351,7 +355,7 @@ class ProductMatcher:
             return None
         details = tuple(detail for detail in descriptions(name, raw) if detail and detail != name)
         primary = primary_specifications(name, raw)
-        truncated = len(raw) >= 3995 and raw.endswith(("…", "..."))
+        truncated = clipped_description(raw)
         pipe = pipe_key(name)
         unit = tender_unit(position.get("unit"))
         if reference_override(name) != name and pipe in self.qualified_pipes:
@@ -445,10 +449,12 @@ class ProductMatcher:
                 if detail == description or trim_delivery(detail) == description:
                     if name_equivalent:
                         return 5
-                    if len(detail) >= 7 and (is_specific(detail) or (
-                            len(requested) == 1 and requested[0].startswith(PLACEHOLDER_PREFIXES)
-                            and len(catalogued) >= 3 and begins(detail[1:], catalogued)
-                    )):
+                    redacted_title = (
+                        len(detail) >= 6 and unit in product.units and len(requested) == 1
+                        and requested[0].startswith(PLACEHOLDER_PREFIXES) and begins(detail, requested)
+                        and len(catalogued) >= 3 and begins(detail[1:], catalogued)
+                    )
+                    if len(detail) >= 7 or redacted_title:
                         score = max(score, 4)
 
                 if (related or min(len(detail), len(description)) >= 40) and similar_detail(detail, description):

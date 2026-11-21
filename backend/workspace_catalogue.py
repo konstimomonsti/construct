@@ -13,13 +13,14 @@ from urllib.parse import quote, urlencode
 from urllib.request import Request, urlopen
 
 import psycopg
+from lxml.etree import XMLSyntaxError
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 
 from analysis.layer3.provider import ProviderError, ProviderUnavailable
 from workspace_product_ai import adjudicate, catalogue_check, companion_check, configured_model, catalogue_provider
 from workspace_product_companions import catalogue_matches, position_number
-from workspace_product_match import ProductMatcher, clean_description, tender_unit
+from workspace_product_match import ProductMatcher, clean_description, clipped_description, tender_unit
 from workspace_product_references import PositionReferences
 
 LOG = logging.getLogger(__name__)
@@ -217,6 +218,26 @@ def legacy_source_texts(data):
     return {key: items[0] for key, items in indexed.items() if len(items) == 1}
 
 
+def xml_source_texts(data):
+    if not data:
+        return {}
+    from tender_import.structured import gaeb_xml
+    indexed = defaultdict(list)
+    for record in gaeb_xml(data).records:
+        if record.kind == "item" and (source_id := record.payload.get("source_id")):
+            indexed[source_id].append(record.payload)
+    return {source_id: items[0] for source_id, items in indexed.items() if len(items) == 1}
+
+
+def restored_xml_description(position, visible, record):
+    if not clipped_description(visible) or not compatible_companion(position, record):
+        return visible
+    full = clean_description(record.get("long_description"))
+    if code(record["code"]) == code(position.get("oz")) and len(visible) < len(full) <= 12000:
+        return full
+    return visible
+
+
 def seeded_offer_hash(connection, filename, sha, data):
     if not data or connection.execute("SELECT 1 FROM source_document WHERE sha256=%s LIMIT 1", (sha,)).fetchone():
         return sha
@@ -335,6 +356,15 @@ def classify(connection, workspace, list_id):
     except ValueError:
         LOG.warning("Could not recover GAEB 90 descriptions from the original file")
         legacy_texts = {}
+    xml_texts = {}
+    if value.get("source", {}).get("kind") == "gaeb-xml" and any(
+            isinstance(row, dict) and isinstance(row.get("srcRef"), str)
+            and clipped_description(clean_description(row.get("long")))
+            for row in value["positions"]):
+        try:
+            xml_texts = xml_source_texts(original_content(connection, workspace, original))
+        except (ValueError, XMLSyntaxError):
+            LOG.warning("Could not recover clipped descriptions from the original GAEB XML")
     descriptions = companion_descriptions(connection, workspace, documents, filename, sha) if is_offer else {}
     records = []
     prepared = []
@@ -351,6 +381,8 @@ def classify(connection, workspace, list_id):
             source_long = clean_description(source_text.get("long_description"))
             if is_offer or source_short or source_long:
                 short, long_text = source_short, source_long
+        if xml_texts and isinstance(source_id := position.get("srcRef"), str):
+            long_text = restored_xml_description(position, long_text, xml_texts.get(source_id))
         companion = descriptions.get(key)
         used_pdf = compatible_companion(position, companion) and (not short or not long_text)
         if used_pdf:

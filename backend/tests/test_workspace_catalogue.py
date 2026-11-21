@@ -296,6 +296,45 @@ def test_aligned_summary_heading_needs_a_local_identifier_and_preserves_its_dime
     assert not compatible_specification({"short": "Deckschicht (14 cm) herstellen"}, full, summary=True)
 
 
+def test_model_quote_can_cross_a_field_boundary_but_cannot_clip_a_dimension():
+    from workspace_product_ai import quoted_phrase
+
+    source = {"title": "Probennahmeventil DN 150", "description": "Ventil aus Edelstahl, Länge 12,5 mm"}
+    assert quoted_phrase(source, "DN 150 Ventil aus Edelstahl")
+    assert quoted_phrase(source, "Länge 12,5 mm")
+    assert not quoted_phrase(source, "Probennahmeventil DN 15")
+    assert not quoted_phrase(source, "Länge 12")
+    assert not quoted_phrase(source, "DN 150 Ventil aus Messing")
+
+
+def test_full_specification_can_recover_a_redacted_heading():
+    item = {"id": "plate", "name": "Auflagerplatte für [PERSON_055]", "description": (
+        "[PERSON_055] Auflagerplatte für [PERSON_055] auf Konsolauflagern"
+    ), "unit_code": "Stk", "tender_units": [], "category": "Fittings"}
+    row = {"short": "[PERSON_055]", "long": item["description"], "unit": "St"}
+    assert catalogue.ProductMatcher([item]).match(row) == item
+    assert catalogue.ProductMatcher([item]).match({**row, "unit": "m"}) is None
+    assert catalogue.ProductMatcher([item, {**item, "id": "duplicate"}]).match(row) is None
+
+
+def test_clipped_gaeb_xml_description_requires_unique_row_and_agreeing_measurement():
+    full = "Ausführung nach Spezifikation. " * 180 + "Material Edelstahl."
+    xml = (
+        '<GAEB><Award><BoQ><BoQBody><Itemlist><Item ID="a" RNoPart="0010"><Qty>2.000</Qty><QU>St</QU>'
+        f'<Description><DetailTxt><Text>{full}</Text></DetailTxt></Description></Item>'
+        '<Item ID="b" RNoPart="0020"/><Item ID="b" RNoPart="0030"/>'
+        '</Itemlist></BoQBody></BoQ></Award></GAEB>'
+    )
+    source = catalogue.xml_source_texts(xml.encode())
+    assert set(source) == {"a"}
+    row = {"oz": "10", "qty": 2, "unit": "Stk"}
+    visible = full[:4000].rstrip() + " …"
+    assert catalogue.restored_xml_description(row, visible, source["a"]) == full
+    assert catalogue.restored_xml_description({**row, "oz": "20"}, visible, source["a"]) == visible
+    assert catalogue.restored_xml_description({**row, "qty": 3}, visible, source["a"]) == visible
+    assert catalogue.restored_xml_description(row, "Editable description", source["a"]) == "Editable description"
+
+
 def test_direct_model_review_checks_both_quotes_and_leaves_identical_products_tied():
     from analysis.layer3.provider import FakeProvider
     from workspace_product_ai import adjudicate, catalogue_check

@@ -2,6 +2,7 @@
 
 import json
 import os
+import re
 
 from analysis.layer3.provider import AnthropicProvider, DEFAULT_ANTHROPIC_MODEL, LLMRequest, ResponseDetails
 from workspace_product_match import clean_description, labelled_values, tender_unit, tokens
@@ -123,4 +124,7 @@ def quoted_phrase(source, value):
     words = tokens(quote)
     if len(words) < 2 and not labelled_values(words):
         return False
-    return any(quote in " ".join(source[field].split()) for field in ("title", "description"))
+    # Title and description are consecutive parts of the displayed position. The
+    # quote can span their boundary, but must preserve the surrounding words and numbers.
+    passage = " ".join(f"{source['title']} {source['description']}".split())
+    return bool(re.search(rf"(?<!\w)(?<!\d[.,]){re.escape(quote)}(?!\w|[.,]\d)", passage))
