@@ -29,10 +29,11 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
           cache-dependency-path: |
+            backend/pyproject.toml
             backend/requirements.txt
             backend/importer/requirements.txt
       - name: Install dependencies
-        run: pip install -r backend/requirements.txt -r backend/importer/requirements.txt pytest python-docx==1.2.0 reportlab==4.5.1
+        run: pip install './backend[llm-api]' -r backend/requirements.txt -r backend/importer/requirements.txt pytest python-docx==1.2.0 reportlab==4.5.1
       - name: Install PDF test tools
         run: sudo apt-get install -y poppler-utils fonts-dejavu-core
       - name: Backend and analysis tests
