@@ -1,6 +1,7 @@
 """Run the shared BoQ analysis and retain one report per uploaded list."""
 
-from collections import defaultdict
+from collections import Counter, defaultdict
+from functools import cache
 import logging
 import os
 import re
@@ -66,9 +67,12 @@ def _source(connection, workspace, list_id, file_id, filename):
 
 
 def _attach_source(snapshot, source, original_codes):
+    kind = source.project.source_document.format
+    is_gaeb = kind in {"gaeb_xml", "gaeb_1990"}
     by_code = defaultdict(list)
     for line in source.lines:
-        by_code[_code(line.code)].append(line)
+        if line.code:
+            by_code[_code(line.code)].append(line)
     # Use only unambiguous matches. Keep the file's stated amount only while its inputs agree
     # with the draft. Changing quantity or price replaces the draft amount with a calculation.
     pairs = []
@@ -77,16 +81,21 @@ def _attach_source(snapshot, source, original_codes):
         if line.id not in original_codes:
             continue
         match_by_id = source_lines.get(line.id)
-        matches = [match_by_id] if match_by_id is not None else by_code.get(_code(original_codes[line.id]), [])
+        code = original_codes[line.id]
+        matches = [match_by_id] if match_by_id is not None else by_code.get(_code(code), [])
         if len(matches) != 1:
             continue
         match = matches[0]
         pairs.append((line, match))
+    if is_gaeb:
+        counts = Counter(match.id for _, match in pairs)
+        pairs = [(line, match) for line, match in pairs if counts[match.id] == 1]
     current_ids = {match.id: line.id for line, match in pairs}
+    unchanged = {}
     for line, match in pairs:
         line.gaeb_flags = match.gaeb_flags
         line.source_locator = match.source_locator
-        if match.source_locator and source.project.source_document.format in {"xls", "pdf"}:
+        if match.source_locator and kind in {"xls", "pdf"}:
             # The editable table needs numeric placeholders. Analysis keeps missing source fields missing.
             if match.quantity is None and line.quantity == 0:
                 line.quantity = None
@@ -97,14 +106,77 @@ def _attach_source(snapshot, source, original_codes):
         line.alternative_for = current_ids.get(match.alternative_for)
         if match.pricing_basis == "lump_sum":
             line.pricing_basis = "lump_sum"
-        if (match.source_amounts and line.source_amounts and line.quantity == match.quantity
+        if is_gaeb:
+            draft_rate = line.price.unit_price if line.price else (
+                line.source_amounts.unit_price if line.source_amounts else None
+            )
+            source_rate = match.source_amounts.unit_price if match.source_amounts else None
+            same_unit = line.unit == match.unit and (
+                line.unit is not None or (line.unit_raw or "").strip().casefold() == (match.unit_raw or "").strip().casefold()
+            )
+            if line.quantity == match.quantity and same_unit and draft_rate == source_rate:
+                if match.source_amounts:
+                    line.source_amounts = match.source_amounts.model_copy()
+                if _code(line.code) == _code(match.code):
+                    unchanged[line.id] = match.id
+            elif line.source_amounts:
+                line.source_amounts.line_amount = None
+        elif (match.source_amounts and line.source_amounts and line.quantity == match.quantity
                 and line.source_amounts.unit_price == match.source_amounts.unit_price and line.unit == match.unit):
             line.source_amounts.line_amount = match.source_amounts.line_amount
-        elif (source.project.source_document.format in {"xls", "pdf"} and match.source_amounts
+        elif (kind in {"xls", "pdf"} and match.source_amounts
                 and line.quantity == match.quantity and line.unit == match.unit
                 and (line.price.unit_price if line.price else None) == match.source_amounts.unit_price):
             line.source_amounts = match.source_amounts
+    if is_gaeb:
+        _attach_gaeb_totals(snapshot, source, unchanged)
     return bool(pairs)
+
+
+def _attach_gaeb_totals(snapshot, source, unchanged_lines):
+    """Carry written totals only for subtrees that still match the original pricing inputs."""
+    source_sections = defaultdict(list)
+    source_children = defaultdict(list)
+    source_items = defaultdict(list)
+    for section in source.sections:
+        if section.code:
+            source_sections[_code(section.code)].append(section)
+        source_children[section.parent_id].append(section.id)
+    for line in source.lines:
+        source_items[line.section_id].append(line.id)
+
+    draft_children = defaultdict(list)
+    draft_items = defaultdict(list)
+    matched_sections = {}
+    for section in snapshot.sections:
+        draft_children[section.parent_id].append(section.id)
+        matches = source_sections.get(_code(section.code), []) if section.code else []
+        if len(matches) == 1:
+            matched_sections[section.id] = matches[0]
+    draft_sections = {section.id for section in snapshot.sections}
+    for line in snapshot.lines:
+        section_id = line.section_id if line.section_id in draft_sections else None
+        draft_items[section_id].append(unchanged_lines.get(line.id))
+
+    @cache
+    def unchanged(draft_id, original_id):
+        if Counter(draft_items[draft_id]) != Counter(source_items[original_id]):
+            return False
+        children = draft_children[draft_id]
+        if any(child not in matched_sections for child in children):
+            return False
+        mapped_children = [matched_sections[child].id for child in children]
+        return (Counter(mapped_children) == Counter(source_children[original_id])
+                and all(unchanged(child, original) for child, original in zip(children, mapped_children)))
+
+    for section in snapshot.sections:
+        original = matched_sections.get(section.id)
+        if original and unchanged(section.id, original.id):
+            section.stated_total = original.stated_total
+            section.stated_total_after_discount = original.stated_total_after_discount
+            section.stated_lump_sum_total = original.stated_lump_sum_total
+    if unchanged(None, None):
+        snapshot.bom.stated_net_total = source.bom.stated_net_total
 
 
 def prepare(payload):
@@ -172,7 +244,7 @@ def _uploaded_input(document):
     sections = {}
 
     def add_section(code, label, parent_id):
-        sections.setdefault(code, {"id": code, "parent_id": parent_id, "title": label,
+        sections.setdefault(code, {"id": code, "parent_id": parent_id, "code": code, "title": label,
                                    "code_parts": code.split(".") if phase else []})
 
     def visit(nodes, parent_id=None):

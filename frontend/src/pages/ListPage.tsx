@@ -9,12 +9,14 @@ import { MetaLink, PageFrame, PageHeader, RowMenu, SortMenu, Summary, ToolButton
 import { phaseLabel } from '../components/ListCard'
 import { ErrorBoundary } from '../components/ErrorBoundary'
 import { LedgerTable } from '../components/LedgerTable'
+import { BidSimulator } from '../components/BidSimulator'
 import { ChangeOrderText, FindingFilter, FindingText } from '../components/RiskAssessment'
 import { decisionsOf, indexFindings, matchesFindingFilter, SEVERITIES, useUploadAssessment, type ChangeOrderSignal, type Decision, type Report, type ReviewItem } from '../lib/risk-assessment'
 import { riskXlsx, downloadBytes } from '../lib/risk-export'
 import type { RowRisk } from '../components/LedgerTable'
 import { DecisionControls, DismissMenu } from '../components/risk/DecisionControls'
 import { RiskSummary } from '../components/risk/RiskSummary'
+import { partialAnalysis } from '../lib/risk-labels'
 import { BidderQuestions, openQuestions } from '../components/risk/BidderQuestions'
 import { RiskPrint } from '../components/risk/RiskPrint'
 import { AddSectionDialog, PricingLegend, PricingMeter, pricingSections } from '../components/PricingBudget'
@@ -291,6 +293,11 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   const edits = useStore((s) => s.edits[doc.id])
   const resolved = useMemo(() => resolveList(doc, edits), [doc, edits])
   const positions = resolved.positions
+  const bidStandardRates = useMemo(() => {
+    if (!original || imported.phase !== 'X83') return new Map<string, number>()
+    const units = new Map(imported.positions.map((p) => [p.id, p.unit]))
+    return new Map(positions.flatMap((p) => p.up != null && p.unit === units.get(p.id) ? [[p.id, p.up] as const] : []))
+  }, [original, imported.phase, imported.positions, positions])
   const tree = resolved.tree
   const catStats = useMemo(() => treeStats(positions), [positions])
   const ozGroups = useMemo(() => groupByOz(positions), [positions])
@@ -311,7 +318,10 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   const fixtureReport = useFixtureReport(params.get('risk') === 'fixture')
   const uploadReport = fixtureReport ?? (assessment?.state === 'ready' ? assessment.report : null)
   const risk = uploadReport?.risk ?? null
-  const aiCheckSkipped = uploadReport?.layers_run != null && !uploadReport.layers_run.includes(3)
+  const partial = partialAnalysis(uploadReport?.errors ?? [])
+  const analysisErrors = uploadReport?.errors.filter((error) =>
+    (risk == null || !partial?.details.includes(error)) && !/^layer 3 coverage:/i.test(error),
+  ) ?? []
   const reviewedIds = useStore((s) => s.listPatch[doc.id]?.reviewedFindings)
   const decisionMap = useStore((s) => s.listPatch[doc.id]?.findingDecisions)
   const decisions = useMemo(() => decisionsOf({ findingDecisions: decisionMap, reviewedFindings: reviewedIds }), [decisionMap, reviewedIds])
@@ -688,6 +698,9 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
             <Button variant="primary" icon="add" onClick={() => setAdding(true)} aria-label="Add position" className="max-sm:w-10 max-sm:px-0">
               <span className="max-sm:hidden">Add position</span>
             </Button>
+            {original && imported.phase === 'X83' && imported.source?.kind === 'gaeb-xml' && (
+              <BidSimulator listId={doc.id} title={heading} standardRates={bidStandardRates} />
+            )}
             <ExportMenu listId={doc.id} doc={doc} original={original} selectedIds={[...selected]} />
             <RowMenu items={more} label={`More actions for ${title}`} />
           </div>
@@ -778,7 +791,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
         }
       />
 
-      {risk && <RiskSummary risk={risk} decisions={decisions} />}
+      {risk && <RiskSummary risk={risk} decisions={decisions} partial={partial} />}
 
       {catalogueEnabled && researchShow && (
         <div className="mb-6">
@@ -943,14 +956,13 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
         </div>
       </div>
 
-      {(listWide.length > 0 || listSignals.length > 0 || uploadReport?.source_notice || !!uploadReport?.errors.length || aiCheckSkipped) && (
+      {(listWide.length > 0 || listSignals.length > 0 || uploadReport?.source_notice || analysisErrors.length > 0) && (
         <section aria-labelledby="list-findings-h" className="mt-8">
           <h2 id="list-findings-h" className="font-heading text-base font-bold text-slate-900">Upload check for the whole list</h2>
-          {(uploadReport?.source_notice || aiCheckSkipped || !!uploadReport?.errors.length) && (
+          {(uploadReport?.source_notice || analysisErrors.length > 0) && (
             <div className="mt-1 space-y-1 text-sm text-amber-900" role="note">
               {uploadReport?.source_notice && <p>{uploadReport.source_notice}</p>}
-              {aiCheckSkipped && <p>The AI check (layer 3) did not run.</p>}
-              {uploadReport?.errors.slice(0, 3).map((error, index) => <p key={index}>{error}</p>)}
+              {analysisErrors.slice(0, 3).map((error, index) => <p key={index}>{error}</p>)}
             </div>
           )}
           {(listWide.length > 0 || listSignals.length > 0) && (

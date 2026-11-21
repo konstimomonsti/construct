@@ -3,6 +3,7 @@
     python -m analysis input  data/tenders/file.X83 [--out input.json]
     python -m analysis run    data/tenders/file.X83 [--layers 1,2] [--out result.json]
     python -m analysis run    fixture.json
+    python -m analysis bid-plan tender.X83 assumptions.json
     python -m analysis rules
 """
 
@@ -11,7 +12,8 @@ import json
 from pathlib import Path
 import sys
 
-from . import adapter
+from . import adapter, bid_pricing
+from .contracts import AnalysisResult
 from .catalogue import cli as catalogue_cli
 from .registry import all_rules
 from .runner import DEFAULT_LAYERS, analyze
@@ -34,13 +36,18 @@ def emit(text: str, out: str | None) -> None:
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(prog="python -m analysis")
     commands = parser.add_subparsers(dest="command", required=True)
-    for name in ("input", "run"):
+    for name in ("input", "run", "bid-plan"):
         command = commands.add_parser(name)
         command.add_argument("path", help="GAEB X8x/D8x file or AnalysisInput JSON")
         command.add_argument("--boq-index", type=int)
         command.add_argument("--out")
-        if name == "run":
+        if name != "input":
             command.add_argument("--layers", default=",".join(map(str, DEFAULT_LAYERS)))
+        if name == "bid-plan":
+            command.add_argument("assumptions", type=Path)
+            command.add_argument("--analysis-result", type=Path, help="Reuse an assessment of the same BoQ")
+            command.add_argument("--search-nodes", type=int, default=bid_pricing.DEFAULT_SEARCH_NODES)
+        if name == "run":
             command.add_argument("--no-risk", action="store_true", help="Skip risk scoring and bidder questions")
     commands.add_parser("rules")
     catalogue_cli.add_command(commands)
@@ -64,6 +71,16 @@ def main(argv=None) -> int:
         emit(analysis_input.model_dump_json(indent=2), args.out)
         return 0
     layers = [int(part) for part in args.layers.split(",") if part.strip()]
+    if args.command == "bid-plan":
+        try:
+            assumptions = bid_pricing.PricingAssumptions.model_validate_json(args.assumptions.read_bytes())
+            assessment = (AnalysisResult.model_validate_json(args.analysis_result.read_bytes())
+                          if args.analysis_result else analyze(analysis_input, layers, include_risk=False))
+            result = bid_pricing.report(analysis_input, assessment, assumptions, search_nodes=args.search_nodes)
+        except (OSError, ValueError) as error:
+            parser.error(str(error))
+        emit(json.dumps(result, indent=2, ensure_ascii=False, default=str), args.out)
+        return 0
     result = analyze(analysis_input, layers, include_risk=not args.no_risk)
     emit(result.model_dump_json(indent=2), args.out)
     return 0

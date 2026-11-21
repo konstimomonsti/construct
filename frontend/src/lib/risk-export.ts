@@ -1,4 +1,5 @@
 import { REASONS, rescore, type Decision, type Decisions, type Finding, type Report, type Severity } from './risk-assessment'
+import { partialAnalysis } from './risk-labels'
 
 const LAYER = ['', 'Layer 1 (rules)', 'Layer 2 (dependencies)', 'Layer 3 (AI)']
 const SEVERITY_FILL: Record<Severity, string> = { error: 'FFFFC7CE', warning: 'FFFFEB9C', info: 'FFDDEBF7' }
@@ -49,6 +50,7 @@ export async function riskXlsx({ title, report, decisions, codes, questionTexts 
   }
 
   const risk = report.risk
+  const partial = partialAnalysis(report.errors)
   const live = risk ? rescore(risk, decisions) : null
   const open = report.findings.filter((f) => !decisions[f.id])
   const summary = wb.addWorksheet('Summary')
@@ -72,6 +74,11 @@ export async function riskXlsx({ title, report, decisions, codes, questionTexts 
     row.getCell(1).font = { bold: true }
     row.getCell(2).value = v
   })
+  if (partial) {
+    const row = summary.addRow(['Analysis coverage', `Based on partial analysis. ${partial.message}`])
+    row.font = { bold: true }
+    row.alignment = { wrapText: true }
+  }
 
   // one Bieterfrage per finding: the edited question text that covers it, else its own evidence
   const questionOf = new Map<string, string>()
