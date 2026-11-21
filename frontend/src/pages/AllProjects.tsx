@@ -3,19 +3,21 @@ import { Button, toast } from '../components/ui'
 import { Chips, EmptyState, PageFrame, PageHeader, PaletteKey, PillLink, RowMenu, Section, SortMenu, Summary, ToolButton, heroStatus, worstTone } from '../components/Kit'
 import { FolderGrid } from '../components/FolderCard'
 import { Dock } from '../components/Dock'
-import { SORT_LABEL, counts, portfolioBudget, useModel, useStore, type FolderView, type SortKey } from '../lib/store'
+import { SORT_LABEL, counts, folderPath, useModel, useStore, type FolderView, type SortKey } from '../lib/store'
 import { useUi } from '../lib/ui-store'
 import { useActions } from '../lib/actions'
-import { money, plural } from '../lib/format'
+import { int, money, plural } from '../lib/format'
 
 type View = 'all' | 'attention' | 'unpriced'
 /** a project is as bad as its worst counted list, so a list at its cap flags the project too */
 export const projectTone = (f: FolderView) => worstTone(f, f.listMetas.filter(counts))
 const FLAGGED = new Set(['caution', 'warn', 'over'])
+/** read from confirmed position counts: a saved zero price is still a price, and a project without positions isn't unpriced */
+const isUnpriced = (f: FolderView) => f.positions > 0 && f.priced === 0
 const VIEWS: Record<View, (f: FolderView) => boolean> = {
   all: () => true,
   attention: (f) => FLAGGED.has(projectTone(f)),
-  unpriced: (f) => !f.total && f.listMetas.length > 0,
+  unpriced: isUnpriced,
 }
 
 export function sortFolders(folders: FolderView[], sort: SortKey): FolderView[] {
@@ -32,7 +34,7 @@ export function FolderCollection({
   title, subtitle, filter, emptyTitle, emptyText, emptyIcon, withOpenAll, archive,
 }: {
   title: string
-  subtitle?: string
+  subtitle?: ReactNode
   crumb?: string
   filter: (f: FolderView) => boolean
   emptyTitle: string
@@ -53,7 +55,7 @@ export function FolderCollection({
 
   const scoped = useMemo(() => all.filter((f) => !f.trashedAt && filter(f)), [all, filter])
   const flagged = scoped.filter(VIEWS.attention)
-  const unpriced = scoped.filter((f) => !f.total && f.listMetas.length > 0)
+  const unpriced = scoped.filter(isUnpriced)
   const folders = useMemo(
     () => sortFolders(scoped.filter(VIEWS[view]), sort),
     [scoped, sort, view],
@@ -76,9 +78,20 @@ export function FolderCollection({
     setSel(new Set())
   }
 
-  const budget = portfolioBudget(all)
+  // the hero total and the cap it is measured against come from the same projects: priced ones with a cap
+  const priced = all.filter((f) => (f.total > 0 || f.priced > 0) && !folderPath(all, f.id).some((x) => x.archived || x.trashedAt))
+  const pricedTotal = priced.reduce((x, f) => x + f.total, 0)
+  const capped = priced.filter((f) => f.cap > 0)
+  // no caps at all: the hero is simply the priced total, with "No cap set"
+  const budget = capped.length ? { total: capped.reduce((x, f) => x + f.total, 0), cap: capped.reduce((x, f) => x + f.cap, 0) } : { total: pricedTotal, cap: 0 }
+  const uncapped = capped.length ? priced.length - capped.length : 0
   const listCount = scoped.reduce((x, f) => x + f.listMetas.length, 0)
   const newProject = () => openDialog({ kind: 'new-folder' })
+  // the hero's exception count is the way in for short lists too, where the chips stay hidden until a filter is on
+  const showAttention = () => {
+    setView('attention')
+    requestAnimationFrame(() => document.getElementById('sec-projects')?.focus())
+  }
 
   return (
     <PageFrame>
@@ -98,13 +111,17 @@ export function FolderCollection({
 
       {withOpenAll && scoped.length > 0 && (
         <Summary
-          label="Total across projects"
+          label={uncapped ? 'Total of priced projects with a cap' : 'Total of priced projects'}
           amount={money(budget.total)}
           total={budget.total}
           cap={budget.cap}
           capLabel="in project caps"
-          capNote={<span className="num">caps of {plural(budget.projects, 'priced project', 'priced projects')}</span>}
-          status={heroStatus(budget, flagged.map((f) => ({ tone: projectTone(f) })), ['project', 'projects'])}
+          capNote={<span className="num">caps of the same {plural(capped.length, 'project', 'projects')}</span>}
+          subject="Portfolio"
+          status={heroStatus(budget, flagged.map((f) => ({ tone: projectTone(f) })), ['project', 'projects'], { always: true })}
+          onStatus={showAttention}
+          statusAction="show them in Needs attention"
+          meta={uncapped ? <span className="num">{plural(uncapped, 'priced project', 'priced projects')} without a cap · {money(pricedTotal)} across all {int(priced.length)}</span> : undefined}
         />
       )}
 
