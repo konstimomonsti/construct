@@ -56,6 +56,11 @@ def finding_matches(label: dict, finding: dict) -> bool:
     if not rule_matches(label.get("expect", []), finding["rule_id"]):
         return False
     target = label.get("target", {})
+    if target.get("severity") and finding.get("severity") != target["severity"]:
+        return False
+    locator = finding.get("source_locator") or {}
+    if any(locator.get(key) != value for key, value in target.get("source_locator", {}).items()):
+        return False
     mode = label.get("match")
     if mode == "line":
         return finding["line_code"] in target.get("line_codes", [])
@@ -100,6 +105,7 @@ def compact(result: AnalysisResult, analysis_input) -> list[dict]:
             "related_codes": [codes.get(line_id) for line_id in finding.related_line_ids if codes.get(line_id)],
             "title": finding.title, "message": finding.message[:300],
             "guidance": guidance_kind(finding),
+            "source_locator": finding.source_locator,
         })
     return rows
 

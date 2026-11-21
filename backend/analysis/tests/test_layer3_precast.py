@@ -1,5 +1,6 @@
 """Task 02 layer 3 checks on the LV_11 precast fixture. No network: answers come from FakeProvider."""
 
+from decimal import Decimal
 import json
 from pathlib import Path
 import re
@@ -336,6 +337,30 @@ def test_compact_ollama_precast_seed_and_planted_faults(tmp_path, monkeypatch, b
     assert "Anschlussbewehrung" in rebar.evidence["bieterfrage_de"]
 
 
+def test_compact_provider_retries_only_omitted_positions(monkeypatch):
+    snapshot = complete_precast_input()
+    snapshot.lines[1] = snapshot.lines[1].model_copy(update={
+        "short_text": "Werkstattzeichnungen", "long_text": "Montagepläne für die Fertigteile erstellen.",
+    })
+    provider = OllamaProvider()
+    calls = []
+
+    def respond(request):
+        if request.prompt_version != "l3-precast-local-v1":
+            return {"findings": [], "reviews": []}
+        batch = payload(request)["items"]
+        calls.append([item["code"] for item in batch])
+        return {"items": [{"line_ref": item["ref"], "item_type": "other", "rebar_purpose": "unspecified",
+                           "color_pigment_ral": None}
+                          for item in (batch[:1] if len(calls) == 1 else batch)]}
+
+    monkeypatch.setattr(provider, "complete_json", respond)
+    _, errors = run3(snapshot, provider)
+    assert not errors
+    assert calls == [["1.10", "1.20"], ["1.20"]]
+
+
+
 def test_model_omitting_a_position_reports_partial_coverage():
     def incomplete(request):
         if request.prompt_version == prompts.PRECAST_VERSION:
@@ -501,27 +526,32 @@ def test_implausible_quantity_per_section():
     def qty(request):
         refs = {item["code"]: item["ref"] for item in payload(request)["items"]}
         return {"findings": [
-            {"line_ref": refs["3.2.90"], "reason": "15 rails for 5 elements is high.", "expected": "~5 St",
+            {"line_ref": refs["3.2.90"], "comparison_ref": refs["3.2.60"],
+             "reason": "15 rails for 5 elements is high.", "expected": "5 St",
              "confidence": 0.9},
             {"line_ref": refs["3.2.60"], "reason": "This is one thousand pieces.",
              "expected": "1.000 St (one thousand single labour items)", "confidence": 0.9},
             {"line_ref": refs["3.2.30"], "reason": "This quantity differs from its siblings.",
              "expected": "St", "confidence": 0.9},
+            {"line_ref": refs["3.2.70"], "reason": "0.7 t seems small.", "expected": "10 t", "confidence": 0.9},
             {"line_ref": "#99", "reason": "r", "expected": "", "confidence": 0.9},  # unknown ref
         ]}
 
     provider = FakeProvider(lambda r: fake_model(r, qty=qty))
-    findings, _ = run3(lv11(), provider)
+    snapshot = lv11()
+    next(item for item in snapshot.lines if item.code == "3.2.60").quantity = Decimal("5")
+    findings, _ = run3(snapshot, provider)
     quantity_requests = [r for r in provider.requests if r.prompt_version == prompts.QUANTITY_VERSION]
     assert len(quantity_requests) == 1  # one call for the section
     sent = {item["code"]: item for item in payload(quantity_requests[0])["items"]}
     assert all("long_text" not in item for item in sent.values())
-    assert sent["3.2.60"]["quantity"] == "1"
+    assert sent["3.2.60"]["quantity"] == "5"
     assert sent["3.2.70"]["quantity"] == "0.7"
     found = by_rule(findings, QTY)
     assert [f.target.line_code for f in found] == ["3.2.90"]
     assert found[0].target.field == "quantity" and found[0].severity == "warning"
     assert "takeoff" in found[0].suggested_fix.rationale
+    assert found[0].evidence["comparison"]["line_code"] == "3.2.60"
 
 
 def test_single_line_sections_are_not_sent_for_quantities():

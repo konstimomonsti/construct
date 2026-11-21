@@ -292,11 +292,12 @@ QUANTITY_SCHEMA: dict[str, Any] = {
             "items": {
                 "type": "object",
                 "additionalProperties": False,
-                "required": ["line_ref", "reason", "expected", "confidence"],
+                "required": ["line_ref", "comparison_ref", "reason", "expected", "confidence"],
                 "properties": {
                     "line_ref": {"type": "string", "description": "ref of the item, e.g. \"#3\""},
+                    "comparison_ref": {"type": ["string", "null"], "description": "the comparable sibling ref, if any"},
                     "reason": {"type": "string", "description": "one English sentence"},
-                    "expected": {"type": "string", "description": "plausible order of magnitude, e.g. \"~1 psch\""},
+                    "expected": {"type": "string", "description": "literal source quantity or 1 psch for a one-off item"},
                     "confidence": {"type": "number", "description": "0 to 1"},
                 },
             },
@@ -307,6 +308,7 @@ QUANTITY_SCHEMA: dict[str, Any] = {
 
 class QuantityItem(_Answer):
     line_ref: str
+    comparison_ref: str | None = None
     reason: str = Field(min_length=1)
     expected: str = ""
     confidence: float

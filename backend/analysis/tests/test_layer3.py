@@ -151,6 +151,29 @@ def test_invalid_items_dropped_but_valid_ones_kept():
     assert len(found) == 1 and found[0].evidence["confidence"] == 0.5
 
 
+@pytest.mark.parametrize(("format", "detail", "severity"), [
+    ("pdf", "Hängedachrinne aus Titanzink herstellen.", "warning"),
+    ("pdf", "Hängedachrinne aus Titanzink oder Kupfer herstellen.", "info"),
+    ("docx", "Hängedachrinne aus Titanzink herstellen.", "info"),
+])
+def test_contradiction_checks_pdf_body_without_heading_echo(format, detail, severity):
+    title = "Dachrinne Kupfer halbrund"
+    snapshot = from_data({
+        "project": {"source_document": {"format": format}},
+        "lines": [line("01.0010", title, f"{title}\n{detail}", source_locator={"page": 1})],
+    })
+    answer = {"findings": [{"line_ref": "#1", "property": "material", "short_quote": "Kupfer",
+                            "long_quote": "Titanzink", "message": "The gutter materials differ.", "confidence": .95}]}
+    provider = FakeProvider(lambda request: answer if request.prompt_version == CONTRADICTION_VERSION else {"findings": []})
+    findings, errors = run3(snapshot, provider)
+    assert not errors
+    found, = by_rule(findings, CONTRA)
+    assert found.severity == severity
+    assert found.source_locator == {"page": 1}
+    assert found.evidence["long_quote"] == "Titanzink"
+
+
+
 def test_value_also_in_long_text_is_downgraded_to_info():
     analysis_input = from_data({"lines": [
         line("a", "Rohr DN 150", "Rohr DN 150 mit Abzweig DN 100 herstellen."),

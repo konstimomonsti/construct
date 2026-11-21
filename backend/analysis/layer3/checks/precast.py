@@ -129,19 +129,15 @@ def extracted(ctx) -> list[tuple[Line, dict[str, Any]]]:
             chunks.extend((chunk, rebar) for chunk in batches(sized, session.max_batch_chars, max_lines))
     requests = []
     for chunk, rebar in chunks:
-        payload = [{"ref": f"#{index}", "code": line.code, "short_text": line.short_text,
-                    "long_text": clip(line.long_text), "quantity": _plain(line.quantity),
-                    "unit": line.unit_raw or line.unit}
-                   for index, line in enumerate(chunk, start=1)]
+        payload = _extraction_payload(chunk)
         if compact:
             requests.append(_compact_request(payload, rebar=rebar))
         else:
             requests.append(LLMRequest(system=prompts.PRECAST_SYSTEM, prompt=prompts.precast_prompt(payload),
                                        schema=PRECAST_SCHEMA, prompt_version=prompts.PRECAST_VERSION))
     result: list[tuple[Line, dict[str, Any]]] = []
-    for (chunk, _), answer in zip(chunks, session.ask_many(EXTRACTION, requests)):
-        if answer is None:
-            continue
+
+    def accept(chunk, answer):
         answers, dropped = items(answer, "items", PrecastItem)
         session.dropped[EXTRACTION] += dropped
         refs = {f"#{index}": line for index, line in enumerate(chunk, start=1)}
@@ -153,12 +149,37 @@ def extracted(ctx) -> list[tuple[Line, dict[str, Any]]]:
                 continue
             seen.add(line.id)
             result.append((line, verified(line, item, compact=compact)))
-        unchecked = [line.code or line.id for line in chunk if line.id not in seen]
-        if unchecked:
-            session.errors.append(f"{EXTRACTION}: no valid extraction for {', '.join(unchecked)}")
+        return [line for line in chunk if line.id not in seen]
+
+    missing = []
+    retries = []
+    for (chunk, rebar), answer in zip(chunks, session.ask_many(EXTRACTION, requests)):
+        if answer is None:
+            continue
+        unchecked = accept(chunk, answer)
+        if compact and len(chunk) > 1:
+            retries.extend((line, rebar) for line in unchecked)
+        else:
+            missing.extend(unchecked)
+    # Compact models sometimes skip a ref in an otherwise valid batch. Retry just the omitted
+    # positions once, through the same call and time budgets.
+    retry_requests = [_compact_request(_extraction_payload([line]), rebar=rebar) for line, rebar in retries]
+    for (line, _), answer in zip(retries, session.ask_many(EXTRACTION, retry_requests)):
+        if answer is None:
+            continue
+        missing.extend(accept([line], answer))
+    for line in missing:
+        session.errors.append(f"{EXTRACTION}: no valid extraction for {line.code or line.id}")
     result.sort(key=lambda pair: pair[0].sort_order)
     session.memo[MEMO_KEY] = result
     return result
+
+
+def _extraction_payload(lines: list[Line]) -> list[dict[str, Any]]:
+    return [{"ref": f"#{index}", "code": line.code, "short_text": line.short_text,
+             "long_text": clip(line.long_text), "quantity": _plain(line.quantity),
+             "unit": line.unit_raw or line.unit}
+            for index, line in enumerate(lines, start=1)]
 
 
 def _compact_request(payload: list[dict], *, rebar: bool) -> LLMRequest:

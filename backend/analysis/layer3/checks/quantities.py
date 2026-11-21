@@ -21,6 +21,7 @@ from ..schema import QUANTITY_SCHEMA, QuantityItem, clamp_confidence, items
 RULE_ID = "L3.QTY.IMPLAUSIBLE"
 MAX_LINES = 40
 MIN_LINES = 2
+_ONE_OFF = re.compile(r"\b(?:Baustelleneinrichtung|Werkstattzeichnungen)\b", re.I)
 _EXPECTED_MEASURE = re.compile(r"\s*~?\s*(\d+(?:[.,]\d+)?)\s+(\S+?)(?:\s+\([^)]*\))?\s*")
 
 
@@ -70,17 +71,32 @@ def implausible_quantity(ctx):
             expected = _EXPECTED_MEASURE.fullmatch(item.expected)
             comparison = units.convert(Decimal(expected[1].replace(",", ".")),
                                        units.normalize(expected[2]), line.unit) if expected else None
-            if comparison is None or comparison == line.quantity:
+            cited = refs.get((item.comparison_ref or "").strip())
+            cited_quantity = (
+                units.convert(cited.quantity, cited.unit, line.unit)
+                if cited is not None and cited.id != line.id else None
+            )
+            one_off = line.unit == "lump_sum" and line.quantity > 1 and comparison == 1 and _ONE_OFF.search(line.short_text)
+            if comparison is None or comparison == line.quantity or (cited_quantity != comparison and not one_off):
                 session.dropped[RULE_ID] += 1
                 continue
             seen.add(line.id)
+            use_citation = cited_quantity == comparison
+            comparison_evidence = ({"line_code": cited.code, "quantity": _quantity_text(cited.quantity),
+                                    "unit": cited.unit_raw or cited.unit, "source_locator": cited.source_locator}
+                                   if use_citation else {"basis": "one-off lump-sum position"})
+            if use_citation:
+                stated = f"{comparison_evidence['quantity']} {comparison_evidence['unit']}"
+                basis = f"Compare position {cited.code or cited.id}, which states {stated}."
+            else:
+                basis = "Confirm whether this lump-sum position was intended to be counted once."
             quantity = f"{_quantity_text(line.quantity)} {line.unit_raw or line.unit or ''}".strip()
             yield ctx.finding(
                 line=line, field="quantity", origin="llm", model=session.model_id,
-                message=f"{line_label(line)}: quantity {quantity} looks implausible. {item.reason.strip()} "
-                        f"The model compared it with {item.expected.strip()}.",
+                message=f"{line_label(line)}: review the stated quantity of {quantity}. {item.reason.strip()} {basis}",
+                related_line_ids=[cited.id] if use_citation else [],
                 evidence={"quantity": format(line.quantity, "f"), "unit": line.unit_raw or line.unit,
-                          "reason": item.reason.strip(), "expected": item.expected.strip(),
+                          "reason": item.reason.strip(), "expected": item.expected.strip(), "comparison": comparison_evidence,
                           "confidence": clamp_confidence(item.confidence),
                           "prompt_version": prompts.QUANTITY_VERSION},
                 suggested_fix=Fix(operations=[], confidence=clamp_confidence(item.confidence),

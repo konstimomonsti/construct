@@ -146,3 +146,26 @@ WORKSPACE_PARSE_ORIGIN=http://127.0.0.1:8080 \
   data/tenders/LV_18_Estrich.pdf data/tenders/LV-Positionen.docx \
   | python -m analysis.eval.uploads
 ```
+
+### Layer 3 on ordinary PDF and Word uploads
+
+The `precast` suite renders a five-position excerpt of the existing precast seed as text-based PDF and ordinary Word. It plants missing element height and colour in one case and unassigned reinforcement scope in another. The `gutter` suite changes the detail from copper to titanium zinc while retaining copper in the position heading. The label sidecars require the affected position and its PDF page or Word table row. The gutter label also requires warning severity. The final local run caught all six planted findings with guidance. All four clean controls produced zero findings.
+
+Two changes followed the first replay. The quantity check now verifies that a model's comparison amount matches a cited position in the same batch, subject to the explicit one-off lump-sum case. This removed a warning with no bill evidence for the model's proposed 10 t of reinforcement. Compact precast extraction retries an omitted position once within the same call and time limits. This recovered a shop-drawings position omitted from an otherwise usable PDF batch. For contradiction checks, BillBuild removes the heading copy added by the PDF extractor before comparing the two descriptions. A repeat inside the actual body still counts as body evidence.
+
+Run from the repository root with the same local backend and replay database. In this replay, Qwen 2.5 7B used four positions per batch and a 65-second request timeout.
+
+```sh
+export PYTHONPATH=backend:backend/importer
+export ANALYSIS_L3_MODEL=qwen2.5:7b-instruct ANALYSIS_L3_MAX_BATCH_LINES=4
+export ANALYSIS_L3_TIMEOUT=65 ANALYSIS_L3_DEADLINE=210
+fixture_dir=$(mktemp -d)
+python -m analysis.eval.documents "$fixture_dir" --suite precast
+python -m analysis.eval.documents "$fixture_dir" --suite gutter
+WORKSPACE_PARSE_ORIGIN=http://127.0.0.1:8080 \
+  frontend/node_modules/.bin/tsx frontend/tests/risk-upload-fixtures.ts \
+  "$fixture_dir"/*.pdf "$fixture_dir"/*.docx \
+  | python -m analysis.eval.uploads --local-layer3
+```
+
+A separate replay of the existing ten short-versus-long description cases caught four of five contradictions through the full pipeline, with zero contradiction warnings on the five controls. Layer 1 caught the nominal diameter and concrete class conflicts. Layer 3 caught board thickness and material. The site-fence height conflict was missed.
