@@ -6,6 +6,7 @@ import { fixedBudget, gaebPhase } from './format'
 import { positionTotal } from './money'
 import { removeDocuments } from './documents'
 import { withoutLegacyImports } from './legacy'
+import { applyDecision, decisionsOf, type Decision, type Decisions } from './risk-assessment'
 
 export type SortKey = 'cost-desc' | 'cost-asc' | 'name' | 'items'
 export const SORT_LABEL: Record<SortKey, string> = {
@@ -29,6 +30,8 @@ interface ListPatch {
   cap?: number | null
   folderId?: string
   reviewedFindings?: string[]
+  /** reviewer decisions on findings and change-order signals (CLAUDE.md §5.5) */
+  findingDecisions?: Decisions
   /** positions whose catalogue price suggestion the user dismissed */
   dismissedPrices?: string[]
 }
@@ -80,6 +83,8 @@ interface State {
   patchFolder: (id: string, p: FolderPatch) => void
   moveFolder: (id: string, parentId: string | null) => boolean
   patchList: (id: string, p: ListPatch) => void
+  /** accept or dismiss findings / signals, or reopen them with null */
+  decideFindings: (listId: string, ids: string[], decision: Decision | null) => void
   restoreFolder: (id: string) => void
   purgeFolder: (id: string) => void
   addList: (doc: ListDoc) => void
@@ -181,6 +186,7 @@ export const useStore = create<State>()(
         return true
       },
       patchList: (id, p) => set((s) => ({ listPatch: { ...s.listPatch, [id]: { ...s.listPatch[id], ...p } } })),
+      decideFindings: (listId, ids, decision) => get().patchList(listId, applyDecision(decisionsOf(get().listPatch[listId]), ids, decision)),
       restoreFolder: (id) =>
         set((s) => ({ folderPatch: { ...s.folderPatch, [id]: { ...s.folderPatch[id], trashedAt: undefined, archived: false } } })),
       purgeFolder: (id) =>
