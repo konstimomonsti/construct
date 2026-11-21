@@ -6,6 +6,7 @@ import { Sidebar } from './Sidebar'
 import { Header } from './Header'
 import { Dialogs } from './Dialogs'
 import { Toaster } from './ui'
+import { ImportLoader } from './ImportLoader'
 import { useStore } from '../lib/store'
 
 const CommandPalette = lazy(() => import('./CommandPalette').then((m) => ({ default: m.CommandPalette })))
@@ -57,6 +58,7 @@ export function Shell() {
       </Suspense>
       <Dialogs />
       <Toaster />
+      <ImportLoader />
     </div>
   )
 }

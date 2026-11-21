@@ -6,6 +6,7 @@ import type { DocMeta, ListDoc, Position } from './types'
 import { selectModel, useStore } from './store'
 import { removeDocuments, saveDocument } from './documents'
 import { toast } from '../components/ui'
+import { useImportProgress } from './import-progress'
 
 export const ACCEPT = '.x80,.x81,.x82,.x83,.x84,.x85,.x86,.x87,.x88,.x89,.d80,.d81,.d82,.d83,.d84,.d85,.d86,.d87,.d88,.d89,.csv,.tsv,.xls,.xlsx,.json,.docx,.pdf'
 
@@ -86,7 +87,20 @@ async function addFile(file: File, listId: string, original: boolean, list?: Lis
   }
 }
 
+/** shows the import loader (see components/ImportLoader.tsx); it stays at 100 % briefly so the finish is visible */
 export async function importFiles(files: File[], folderId: string, activeListId?: string): Promise<ImportResult> {
+  const progress = useImportProgress.getState()
+  progress.begin(files)
+  try {
+    return await runImport(files, folderId, activeListId)
+  } finally {
+    await new Promise((resolve) => setTimeout(resolve, 400))
+    progress.end()
+  }
+}
+
+async function runImport(files: File[], folderId: string, activeListId?: string): Promise<ImportResult> {
+  const progress = useImportProgress.getState()
   const { parseListFile } = await import('./parse-list-file')
   const res: ImportResult = { lists: [], positions: 0, docs: 0, failed: [] }
   const documents: File[] = []
@@ -102,19 +116,25 @@ export async function importFiles(files: File[], folderId: string, activeListId?
     const ext = name.split('.').pop()?.toLowerCase() ?? ''
     try {
       const supportingPdf = ext === 'pdf' && offerFiles.has(fileStem(name).toLowerCase())
-      const parsed = await parseListFile(f, { supportingPdf }) ?? (supportingPdf ? undefined : await readSampleDocument(f))
+      progress.update(name, { phase: 'reading', pct: 5 })
+      const parsed = await parseListFile(f, { supportingPdf, onProgress: (patch) => progress.update(name, patch) })
+        ?? (supportingPdf ? undefined : await readSampleDocument(f))
       if (!parsed) {
         documents.push(f)
+        progress.update(name, { phase: 'done', pct: 100 })
         continue
       }
+      progress.update(name, { phase: 'building', pct: 95 })
       const list = makeListDoc(folderId, parsed.title || fileStem(name), name, parsed.positions, parsed)
       await addFile(f, list.id, true, list)
+      progress.update(name, { phase: 'done', pct: 100 })
       if (parsed.warnings?.length) toast(`${name}: ${parsed.warnings[0]}`)
       res.lists.push(list.id)
       res.positions += list.positions.length
       if (files.length === 1 && list.positions.length > 0) res.openListId = list.id
     } catch (err) {
       console.warn(`import failed: ${name}`, err)
+      progress.update(name, { phase: 'failed', pct: 100 })
       res.failed.push(name)
       if (err instanceof Error) importErrors.push(`${name}: ${err.message}`)
     }
