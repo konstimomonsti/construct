@@ -70,6 +70,20 @@ function TabsBar({ activeId, folderId }: { activeId: string; folderId: string })
     }
   }
 
+  // the active tab is scrolled into view without moving the page
+  const reveal = (behavior: ScrollBehavior) => {
+    const el = strip.current
+    const tab = el?.querySelector<HTMLElement>('[aria-current="page"]')?.parentElement
+    if (!el || !tab) return
+    const pad = 40
+    const box = el.getBoundingClientRect()
+    const r = tab.getBoundingClientRect()
+    if (r.left < box.left + pad) el.scrollBy({ left: r.left - box.left - pad, behavior })
+    else if (r.right > box.right - pad) el.scrollBy({ left: r.right - box.right + pad, behavior })
+  }
+  const revealRef = useRef(reveal)
+  useLayoutEffect(() => { revealRef.current = reveal })
+
   // track whether tabs are hidden past either edge, so fades and arrows only show when needed
   const visibleKey = visible.join('|')
   useLayoutEffect(() => {
@@ -87,8 +101,15 @@ function TabsBar({ activeId, folderId }: { activeId: string; folderId: string })
       e.preventDefault()
       el.scrollLeft += e.deltaY
     }
-    const ro = new ResizeObserver(measure)
+    // tabs change width when fonts or titles load; keep the active one visible when they do
+    let first = true
+    const ro = new ResizeObserver(() => {
+      measure()
+      if (first) first = false
+      else revealRef.current('instant')
+    })
     ro.observe(el)
+    for (const tab of el.children) ro.observe(tab)
     el.addEventListener('scroll', measure, { passive: true })
     el.addEventListener('wheel', onWheel, { passive: false })
     return () => {
@@ -98,18 +119,8 @@ function TabsBar({ activeId, folderId }: { activeId: string; folderId: string })
     }
   }, [visibleKey])
 
-  // keep the active tab in view without moving the page; after the edge arrows have rendered
   useEffect(() => {
-    const raf = requestAnimationFrame(() => {
-      const el = strip.current
-      const tab = el?.querySelector<HTMLElement>('[aria-current="page"]')?.parentElement
-      if (!el || !tab) return
-      const pad = 40
-      const box = el.getBoundingClientRect()
-      const r = tab.getBoundingClientRect()
-      if (r.left < box.left + pad) el.scrollBy({ left: r.left - box.left - pad, behavior: 'smooth' })
-      else if (r.right > box.right - pad) el.scrollBy({ left: r.right - box.right + pad, behavior: 'smooth' })
-    })
+    const raf = requestAnimationFrame(() => revealRef.current('smooth'))
     return () => cancelAnimationFrame(raf)
   }, [activeId, visibleKey])
 
