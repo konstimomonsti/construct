@@ -32,6 +32,8 @@ interface ListPatch {
   reviewedFindings?: string[]
   /** reviewer decisions on findings and change-order signals (CLAUDE.md §5.5) */
   findingDecisions?: Decisions
+  /** positions whose catalogue price suggestion the user dismissed */
+  dismissedPrices?: string[]
 }
 export interface ListEdits {
   qty: Record<string, number>

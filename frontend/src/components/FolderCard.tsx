@@ -1,4 +1,4 @@
-import { RowMenu, Row, RowList, BudgetBadge, BudgetMini, StatusTag, budgetPhrase, heroStatus } from './Kit'
+import { RowMenu, Row, RowList, BudgetBadge, BudgetMini, RollupTag, budgetPhrase, heroStatus } from './Kit'
 import { Meter } from './ui'
 import { budgetStatus, int, money, plural } from '../lib/format'
 import { useActions } from '../lib/actions'
@@ -17,13 +17,13 @@ export function FolderRow({ folder: f, selectMode, selected, onToggle }: { folde
     <Row
       dataRow="folder"
       to={`/folder/${f.id}`}
-      label={`${f.name}, ${lists}, ${f.total ? money(f.total) : 'not priced yet'}, ${budgetPhrase(f.total, f.cap)}${listFlag ? `, ${listFlag}` : ''}`}
+      label={`${f.name}, ${lists}, ${f.total ? money(f.total) : 'not priced'}, ${budgetPhrase(f.total, f.cap)}${listFlag ? `, ${listFlag}` : ''}`}
       icon={f.icon}
       tone={f.tone}
       title={f.name}
-      badge={listStatus ? <StatusTag small tone={listStatus.tone} word={listStatus.word} /> : <BudgetBadge total={f.total} cap={f.cap} />}
+      badge={listStatus ? <RollupTag tone={listStatus.tone} word={listStatus.word} /> : <BudgetBadge total={f.total} cap={f.cap} />}
       subtitle={[lists, folderDescription(f).split(' · ')[0]].filter(Boolean).join(' · ')}
-      amount={f.total ? money(f.total) : <span className="font-medium text-slate-500">Not priced</span>}
+      amount={f.total ? money(f.total) : <span className="font-medium text-slate-600">Not priced</span>}
       meta={
         !f.total && f.positions ? (
           <span className="flex items-center justify-end gap-2 text-sm whitespace-nowrap text-slate-600">

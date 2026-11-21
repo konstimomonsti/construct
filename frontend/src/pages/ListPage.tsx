@@ -1,6 +1,6 @@
 import { clsx } from 'clsx'
 import { lazy, Suspense, use, useEffect, useId, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { useParams, useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import { Button, Dialog, Field, Icon, inputCls, kbdCls, toast, type MenuItem } from '../components/ui'
 import { TableSkeleton } from '../components/Page'
@@ -21,8 +21,9 @@ import { useActions } from '../lib/actions'
 import { DetailDrawer } from '../components/DetailDrawer'
 import { loadList } from '../lib/data'
 import { ExportMenu } from '../components/ExportMenu'
-import { CatalogueDetails, CatalogueOverview } from '../components/WorkspaceCatalogue'
+import { CatalogueDetails, CatalogueOverview, type ResearchView } from '../components/WorkspaceCatalogue'
 import { useWorkspaceCatalogue } from '../lib/workspace-catalogue'
+import { usePriceSuggestions, type PriceSuggestion } from '../lib/price-suggestions'
 import { CategoryTree, useExpanded, type CheckState } from '../components/split/CategoryTree'
 import { MoveToCategory } from '../components/split/MoveToCategory'
 import { budgetStatus, fixedBudget, int, money, parseNumber, plural } from '../lib/format'
@@ -53,67 +54,6 @@ export function ListPage() {
 function Loaded({ id }: { id: string }) {
   const doc = use(loadList(id))
   return <ListDetail key={doc.id} doc={doc} />
-}
-
-/* ------------------------------------------------------------------ */
-/* Tabs                                                                */
-/* ------------------------------------------------------------------ */
-
-function TabsBar({ activeId, folderId }: { activeId: string; folderId: string }) {
-  const tabs = useStore((s) => s.openTabs)
-  const { lists } = useModel()
-  const navigate = useNavigate()
-  const setPalette = useUi((s) => s.setPalette)
-  const byId = useMemo(() => new Map(lists.map((l) => [l.id, l])), [lists])
-  const visible = tabs.filter((t) => byId.has(t) && !byId.get(t)!.trashedAt)
-
-  const close = (id: string) => {
-    const i = visible.indexOf(id)
-    useStore.getState().closeTab(id)
-    if (id === activeId) {
-      const next = visible[i + 1] ?? visible[i - 1]
-      navigate(next ? `/list/${next}` : `/folder/${folderId}`)
-    }
-  }
-
-  if (visible.length < 2) return null
-  return (
-    <div className="mb-5 flex min-w-0 items-center gap-1">
-      <nav aria-label="Open lists" className="flex min-w-0 items-center gap-1.5 overflow-x-auto">
-        {visible.map((id) => {
-          const l = byId.get(id)!
-          const active = id === activeId
-          return (
-            <div key={id} className="group relative flex shrink-0 items-center">
-              {active && <motion.span layoutId="tab-pill" className="absolute inset-0 rounded-md bg-brand-50 ring-1 ring-brand-200" transition={{ type: 'spring', stiffness: 500, damping: 40 }} />}
-              <Link
-                to={`/list/${id}`}
-                aria-current={active ? 'page' : undefined}
-                title={l.title}
-                className={clsx(
-                  'relative flex h-10 max-w-[16rem] items-center gap-2 rounded-md pr-10 pl-4 text-sm transition-colors',
-                  active ? 'font-semibold text-brand-700' : 'bg-slate-100 font-medium text-slate-800 hover:bg-slate-200 hover:text-slate-900',
-                )}
-              >
-                <span className="truncate">{l.fileName}</span>
-              </Link>
-              <button
-                type="button"
-                aria-label={`Close ${l.fileName}`}
-                onClick={() => close(id)}
-                className={clsx('absolute right-1 flex size-8 items-center justify-center rounded-md transition-colors', active ? 'text-brand-700 hover:bg-brand-100' : 'text-slate-600 hover:bg-slate-300/60 hover:text-slate-900')}
-              >
-                <Icon name="close" size={16} />
-              </button>
-            </div>
-          )
-        })}
-      </nav>
-      <button type="button" title="Open another list" aria-label="Open another list" onClick={() => setPalette(true)} className="flex size-10 shrink-0 items-center justify-center rounded-md text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900">
-        <Icon name="add" size={20} />
-      </button>
-    </div>
-  )
 }
 
 /* ------------------------------------------------------------------ */
@@ -349,6 +289,9 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   const positions = resolved.positions
   const tree = resolved.tree
   const catStats = useMemo(() => treeStats(positions), [positions])
+  // prices proposed from matched catalogue products: pending until confirmed, never counted in totals
+  const dismissedPrices = useStore((s) => s.listPatch[doc.id]?.dismissedPrices)
+  const pending = usePriceSuggestions(report, positions, dismissedPrices)
   const st = useMemo(() => statsOf(positions), [positions])
   // findings from the automatic check that runs once on upload
   const assessment = useUploadAssessment(catalogueEnabled && original ? imported.id : null)
@@ -417,6 +360,8 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   const [cats, setCats] = useState<Set<string> | null>(null)
   const [sortTotal, setSortTotal] = useState(false)
   const [onlyUnpriced, setOnlyUnpriced] = useState(false)
+  const [onlyPending, setOnlyPending] = useState(false)
+  const [researchShow, setResearchShow] = useState<ResearchView>(null)
   const [onlyZero, setOnlyZero] = useState(false)
   const [onlyEdited, setOnlyEdited] = useState(false)
   const [selectMode, setSelectMode] = useState(false)
@@ -448,14 +393,15 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   const [movePids, setMovePids] = useState<string[] | null>(null)
   const tableRef = useRef<HTMLDivElement>(null)
   const searchRef = useRef<HTMLInputElement>(null)
-  // "/" jumps to position search from anywhere on the page, as in most keyboard-first tools
+  // "/" jumps to position search from anywhere on the page, as in most keyboard-first tools; "e" expands or collapses every section
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== '/' || e.metaKey || e.ctrlKey || e.altKey) return
+      if ((e.key !== '/' && e.key !== 'e') || e.metaKey || e.ctrlKey || e.altKey) return
       const t = e.target as HTMLElement
       if (t.closest('input,textarea,select,[contenteditable=true],[role=dialog],[role=menu]')) return
       e.preventDefault()
-      searchRef.current?.focus()
+      if (e.key === 'e') setSectionsOpen((v) => !v)
+      else searchRef.current?.focus()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -479,11 +425,11 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   const rows = useMemo(() => {
     const t = q.trim().toLowerCase()
     let r = positions.filter(
-      (p) => matchesFindingFilter(findingFilter, findingsByRow.get(p.id) ?? [], settled) && (!cats || cats.has(leafOz(p))) && (!onlyUnpriced || p.up == null) && (!onlyZero || (p.up != null && p.qty === 0)) && (!onlyEdited || editedIds.has(p.id) || addedIds.has(p.id)) && (!t || p.oz.toLowerCase().includes(t) || p.short.toLowerCase().includes(t) || p.path?.some((part) => part.label.toLowerCase().includes(t))),
+      (p) => matchesFindingFilter(findingFilter, findingsByRow.get(p.id) ?? [], settled) && (!cats || cats.has(leafOz(p))) && (!onlyUnpriced || (p.up == null && !pending.has(p.id))) && (!onlyPending || (p.up == null && pending.has(p.id))) && (!onlyZero || (p.up != null && p.qty === 0)) && (!onlyEdited || editedIds.has(p.id) || addedIds.has(p.id)) && (!t || p.oz.toLowerCase().includes(t) || p.short.toLowerCase().includes(t) || p.path?.some((part) => part.label.toLowerCase().includes(t))),
     )
     if (sortTotal) r = [...r].sort((a, b) => positionTotal(b) - positionTotal(a))
     return r
-  }, [positions, q, cats, sortTotal, onlyUnpriced, onlyZero, onlyEdited, editedIds, addedIds, findingFilter, findingsByRow, settled])
+  }, [positions, q, cats, sortTotal, onlyUnpriced, onlyPending, pending, onlyZero, onlyEdited, editedIds, addedIds, findingFilter, findingsByRow, settled])
 
   const largest = useMemo(() => {
     let best: Position | null = null
@@ -496,6 +442,15 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   const detailCatalogue = detail && report?.positions[detail.id]
   const detailFindings = detail ? findingsByRow.get(detail.id) : undefined
   const detailOpen = detailFindings?.filter((finding) => !settled.has(finding.id)).length ?? 0
+  // the next row (in table order, wrapping) that still has an open finding, so review can run row to row
+  const nextFlagged = useMemo(() => {
+    if (detailIdx < 0) return null
+    for (let step = 1; step < rows.length; step++) {
+      const row = rows[(detailIdx + step) % rows.length]
+      if (findingsByRow.get(row.id)?.some((finding) => !settled.has(finding.id))) return row
+    }
+    return null
+  }, [rows, detailIdx, findingsByRow, settled])
   // several findings often carry the same advice; say it once under the heading instead of under each
   const rationales = detailFindings?.map((finding) => finding.suggested_fix?.rationale ?? '') ?? []
   const sharedRationale = rationales.length > 1 && rationales[0] && rationales.every((note) => note === rationales[0]) ? rationales[0] : ''
@@ -577,8 +532,9 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
     setFindingFilter('all')
     toTable()
   }
-  const only = (k: 'unpriced' | 'zero' | 'edited') => {
+  const only = (k: 'unpriced' | 'pending' | 'zero' | 'edited') => {
     setOnlyUnpriced(k === 'unpriced')
+    setOnlyPending(k === 'pending')
     setOnlyZero(k === 'zero')
     setOnlyEdited(k === 'edited')
     setQ('')
@@ -593,6 +549,38 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
     toast(`Reset ${plural(ids.length, 'position', 'positions')} to the imported values`, 'ok', { label: 'Undo', run: () => useStore.getState().setEdits(doc.id, prev) })
   }
 
+  // confirming writes the suggested price as the position's own price, the same as typing it
+  const confirmPrices = (ids: string[]) => {
+    const picks = ids.flatMap((id) => {
+      const s = pending.get(id)
+      return s ? [[id, s] as [string, PriceSuggestion]] : []
+    })
+    if (!picks.length) return
+    const before = useStore.getState().edits[doc.id]?.up ?? {}
+    for (const [id, s] of picks) useStore.getState().setUp(doc.id, id, s.price)
+    const oz = positions.find((p) => p.id === picks[0][0])?.oz
+    // undo puts back only these prices, so edits made after confirming survive
+    const undo = () => {
+      const e = useStore.getState().edits[doc.id]
+      if (!e) return
+      const up = { ...e.up }
+      for (const [id] of picks) {
+        if (id in before) up[id] = before[id]
+        else delete up[id]
+      }
+      useStore.getState().setEdits(doc.id, { ...e, up })
+    }
+    toast(picks.length === 1 ? `Confirmed ${money(picks[0][1].price)} for position ${oz}` : `Confirmed ${plural(picks.length, 'price', 'prices')}, ${money(picks.reduce((sum, [id, s]) => sum + s.price * (positions.find((p) => p.id === id)?.qty ?? 0), 0))} added`, 'ok', {
+      label: 'Undo', run: undo,
+    })
+  }
+  const dismissPrice = (id: string) => {
+    const store = useStore.getState()
+    const before = store.listPatch[doc.id]?.dismissedPrices ?? []
+    store.patchList(doc.id, { dismissedPrices: [...new Set([...before, id])] })
+    toast('Suggestion dismissed', 'ok', { label: 'Undo', run: () => useStore.getState().patchList(doc.id, { dismissedPrices: before }) })
+  }
+
   const phase = view ? phaseLabel(view) : null
   // dedupe tokens: format strings like "GAEB 90 · D86" repeat the phase code the phase label already shows
   const meta = [...new Set([phase, doc.format, !phase ? doc.phase : null, doc.date].filter(Boolean).flatMap((m) => String(m).split(' · ')))]
@@ -601,9 +589,15 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   const heading = title
   const zeroQty = positions.filter((p) => p.up != null && p.qty === 0).length
   const status = budgetStatus(st.total, cap)
-  const unpriced = st.positionsCount - st.pricedCount
+  const pendingCount = pending.size
+  const unpriced = st.positionsCount - st.pricedCount - pendingCount
+  // what the pending suggestions would add; shown beside the total, never inside it
+  const pendingTotal = positions.reduce((sum, p) => sum + (pending.get(p.id)?.price ?? 0) * p.qty, 0)
+  // bulk confirm covers the rows on screen whose units are known; the rest are checked one by one in the drawer
+  const confirmable = rows.filter((p) => p.up == null && pending.get(p.id)?.unitKnown).map((p) => p.id)
+  const confirmableTotal = confirmable.reduce((sum, id) => sum + (pending.get(id)?.price ?? 0) * (positions.find((p) => p.id === id)?.qty ?? 0), 0)
   const editedCount = [...editedIds].filter((x) => !addedIds.has(x)).length
-  const filtered = !!q.trim() || !!cats || onlyUnpriced || onlyZero || onlyEdited || findingFilter !== 'all'
+  const filtered = !!q.trim() || !!cats || onlyUnpriced || onlyPending || onlyZero || onlyEdited || findingFilter !== 'all'
   const sections = pricingSections(tree, catStats)
   const live = view && !view.trashedAt ? view : null
   const more: (MenuItem | 'sep')[] = [
@@ -637,7 +631,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
 
       {view?.trashedAt && (
         <div className="mb-5 flex items-center justify-between gap-3 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          <span className="flex items-center gap-2"><Icon name="delete" size={18} />This list is in the Trash.</span>
+          <span className="flex items-center gap-2"><Icon name="delete" size={18} />This list was deleted.</span>
           <button type="button" className="font-semibold underline underline-offset-4" onClick={() => useStore.getState().patchList(doc.id, { trashedAt: undefined })}>Restore</button>
         </div>
       )}
@@ -649,15 +643,27 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
         </div>
       )}
 
-      <TabsBar activeId={doc.id} folderId={folder?.id ?? doc.folderId} />
-
       <Summary
         label="List total"
         compact
+        unpriced
         amount={money(st.total)}
         total={st.total}
         cap={cap}
         onEditCap={live ? () => openDialog({ kind: 'edit-cap', target: 'list', id: doc.id }) : undefined}
+        sub={(pendingCount > 0 || catalogueEnabled) && (
+          <span className="flex flex-col items-start gap-1.5">
+            {pendingCount > 0 && (
+              <span className="inline-flex items-center gap-1.5">
+                <Icon name="schedule" size={16} className="text-slate-500" />
+                <span><span className="num font-medium text-slate-800">+ {money(pendingTotal)}</span> pending confirmation, not in the total</span>
+              </span>
+            )}
+            {catalogueEnabled && (
+              <CatalogueOverview part="line" show={researchShow} setShow={setResearchShow} report={report} error={error} retryFailed={retryFailed} positions={positions} onOpen={openDetail} />
+            )}
+          </span>
+        )}
         extra={sections.length > 1 && showSections && (
           <div id="pricing-legend" className="mt-4 max-w-xl rounded-lg bg-slate-50 p-4">
             <PricingMeter sections={sections} total={st.total} cap={cap || st.total} className="max-w-md" />
@@ -670,13 +676,19 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
             {unpriced > 0 && (
               <span className="inline-flex items-center gap-x-1.5">
                 <span aria-hidden className="max-sm:hidden">·</span>
-                <MetaLink onClick={() => only('unpriced')} pressed={onlyUnpriced}><span className="num">{int(unpriced)}</span> still to price</MetaLink>
+                <MetaLink onClick={() => only('unpriced')} pressed={onlyUnpriced}><span className="num">{int(unpriced)}</span> not priced</MetaLink>
+              </span>
+            )}
+            {pendingCount > 0 && (
+              <span className="inline-flex items-center gap-x-1.5">
+                <span aria-hidden className="max-sm:hidden">·</span>
+                <MetaLink onClick={() => only('pending')} pressed={onlyPending}><span className="num">{int(pendingCount)}</span> pending confirmation</MetaLink>
               </span>
             )}
             {zeroQty > 0 && (
               <span className="inline-flex items-center gap-x-1.5">
                 <span aria-hidden className="max-sm:hidden">·</span>
-                <MetaLink onClick={() => only('zero')} pressed={onlyZero}><span className="num">{int(zeroQty)}</span> zero quantity</MetaLink>
+                <MetaLink onClick={() => only('zero')} pressed={onlyZero}><span className="num">{int(zeroQty)}</span> with quantity 0</MetaLink>
               </span>
             )}
             {editedCount > 0 && (
@@ -708,16 +720,16 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
           onExcel={() => void exportExcel()} onPrint={() => window.print()} />
       )}
 
-      {catalogueEnabled && (
+      {catalogueEnabled && researchShow && (
         <div className="mb-6">
-          <CatalogueOverview report={report} error={error} retryFailed={retryFailed} positions={positions} onOpen={openDetail} />
+          <CatalogueOverview part="list" show={researchShow} setShow={setResearchShow} report={report} error={error} retryFailed={retryFailed} positions={positions} onOpen={openDetail} />
         </div>
       )}
 
       <div ref={heroEnd} aria-hidden />
       <div ref={tableRef} className="scroll-mt-20">
         <div className="mb-3 flex flex-wrap items-center gap-2">
-          <div className="relative w-full sm:w-72">
+          <div className="relative w-full sm:w-60 xl:w-72">
             <Icon name="search" size={20} className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-slate-600" />
             <input
               ref={searchRef}
@@ -727,7 +739,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Search positions"
-              className="peer h-10 w-full rounded-md bg-slate-100 pr-10 pl-11 text-sm text-slate-900 ring-1 ring-slate-400 transition-[background-color,box-shadow] outline-none ring-inset placeholder:text-slate-600 hover:bg-slate-200/70 focus:bg-white focus:ring-2 focus:ring-brand-700"
+              className="peer h-10 w-full rounded-md bg-slate-100 pr-10 pl-11 text-sm text-slate-900 ring-1 ring-transparent transition-[background-color,box-shadow] outline-none ring-inset placeholder:text-slate-600 hover:bg-slate-200/70 hover:ring-slate-400 focus:bg-white focus:ring-2 focus:ring-brand-700"
             />
             {!q && <kbd aria-hidden className={clsx(kbdCls, 'pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 peer-focus:hidden [@media(hover:none)]:hidden')}>/</kbd>}
           </div>
@@ -743,10 +755,14 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
               <Icon name="error" size={18} />Upload check unavailable
             </span>
           )}
-          {(unpriced > 0 || onlyUnpriced) && (
-            <FilterPill on={onlyUnpriced} onClick={() => setOnlyUnpriced((v) => !v)}>
-              Not priced <span className="num">{int(unpriced)}</span>
-            </FilterPill>
+          {/* the status line above offers these filters; the toolbar only shows the one that is on, with a way out */}
+          {onlyUnpriced && <FilterPill on onClick={() => setOnlyUnpriced(false)}>Not priced <span className="num">{int(unpriced)}</span></FilterPill>}
+          {onlyPending && <FilterPill on onClick={() => setOnlyPending(false)}>Pending <span className="num">{int(pendingCount)}</span></FilterPill>}
+          {onlyPending && confirmable.length > 0 && (
+            <button type="button" onClick={() => confirmPrices(confirmable)} title={`Adds ${money(confirmableTotal)} to the list total`} aria-label={`Confirm ${plural(confirmable.length, 'shown price', 'shown prices')}, adds ${money(confirmableTotal)} to the list total`} className="inline-flex h-10 items-center gap-1.5 rounded-md px-3 text-sm font-semibold text-slate-800 hover:bg-slate-100">
+              <Icon name="done_all" size={18} />Confirm {plural(confirmable.length, 'price', 'prices')}
+              <span className="num font-medium text-slate-600">+{money(confirmableTotal)}</span>
+            </button>
           )}
           {onlyZero && <FilterPill on onClick={() => setOnlyZero(false)}>Quantity 0 <span className="num">{int(zeroQty)}</span></FilterPill>}
           {onlyEdited && (
@@ -758,14 +774,15 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
           <button
             type="button"
             aria-pressed={selectMode || selected.size > 0}
+            title="Select positions"
             onClick={() => { if (selectMode) setSelected(new Set()); setSelectMode((v) => !v) }}
             className={pillCls(selectMode || selected.size > 0)}
           >
-            <Icon name="checklist" size={18} /><span className="max-sm:sr-only">Select</span>
+            <Icon name="checklist" size={18} /><span className="max-2xl:sr-only">Select</span>
           </button>
           <div className="flex items-center gap-2 sm:ml-auto">
             {!sortTotal && !filtered && tree.length > 0 && (
-              <ToolButton icon={sectionsOpen ? 'unfold_less' : 'unfold_more'} aria-expanded={sectionsOpen} onClick={() => setSectionsOpen((v) => !v)} className="max-sm:w-10 max-sm:justify-center max-sm:px-0">
+              <ToolButton icon={sectionsOpen ? 'unfold_less' : 'unfold_more'} aria-expanded={sectionsOpen} aria-keyshortcuts="e" title={`${sectionsOpen ? 'Collapse' : 'Expand'} all sections (E)`} onClick={() => setSectionsOpen((v) => !v)} className="max-sm:w-10 max-sm:justify-center max-sm:px-0">
                 <span className="max-sm:sr-only">{sectionsOpen ? 'Collapse all' : 'Expand all'}</span>
               </ToolButton>
             )}
@@ -787,6 +804,8 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
           qtyEdited={qtyEdited}
           upEdited={upEdited}
           risks={risks}
+          pending={pending}
+          onConfirmPrice={(pid) => confirmPrices([pid])}
           sectionsOpen={sectionsOpen}
           sortActive={sortTotal}
           selectMode={selectMode}
@@ -891,6 +910,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
         setQ('')
         setCats(null)
         setOnlyUnpriced(false)
+        setOnlyPending(false)
         setOnlyZero(false)
         setOnlyEdited(false)
         setSortTotal(false)
@@ -899,7 +919,13 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
       <AddItemDialog open={adding} onClose={() => setAdding(false)} listId={doc.id} tree={tree} positions={positions} />
       <DetailDrawer
         p={detail}
-        catalogue={detail && detailCatalogue ? (
+        pendingPrice={detail && detail.up == null ? pending.get(detail.id)?.price ?? null : null}
+        suggestion={detail && detail.up == null && pending.get(detail.id) ? (
+          <PriceSuggestionNote s={pending.get(detail.id)!} unit={detail.unit}
+            onConfirm={() => confirmPrices([detail.id])} onDismiss={() => dismissPrice(detail.id)} />
+        ) : undefined}
+        // while a suggestion waits, its note already names the matched product; the research block would repeat it
+        catalogue={detail && detailCatalogue && !(detail.up == null && pending.has(detail.id)) ? (
           <CatalogueDetails result={detailCatalogue} position={detail}
             onApply={(long) => useStore.getState().patchPosition(doc.id, detail.id, { long })} />
         ) : undefined}
@@ -928,6 +954,13 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
               ))}
             </ul>
             <p className="sr-only" aria-live="polite">{reviewNote}</p>
+            {nextFlagged && (
+              <button type="button" onClick={() => openDetail(nextFlagged.id)}
+                className="mt-5 inline-flex min-h-9 max-w-full items-center gap-1.5 rounded text-sm font-semibold text-slate-700 underline decoration-slate-400 underline-offset-4 hover:text-slate-900 hover:decoration-slate-700">
+                <span className="truncate">Next open finding: <span className="num font-mono font-medium">{nextFlagged.oz}</span> {nextFlagged.short}</span>
+                <Icon name="arrow_downward" size={16} className="shrink-0" />
+              </button>
+            )}
           </section>
         ) : undefined}
         focusField={detailField}
@@ -991,5 +1024,33 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
         </Suspense>
       )}
     </>
+  )
+}
+
+const BASIS: Record<string, string> = { supplier_quote: 'supplier quote', tender_offer: 'earlier tender offer' }
+
+/** the drawer's pending-price note: where the number comes from, and the two ways to settle it */
+function PriceSuggestionNote({ s, unit, onConfirm, onDismiss }: { s: PriceSuggestion; unit: string; onConfirm: () => void; onDismiss: () => void }) {
+  const source = [s.product.supplier, s.basis ? BASIS[s.basis] : null, s.validFrom ? `from ${new Date(s.validFrom).toLocaleDateString('de-DE')}` : null].filter(Boolean).join(', ')
+  return (
+    <div role="group" aria-label="Suggested unit price" className="rounded-lg border border-dashed border-slate-400 bg-slate-50 p-4">
+      <p className="flex items-baseline justify-between gap-3">
+        <span className="flex items-center gap-1.5 text-sm font-semibold text-slate-900"><Icon name="schedule" size={18} className="text-slate-600" />Pending confirmation</span>
+        <span className="num text-[15px] font-semibold text-slate-900">{money(s.price)}<span className="font-normal text-slate-600">{(unit || s.unit) && ` / ${unit || s.unit}`}</span></span>
+      </p>
+      <p className="mt-1 text-sm leading-relaxed text-slate-700">
+        From the catalogue match <span lang="de" className="font-medium">{s.product.name}</span>{source && <> ({source})</>}.
+      </p>
+      {!s.unitKnown && (
+        <p className="mt-2 flex items-start gap-1.5 text-sm font-medium text-amber-900">
+          <Icon name="warning" size={16} className="mt-0.5 shrink-0" />
+          {s.unit ? 'This position has no unit. Check it matches the catalogue unit before confirming.' : 'The catalogue price has no unit. Check it is per ' + (unit || 'unit') + ' before confirming.'}
+        </p>
+      )}
+      <div className="mt-3 flex flex-wrap gap-2">
+        <Button variant="primary" icon="check" onClick={onConfirm}>Confirm price</Button>
+        <Button onClick={onDismiss}>Dismiss</Button>
+      </div>
+    </div>
   )
 }

@@ -11,13 +11,13 @@ From round 7 the council is these two members. The ux, estimator, a11y and finte
 
 | id | screen | screenshots |
 |---|---|---|
-| S1 | All Projects (home) | 01-all-projects.png, 11-mobile-home.png |
+| S1 | All Projects (home) | 01-all-projects.png |
 | S2 | Folder | 02-folder.png |
-| S3 | List (ledger; sections start collapsed, 04 is after "Expand all") | 03-list.png, 04-list-full.png, 12-mobile-list.png |
+| S3 | List (ledger; sections start collapsed, 04 is after "Expand all") | 03-list.png, 04-list-full.png |
 | S4 | Position detail drawer | 05-list-detail-drawer.png |
 | S5 | Active Budgets | 06-active-budgets.png |
 | S6 | Archived | 07-archived.png |
-| S7 | Trash | 08-trash.png |
+| S7 | ~~Trash~~ (removed; deleting is permanent behind a confirm) | — |
 | S8 | Search palette | 09-command-palette.png |
 | S9 | Empty folder | 10-empty-folder.png |
 | S10 | Catalogue: Products | 13-catalogue-products.png |
@@ -25,6 +25,7 @@ From round 7 the council is these two members. The ux, estimator, a11y and finte
 | S12 | Catalogue: Subcontractors | 15-catalogue-subcontractors.png |
 | S13 | Catalogue editor dialog | 16-catalogue-editor.png |
 | S14 | Upload-check findings (list rows + drawer) | 17-list-findings.png, 18-drawer-findings.png |
+| S15 | Pricing states: pending prices in the ledger and the drawer (catalogue responses mocked for the capture) | 19-pending-prices.png, 20-drawer-pending-price.png |
 
 ## Design decisions (settled; score how well they are executed, not whether to make them)
 
@@ -39,4 +40,6 @@ From round 7 the council is these two members. The ux, estimator, a11y and finte
 - Toasts always use the dark ink surface, in both themes.
 - Empty states sit at the top of the content column with a large icon.
 - Percentages are written with no space before % ("1,1%"). Numbers, money and dates use German format. The desktop GP column shows no € because the header says "GP (€)".
+- Every position has one of three pricing states: priced (a price from the file or typed), pending confirmation (a price suggested from a priced catalogue match, shown dashed in neutral slate with a schedule icon, not counted in totals until confirmed) and unpriced. Pending deliberately avoids yellow/amber/orange, which belong to the brand and to budget status.
+- Deleting a project or list is permanent behind a confirm dialog; there is no Trash.
 - A project's status rolls up from its lists; "Sub-project" is the user-facing term for a nested folder.
