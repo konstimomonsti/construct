@@ -21,7 +21,7 @@ then finds what is wrong or risky **before** the contractor prices and submits a
    and the report can be printed.
 5. **Prove it works.** We plant known errors in tenders and measure recall and precision per rule.
 
-The demo runs on the **VPS** (`backend/deploy/compose.prod.yaml`, which auto-deploys on push to `main`).
+The demo runs on the **VPS** (`backend/deploy/compose.prod.yaml`). The lead deploys `main` after merging; the CI deploy job stays off until `VPS_HOST` is set.
 Layer 3 **must work live** with `ANALYSIS_L3_PROVIDER=anthropic`.
 
 The reference trade for the new precast and DIN checks is `data/tenders/LV_11_Stahlbetonfertigeile_Sandwichsockel.pdf`.
@@ -107,7 +107,7 @@ cd frontend; npm ci; npm run lint; npm run build; npm test
 2. Commit in small steps. Write messages as full sentences (for example "Add DIN 1045-2 exposure class checks").
 3. Before pushing: `git fetch origin; git merge origin/main`, then run your task's tests.
 4. `git push -u origin feat/task-0X` and open a PR to `main` (`gh pr create`, or the GitHub web UI).
-   **Never push to `main` directly.** It auto-deploys to the VPS. The lead merges.
+   **Never push to `main` directly.** It is what the demo runs. The lead merges and deploys.
 5. **STATUS.md:** edit **only your own row**. Conflicts in that file are expected and the lead resolves them.
 
 ## 5. Shared interface contracts
