@@ -52,7 +52,7 @@ Priority for free workers: **15 (rest)** → 10 → 11 → 12. Before the hand-i
 
 - [x] VPS `.env.prod`: `ANALYSIS_L3_PROVIDER=anthropic`, `ANTHROPIC_API_KEY`, plus the defaults from task 02 (checked 2026-11-21 17:10)
 - [ ] After each merge: re-run `python -m analysis.eval report` and the LV_11 fixture, and update the numbers below (last: main at PR #31)
-- [ ] After each merge: deploy manually (CI deploy is off, `VPS_HOST` unset). Last deploy: main 916ec70 on 2026-11-21 17:10, backup `manual-20261121T160925Z.dump`
+- [x] Deploys: the VPS pulls `main` about every 10 minutes (a timer on the server, not in this repo; the CI deploy job stays off because `VPS_HOST` is unset). Anything merged is live within ~10 minutes. Last manual deploy: 916ec70 on 2026-11-21 17:10, backup `manual-20261121T160925Z.dump`
 - [x] Update README "Analysis" and "Risk" sections after wave 1
 
 ## Wave 2 backlog (nothing is cut, only sequenced)
