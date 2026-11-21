@@ -19,7 +19,7 @@ export function Header() {
 
   const showToggle = true
 
-  const upload = () => {
+  const chooseImport = () => {
     if (folderMatch?.params.folderId) return pickAndImport(folderMatch.params.folderId)
     const list = lists.find((item) => item.id === listMatch?.params.listId && !item.trashedAt)
     if (list) return pickAndImport(list.folderId, undefined, undefined, list.id)
@@ -83,23 +83,14 @@ export function Header() {
             ))}
           </div>
         )}
-        {folderMatch ? (
-          <>
-            <Button size="lg" icon="create_new_folder" aria-label="New Subfolder" className="hidden sm:inline-flex" onClick={() => openDialog({ kind: 'new-folder', parent: folderMatch.params.folderId })}>
-              <span className="hidden xl:inline">New Subfolder</span>
-            </Button>
-            <Button size="lg" icon="upload" aria-label="Upload" className="hidden sm:inline-flex" onClick={upload}>
-              <span className="hidden xl:inline">Upload</span>
-            </Button>
-            <Button variant="primary" size="lg" icon="file_present" aria-label="Import CSV" onClick={() => pickAndImport(folderMatch.params.folderId!, undefined, '.csv,.tsv,.json')}>
-              <span className="hidden md:inline">Import CSV</span>
-            </Button>
-          </>
-        ) : (
-          <Button variant="primary" size="lg" icon={listMatch ? 'file_present' : 'upload'} aria-label="Upload File" onClick={upload}>
-            <span className="hidden md:inline">Upload File</span>
+        {folderMatch && (
+          <Button size="lg" icon="create_new_folder" aria-label="New Subfolder" className="hidden sm:inline-flex" onClick={() => openDialog({ kind: 'new-folder', parent: folderMatch.params.folderId })}>
+            <span className="hidden xl:inline">New Subfolder</span>
           </Button>
         )}
+        <Button variant="primary" size="lg" icon="file_present" aria-label="Import" onClick={chooseImport}>
+          Import
+        </Button>
         <Menu
           label="Account"
           width="w-56"

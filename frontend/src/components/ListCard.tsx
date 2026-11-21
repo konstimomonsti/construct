@@ -7,11 +7,9 @@ import { money, moneyCompact, plural, usageTone } from '../lib/format'
 import { useActions } from '../lib/actions'
 import type { ListView } from '../lib/store'
 import { useStore } from '../lib/store'
-import { useUi } from '../lib/ui-store'
 
 export function ListCard({ list: l, index, tone: tile = 'indigo' }: { list: ListView; index: number; tone?: string }) {
   const { listMenu } = useActions()
-  const openDialog = useUi((s) => s.openDialog)
   const reduce = useReducedMotion()
   const first = useFirstRender(`list-${l.id}`)
   const pct = l.cap ? (l.total / l.cap) * 100 : 0
@@ -26,7 +24,7 @@ export function ListCard({ list: l, index, tone: tile = 'indigo' }: { list: List
     >
       <CardLink to={`/list/${l.id}`} label={`${l.title}, ${plural(l.positionsCount, 'position', 'positions')}`} />
       <div className="pointer-events-none relative flex flex-col items-center text-center">
-        <BudgetRow total={l.total} cap={l.cap} onSetCap={() => openDialog({ kind: 'cap', target: 'list', id: l.id })} className="mb-1" />
+        <BudgetRow total={l.total} cap={l.cap} className="mb-1" />
         <div className={clsx('mt-1 flex size-14 items-center justify-center rounded-xl shadow-xs', toneTile[tile] ?? toneTile.indigo)}>
           <Icon name="description" size={28} />
         </div>

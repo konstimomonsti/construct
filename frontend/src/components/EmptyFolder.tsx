@@ -1,6 +1,7 @@
 import { clsx } from 'clsx'
 import { Link } from 'react-router-dom'
-import { Icon, Menu } from './ui'
+import { Button, Icon } from './ui'
+import { MoreMenu } from './FolderCard'
 import { Page } from './Page'
 import { pickAndImport } from '../lib/import'
 import type { FolderView } from '../lib/store'
@@ -9,8 +10,8 @@ import { useActions } from '../lib/actions'
 
 export function EmptyFolder({ folder: f, ancestors, dragging }: { folder: FolderView; ancestors: FolderView[]; dragging: boolean }) {
   const openDialog = useUi((s) => s.openDialog)
-  const { trashFolder } = useActions()
-  const pick = (accept?: string) => pickAndImport(f.id, undefined, accept)
+  const { folderMenu } = useActions()
+  const pick = () => pickAndImport(f.id)
 
   return (
     <Page className="mx-auto flex w-full max-w-7xl flex-1 flex-col px-4 pb-12 sm:px-8">
@@ -36,39 +37,13 @@ export function EmptyFolder({ folder: f, ancestors, dragging }: { folder: Folder
               <span className="rounded border border-slate-200 bg-slate-100 px-1.5 py-0.5 font-mono text-[10px] text-slate-500">Empty</span>
             </span>
           </nav>
-          <Menu
-            label="Upload files"
-            align="start"
-            width="w-52"
-            items={[
-              { label: 'GAEB item lists', icon: 'construction', onSelect: () => pick('.x81,.x82,.x83,.x84,.x86,.d81,.d83,.d84,.d86') },
-              { label: 'CSV / JSON spreadsheets', icon: 'table_view', onSelect: () => pick('.csv,.json') },
-              { label: 'PDF documents', icon: 'receipt_long', onSelect: () => pick('.pdf') },
-            ]}
-            trigger={(p) => (
-              <button {...p} type="button" className="flex h-8 items-center gap-1.5 rounded-lg bg-brand-600 px-3 text-xs font-medium text-white shadow-sm transition-colors hover:bg-brand-700">
-                <Icon name="file_upload" size={16} />
-                <span>+ Upload Files</span>
-                <Icon name="expand_more" size={14} />
-              </button>
-            )}
-          />
+          <Button variant="primary" icon="file_upload" onClick={pick}>Import</Button>
           <button type="button" onClick={() => openDialog({ kind: 'new-folder', parent: f.id })} className="flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-50">
             <Icon name="create_new_folder" size={16} className="text-brand-600" />
             <span>+ Create Subfolder</span>
           </button>
         </div>
-        <div className="flex items-center self-start rounded-lg border border-slate-200 bg-white p-0.5 shadow-sm sm:self-center">
-          <button type="button" title="Rename folder" onClick={() => openDialog({ kind: 'rename-folder', id: f.id })} className="flex h-7 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-100">
-            <Icon name="edit" size={15} className="text-slate-400" />
-            <span>Rename</span>
-          </button>
-          <div className="mx-0.5 h-4 w-px bg-slate-200" />
-          <button type="button" title="Delete folder" onClick={() => trashFolder(f, true)} className="flex h-7 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium text-slate-600 transition-colors hover:bg-rose-50 hover:text-rose-600">
-            <Icon name="delete_outline" size={15} className="text-rose-500" />
-            <span>Delete</span>
-          </button>
-        </div>
+        <MoreMenu items={folderMenu(f)} label={`Options for ${f.name}`} />
       </div>
 
       <div className="flex min-h-[460px] flex-1 flex-col items-center justify-center rounded-2xl border border-slate-200 bg-white p-8 shadow-sm lg:p-12">
@@ -78,7 +53,7 @@ export function EmptyFolder({ folder: f, ancestors, dragging }: { folder: Folder
           </div>
           <h1 className="mb-2 text-xl font-bold tracking-tight text-slate-900">This folder is currently empty</h1>
           <p className="mb-8 max-w-md text-sm leading-relaxed text-slate-500">
-            Drag and drop GAEB tender files, price sheets or CSV ledgers directly here, or start with a blank list.
+            Import an item list or start with a blank list.
           </p>
           <div
             onClick={() => pick()}
@@ -97,11 +72,11 @@ export function EmptyFolder({ folder: f, ancestors, dragging }: { folder: Folder
                 className="flex h-10 items-center justify-center gap-2 rounded-xl bg-brand-600 px-5 text-xs font-medium text-white shadow-sm transition-all hover:bg-brand-700 active:scale-[0.98]"
               >
                 <Icon name="cloud_upload" size={18} />
-                <span>Import Item Lists &amp; CSVs</span>
+                <span>Import</span>
               </button>
               <div className="mt-1 space-y-1">
                 <p className="text-xs font-medium text-slate-600">or drop files anywhere into this window</p>
-                <p className="text-[11px] text-slate-400">Supports GAEB .X81–.X86 / .D81–.D86, .CSV, .JSON and .PDF</p>
+                <p className="text-[11px] text-slate-400">Supports GAEB, CSV, TSV, Excel, JSON, Word and PDF</p>
               </div>
             </div>
           </div>

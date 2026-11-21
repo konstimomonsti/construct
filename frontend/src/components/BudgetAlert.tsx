@@ -2,37 +2,37 @@ import { clsx } from 'clsx'
 import { useState } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { Icon } from './ui'
-import { money, niceCap } from '../lib/format'
+import { money } from '../lib/format'
 
 type Level = 'yellow' | 'orange' | 'red'
 type Shown = Level | 'ok'
 const LEVELS: Level[] = ['yellow', 'orange', 'red']
-const TAB_LABEL: Record<Level, string> = { yellow: 'Caution (75%)', orange: 'Approaching Cap (90%)', red: 'Budget Exceeded (105%)' }
+const TAB_LABEL: Record<Level, string> = { yellow: 'Caution (75%)', orange: 'Approaching Cap (90%)', red: 'Budget Exceeded (>100%)' }
 const ARIA: Record<Level, string> = { yellow: 'Caution', orange: 'Approaching Cap', red: 'Budget Exceeded' }
 
 const theme = {
   yellow: {
     box: 'border-amber-200 bg-amber-50/70', rule: 'border-amber-200/60', tile: 'bg-amber-100 text-amber-700 border-amber-200',
     h: 'text-amber-900', chip: 'bg-amber-100/70 text-amber-800 border-amber-200/60', p: 'text-amber-800/90', strong: 'text-amber-900',
-    b2: 'border-amber-300 hover:bg-amber-50 text-amber-900', b1: 'bg-amber-600 hover:bg-amber-700', tab: 'bg-amber-500 text-white',
+    b2: 'border-amber-300 hover:bg-amber-50 text-amber-900', tab: 'bg-amber-500 text-white',
     dot: 'bg-amber-500 ring-2 ring-amber-200', pill: 'bg-amber-100 text-amber-800 border-amber-200', pulse: 'bg-amber-600', icon: 'warning',
   },
   orange: {
     box: 'border-orange-200 bg-orange-50/70', rule: 'border-orange-200/60', tile: 'bg-orange-100 text-orange-700 border-orange-200',
     h: 'text-orange-950', chip: 'bg-orange-100/70 text-orange-900 border-orange-200/60', p: 'text-orange-900/90', strong: 'text-orange-950',
-    b2: 'border-orange-300 hover:bg-orange-50 text-orange-900', b1: 'bg-orange-600 hover:bg-orange-700', tab: 'bg-orange-600 text-white',
+    b2: 'border-orange-300 hover:bg-orange-50 text-orange-900', tab: 'bg-orange-600 text-white',
     dot: 'bg-orange-500 ring-2 ring-orange-200', pill: 'bg-orange-100 text-orange-800 border-orange-200', pulse: 'bg-orange-600', icon: 'gpp_maybe',
   },
   red: {
     box: 'border-rose-200 bg-rose-50/70', rule: 'border-rose-200/60', tile: 'bg-rose-100 text-rose-700 border-rose-200',
     h: 'text-rose-950', chip: 'bg-rose-100 text-rose-800 border-rose-300 font-semibold', p: 'text-rose-900/90', strong: 'text-rose-950',
-    b2: 'border-rose-300 hover:bg-rose-50 text-rose-900', b1: 'bg-rose-600 hover:bg-rose-700', tab: 'bg-rose-600 text-white',
+    b2: 'border-rose-300 hover:bg-rose-50 text-rose-900', tab: 'bg-rose-600 text-white',
     dot: 'bg-rose-600 ring-2 ring-rose-200', pill: 'bg-rose-100 text-rose-700 border-rose-200', pulse: 'bg-rose-600', icon: 'error',
   },
   ok: {
     box: 'border-emerald-200 bg-emerald-50/70', rule: 'border-emerald-200/60', tile: 'bg-emerald-100 text-emerald-700 border-emerald-200',
     h: 'text-emerald-950', chip: 'bg-emerald-100/70 text-emerald-800 border-emerald-200/60', p: 'text-emerald-900/90', strong: 'text-emerald-950',
-    b2: 'border-emerald-300 hover:bg-emerald-50 text-emerald-900', b1: 'bg-emerald-600 hover:bg-emerald-700', tab: 'bg-emerald-600 text-white',
+    b2: 'border-emerald-300 hover:bg-emerald-50 text-emerald-900', tab: 'bg-emerald-600 text-white',
     dot: 'bg-emerald-500 ring-2 ring-emerald-200', pill: 'bg-emerald-100 text-emerald-800 border-emerald-200', pulse: 'bg-emerald-600', icon: 'verified',
   },
 } as const
@@ -42,39 +42,11 @@ export interface BudgetAlertProps {
   cap: number
   largest: { short: string; amount: number } | null
   onReview: () => void
-  onSetCap: (prefill?: number) => void
 }
 
-export function BudgetAlert({ total, cap, largest, onReview, onSetCap }: BudgetAlertProps) {
+export function BudgetAlert({ total, cap, largest, onReview }: BudgetAlertProps) {
   const reduce = useReducedMotion()
   const [sel, setSel] = useState<Level | null>(null)
-
-  if (!cap) {
-    return (
-      <div className="mt-4 flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-xs sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-start gap-3.5">
-          <div className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-100 text-slate-500">
-            <Icon name="tune" size={20} />
-          </div>
-          <div>
-            <h4 className="font-heading text-sm font-bold tracking-tight text-slate-900">No budget cap set</h4>
-            <p className="mt-1 max-w-3xl text-xs leading-relaxed text-slate-500">
-              Set a ceiling for this list to enable Caution (75%), Approaching Cap (90%) and Budget Exceeded alerts.
-              {total > 0 && <> Current total: <span className="font-mono font-semibold text-slate-700">{money(total)}</span>.</>}
-            </p>
-          </div>
-        </div>
-        <button
-          type="button"
-          onClick={() => onSetCap(total > 0 ? niceCap(total) : undefined)}
-          className="flex h-8 shrink-0 items-center gap-1.5 rounded-lg bg-brand-600 px-3.5 text-xs font-semibold text-white shadow-xs transition-colors hover:bg-brand-700"
-        >
-          <Icon name="tune" size={15} />
-          Set Cap
-        </button>
-      </div>
-    )
-  }
 
   const used = (total / cap) * 100
   const current: Shown = used > 100 ? 'red' : used >= 90 ? 'orange' : used >= 75 ? 'yellow' : 'ok'
@@ -200,10 +172,6 @@ export function BudgetAlert({ total, cap, largest, onReview, onSetCap }: BudgetA
               <button type="button" onClick={onReview} className={clsx('flex h-8 items-center gap-1.5 rounded-lg border bg-white px-3 text-xs font-medium shadow-xs transition-colors', t.b2)}>
                 <Icon name="analytics" size={15} />
                 Review Overages
-              </button>
-              <button type="button" onClick={() => onSetCap(niceCap(total))} className={clsx('flex h-8 items-center gap-1.5 rounded-lg px-3.5 text-xs font-semibold text-white shadow-xs transition-colors', t.b1)}>
-                <Icon name="publish" size={15} />
-                Request Budget Expansion
               </button>
             </div>
           </div>

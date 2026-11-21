@@ -7,14 +7,17 @@ import { Page, TableSkeleton } from '../components/Page'
 import { ErrorBoundary } from '../components/ErrorBoundary'
 import { LedgerTable } from '../components/LedgerTable'
 import { BudgetAlert } from '../components/BudgetAlert'
+import { PricingBudget } from '../components/PricingBudget'
+import { MoreMenu } from '../components/FolderCard'
+import { useActions } from '../lib/actions'
 import { DetailDrawer } from '../components/DetailDrawer'
 import { loadList } from '../lib/data'
 import { ExportMenu } from '../components/ExportMenu'
 import { CategoryTree, useExpanded, type CheckState } from '../components/split/CategoryTree'
 import { MoveToCategory } from '../components/split/MoveToCategory'
-import { money, moneyCompact, niceCap, plural } from '../lib/format'
+import { fixedBudget, money, plural } from '../lib/format'
 import { positionTotal } from '../lib/money'
-import { applyMoves, indexTree, leafOz, nextChildOz, resolveList, treeStats, type CatStat } from '../lib/resolve'
+import { applyMoves, globalStep, indexTree, leafOz, nextChildOz, nextPositionOz, pathOf, resolveList, treeStats, type CatStat } from '../lib/resolve'
 import { statsOf, useModel, useStore } from '../lib/store'
 import { useUi } from '../lib/ui-store'
 import type { CategoryNode, ListDoc, Position } from '../lib/types'
@@ -193,14 +196,21 @@ function CategoryFilter({ tree, stats, value, onChange }: { tree: CategoryNode[]
 /* Add item                                                            */
 /* ------------------------------------------------------------------ */
 
-function AddItemDialog({ open, onClose, listId, cats, nextOz }: { open: boolean; onClose: () => void; listId: string; cats: string[]; nextOz: string }) {
+function AddItemDialog({ open, onClose, listId, tree, positions }: { open: boolean; onClose: () => void; listId: string; tree: CategoryNode[]; positions: Position[] }) {
   const [f, setF] = useState({ oz: '', short: '', qty: '1', unit: 'St', up: '', cat: '' })
-  const dl = useId()
-  const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement>) => setF((s) => ({ ...s, [k]: e.target.value }))
+  const index = useMemo(() => indexTree(tree), [tree])
+  const path = pathOf(index, f.cat)
+  const taken = new Set(positions.map((position) => position.oz))
+  const nextOz = nextPositionOz(f.cat, positions.filter((position) => leafOz(position) === f.cat).map((position) => position.oz), taken, globalStep(positions))
+  const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setF((s) => ({ ...s, [k]: e.target.value }))
   const num = (s: string) => Number(s.trim().replace(',', '.'))
   const submit = (e: FormEvent) => {
     e.preventDefault()
     if (!f.short.trim()) return
+    if (taken.has(f.oz.trim())) {
+      toast('That OZ is already in use', 'error')
+      return
+    }
     const q = f.qty.trim() === '' ? 1 : num(f.qty)
     const up = f.up.trim() === '' ? null : num(f.up)
     if (!Number.isFinite(q) || q < 0 || (up !== null && !Number.isFinite(up))) {
@@ -208,13 +218,14 @@ function AddItemDialog({ open, onClose, listId, cats, nextOz }: { open: boolean;
       return
     }
     const p: Position = {
-      id: `u${Date.now().toString(36)}`,
+      id: `u-${crypto.randomUUID()}`,
       oz: f.oz.trim() || nextOz,
       short: f.short.trim(),
       qty: q,
       unit: f.unit.trim() || 'St',
       up,
-      category: f.cat.trim() || 'Eigene Positionen',
+      category: path.at(-1)?.label ?? 'Eigene Positionen',
+      path: path.length ? path : undefined,
     }
     useStore.getState().addPosition(listId, p)
     toast(`Added ${p.oz}`)
@@ -244,8 +255,12 @@ function AddItemDialog({ open, onClose, listId, cats, nextOz }: { open: boolean;
         <Field label="Einheitspreis (EP, €)"><input inputMode="decimal" className={`${inputCls} font-mono`} value={f.up} onChange={set('up')} placeholder="optional" /></Field>
         <div className="col-span-2">
           <Field label="Kategorie">
-            <input className={inputCls} list={dl} value={f.cat} onChange={set('cat')} placeholder="Eigene Positionen" />
-            <datalist id={dl}>{cats.map((c) => <option key={c} value={c} />)}</datalist>
+            <select className={inputCls} value={f.cat} onChange={set('cat')}>
+              <option value="">Eigene Positionen</option>
+              {[...index.node.values()].map((category) => (
+                <option key={category.oz} value={category.oz}>{pathOf(index, category.oz).map((part) => part.label || part.oz).join(' / ')}</option>
+              ))}
+            </select>
           </Field>
         </div>
       </form>
@@ -262,6 +277,7 @@ function ListDetail({ doc }: { doc: ListDoc }) {
   const { lists, folders, documents } = useModel()
   const attached = documents.filter((document) => document.listId === doc.id)
   const openDialog = useUi((s) => s.openDialog)
+  const { listMenu } = useActions()
   const view = lists.find((l) => l.id === doc.id)
   const folder = folders.find((f) => f.id === (view?.folderId ?? doc.folderId))
   const edits = useStore((s) => s.edits[doc.id])
@@ -292,16 +308,15 @@ function ListDetail({ doc }: { doc: ListDoc }) {
   }, [doc.id])
 
   const title = view?.title ?? doc.title
-  const cap = view?.cap ?? niceCap(doc.total)
+  const cap = view?.cap ?? fixedBudget(doc.total)
   const used = cap ? (st.total / cap) * 100 : 0
-  const categories = useMemo(() => [...new Set(positions.map((p) => p.category))].sort((a, b) => a.localeCompare(b, 'de')), [positions])
   const editedIds = useMemo(() => new Set([...Object.keys(edits?.qty ?? {}), ...Object.keys(edits?.up ?? {}), ...Object.keys(edits?.patch ?? {}), ...Object.keys(edits?.moves ?? {})]), [edits])
   const addedIds = useMemo(() => new Set((edits?.added ?? []).map((p) => p.id)), [edits])
 
   const rows = useMemo(() => {
     const t = q.trim().toLowerCase()
     let r = positions.filter(
-      (p) => (!cats || cats.has(leafOz(p))) && (!t || p.oz.toLowerCase().includes(t) || p.short.toLowerCase().includes(t) || p.category.toLowerCase().includes(t)),
+      (p) => (!cats || cats.has(leafOz(p))) && (!t || p.oz.toLowerCase().includes(t) || p.short.toLowerCase().includes(t) || p.path?.some((part) => part.label.toLowerCase().includes(t))),
     )
     if (sortTotal) r = [...r].sort((a, b) => positionTotal(b) - positionTotal(a))
     return r
@@ -401,9 +416,17 @@ function ListDetail({ doc }: { doc: ListDoc }) {
               trigger={(props) => <Button {...props} icon="attach_file">Documents ({attached.length})</Button>}
             />
           )}
+          {view && !view.trashedAt && <MoreMenu items={listMenu(view)} label={`Options for ${view.title}`} />}
           <ExportMenu listId={doc.id} doc={doc} selectedIds={[...selected]} />
         </div>
       </div>
+
+      <PricingBudget tree={tree} stats={catStats} total={st.total} cap={cap} onAdd={(name) => {
+        addCategory(null, name)
+        setQ('')
+        setCats(null)
+        setSortTotal(false)
+      }} />
 
       <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-3">
@@ -457,6 +480,8 @@ function ListDetail({ doc }: { doc: ListDoc }) {
         <LedgerTable
           listId={doc.id}
           rows={rows}
+          tree={tree}
+          showEmpty={!q.trim() && !cats}
           allPositions={positions}
           selected={selected}
           setSelected={setSelected}
@@ -470,12 +495,7 @@ function ListDetail({ doc }: { doc: ListDoc }) {
           footer={
             <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-t border-slate-100 bg-slate-50/60 px-4 py-2.5 text-[11px] text-slate-500">
               <span>{[...meta, `${st.positionsCount} positions`, `${st.pricedCount} priced`].join(' · ')}</span>
-              <span>
-                Total <span className="font-mono font-semibold text-slate-700">{money(st.total)}</span> of cap{' '}
-                <button type="button" title="Edit budget cap" onClick={() => openDialog({ kind: 'cap', target: 'list', id: doc.id })} className="font-mono font-medium text-slate-600 transition-colors hover:text-brand-600">
-                  {cap ? moneyCompact(cap) : 'Set cap'}
-                </button>
-              </span>
+              <span>Total <strong className="font-mono text-slate-700">{money(st.total)}</strong></span>
             </div>
           }
           resetKey={`${q}|${cats ? [...cats].join(',') : '*'}|${sortTotal}`}
@@ -487,7 +507,6 @@ function ListDetail({ doc }: { doc: ListDoc }) {
         cap={cap}
         largest={largest}
         onReview={review}
-        onSetCap={(prefill) => openDialog({ kind: 'cap', target: 'list', id: doc.id, prefill })}
       />
 
       {doc.notes && (
@@ -511,7 +530,7 @@ function ListDetail({ doc }: { doc: ListDoc }) {
         </section>
       )}
 
-      <AddItemDialog open={adding} onClose={() => setAdding(false)} listId={doc.id} cats={categories} nextOz={String(positions.length + 1)} />
+      <AddItemDialog open={adding} onClose={() => setAdding(false)} listId={doc.id} tree={tree} positions={positions} />
       <DetailDrawer
         p={detail}
         onClose={() => setDetailId(null)}

@@ -23,7 +23,7 @@ export const FORMATS: FormatInfo[] = [
 ]
 export const formatInfo = (id: FormatId) => FORMATS.find((f) => f.id === id)!
 
-export type SourceKind = 'gaeb-xml' | 'gaeb90' | 'pdf' | 'docx' | 'csv' | 'json' | 'blank' | 'other'
+export type SourceKind = 'gaeb-xml' | 'gaeb90' | 'pdf' | 'docx' | 'csv' | 'xlsx' | 'json' | 'blank' | 'other'
 
 export function sourceKindOf(doc: ListDoc): SourceKind {
   if (doc.source?.kind) return doc.source.kind
@@ -32,6 +32,7 @@ export function sourceKindOf(doc: ListDoc): SourceKind {
   if (/^d\d\d$/.test(e)) return 'gaeb90'
   if (e === 'pdf') return 'pdf'
   if (e === 'docx') return 'docx'
+  if (e === 'xlsx') return 'xlsx'
   if (e === 'csv') return 'csv'
   if (e === 'json') return 'json'
   return 'other'
@@ -50,6 +51,7 @@ export function ownFormat(doc: ListDoc): FormatId | null {
   }
   if (k === 'pdf') return 'pdf'
   if (k === 'docx') return 'docx'
+  if (k === 'xlsx') return 'xlsx'
   if (k === 'csv') return 'csv'
   if (k === 'json') return 'json'
   return null

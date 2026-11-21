@@ -6,7 +6,8 @@ import { money } from '../lib/format'
 import { positionTotal } from '../lib/money'
 import { unitIcon } from '../lib/actions'
 import { useStore } from '../lib/store'
-import type { Position } from '../lib/types'
+import { leafOz, treeStats } from '../lib/resolve'
+import type { CategoryNode, Position } from '../lib/types'
 
 const PAGE = 100
 
@@ -74,6 +75,8 @@ function PriceCell({ value, onSave, label }: { value: number | null; onSave: (v:
 
 interface RowProps {
   listId: string
+  depth: number
+  showCategory: boolean
   p: Position
   selected: boolean
   hot: boolean
@@ -84,7 +87,7 @@ interface RowProps {
   onMove: (pid: string) => void
 }
 
-const Row = memo(function Row({ listId, p, selected, hot, flash, edited, onToggle, onOpen, onMove }: RowProps) {
+const Row = memo(function Row({ listId, depth, showCategory, p, selected, hot, flash, edited, onToggle, onOpen, onMove }: RowProps) {
   const total = positionTotal(p)
   const remove = () => {
     const st = useStore.getState()
@@ -97,7 +100,7 @@ const Row = memo(function Row({ listId, p, selected, hot, flash, edited, onToggl
         <input type="checkbox" className="checkbox" checked={selected} onChange={() => onToggle(p.id)} aria-label={`Select ${p.oz} ${p.short}`} />
       </td>
       <td className="px-3 py-4 max-lg:sticky max-lg:left-10 max-lg:z-[1] max-lg:bg-white">
-        <div className="flex min-w-0 items-center gap-3">
+        <div className="flex min-w-0 items-center gap-3 border-slate-200" style={{ marginInlineStart: depth * 16, paddingInlineStart: depth ? 10 : 0, borderInlineStartWidth: depth ? 1 : 0 }}>
           <div className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-100 text-slate-600">
             <Icon name={unitIcon(p.unit)} size={18} />
           </div>
@@ -109,9 +112,9 @@ const Row = memo(function Row({ listId, p, selected, hot, flash, edited, onToggl
           </div>
         </div>
       </td>
-      <td className="px-3 py-4">
+      {showCategory && <td className="px-3 py-4">
         <span className="block w-fit max-w-full truncate rounded-md bg-slate-100 px-2 py-0.5 align-middle text-[11px] font-medium text-slate-600" title={`${p.path?.[p.path.length - 1]?.oz ?? ''} ${p.category}`.trim()}>{p.category}</span>
-      </td>
+      </td>}
       <td className="px-3 py-4 text-right text-xs">
         <PriceCell value={p.up} label={p.oz} onSave={(v) => useStore.getState().setUp(listId, p.id, v)} />
       </td>
@@ -156,11 +159,13 @@ const Row = memo(function Row({ listId, p, selected, hot, flash, edited, onToggl
 })
 
 export function LedgerTable({
-  listId, rows, allPositions, selected, setSelected, over75, focusId, onOpen, onMove, editedIds, sortActive, onResetSort, resetKey, footer,
+  listId, rows, tree, showEmpty, allPositions, selected, setSelected, over75, focusId, onOpen, onMove, editedIds, sortActive, onResetSort, resetKey, footer,
 }: {
   listId: string
   /** already filtered + sorted */
   rows: Position[]
+  tree: CategoryNode[]
+  showEmpty: boolean
   allPositions: Position[]
   selected: Set<string>
   setSelected: (s: Set<string>) => void
@@ -175,6 +180,7 @@ export function LedgerTable({
   footer?: React.ReactNode
 }) {
   const [limit, setLimit] = useState(PAGE)
+  const [collapsed, setCollapsed] = useState(() => new Set<string>())
   const [flash, setFlash] = useState<string | null>(null)
   const headCb = useRef<HTMLInputElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -198,23 +204,53 @@ export function LedgerTable({
 
   useEffect(() => setLimit(PAGE), [resetKey])
 
+  type Entry = { item: Position; depth: number } | { category: CategoryNode; depth: number }
+  const stats = useMemo(() => treeStats(rows), [rows])
+  const entries = useMemo(() => {
+    const out: Entry[] = []
+    if (sortActive) return rows.map((item) => ({ item, depth: 0 }))
+    const direct = new Map<string, Position[]>()
+    for (const item of rows) {
+      const oz = leafOz(item)
+      const items = direct.get(oz) ?? []
+      items.push(item)
+      direct.set(oz, items)
+    }
+    const walk = (nodes: CategoryNode[], depth: number) => {
+      for (const category of nodes) {
+        if (!showEmpty && !stats.has(category.oz)) continue
+        out.push({ category, depth })
+        if (collapsed.has(category.oz)) continue
+        for (const item of direct.get(category.oz) ?? []) out.push({ item, depth: depth + 1 })
+        walk(category.children, depth + 1)
+      }
+    }
+    for (const item of direct.get('') ?? []) out.push({ item, depth: 0 })
+    walk(tree, 0)
+    return out
+  }, [rows, tree, sortActive, showEmpty, stats, collapsed])
+  const expandedRows = entries.flatMap((entry) => 'item' in entry ? [entry.item] : [])
+
   useEffect(() => {
     if (!focusId) return
     const i = rows.findIndex((r) => r.id === focusId)
     if (i < 0) return
-    if (i >= limit) setLimit(Math.ceil((i + 1) / PAGE) * PAGE)
+    const path = new Set(rows[i].path?.map((part) => part.oz))
+    setCollapsed((previous) => new Set([...previous].filter((oz) => !path.has(oz))))
+    setLimit((previous) => Math.max(previous, Math.ceil((i + 1) / PAGE) * PAGE))
     setFlash(focusId)
-    const t = setTimeout(() => document.querySelector(`[data-pid="${CSS.escape(focusId)}"]`)?.scrollIntoView({ block: 'center', behavior: 'smooth' }), 60)
+    const t = setTimeout(() => scrollRef.current?.querySelector(`[data-pid="${CSS.escape(focusId)}"]`)?.scrollIntoView({ block: 'center', behavior: 'smooth' }), 60)
     const t2 = setTimeout(() => setFlash(null), 2600)
     return () => {
       clearTimeout(t)
       clearTimeout(t2)
     }
+    // A focus request comes from navigation. Editing the rows should not scroll again.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusId])
 
-  const selectedVisible = rows.reduce((n, r) => n + (selected.has(r.id) ? 1 : 0), 0)
-  const all = rows.length > 0 && selectedVisible === rows.length
+  const selectedVisible = expandedRows.reduce((n, r) => n + (selected.has(r.id) ? 1 : 0), 0)
+  const all = expandedRows.length > 0 && selectedVisible === expandedRows.length
   useEffect(() => {
     if (headCb.current) headCb.current.indeterminate = selectedVisible > 0 && !all
   }, [selectedVisible, all])
@@ -225,7 +261,15 @@ export function LedgerTable({
     else n.add(id)
     setSelected(n)
   }
-  const shown = rows.slice(0, limit)
+  const toggleCategory = (oz: string) => setCollapsed((previous) => {
+    const next = new Set(previous)
+    if (next.has(oz)) next.delete(oz)
+    else next.add(oz)
+    return next
+  })
+  const shownCount = Math.min(expandedRows.length, limit)
+  const firstHidden = expandedRows[limit]
+  const shown = firstHidden ? entries.slice(0, entries.findIndex((entry) => 'item' in entry && entry.item === firstHidden)) : entries
 
   return (
     <div className="mt-3.5 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs">
@@ -242,7 +286,7 @@ export function LedgerTable({
         onScroll={onScroll}
         className="relative overflow-auto md:max-h-[calc(100vh-520px)] md:min-h-[320px]"
       >
-        <table className="w-full min-w-[900px] table-fixed border-collapse text-left">
+        <table className={clsx('w-full table-fixed border-collapse text-left', sortActive ? 'min-w-[900px]' : 'min-w-[740px]')}>
           <thead className="[&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:bg-slate-50">
             <tr className="border-b border-slate-200 text-[11px] font-semibold tracking-wider text-slate-500 uppercase">
               <th scope="col" className="w-10 py-3 pr-2 pl-4 max-lg:left-0 max-lg:z-20">
@@ -251,12 +295,19 @@ export function LedgerTable({
                   type="checkbox"
                   className="checkbox"
                   checked={all}
-                  onChange={() => setSelected(all ? new Set() : new Set(rows.map((r) => r.id)))}
+                  onChange={() => {
+                    const next = new Set(selected)
+                    for (const row of expandedRows) {
+                      if (all) next.delete(row.id)
+                      else next.add(row.id)
+                    }
+                    setSelected(next)
+                  }}
                   aria-label="Select all rows"
                 />
               </th>
               <th scope="col" className="px-3 py-3 max-lg:left-10 max-lg:z-20">OZ / Kurztext</th>
-              <th scope="col" className="w-40 px-3 py-3">Kategorie</th>
+              {sortActive && <th scope="col" className="w-40 px-3 py-3">Kategorie</th>}
               <th scope="col" className="w-28 px-3 py-3 text-right">Einheitspreis</th>
               <th scope="col" className="w-36 px-3 py-3 text-center">Menge</th>
               <th scope="col" className="w-28 px-3 py-3 text-right">Gesamt</th>
@@ -265,12 +316,34 @@ export function LedgerTable({
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {shown.map((p) => (
-              <Row key={p.id} listId={listId} p={p} selected={selected.has(p.id)} hot={p.id === hotId} flash={flash === p.id} edited={editedIds.has(p.id)} onToggle={toggle} onOpen={onOpen} onMove={onMove} />
-            ))}
+            {shown.map((entry) => {
+              if ('item' in entry) {
+                const p = entry.item
+                return <Row key={`p-${p.id}`} listId={listId} depth={entry.depth} showCategory={sortActive} p={p} selected={selected.has(p.id)} hot={p.id === hotId} flash={flash === p.id} edited={editedIds.has(p.id)} onToggle={toggle} onOpen={onOpen} onMove={onMove} />
+              }
+              const { category, depth } = entry
+              const isOpen = !collapsed.has(category.oz)
+              const stat = stats.get(category.oz)
+              return (
+                <tr key={`c-${category.oz}`} className="bg-slate-50 text-xs">
+                  <td aria-hidden className="max-lg:sticky max-lg:left-0 max-lg:z-[1] max-lg:bg-slate-50" />
+                  <th scope="row" className="px-3 py-1.5 max-lg:sticky max-lg:left-10 max-lg:z-[1] max-lg:bg-slate-50">
+                    <button type="button" aria-expanded={isOpen} onClick={() => toggleCategory(category.oz)} title={category.label}
+                      className="flex max-w-full items-center gap-2 rounded px-1 py-1 text-left font-semibold text-slate-800 hover:bg-slate-200"
+                      style={{ marginInlineStart: depth * 16 }}>
+                      <Icon name={isOpen ? 'expand_less' : 'expand_more'} size={17} className="shrink-0 text-slate-500" />
+                      <span className="truncate">{category.label || category.oz}</span>
+                    </button>
+                  </th>
+                  <td colSpan={2} />
+                  <td className="px-3 text-right font-mono font-semibold text-slate-700">{money(stat?.total ?? 0)}</td>
+                  <td colSpan={2} />
+                </tr>
+              )
+            })}
           </tbody>
         </table>
-      {rows.length === 0 && (
+      {entries.length === 0 && (
         <div className="px-6 py-14 text-center">
           <Icon name="search_off" size={30} className="text-slate-300" />
           <p className="mt-2 text-sm font-semibold text-slate-700">No positions to show</p>
@@ -279,13 +352,13 @@ export function LedgerTable({
       )}
       <div className="sticky left-0 flex items-center justify-between gap-3 border-t border-slate-100 bg-slate-50/60 px-4 py-2.5 text-xs text-slate-500">
         <span>
-          Showing <span className="font-mono font-semibold text-slate-700">{shown.length}</span> of <span className="font-mono font-semibold text-slate-700">{rows.length}</span> positions
+          Showing <span className="font-mono font-semibold text-slate-700">{shownCount}</span> of <span className="font-mono font-semibold text-slate-700">{expandedRows.length}</span> expanded positions
           {rows.length !== allPositions.length && <> (filtered from {allPositions.length})</>}
         </span>
-        {rows.length > limit && (
+        {expandedRows.length > limit && (
           <button type="button" onClick={() => setLimit((l) => l + PAGE)} className="flex h-7 items-center gap-1 rounded-md border border-slate-200 bg-white px-2.5 font-medium text-slate-700 shadow-xs transition-colors hover:bg-slate-50">
             Show more
-            <span className="font-mono text-slate-400">+{Math.min(PAGE, rows.length - limit)}</span>
+            <span className="font-mono text-slate-400">+{Math.min(PAGE, expandedRows.length - limit)}</span>
           </button>
         )}
       </div>
