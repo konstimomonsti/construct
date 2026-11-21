@@ -1,4 +1,4 @@
-"""Generate ordinary visual PDF and Word tenders with labelled mutations."""
+"""Generate ordinary tender files with labelled specification and pricing mutations."""
 
 import argparse
 from dataclasses import dataclass, replace
@@ -15,7 +15,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
 from reportlab.lib.utils import simpleSplit
 
-from . import PRECAST_PATH, docio, ops, precast
+from . import PRECAST_PATH, docio, gaeb_writer, ops, precast
 
 
 @dataclass(frozen=True)
@@ -177,10 +177,57 @@ def generate_gutter(out):
         })
 
 
+def generate_dimensions(out):
+    """Test directly attributed dimensions and unrelated or conditional values."""
+    out.mkdir(parents=True, exist_ok=True)
+    fence = "Bauzaun H = 2,0 m"
+    wall = "GK-Ständerwand 12,5 mm beplankt"
+    cases = [
+        ("height-clean", fence, "Mobilen Bauzaun, Höhe 200 cm, mit Fußplatten liefern.", False),
+        ("height-fence", fence, "Mobilen Bauzaun, Höhe 1,20 m, mit Fußplatten liefern.", True),
+        ("height-guardrail", "Geländer, Höhe: 1100 mm", "Geländer H = 100 cm montieren.", True),
+        ("height-post", fence, "Bauzaun mit Pfosten, Höhe 1,20 m für die Pfosten.", False),
+        ("height-alternative", fence, "Bauzaun, Höhe 1,20 m oder 2,00 m.", False),
+        ("height-range", fence, "Bauzaun, Höhe 1,20 m bis 2,00 m.", False),
+        ("height-other-component", fence, "Geländer Höhe 1,20 m montieren.", False),
+        ("board-conflict", wall,
+         "Metallständerwand CW 75, beidseitig einlagig beplankt mit Gipsplatten Typ A, d = 15 mm.", True),
+        ("board-clean", wall, "Metallständerwand beplankt mit Gipsplatten Typ A, Dicke 1,25 cm.", False),
+        ("board-composite", wall, "Metallständerwand zweilagig beplankt mit Gipsplatten Typ A, d = 25 mm gesamt.", False),
+    ]
+    for name, short, detail, conflict in cases:
+        board = name.startswith("board-")
+        trade = "Trockenbau" if board else "Baustellensicherung"
+        title = f"Leistungsverzeichnis {trade}"
+        item = Item("01.0010", short, 10, "m²" if board else "m", detail=detail)
+        pdf_file(out / f"{name}.pdf", [item], title)
+        word_file(out / f"{name}.docx", [item], title)
+        (out / f"{name}.json").write_text(json.dumps({
+            "title": title, "positions": [{"id": "height-item", "oz": item.code, "short": short, "long": detail,
+                                           "qty": item.quantity, "unit": item.unit}],
+        }, ensure_ascii=False), encoding="utf-8")
+        gaeb_writer.write_file({
+            "bom": {"title": title},
+            "sections": [{"id": "height-section", "code_parts": ["01"], "title": title}],
+            "lines": [{"id": "height-item", "section_id": "height-section", "code_parts": ["01", "0010"],
+                       "short_text": short, "long_text": detail, "quantity": item.quantity, "unit": item.unit}],
+        }, out / f"{name}.X83")
+        locators = {"pdf": {"page": 1}, "docx": {"table": 1, "row": 2}, "json": {"row": 1}, "X83": {"source_id": "height-item"}}
+        for ext, locator in locators.items():
+            label = {"control": not conflict, "layers": [1], "expect": []}
+            if conflict:
+                label.update(expect=["L1.TEXT.VALUE_CONFLICT"], match="line", target={
+                    "line_codes": [item.code], "severity": "warning", "source_locator": locator,
+                })
+            baseline = "board-clean" if board else "height-clean"
+            write_labels(out / f"{name}.{ext}", f"{baseline}.{ext}", label)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("out", type=Path)
-    suites = {"tabular": generate, "precast": generate_precast, "gutter": generate_gutter}
+    suites = {"tabular": generate, "precast": generate_precast, "gutter": generate_gutter,
+              "dimensions": generate_dimensions}
     parser.add_argument("--suite", choices=suites, default="tabular")
     args = parser.parse_args()
     suites[args.suite](args.out)

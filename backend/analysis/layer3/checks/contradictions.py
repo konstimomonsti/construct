@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 
 from ...contracts import Line
-from ...layer1.common import review_fix
+from ...layer1.common import review_fix, source_detail
 from ...layer1.textvalues import MEASURE, centimetres
 from ...registry import rule
 from .. import prompts
@@ -37,16 +37,6 @@ def is_candidate(line: Line, blocked_fields: set[str]) -> bool:
     return bool(re.search(r"\d", line.short_text) or _MATERIAL.search(line.short_text))
 
 
-def _pdf_description(line: Line) -> Line:
-    """Remove the PDF importer's copy of the position heading from its body."""
-    if not line.source_locator.get("page") or not line.short_text or not line.long_text:
-        return line
-    header, newline, detail = line.long_text.partition("\n")
-    if normalize(header) != normalize(line.short_text):
-        return line
-    return line.model_copy(update={"long_text": detail if newline else None})
-
-
 @rule(RULE_ID, layer=3, category="text", severity="warning", title="Short text contradicts long text",
       description="The short text and the long text state different values for the same property "
                   "(DN, concrete class, thickness, material). LLM check; quotes are verified in code.")
@@ -55,9 +45,10 @@ def short_long_contradiction(ctx):
     blocked = l1_error_fields(ctx.prior_findings)
     conflicts = {f.target.line_id for f in ctx.prior_findings if f.rule_id == L1_VALUE_CONFLICT}
     by_section: dict[str | None, list[Line]] = {}
-    printed_pdf = ctx.input.project.source_document.format == "pdf"
+    source_format = ctx.input.project.source_document.format
     for source_line in sorted(ctx.input.lines, key=lambda l: l.sort_order):
-        line = _pdf_description(source_line) if printed_pdf else source_line
+        detail = source_detail(source_line, source_format)
+        line = source_line if detail == source_line.long_text else source_line.model_copy(update={"long_text": detail})
         if line.id not in conflicts and is_candidate(line, blocked.get(line.id, set())):
             by_section.setdefault(line.section_id, []).append(line)
 

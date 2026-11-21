@@ -120,3 +120,95 @@ def test_values_in_included_clauses_are_not_conflicts():
     long = "Bodenplatte herstellen. Einschließlich Sauberkeitsschicht aus Beton C8/10, d = 10 cm."
     assert not selected("VALUE_CONFLICT", short, long)
     assert selected("VALUE_CONFLICT", short, "Bodenplatte herstellen, d = 25 cm.")
+
+
+
+@pytest.mark.parametrize(("short", "detail", "left", "right"), [
+    ("Bauzaun H = 2,0 m", "Mobilen Bauzaun, Höhe 1,20 m, mit Fußplatten liefern.", "H = 2,0 m", "Höhe 1,20 m"),
+    ("Geländer, Höhe: 1100 mm", "Geländer H = 100 cm montieren.", "Höhe: 1100 mm", "H = 100 cm"),
+])
+def test_height_conflict_requires_the_same_named_component(short, detail, left, right):
+    finding, = selected("VALUE_CONFLICT", short, detail)
+    assert finding.evidence["family"] == "height"
+    assert (finding.evidence["short_quote"], finding.evidence["long_quote"]) == (left, right)
+    assert finding.suggested_fix.rationale and finding.evidence["bieterfrage_de"]
+    assert finding.severity == "warning"
+
+
+@pytest.mark.parametrize("detail", [
+    "Mobilen Bauzaun, Höhe 200 cm, mit Fußplatten liefern.",
+    "Bauzaun mit Pfosten, Höhe 1,20 m für die Pfosten.",
+    "Pfosten für Bauzaun, Höhe 1,20 m.",
+    "Bauzaun, Pfosten Höhe: 1,20 m.",
+    "Geländer Höhe 1,20 m auf der Baustelle montieren.",
+    "Bauzaun, Höhe 1,20 m oder 2,00 m.",
+    "Bauzaun, Höhe 1,20 m oder Höhe 2,00 m.",
+    "Bauzaun, Höhe 1,20 m bis 2,00 m.",
+    "Bauzaun, Höhe 1,20 m – 2,00 m.",
+    "Bauzaun, Höhe 1,20 m und 2,00 m.",
+    "Bauzaun, Höhe mindestens 1,20 m.",
+    "Bauzaun, Höhe 1,20 m in Abschnitt A.",
+    "Bauzaun, Höhe 1,20 m. Für Abschnitt B Höhe 2,00 m.",
+    "Bauzaun, Höhe 1,20 m².",
+])
+def test_height_check_preserves_different_components_and_uncertain_requirements(detail):
+    assert not any(f.evidence.get("family") == "height"
+                   for f in selected("VALUE_CONFLICT", "Bauzaun H = 2,0 m", detail))
+
+
+def test_height_check_on_a_planted_conflict_in_the_repository_tender():
+    from lxml import etree
+    from analysis.adapter import from_bytes
+    from tender_import.common import parse_xml
+
+    path = DATA / "501-24-01_GAEB-XML_sas.x83"
+    content = path.read_bytes()
+    original = from_bytes(path.name, content)
+    position = next(line for line in original.lines if line.code == "01.01.0005")
+    root = parse_xml(content)
+    item = root.find(position.source_locator["xml_path"])
+    description = next(node for node in item.iter() if etree.QName(node).localname == "DetailTxt")
+    fragment = next(node for node in description.iter() if node.text and "Bauzaun H = 2,0 m" in node.text)
+    fragment.text = fragment.text.replace("Bauzaun H = 2,0 m", "Bauzaun H = 1,20 m", 1)
+    mutated = from_bytes(path.name, etree.tostring(root))
+
+    def comparable(snapshot):
+        return [(line.code, line.short_text, line.long_text, line.quantity, line.unit) for line in snapshot.lines]
+
+    before, after = comparable(original), comparable(mutated)
+    assert len(before) == len(after)
+    assert [a[0] for a, b in zip(before, after) if a != b] == [position.code]
+
+    def height_findings(snapshot):
+        result = analyze(snapshot, [1])
+        assert not result.errors
+        return [f for f in result.findings if f.rule_id == "L1.TEXT.VALUE_CONFLICT" and f.evidence["family"] == "height"]
+
+    assert height_findings(original) == []
+    finding, = height_findings(mutated)
+    assert finding.target.line_code == position.code
+    assert finding.source_locator["source_id"] == position.source_locator["source_id"]
+    assert finding.evidence["long_quote"] == "H = 1,20 m"
+
+
+def test_board_thickness_conflict_preserves_the_original_quotes():
+    short = "GK-Ständerwand 12,5 mm beplankt"
+    detail = "Metallständerwand CW 75, beidseitig einlagig beplankt mit Gipsplatten Typ A, d = 15 mm, Fugen gespachtelt."
+    finding, = selected("VALUE_CONFLICT", short, detail)
+    assert finding.evidence["family"] == "board_thickness"
+    assert finding.evidence["short_quote"] == "12,5 mm beplankt"
+    assert finding.evidence["long_quote"] == "d = 15 mm"
+    assert finding.suggested_fix.rationale
+
+
+@pytest.mark.parametrize("detail", [
+    "Metallständerwand beplankt mit Gipsplatten Typ A, Dicke 1,25 cm.",
+    "Metallständerwand mit Untergrund, Dicke 15 mm.",
+    "Metallständerwand beplankt mit Gipsplatten Typ A, d = 15 mm oder d = 12,5 mm.",
+    "Metallständerwand zweilagig beplankt mit Gipsplatten Typ A, d = 25 mm gesamt.",
+    "Metallständerwand nicht beplankt mit Gipsplatten Typ A, d = 15 mm.",
+    "Metallständerwand beplankt mit Gipsplatten Typ A, d = 15 mm. Gegenseite mit Gipsplatten, d = 12,5 mm.",
+])
+def test_board_thickness_check_skips_equivalence_other_components_and_composites(detail):
+    assert not any(f.evidence.get("family") == "board_thickness"
+                   for f in selected("VALUE_CONFLICT", "GK-Ständerwand 12,5 mm beplankt", detail))

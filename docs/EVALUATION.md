@@ -169,3 +169,23 @@ WORKSPACE_PARSE_ORIGIN=http://127.0.0.1:8080 \
 ```
 
 A separate replay of the existing ten short-versus-long description cases caught four of five contradictions through the full pipeline, with zero contradiction warnings on the five controls. Layer 1 caught the nominal diameter and concrete class conflicts. Layer 3 caught board thickness and material. The site-fence height conflict was missed.
+
+### Directly attributed dimension conflicts
+
+Layer 1 now compares heights attached directly to the same named component and thicknesses stated for single-layer gypsum-board cladding on stud walls. Findings quote the two original measurements, compare them in a common unit, and ask the reviewer to confirm the intended dimension before aligning the descriptions. The cases include equivalent units, separate components, ranges, alternatives, and multi-layer construction. Printed PDF detail excludes the copied item heading when the new dimension checks compare the two descriptions.
+
+The upload replay caught all 12 planted fence, guardrail, and board conflicts across PDF, Word, X83, and JSON, each with guidance and its expected source reference. All 28 controls produced zero findings. A separate scan of 3,321 repository positions found one applicable fence position with agreeing heights. Changing only the written height in that position's long text in a temporary copy produced a warning tied to position 01.01.0005. This real-file mutation verifies the source link for that position.
+
+The full three-layer replay of the ten existing description cases caught all five labelled contradictions and produced zero contradiction warnings on the five controls. Layer 1 caught diameter, concrete class, board thickness, and fence height. Layer 3 caught the material conflict. These results apply to the labelled cases and the explicit wording covered by the rules.
+
+Use the local preview server and disposable PostgreSQL database described above.
+
+```sh
+export PYTHONPATH=backend:backend/importer
+fixture_dir=$(mktemp -d)
+python -m analysis.eval.documents "$fixture_dir" --suite dimensions
+WORKSPACE_PARSE_ORIGIN=http://127.0.0.1:8080 \
+  frontend/node_modules/.bin/tsx frontend/tests/risk-upload-fixtures.ts \
+  "$fixture_dir"/*.pdf "$fixture_dir"/*.docx "$fixture_dir"/*.X83 "$fixture_dir"/*.json \
+  | python -m analysis.eval.uploads
+```

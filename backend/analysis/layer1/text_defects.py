@@ -3,8 +3,8 @@
 import re
 
 from ..registry import rule
-from .common import BIDDER_INPUT, OR_EQUIVALENT, excerpt, label, text_of
-from .textvalues import DIMENSIONS, GRADE, NUMBER, values
+from .common import BIDDER_INPUT, OR_EQUIVALENT, excerpt, label, review_fix, source_detail, text_of
+from .textvalues import DIMENSIONS, GRADE, MEASURE, NUMBER, centimetres, values
 
 # Product/value redactions, not anonymized people or addresses.
 PLACEHOLDER = re.compile(r"\[(?:FIRMA|KENNZEICHEN|PRODUKT|TYP|NUMMER)_\d+\]|\bXXX\b|:\s*[-–—]{2,}|"
@@ -31,6 +31,62 @@ FAMILY_DE = {"concrete": "Betonfestigkeitsklasse", "DN": "Nennweite", "fire": "F
              "IP": "IP-Schutzart", "board": "Plattentyp", "length": "Länge in cm", "thickness": "Dicke in cm"}
 ATTRIBUTE_DE = {"DN or size": "Nennweite bzw. Abmessung", "cable cross-section": "Kabelquerschnitt",
                 "concrete class": "Betonfestigkeitsklasse", "thickness": "Dicke", "door size": "Türabmessung"}
+
+
+# Link the height directly to the leading item name. A height later in a list of
+# posts, footings or other components cannot resolve which object it describes.
+HEIGHT_LABEL = r"(?:h\s*=|Höhe\s*[:=]?)"
+ITEM_HEIGHT = re.compile(
+    rf"^\s*(?:(?:mobil|provisorisch|temporär|fest|stationär)(?:er|en|es|e)?\s+)*"
+    rf"(?P<subject>Bauzaun|Mobilzaun|Schutzzaun|Geländer|Absturzgeländer|Schutzwand|"
+    rf"Fassadengerüst|Fertigteilwand|Fertigteilstütze)\b[,\s]+"
+    rf"(?P<quote>{HEIGHT_LABEL}\s*(?P<number>{NUMBER})\s*(?P<unit>mm|cm|m))"
+    rf"(?![\w²³])", re.I,
+)
+DIMENSION_ALTERNATIVE = re.compile(
+    rf"^[,\s]*(?:bis\b|oder\b|bzw\.|wahlweise\b|alternativ\b|[–—/+±-]|und\s+{NUMBER})", re.I,
+)
+
+OTHER_HEIGHT = re.compile(rf"\b{HEIGHT_LABEL}\s*(?:ca\.?\s*)?{MEASURE}", re.I)
+DIMENSION_SCOPE_QUALIFIER = re.compile(r"\b(?:je nach|wahlweise|alternativ|in (?:Bereich|Abschnitt))\b", re.I)
+
+WALL = r"(?:GK[\s-]?Ständerwand|Gipskartonständerwand|Metallständerwand)"
+SINGLE_BOARD_MEASURE = rf"(?P<number>{NUMBER})\s*(?P<unit>mm|cm)(?![\w²³])"
+SHORT_BOARD = re.compile(rf"^\s*{WALL}\b[,\s]+(?P<quote>{SINGLE_BOARD_MEASURE}\s+beplankt)\b", re.I)
+DETAIL_BOARD = re.compile(
+    rf"^\s*{WALL}\b[^.;]{{0,110}}?\b(?:beplankt|Beplankung)\s+(?:mit|aus)\s+"
+    rf"(?:Gipskartonplatten|Gipsplatten|GK-Platten)\b(?:\s+Typ\s+[\w-]+)?[,\s]+"
+    rf"(?P<quote>(?:d\s*=|Dicke\s*[:=]?)\s*{SINGLE_BOARD_MEASURE})", re.I,
+)
+OTHER_BOARD_MEASURE = re.compile(rf"\b(?:d\s*=|Dicke\s*[:=]?)\s*{MEASURE}", re.I)
+COMPOSITE_BOARD = re.compile(r"\b(?:mehrlagig|doppellagig|zweilagig|dreilagig|[2-9][ -]?lagig|nicht|ohne)\w*\b|"
+                             r"\d+\s*[x×]\s*\d", re.I)
+
+
+def item_height(text: str | None) -> re.Match | None:
+    text = text or ""
+    match = ITEM_HEIGHT.match(text)
+    if not match:
+        return None
+    remainder = text[match.end():]
+    if DIMENSION_ALTERNATIVE.match(remainder) or OTHER_HEIGHT.search(remainder) or DIMENSION_SCOPE_QUALIFIER.search(remainder):
+        return None
+    return match
+
+
+def attributed_dimensions(short_text: str | None, detail: str | None):
+    heading, body = short_text or "", detail or ""
+    short_height, long_height = item_height(heading), item_height(body)
+    if short_height and long_height and short_height["subject"].casefold() == long_height["subject"].casefold():
+        yield "height", f"Höhe für {short_height['subject']}", short_height, long_height
+
+    short_board, long_board = SHORT_BOARD.match(heading), DETAIL_BOARD.match(body)
+    if (short_board and long_board and not COMPOSITE_BOARD.search(heading + "\n" + body)
+            and not DIMENSION_ALTERNATIVE.match(heading[short_board.end():])
+            and not DIMENSION_ALTERNATIVE.match(body[long_board.end():])
+            and not OTHER_BOARD_MEASURE.search(body[long_board.end():])
+            and not DIMENSION_SCOPE_QUALIFIER.search(body[long_board.end():])):
+        yield "board_thickness", "Dicke der Gipsplattenbeplankung", short_board, long_board
 
 
 def supplier_reference(text: str, match: re.Match) -> bool:
@@ -83,8 +139,9 @@ def unclear_dimension(ctx):
 
 
 @rule("L1.TEXT.VALUE_CONFLICT", layer=1, category="text", severity="warning",
-      title="Short and long text disagree", description="Disjoint values in DN, concrete, fire, IP, board, labelled length or thickness; DN is informational.")
+      title="Short and long text disagree", description="Disjoint values in concrete, fire, IP, board, labelled dimensions and directly attributed item heights or board thicknesses. DN differences are informational.")
 def value_conflict(ctx):
+    source_format = ctx.input.project.source_document.format
     for line in ctx.input.lines:
         # Values inside "einschließlich …" clauses belong to an included component (a blinding layer, an edge
         # strip), not to the item the short text names.
@@ -96,6 +153,24 @@ def value_conflict(ctx):
                     message=f"{label(line)}: {family} values differ between short and long text.",
                     evidence={"family": family, "short_values": sorted(short[family]), "long_values": sorted(long[family]),
                               "bieterfrage_de": f"Zu Pos. {line.code}: Kurz- und Langtext enthalten unterschiedliche Angaben ({FAMILY_DE[family]}: {', '.join(sorted(short[family]))} / {', '.join(sorted(long[family]))}). Bitte bestätigen Sie die maßgebende Ausführung."})
+
+        detail = source_detail(line, source_format)
+        for family, specification, heading_match, detail_match in attributed_dimensions(line.short_text, detail):
+            heading_cm = centimetres(heading_match["number"], heading_match["unit"])
+            detail_cm = centimetres(detail_match["number"], detail_match["unit"])
+            if heading_cm == detail_cm:
+                continue
+            short_quote, long_quote = heading_match["quote"], detail_match["quote"]
+            yield ctx.finding(
+                line=line, field="long_text", discriminator=family,
+                message=f"{label(line)} specifies {short_quote} in the short text and {long_quote} in the detail.",
+                evidence={"family": family, "short_quote": short_quote, "long_quote": long_quote,
+                          "short_dimension_cm": heading_cm, "long_dimension_cm": detail_cm,
+                          "bieterfrage_de": f"Zu Pos. {line.code}: Bitte bestätigen Sie die maßgebende Angabe "
+                                            f"({specification}: {short_quote} / {long_quote})."},
+                suggested_fix=review_fix("Confirm the specified dimension in the drawings or tender schedule "
+                                         "and align the short description and detail."),
+            )
 
 
 def code_key(code: str) -> tuple[str, ...]:
