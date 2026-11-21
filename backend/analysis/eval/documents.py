@@ -232,7 +232,7 @@ def _write_text_case(out, name, title, item, prefix, *, additional=()):
     return {"pdf": {"page": 1}, "docx": {"table": 1, "row": 2}, "json": {"row": 1}, "X83": {"source_id": identifier}}
 
 
-def _write_offer_tables(out, name, item):
+def _write_offer_tables(out, name, item, sheet_name="Entwässerung"):
     from openpyxl import Workbook
     from . import workbooks
 
@@ -245,13 +245,13 @@ def _write_offer_tables(out, name, item):
             csv.writer(handle, delimiter=delimiter).writerows(rows)
     book = Workbook()
     sheet = book.active
-    sheet.title = "Entwässerung"
+    sheet.title = sheet_name
     for row in rows:
         sheet.append(row)
     book.save(out / f"{name}.xlsx")
     legacy_item = workbooks.Item(item.code, item.short, item.quantity, item.unit, item.price,
                                  item.quantity * item.price, item.detail)
-    workbooks.workbook(out / f"{name}.xls", [("Entwässerung", [legacy_item], 0, 0)])
+    workbooks.workbook(out / f"{name}.xls", [(sheet_name, [legacy_item], 0, 0)])
     return {"csv": {"row": 2}, "tsv": {"row": 2}, "xlsx": {"sheet": sheet.title, "row": 2},
             "xls": {"sheet": sheet.title, "row": 3}}
 
@@ -518,6 +518,32 @@ def generate_underspecification(out):
             write_fixture_labels(out / f"{name}.{ext}", f"property-stated.{ext}", label)
 
 
+def generate_fire_door_scope(out):
+    """Replay silent rating omissions and comparable valid sources across the upload formats."""
+    out.mkdir(parents=True, exist_ok=True)
+    hardware = "Inkl. Türschließer, Profilzylinder und Drückergarnitur."
+    door = "Brandschutztür aus Stahl, 1000 × 2125 mm, RAL 9010"
+    for name, heading, requirement, missing in (
+        ("fire-silent", door, "", True),
+        ("fire-frame-only", door, "Zarge: T30.", True),
+        ("fire-stated", door, "Feuerwiderstand: EI2 30-C5 Sa.", False),
+        ("fire-scheduled", door, "Gemäß Türliste TL-01, Tür D-24.", False),
+        ("fire-ordinary", door.replace("Brandschutztür", "Stahltür"), "", False),
+        ("fire-existing", "Brandschutztür ausbauen, 1000 × 2125 mm", "", False),
+    ):
+        item = Item("01.0010", heading, 1, "St", detail="\n".join(part for part in (requirement, hardware) if part))
+        locators = _write_text_case(out, name, "Leistungsverzeichnis Türen", item, "fire-door")
+        locators.update(_write_offer_tables(out, name, item, "Türen"))
+        for ext, locator in locators.items():
+            label = {"control": not missing, "layers": [1], "expect": []}
+            if missing:
+                label.update(match="line", expect=["L1.TEXT.FIRE_DOOR_RATING_MISSING"], target={
+                    "line_codes": [item.code], "severity": "warning", "source_locator": locator, "bidder_question": True,
+                })
+            baseline = "fire-stated" if missing else name
+            write_fixture_labels(out / f"{name}.{ext}", f"{baseline}.{ext}", label)
+
+
 def generate_grade_scope(out):
     """Test concrete grade conflicts, legitimate component differences and unclear attribution."""
     out.mkdir(parents=True, exist_ok=True)
@@ -630,7 +656,8 @@ if __name__ == "__main__":
               "product-offer": generate_product_offer, "product-position": generate_product_position,
               "product-requirements": generate_product_requirements, "written-stiffness": generate_written_stiffness,
               "action-spelling": generate_action_spelling, "outline-duplicates": generate_outline_duplicates,
-              "written-quantities": generate_written_quantities, "underspecification": generate_underspecification}
+              "written-quantities": generate_written_quantities, "underspecification": generate_underspecification,
+              "fire-door-scope": generate_fire_door_scope}
     parser.add_argument("--suite", choices=suites, default="tabular")
     args = parser.parse_args()
     suites[args.suite](args.out)

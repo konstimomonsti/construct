@@ -595,6 +595,22 @@ def test_underspecified_keeps_unclear_requirements_and_other_components(heading,
     assert item.evidence["bieterfrage_de"].startswith("Zu Pos. 01.0010")
 
 
+def test_underspecified_keeps_component_questions_beside_an_existing_fire_door_finding():
+    snapshot = from_data({"lines": [{"id": "door", "code": "01.0010", "short_text": "Brandschutztür aus Stahl",
+                                   "long_text": "Zarge und Beschläge inklusive.", "quantity": "1", "unit": "St"}]})
+    prior = analyze(snapshot, [1]).findings
+    response = {"findings": [
+        {"line_ref": "#1", "missing_property": "fire_rating", "quote": "Brandschutztür",
+         "question_de": "Welcher Feuerwiderstand ist für die Tür gefordert?", "confidence": 0.75},
+        {"line_ref": "#1", "missing_property": "fire_rating", "quote": "Zarge",
+         "question_de": "Welcher Feuerwiderstand ist für die Zarge gefordert?", "confidence": 0.75},
+    ]}
+    provider = FakeProvider(lambda request: fake_model(request, under=lambda _: response))
+    findings, _ = run3(snapshot, provider, prior)
+    item, = by_rule(findings, UNDER)
+    assert item.evidence["quote"] == "Zarge"
+
+
 def test_underspecified_nothing_reported_when_model_finds_nothing():
     findings, _ = run3(lv11(), FakeProvider(fake_model))
     assert by_rule(findings, UNDER) == []

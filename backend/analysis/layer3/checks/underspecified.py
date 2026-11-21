@@ -14,6 +14,7 @@ import re
 
 from ...contracts import Line
 from ...layer1.common import source_detail
+from ...layer1.fire_doors import RULE_ID as FIRE_DOOR_RULE
 from ...layer1.textvalues import EXPOSURE, grades, values
 from ...registry import rule
 from .. import prompts
@@ -127,6 +128,7 @@ def underspecified(ctx):
                    for index, line in enumerate(chunk, start=1)]
         requests.append(LLMRequest(system=prompts.UNDERSPECIFIED_SYSTEM, prompt=prompts.underspecified_prompt(payload),
                                    schema=UNDERSPECIFIED_SCHEMA, prompt_version=prompts.UNDERSPECIFIED_VERSION))
+    confirmed = {f.target.line_id: f.evidence["quote"] for f in ctx.prior_findings if f.rule_id == FIRE_DOOR_RULE}
     for chunk, answer in zip(chunks, session.ask_many(RULE_ID, requests)):
         if answer is None:
             continue
@@ -142,6 +144,11 @@ def underspecified(ctx):
                     or _already_stated(item.missing_property, item.quote, line.short_text, detail):
                 session.dropped[RULE_ID] += 1
                 continue
+            if item.missing_property == "fire_rating" and line.id in confirmed:
+                quote = normalize(item.quote).strip(" .,;:\"'„“”")
+                if quote and (_starts_with_quote(_primary_clause(line.short_text or ""), quote)
+                              or _starts_with_quote(confirmed[line.id], quote)):
+                    continue
             seen.add((line.id, item.missing_property))
             question = item.question_de.strip()
             if not question.startswith("Zu Pos."):

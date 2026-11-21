@@ -10,7 +10,7 @@ from .textvalues import DIMENSIONS, GRADE, MEASURE, NUMBER, centimetres, grades,
 # Product/value redactions, not anonymized people or addresses.
 PLACEHOLDER = re.compile(r"\[(?:FIRMA|KENNZEICHEN|PRODUKT|TYP|NUMMER)_\d+\]|\bXXX\b|:\s*[-–—]{2,}|"
                          r"\b(?:Fabrikat|Typ|Widerstandsklasse|Produkt)\s*:\s*(?:\.{3,}|…{2,})|"
-                         r"\bFeuerwiderstand(?:sklasse)?[ \t]*[:=][ \t]*(?:noch[ \t]+offen|noch[ \t]+festzulegen|TBD)"
+                         r"\b(?:Feuerwiderstand(?:sklasse)?|Brandschutz(?:klasse)?)[ \t]*[:=][ \t]*(?:noch[ \t]+offen|noch[ \t]+festzulegen|TBD)"
                          r"(?=[ \t]*(?:[.;]|\n|$))", re.I)
 FIRM_MASK = re.compile(r"\[FIRMA_\d+\]", re.I)
 EXAMPLE_SUPPLIER = re.compile(r"\b(?:z\.\s*(?:b\.)?|zum\s+Beispiel)\s+[^.;!?]{0,75}$", re.I)
