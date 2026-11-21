@@ -1,11 +1,11 @@
 import { clsx } from 'clsx'
 import { lazy, Suspense, use, useEffect, useId, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
-import { useParams, useSearchParams } from 'react-router-dom'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import { Button, Dialog, Field, Icon, inputCls, kbdCls, toast, type MenuItem } from '../components/ui'
 import { raisedCls } from '../lib/cls'
 import { TableSkeleton } from '../components/Page'
-import { MetaLink, PageFrame, PageHeader, RowMenu, SortMenu, ToolButton, statusText } from '../components/Kit'
+import { EmptyState, MetaLink, PageFrame, PageHeader, RowMenu, SortMenu, ToolButton, statusText } from '../components/Kit'
 import { PhaseHeader, PhasePanel, isPhase, type Phase } from '../components/project/PhaseHeader'
 import { SubcontractorsTab } from '../components/project/SubcontractorsTab'
 import { OfferTab } from '../components/project/OfferTab'
@@ -39,7 +39,7 @@ import { budgetStatus, fixedBudget, int, money, parseNumber, plural } from '../l
 import { positionTotal } from '../lib/money'
 import { groupByOz, hasSectionLabel } from '../lib/oz-groups'
 import { applyMoves, globalStep, indexTree, leafOz, nextChildOz, nextPositionOz, pathOf, resolveList, treeStats, type CatStat } from '../lib/resolve'
-import { statsOf, useModel, useStore } from '../lib/store'
+import { selectModel, statsOf, useModel, useStore } from '../lib/store'
 import { useUi } from '../lib/ui-store'
 import type { CategoryNode, ListDoc, Position } from '../lib/types'
 
@@ -47,9 +47,20 @@ const SplitOverlay = lazy(() => import('../components/split/SplitOverlay').then(
 
 export function ListPage() {
   const { listId = '' } = useParams()
+  const syncReady = useStore((s) => s.syncReady)
+  const purged = useStore((s) => s.listPatch[listId]?.trashedAt === 'purged'
+    || selectModel(s).lists.some((list) => list.id === listId && list.trashedAt === 'purged'))
   useEffect(() => {
-    if (listId) useStore.getState().openTab(listId)
-  }, [listId])
+    if (listId && syncReady && !purged) useStore.getState().openTab(listId)
+  }, [listId, syncReady, purged])
+  if (purged) return (
+    <PageFrame>
+      <EmptyState icon="description" title="List not found" text="It may have been deleted permanently.">
+        <Link to="/" className="font-semibold text-brand-700 hover:underline">Back to All Projects</Link>
+      </EmptyState>
+    </PageFrame>
+  )
+  if (!syncReady) return <PageFrame><TableSkeleton /></PageFrame>
   return (
     <PageFrame>
       <ErrorBoundary key={listId}>
@@ -449,10 +460,6 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   const [categoryFilter, setCategoryFilter] = useState<Set<string> | null>(null)
   const [ozFilter, setOzFilter] = useState<Set<string> | null>(null)
   const cats = grouped ? ozFilter : categoryFilter
-  const filteredExportIds = useMemo(
-    () => cats ? ledgerPositions.filter((position) => cats.has(leafOz(position))).map((position) => position.id) : undefined,
-    [cats, ledgerPositions],
-  )
   const setCats = grouped ? setOzFilter : setCategoryFilter
   const [sort, setSort] = useState<'oz' | 'amount' | 'risk'>('oz')
   const [onlyUnpriced, setOnlyUnpriced] = useState(false)
@@ -735,7 +742,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
             {original && imported.phase === 'X83' && imported.source?.kind === 'gaeb-xml' && (
               <BidSimulator listId={doc.id} title={heading} standardRates={bidStandardRates} />
             )}
-            <ExportMenu listId={doc.id} doc={doc} original={original} selectedIds={[...selected]} filteredIds={filteredExportIds} />
+            <ExportMenu listId={doc.id} doc={doc} original={original} selectedIds={[...selected]} filteredIds={filtered ? rows.map((position) => position.id) : undefined} />
             <RowMenu items={more} label={`More actions for ${title}`} />
           </div>
         }

@@ -70,6 +70,7 @@ export interface SyncBase {
 interface State {
   base: Library | null
   sync: SyncBase | null
+  syncReady: boolean
   userFolders: FolderMeta[]
   userLists: ListDoc[]
   userDocuments: DocMeta[]
@@ -153,6 +154,7 @@ export const useStore = create<State>()(
     (set, get) => ({
       base: null,
       sync: null,
+      syncReady: false,
       userFolders: [],
       userLists: [],
       userDocuments: [],
@@ -354,7 +356,7 @@ export const useStore = create<State>()(
         if (st.edits) st.edits = Object.fromEntries(Object.entries(st.edits).map(([k, v]) => [k, normEdits(v)]))
         return withoutLegacyImports(st as Partial<State>) as never
       },
-      partialize: ({ base: _b, ...rest }) => ({
+      partialize: ({ base: _b, syncReady: _ready, ...rest }) => ({
         ...rest,
         // object URLs don't survive reloads
         userFolders: rest.userFolders.map((f) => ({ ...f, documents: f.documents.filter((d) => !d.blobUrl) })),
@@ -437,18 +439,19 @@ function buildLists(s: State): ListView[] {
   return markVersions(metas.map((m) => {
     const phase = gaebPhase(m.fileName, m.phase, m.format)
     const patch = s.listPatch[m.id] ?? {}
+    const folderId = patch.folderId ?? m.folderId
     const st = s.stats[m.id]
     const total = st?.total ?? m.total
     const cap = patch.cap ?? fixedBudget(m.total)
     return {
       ...m,
       title: patch.title ?? m.title,
-      folderId: patch.folderId ?? m.folderId,
+      folderId,
       total,
       pricedCount: st?.pricedCount ?? m.pricedCount,
       positionsCount: st?.positionsCount ?? m.positionsCount,
       cap,
-      trashedAt: patch.trashedAt,
+      trashedAt: s.folderPatch[folderId]?.trashedAt === 'purged' ? 'purged' : patch.trashedAt,
       phaseCode: phase?.code,
       phaseName: phase?.name,
     }
