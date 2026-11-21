@@ -332,6 +332,16 @@ expected (info), while in a bid or award (84/86) they're a defect (warning).
 | `L1.TEXT.TYPO` | info | word unknown to the domain lexicon and the German hunspell dictionary, one edit from a known word (not an inflection, cut word or product name). Silent without the dictionary | `SetField` short/long text per item |
 | `L1.TEXT.SPELLING_VARIANT` | info | one word spelled two ways in the document (ß/ss, hyphen, c/k) | `SetField` to the dictionary or majority form |
 | `L1.TEXT.NOTATION_VARIANT` | info | one unit or value written differently (St/Stk, DN 100/DN100, 5 x 25/5x25) | - |
+| `L1.DIN.EXPOSURE_STRENGTH` | error | one unambiguous concrete grade below the supplied DIN 1045-2 exposure minimum; no inferred pairing of multiple grades | - |
+| `L1.DIN.UNKNOWN_GRADE` | warning | stated C/LC grade absent from the screening rank table; this does not assert the grade is invalid | - |
+| `L1.DIN.NOTE` | info | one LP-concrete note per line/exposure XF2 or XF4, and an alkali-guideline note for WA | - |
+| `L1.PRECAST.LAYER_SUM` | error | sandwich facing + insulation + structural shell differs from total by more than 0.1 cm; all four unambiguous values required | - |
+| `L1.UNIT.TRADE_MISMATCH` | warning | item-type unit table for sandwich/FT-Sockel, rebar, opening surcharges, embedded parts and shop drawings | - |
+| `L1.TEXT.SPEC_PLACEHOLDER` | warning | product/value redactions (FIRMA, KENNZEICHEN, PRODUKT, TYP, NUMMER), XXX, dashed or dotted specification values; excludes identified bidder fields and personal/address redactions | - |
+| `L1.TEXT.UNCLEAR_DIMENSION` | warning | labelled dimension with question marks or competing numbers | - |
+| `L1.TEXT.VALUE_CONFLICT` | warning / info (DN) | disjoint short/long values for concrete, DN, fire, IP, board type, labelled length/thickness; dimensions normalized to cm | - |
+| `L1.TEXT.REFERENCE_UNRESOLVED` | warning | missing or self-referencing numeric OZ, or item-level “wie vor” without a preceding base in the section | - |
+| `L1.TEXT.SPEC_ATTRIBUTE_MISSING` | info | pipe/door size, cable cross-section, in-situ concrete class, screed/insulation thickness; narrow item classification and previous-item/section-title inheritance | - |
 | `L1.CODE.MISSING` | error | no valid OZ (damaged code) | - |
 | `L1.CODE.DUPLICATE` | error | same OZ twice | - |
 | `L1.CODE.OUTSIDE_SECTION` | warning | OZ prefix ≠ section code | - |
@@ -357,6 +367,13 @@ expected (info), while in a bid or award (84/86) they're a defect (warning).
 | `L1.IMPORT.WARNING` | warning | importer could not read part of the file | - |
 
 ### What the real files in `data/tenders/` show
+
+The deterministic DIN/precast/text checks supply formal German `evidence.bieterfrage_de` questions;
+DIN checks also supply `evidence.din`. Their specification defects retain their severity across
+GAEB phases; expected bidder blanks remain exclusively governed by the existing phase-aware
+`L1.TEXT.BIDDER_INPUT` rule. The supplied DIN matrix is a screening table, not a complete standard:
+XA/XM and moisture codes are recognized but have no invented strength minima. Unknown LC grades
+are reported without ranking them against normal concrete. No automatic fixes are proposed.
 
 | File | Findings |
 |---|---|

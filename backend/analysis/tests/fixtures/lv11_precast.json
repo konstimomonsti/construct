@@ -1,0 +1,315 @@
+{
+  "schema_version": "0.1",
+  "project": {
+    "id": null,
+    "name": "79-222 Ausbildungszentrum und Bürogebäude",
+    "currency": "EUR",
+    "gaeb_phase": "83",
+    "source_document": {
+      "id": null,
+      "filename": "LV_11_Stahlbetonfertigeile_Sandwichsockel.pdf",
+      "format": "pdf"
+    }
+  },
+  "bom": {
+    "bom_version_id": null,
+    "package_code": null,
+    "title": "LV 11 Stahlbetonfertigteile Sandwich-Sockel",
+    "trade": "Stahlbetonfertigteile",
+    "stated_net_total": null
+  },
+  "areas": [],
+  "sections": [
+    {
+      "id": "s-3",
+      "parent_id": null,
+      "code": "3",
+      "code_parts": [
+        "3"
+      ],
+      "title": "Betonarbeiten",
+      "sort_order": 0,
+      "stated_total": null,
+      "stated_total_after_discount": null,
+      "stated_lump_sum_total": null
+    },
+    {
+      "id": "s-3.2",
+      "parent_id": "s-3",
+      "code": "3.2",
+      "code_parts": [
+        "3",
+        "2"
+      ],
+      "title": "Stahlbetonfertigteile",
+      "sort_order": 1,
+      "stated_total": null,
+      "stated_total_after_discount": null,
+      "stated_lump_sum_total": null
+    }
+  ],
+  "lines": [
+    {
+      "id": "lv11-3.2.10",
+      "code": "3.2.10",
+      "code_parts": [
+        "3",
+        "2",
+        "10"
+      ],
+      "section_id": "s-3.2",
+      "sort_order": 0,
+      "short_text": "Werkstattzeichnungen",
+      "long_text": "Erstellung von Montage-, Werkstatt- und Detailplänen für die nachfolgend beschriebenen Leistungen, auf der Grundlage der vom AG an den AN übergebenen Architektenpläne.",
+      "quantity": "1.000",
+      "quantity_raw": "1,000",
+      "unit": "lump_sum",
+      "unit_raw": "PSCH",
+      "pricing_basis": "lump_sum",
+      "total_rule": "include",
+      "alternative_for": null,
+      "gaeb_flags": {},
+      "source_amounts": null,
+      "price": null,
+      "distributions": [],
+      "tags": [],
+      "source_locator": {
+        "file": "LV_11_Stahlbetonfertigeile_Sandwichsockel.pdf",
+        "oz": "3.2.10"
+      }
+    },
+    {
+      "id": "lv11-3.2.20",
+      "code": "3.2.20",
+      "code_parts": [
+        "3",
+        "2",
+        "20"
+      ],
+      "section_id": "s-3.2",
+      "sort_order": 1,
+      "short_text": "FS 01: FT-Sockel, Sandwichelement, l=6,35m",
+      "long_text": "FT-Sockel als Sandwichelement mit Dämmung, d=30cm gesamt.\nInkl. Planung der Sandwichplattenanker und Bemessung der Transportanker.\n3-schichtig, aus Stb.-Fertigteilplatten in Sichtbeton, Außenflächen aus durchgefärbten Beton mit einheitlicher Porenstruktur (Porengröße und Porenverteilung), Mittelschicht als Wärmedämmung aus extrudierten Polystyrol-Hartschaumplatten. Wind- und dampfdichte Ausführung der Platten-Stoßfugen.\nEinschl. Transport und Montage\nDicke Vorsatzschale: 7 cm\nDicke Tragschale: 15 cm\nDämmschicht: XPS, WLG 035, d= 8 cm\nKanten: gefast\nBeton: C35/45, XC2, XF2, WA\nOberfläche, innen: Sichtbeton SB2\nOberfläche, außen: Sichtbeton SB2\nLänge: ca. 6,35m\nEinbauort: Achse D/4-6",
+      "quantity": "1.000",
+      "quantity_raw": "1,000",
+      "unit": "ea",
+      "unit_raw": "St",
+      "pricing_basis": "unit_rate",
+      "total_rule": "include",
+      "alternative_for": null,
+      "gaeb_flags": {},
+      "source_amounts": null,
+      "price": null,
+      "distributions": [],
+      "tags": [],
+      "source_locator": {
+        "file": "LV_11_Stahlbetonfertigeile_Sandwichsockel.pdf",
+        "oz": "3.2.20"
+      }
+    },
+    {
+      "id": "lv11-3.2.30",
+      "code": "3.2.30",
+      "code_parts": [
+        "3",
+        "2",
+        "30"
+      ],
+      "section_id": "s-3.2",
+      "sort_order": 2,
+      "short_text": "FS 02: FT-Sockel, Sandwichelement, l=7,00m",
+      "long_text": "FT-Sockel als Sandwichelement mit Dämmung, d=30cm gesamt.\nInkl. Planung der Sandwichplattenanker und Bemessung der Transportanker.\n3-schichtig, aus Stb.-Fertigteilplatten in Sichtbeton, Außenflächen aus durchgefärbten Beton mit einheitlicher Porenstruktur (Porengröße und Porenverteilung), Mittelschicht als Wärmedämmung aus extrudierten Polystyrol-Hartschaumplatten. Wind- und dampfdichte Ausführung der Platten-Stoßfugen.\nEinschl. Transport und Montage\nDicke Vorsatzschale: 7 cm\nDicke Tragschale: 15 cm\nDämmschicht: XPS, WLG 035, d= 8 cm\nKanten: gefast\nBeton: C35/45, XC2, XF2, WA\nOberfläche, innen: Sichtbeton SB2\nOberfläche, außen: Sichtbeton SB2\nLänge: ca. 7,00m\nEinbauort: Achse D/2-3",
+      "quantity": "1.000",
+      "quantity_raw": "1,000",
+      "unit": "ea",
+      "unit_raw": "St",
+      "pricing_basis": "unit_rate",
+      "total_rule": "include",
+      "alternative_for": null,
+      "gaeb_flags": {},
+      "source_amounts": null,
+      "price": null,
+      "distributions": [],
+      "tags": [],
+      "source_locator": {
+        "file": "LV_11_Stahlbetonfertigeile_Sandwichsockel.pdf",
+        "oz": "3.2.30"
+      }
+    },
+    {
+      "id": "lv11-3.2.40",
+      "code": "3.2.40",
+      "code_parts": [
+        "3",
+        "2",
+        "40"
+      ],
+      "section_id": "s-3.2",
+      "sort_order": 3,
+      "short_text": "FS 03: FT-Sockel, Sandwichelement, l=1,25m",
+      "long_text": "FT-Sockel als Sandwichelement mit Dämmung, d=30cm gesamt.\nInkl. Planung der Sandwichplattenanker und Bemessung der Transportanker.\n3-schichtig, aus Stb.-Fertigteilplatten in Sichtbeton, Außenflächen aus durchgefärbten Beton mit einheitlicher Porenstruktur (Porengröße und Porenverteilung), Mittelschicht als Wärmedämmung aus extrudierten Polystyrol-Hartschaumplatten. Wind- und dampfdichte Ausführung der Platten-Stoßfugen.\nEinschl. Transport und Montage\nDicke Vorsatzschale: 7 cm\nDicke Tragschale: 15 cm\nDämmschicht: XPS, WLG 035, d= 8 cm\nKanten: gefast\nBeton: C35/45, XC2, XF2, WA\nOberfläche, innen: Sichtbeton SB2\nOberfläche, außen: Sichtbeton SB2\nLänge: ca. 1,25m\nEinbauort: Achse D/1",
+      "quantity": "1.000",
+      "quantity_raw": "1,000",
+      "unit": "ea",
+      "unit_raw": "St",
+      "pricing_basis": "unit_rate",
+      "total_rule": "include",
+      "alternative_for": null,
+      "gaeb_flags": {},
+      "source_amounts": null,
+      "price": null,
+      "distributions": [],
+      "tags": [],
+      "source_locator": {
+        "file": "LV_11_Stahlbetonfertigeile_Sandwichsockel.pdf",
+        "oz": "3.2.40"
+      }
+    },
+    {
+      "id": "lv11-3.2.50",
+      "code": "3.2.50",
+      "code_parts": [
+        "3",
+        "2",
+        "50"
+      ],
+      "section_id": "s-3.2",
+      "sort_order": 4,
+      "short_text": "FS 04: FT-Sockel, Sandwichelement, l=3,90m",
+      "long_text": "FT-Sockel als Sandwichelement mit Dämmung, d=30cm gesamt.\nInkl. Planung der Sandwichplattenanker und Bemessung der Transportanker.\n3-schichtig, aus Stb.-Fertigteilplatten in Sichtbeton, Außenflächen aus durchgefärbten Beton mit einheitlicher Porenstruktur (Porengröße und Porenverteilung), Mittelschicht als Wärmedämmung aus extrudierten Polystyrol-Hartschaumplatten. Wind- und dampfdichte Ausführung der Platten-Stoßfugen.\nEinschl. Transport und Montage\nDicke Vorsatzschale: 7 cm\nDicke Tragschale: 15 cm\nDämmschicht: XPS, WLG 035, d= 8 cm\nKanten: gefast\nBeton: C35/45, XC2, XF2, WA\nOberfläche, innen: Sichtbeton SB2\nOberfläche, außen: Sichtbeton SB2\nLänge: ca. 3,90m\nEinbauort: Achse D-C/1",
+      "quantity": "1.000",
+      "quantity_raw": "1,000",
+      "unit": "ea",
+      "unit_raw": "St",
+      "pricing_basis": "unit_rate",
+      "total_rule": "include",
+      "alternative_for": null,
+      "gaeb_flags": {},
+      "source_amounts": null,
+      "price": null,
+      "distributions": [],
+      "tags": [],
+      "source_locator": {
+        "file": "LV_11_Stahlbetonfertigeile_Sandwichsockel.pdf",
+        "oz": "3.2.50"
+      }
+    },
+    {
+      "id": "lv11-3.2.60",
+      "code": "3.2.60",
+      "code_parts": [
+        "3",
+        "2",
+        "60"
+      ],
+      "section_id": "s-3.2",
+      "sort_order": 5,
+      "short_text": "FS 05: FT-Sockel, Sandwichelement, l=2,17m",
+      "long_text": "FT-Sockel als Sandwichelement mit Dämmung, d=30cm gesamt.\nInkl. Planung der Sandwichplattenanker und Bemessung der Transportanker.\n3-schichtig, aus Stb.-Fertigteilplatten in Sichtbeton, Außenflächen aus durchgefärbten Beton mit einheitlicher Porenstruktur (Porengröße und Porenverteilung), Mittelschicht als Wärmedämmung aus extrudierten Polystyrol-Hartschaumplatten. Wind- und dampfdichte Ausführung der Platten-Stoßfugen.\nEinschl. Transport und Montage\nDicke Vorsatzschale: 7 cm\nDicke Tragschale: 15 cm\nDämmschicht: XPS, WLG 035, d= 8 cm\nKanten: gefast\nBeton: C35/45, XC2, XF2, WA\nOberfläche, innen: Sichtbeton SB2\nOberfläche, außen: Sichtbeton SB2\nLänge: ca. 2,17m\nEinbauort: Achse B/1",
+      "quantity": "1.000",
+      "quantity_raw": "1,000",
+      "unit": "ea",
+      "unit_raw": "St",
+      "pricing_basis": "unit_rate",
+      "total_rule": "include",
+      "alternative_for": null,
+      "gaeb_flags": {},
+      "source_amounts": null,
+      "price": null,
+      "distributions": [],
+      "tags": [],
+      "source_locator": {
+        "file": "LV_11_Stahlbetonfertigeile_Sandwichsockel.pdf",
+        "oz": "3.2.60"
+      }
+    },
+    {
+      "id": "lv11-3.2.70",
+      "code": "3.2.70",
+      "code_parts": [
+        "3",
+        "2",
+        "70"
+      ],
+      "section_id": "s-3.2",
+      "sort_order": 6,
+      "short_text": "Betonstahl 500 S und 500 M",
+      "long_text": "Betonstahl 500 S + 500 M, in verschiedenen Querschnitten und Längen, liefern, schneiden, biegen und verlegen.",
+      "quantity": "0.700",
+      "quantity_raw": "0,700",
+      "unit": "t",
+      "unit_raw": "TO",
+      "pricing_basis": "unit_rate",
+      "total_rule": "include",
+      "alternative_for": null,
+      "gaeb_flags": {},
+      "source_amounts": null,
+      "price": null,
+      "distributions": [],
+      "tags": [],
+      "source_locator": {
+        "file": "LV_11_Stahlbetonfertigeile_Sandwichsockel.pdf",
+        "oz": "3.2.70"
+      }
+    },
+    {
+      "id": "lv11-3.2.80",
+      "code": "3.2.80",
+      "code_parts": [
+        "3",
+        "2",
+        "80"
+      ],
+      "section_id": "s-3.2",
+      "sort_order": 7,
+      "short_text": "Zulage Aussparungen Öffnungen Tür und Tore",
+      "long_text": "Zulage für Aussparungen für [FIRMA_095] Breite bis 1,10m.",
+      "quantity": "1.000",
+      "quantity_raw": "1,000",
+      "unit": "m",
+      "unit_raw": "m",
+      "pricing_basis": "unit_rate",
+      "total_rule": "include",
+      "alternative_for": null,
+      "gaeb_flags": {},
+      "source_amounts": null,
+      "price": null,
+      "distributions": [],
+      "tags": [],
+      "source_locator": {
+        "file": "LV_11_Stahlbetonfertigeile_Sandwichsockel.pdf",
+        "oz": "3.2.80"
+      }
+    },
+    {
+      "id": "lv11-3.2.90",
+      "code": "3.2.90",
+      "code_parts": [
+        "3",
+        "2",
+        "90"
+      ],
+      "section_id": "s-3.2",
+      "sort_order": 8,
+      "short_text": "Halfen [KENNZEICHEN_005] L=150",
+      "long_text": "Liefern und Einbau von Halfen [KENNZEICHEN_005] Elementen, Länge=150 mm",
+      "quantity": "15.000",
+      "quantity_raw": "15,000",
+      "unit": "ea",
+      "unit_raw": "St",
+      "pricing_basis": "unit_rate",
+      "total_rule": "include",
+      "alternative_for": null,
+      "gaeb_flags": {},
+      "source_amounts": null,
+      "price": null,
+      "distributions": [],
+      "tags": [],
+      "source_locator": {
+        "file": "LV_11_Stahlbetonfertigeile_Sandwichsockel.pdf",
+        "oz": "3.2.90"
+      }
+    }
+  ],
+  "import_warnings": []
+}

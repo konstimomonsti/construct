@@ -4,7 +4,7 @@
     "Category": "Floor screed and finishes",
     "TriggerRegex": "(?i)\\b([a-zäöüß]*estrich[a-zäöüß]*|hohlraumboden|doppelboden|(?:ct|ca|caf|ma|as)\\s*,\\s*\\d+\\s*mm)\\b",
     "TriggerIn": "short_text",
-    "ExcludeRegex": "(?i)\\b(abbrechen|abbruch\\w*|rückbau\\w*|zurückbauen|ausbauen|demontage|demontieren|entfernen|entsorg\\w*|aufnehmen|abtragen|stemmen|fräsen|messung\\w*|\\w*feuchte\\w*|aussparung\\w*|zul|zulage\\w*)\\b",
+    "ExcludeRegex": "(?i)\\b(abbrechen|abbruch\\w*|rückbau\\w*|zurückbauen|ausbauen|demontage|demontieren|entfernen|entsorg\\w*|aufnehmen|abtragen|stemmen|fräsen|messung\\w*|\\w*feuchte\\w*|belegreife\\w*|aussparung\\w*|zul|zulage\\w*)\\b",
     "Required_Dependencies": [
       {"DependencyName": "Edge insulation", "Regex": "(?i)\\b(randdämmstreifen)\\b", "CheckType": "Boolean", "SuggestedText": "Randdämmstreifen", "SuggestedUnit": "m"},
       {"DependencyName": "Underlays and insulation", "Regex": "(?i)\\b(?:trittschall)?dämmung\\b|\\b(?:eps|xps)\\b", "CheckType": "Boolean", "SuggestedText": "Trittschalldämmung unter Estrich", "SuggestedUnit": "m²"},
@@ -178,6 +178,43 @@
     "Required_Dependencies": [
       {"DependencyName": "Window sills", "Regex": "(?i)\\b(\\w*fensterbank\\w*|\\w*fensterbänke\\w*|sohlbank\\w*)", "CheckType": "Boolean", "Severity": "info", "SuggestedText": "Innen- und Außenfensterbänke", "SuggestedUnit": "m"},
       {"DependencyName": "Installation joint sealing", "Regex": "(?i)\\b(\\w*anschlussfuge\\w*|fugendichtband\\w*|\\w*kompriband\\w*|\\w*dichtband\\w*|\\w*anschlussfolie\\w*|ral-?\\s*montage\\w*|\\w*quellband\\w*|komprimierband\\w*|dampfbremsband\\w*)", "CheckType": "Boolean", "SuggestedText": "Abdichtung der Bauanschlussfuge (RAL-Montage, innen luftdicht, außen schlagregendicht)", "SuggestedUnit": "m"}
+    ]
+  },
+  {
+    "RuleID": "L2.PRECAST.ELEMENTS",
+    "Category": "Precast elements",
+    "TriggerRegex": "(?i)\\b(\\w*fertigteil\\w*|sandwich\\w*|ft-\\w+)",
+    "TriggerIn": "short_text",
+    "ExcludeRegex": "(?i)\\b(abbruch\\w*|abbrechen|rückbau\\w*|demont\\w*|ausbauen|entfernen|einlaufbauwerk\\w*|\\w*schacht\\w*|\\w*rohr\\w*|bordstein\\w*|zulage\\w*|zul\\.|\\w*pläne\\w*|\\w*zeichnungen\\w*)",
+    "Required_Dependencies": [
+      {
+        "DependencyName": "Shop drawings",
+        "Regex": "(?i)\\b(?:werkstatt|montage)[-\\s]*(?:pläne|plaene|zeichnungen)\\b|\\b(?:werkstatt|montage)-[^\\n.;]{0,50}\\bplänen\\b",
+        "CheckType": "Boolean",
+        "SuggestedText": "Werkstatt- und Montagepläne für Fertigteile",
+        "SuggestedUnit": "lump_sum"
+      },
+      {
+        "DependencyName": "Transport and assembly",
+        "Regex": "(?i)\\btransport\\s*(?:und|u\\.|&)\\s*montage\\b|\\bmontage\\s*(?:und|u\\.|&)\\s*transport\\b",
+        "CheckType": "Boolean",
+        "SuggestedText": "Transport und Montage der Fertigteile",
+        "SuggestedUnit": "lump_sum"
+      },
+      {
+        "DependencyName": "Joint sealing",
+        "Regex": "(?i)\\b(?:\\w*fugen(?:abdichtung|dichtung|versiegelung|verschluss)\\w*|\\w*fugendicht\\w*|abdichtung\\s+der\\s+(?:\\w*-)?fugen)|\\b(?:dicht\\w*|wind-\\s*und\\s*dampfdicht\\w*)[^\\n.;]{0,60}\\bfugen\\b|\\bdampfdicht\\w*[^\\n.;]{0,60}\\w*fugen\\b",
+        "CheckType": "Boolean",
+        "SuggestedText": "Abdichtung der Fertigteilfugen",
+        "SuggestedUnit": "m"
+      },
+      {
+        "DependencyName": "Anchors and embedded parts",
+        "Regex": "(?i)\\b(?:\\w*anker\\w*|ankerschiene\\w*|einbauteil\\w*|halfen\\w*)",
+        "CheckType": "Boolean",
+        "SuggestedText": "Anker und Einbauteile für Fertigteile",
+        "SuggestedUnit": "ea"
+      }
     ]
   }
 ]

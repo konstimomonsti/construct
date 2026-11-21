@@ -88,12 +88,12 @@ export function Sidebar() {
             title="Expand sidebar  ["
             className="group/logo absolute top-3 left-4 flex size-10 items-center justify-center rounded-md hover:bg-slate-200/70 focus-visible:bg-slate-200/70"
           >
-            <img src="/billbuild-logo.png" width={32} height={32} alt="" className="size-8 rounded-md transition-opacity duration-150 group-hover/logo:opacity-0 group-focus-visible/logo:opacity-0" />
+            <img src="/billbuild-logo-transparent.png" width={32} height={32} alt="" className="size-8 rounded-md transition-opacity duration-150 group-hover/logo:opacity-0 group-focus-visible/logo:opacity-0" />
             <Icon name="dock_to_right" size={20} className="absolute text-slate-700 opacity-0 transition-opacity duration-150 group-hover/logo:opacity-100 group-focus-visible/logo:opacity-100" />
           </button>
         ) : (
           <span className="absolute top-3 left-4 flex size-10 items-center justify-center">
-            <img src="/billbuild-logo.png" width={32} height={32} alt="" className="size-8 rounded-md" />
+            <img src="/billbuild-logo-transparent.png" width={32} height={32} alt="" className="size-8 rounded-md" />
           </span>
         )}
         <span aria-hidden={rail} className={clsx('display absolute top-1/2 left-[62px] -translate-y-1/2 text-[17px] text-slate-900', label)}>
