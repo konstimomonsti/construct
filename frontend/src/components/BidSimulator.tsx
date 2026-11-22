@@ -1,6 +1,6 @@
-import { useId, useState, type FormEvent } from 'react'
+import { useId, useImperativeHandle, useRef, useState, type FormEvent, type Ref } from 'react'
 import { Button, Dialog, Icon, inputCls } from './ui'
-import { bidAssumptions, bidPricing, type BidPosition, type Change, type Market, type Opportunity, type PricingResult, type PricingTender, type Rates } from '../lib/bid-pricing'
+import { bidAssumptions, bidPricing, selectedOpportunity, selectQuantityChange, type BidPosition, type Change, type Market, type Opportunity, type OpportunitySelection, type PricingResult, type PricingTender, type Rates } from '../lib/bid-pricing'
 import { inputNumber, parseNumber, pct1, qty } from '../lib/format'
 
 const rateLabels = { cost: 'Unit cost', standard: 'Standard rate', floor: 'Lower rate', ceiling: 'Higher rate' } as const
@@ -14,8 +14,11 @@ function NumberField({ label, value, onChange, placeholder }: {
     onChange={(e) => onChange(e.target.value)} className={numberClass} />
 }
 
-export function BidSimulator({ listId, title, standardRates }: {
+export type BidSimulatorHandle = { openFor: (selection: OpportunitySelection) => void }
+
+export function BidSimulator({ listId, title, standardRates, ref }: {
   listId: string; title: string; standardRates: ReadonlyMap<string, number>
+  ref?: Ref<BidSimulatorHandle>
 }) {
   const formId = useId()
   const [open, setOpen] = useState(false)
@@ -29,25 +32,45 @@ export function BidSimulator({ listId, title, standardRates }: {
   const [view, setView] = useState<'setup' | 'result'>('setup')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const requested = useRef<OpportunitySelection | undefined>(undefined)
   const positionByKey = new Map(tender?.positions.map((p) => [p.key, p]))
   const currency = tender?.currency ?? 'EUR'
 
-  async function load() {
+  async function load(selection?: OpportunitySelection) {
+    requested.current = selection
     setBusy(true)
     setError('')
+    setView('setup')
+    setResult(undefined)
     try {
       const data = await bidPricing<PricingTender>(listId)
+      const sameSnapshot = tender?.input_hash === data.input_hash
       setTender(data)
-      setRates(Object.fromEntries(data.positions.map(({key, id}) => {
+      setRates((previous) => Object.fromEntries(data.positions.map(({key, id}) => {
         const standard = standardRates.get(id)
-        return [key, { cost: '', standard: standard == null ? '' : inputNumber(standard), floor: '', ceiling: '' }]
+        return [key, previous[key] ?? { cost: '', standard: standard == null ? '' : inputNumber(standard), floor: '', ceiling: '' }]
       })))
+      const prefill = selection && selectedOpportunity(data, selection)
+      setChanges((previous) => {
+        const current = sameSnapshot ? previous.filter((item) => !item.findingId ||
+          data.opportunities.some((o) => o.finding_id === item.findingId && o.position === item.position)) : []
+        return prefill ? selectQuantityChange(current, prefill.position, prefill) : current
+      })
+      if (selection && !prefill) setError('This shortfall is no longer available. Review the current tender assessment.')
     } catch (cause) {
+      setTender(undefined)
       setError((cause as Error).message)
     } finally {
       setBusy(false)
     }
   }
+
+  useImperativeHandle(ref, () => ({
+    openFor(selection) {
+      setOpen(true)
+      if (!busy) void load(selection)
+    },
+  }))
 
   function update(change: () => void) {
     change()
@@ -56,10 +79,7 @@ export function BidSimulator({ listId, title, standardRates }: {
   }
 
   function addChange(position: BidPosition, opportunity?: Opportunity) {
-    update(() => setChanges((items) => [...items.filter((item) => item.position !== position.key), {
-      position: position.key, quantity: opportunity?.quantity.replace('.', ',') ?? '', rule: opportunity?.rule_id,
-      share: '', other: '',
-    }]))
+    update(() => setChanges((items) => selectQuantityChange(items, position.key, opportunity)))
   }
 
   async function run(event: FormEvent<HTMLFormElement>) {
@@ -81,7 +101,7 @@ export function BidSimulator({ listId, title, standardRates }: {
   return <>
     <Button icon="calculate" aria-label="Bid simulator" onClick={() => {
       setOpen(true)
-      if (!tender && !busy) void load()
+      if (!busy) void load()
     }} className="max-sm:w-10 max-sm:px-0">
       <span className="max-sm:hidden">Bid simulator</span>
     </Button>
@@ -94,16 +114,17 @@ export function BidSimulator({ listId, title, standardRates }: {
         </Button>}
       </>}>
       {error && <div role="alert" className="mb-4 flex items-start gap-2 rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-900">
-        <Icon name="error" size={18} /><div>{error.split('\n')[0]}{!tender && <Button size="sm" onClick={() => void load()} className="ml-2">Retry</Button>}</div>
+        <Icon name="error" size={18} /><div>{error.split('\n')[0]}{!tender && <Button size="sm" onClick={() => void load(requested.current)} className="ml-2">Retry</Button>}</div>
       </div>}
       {!tender && busy && <div role="status" className="flex items-center gap-2 py-4 text-sm"><Icon className="animate-spin" name="progress_activity" />Loading the original tender…</div>}
+      {tender?.manual_only && <p className="mb-4 text-sm text-slate-600">The working positions differ from the uploaded X83. You can enter quantity changes manually against the original positions.</p>}
       {tender && (view === 'result' && result ? <Comparison result={result} positions={tender.positions} /> :
         <form id={formId} onSubmit={run} className="space-y-5">
           <fieldset disabled={busy} className="space-y-5">
             <section className="rounded-lg border border-slate-200">
               <div className="px-4 py-3">
                 <h3 className="text-sm font-semibold text-slate-900">Position rates <span className="font-normal text-slate-500">· {currency} per unit</span></h3>
-                <p className="mt-0.5 text-xs text-slate-600">Enter direct costs and standard rates. Blank rates use the standard rate.</p>
+                <p className="mt-0.5 text-xs text-slate-600">Quantities come from the tender. Supply direct costs, standard rates and rate limits for the simulation. Blank limits use the standard rate.</p>
               </div>
               <div className="max-h-64 overflow-auto">
                 <table className="w-full border-collapse sm:min-w-[600px] text-sm">
@@ -154,11 +175,12 @@ export function BidSimulator({ listId, title, standardRates }: {
                 {tender.opportunities.map((o) => {
                   const position = positionByKey.get(o.position)
                   if (!position) return null
-                  const selected = changes.some((c) => c.position === o.position && c.rule === o.rule_id)
+                  const selected = changes.some((c) => c.position === o.position && c.findingId === o.finding_id)
                   return <div key={o.finding_id} className="mb-2 flex flex-wrap items-center justify-between gap-2 rounded-md bg-amber-50 px-3 py-2 text-xs">
                     <div>
                       <p className="font-semibold text-amber-950">{o.title}</p>
                       <p className="text-amber-900">{o.position} · +{qty(Number(o.quantity))} {position.unit}{o.ai_reviewed ? ' · AI reviewed' : ''}</p>
+                      {o.calculation && <p className="text-amber-900">{o.calculation}</p>}
                     </div>
                     <Button size="sm" onClick={() => addChange(position, o)} disabled={selected}>{selected ? 'Added' : 'Use finding'}</Button>
                   </div>
@@ -175,7 +197,7 @@ export function BidSimulator({ listId, title, standardRates }: {
                   {changes.map((c) => {
                     const edit = (field: 'quantity' | 'share' | 'other', value: string) => update(() =>
                       setChanges((all) => all.map((item) => item.position === c.position
-                        ? { ...item, [field]: value, ...(field === 'quantity' && { rule: undefined }) } : item)))
+                        ? { ...item, [field]: value, ...(field === 'quantity' && { findingId: undefined }) } : item)))
                     return <div key={c.position} className="border-t border-slate-200 pt-2">
                       <div className="flex items-center justify-between gap-2">
                         <p className="text-xs font-medium">{c.position} · {positionByKey.get(c.position)?.text}</p>
@@ -183,7 +205,7 @@ export function BidSimulator({ listId, title, standardRates }: {
                           onClick={() => update(() => setChanges((all) => all.filter((item) => item.position !== c.position)))} />
                       </div>
                       <div className="grid gap-2 sm:grid-cols-3">
-                        <label className="text-xs text-slate-700">Extra units<NumberField label={`${c.position} extra quantity`} value={c.quantity} onChange={(v) => edit('quantity', v)} /></label>
+                        <label className="text-xs text-slate-700">Extra units · {c.findingId ? 'Tender finding' : 'Estimator input'}<NumberField label={`${c.position} extra quantity`} value={c.quantity} onChange={(v) => edit('quantity', v)} /></label>
                         <label className="text-xs text-slate-700">At bid rate (%)<NumberField label={`${c.position} share at bid rate`} value={c.share} onChange={(v) => edit('share', v)} /></label>
                         {parseNumber(c.share) !== 100 && <label className="text-xs text-slate-700">Other rate ({currency})<NumberField label={`${c.position} other settlement rate`} value={c.other} onChange={(v) => edit('other', v)} /></label>}
                       </div>
@@ -207,7 +229,8 @@ function Comparison({ result, positions }: { result: PricingResult; positions: B
   const { standard, price_only: blind, quantity_aware: aware } = result.strategies
   const delta = Number(aware.expected_profit) - Number(blind.expected_profit)
   const gap = Number(aware.optimality_gap_bound)
-  const changed = positions.filter(({key}) => aware.rates[key] != null && Number(aware.rates[key]) !== Number(standard.rates[key]))
+  const changed = positions.filter(({key}) => [blind, aware].some((strategy) =>
+    strategy.rates[key] != null && Number(strategy.rates[key]) !== Number(standard.rates[key])))
   return <div className="space-y-5" aria-live="polite">
     <section className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-brand-200 bg-brand-50 px-4 py-3">
       <div>
@@ -219,7 +242,7 @@ function Comparison({ result, positions }: { result: PricingResult; positions: B
         </p>
       </div>
       <div>
-        <p className="text-xs text-slate-600">Expected profit vs. price-only</p>
+        <p className="text-xs text-slate-600">Expected gross profit vs. price-only</p>
         <p className="num text-xl font-semibold text-brand-900">{delta > 0 ? '+' : ''}{formatter.format(delta)}</p>
       </div>
     </section>
@@ -231,7 +254,7 @@ function Comparison({ result, positions }: { result: PricingResult; positions: B
           <dl className="grid grid-cols-2 gap-2 text-sm tabular-nums">
             <div><dt className="text-xs text-slate-600">Net bid</dt><dd>{s.bid_total == null ? 'No bid' : amount(s.bid_total)}</dd></div>
             <div><dt className="text-xs text-slate-600">Award chance</dt><dd>{pct1(Number(s.win_probability) * 100)}</dd></div>
-            <div><dt className="text-xs text-slate-600">Expected profit</dt><dd>{amount(s.expected_profit)}</dd></div>
+            <div><dt className="text-xs text-slate-600">Expected gross profit</dt><dd>{amount(s.expected_profit)}</dd></div>
             <div><dt className="text-xs text-slate-600">Worst awarded profit</dt><dd>{amount(s.worst_awarded_profit)}</dd></div>
           </dl>
         </section>
@@ -243,7 +266,7 @@ function Comparison({ result, positions }: { result: PricingResult; positions: B
           <th className="px-4 py-3 text-left" scope="col">Strategy</th>
           <th className="px-3 py-3 text-right" scope="col">Net bid</th>
           <th className="px-3 py-3 text-right" scope="col">Award chance</th>
-          <th className="px-3 py-3 text-right" scope="col">Expected profit</th>
+          <th className="px-3 py-3 text-right" scope="col">Expected gross profit</th>
           <th className="px-4 py-3 text-right" scope="col">Worst awarded profit</th>
         </tr></thead>
         <tbody>{(Object.keys(strategies) as (keyof typeof strategies)[]).map((key) => {
@@ -265,14 +288,14 @@ function Comparison({ result, positions }: { result: PricingResult; positions: B
           <thead className="sticky top-0 bg-slate-50 text-xs text-slate-600"><tr>
             <th scope="col" className="px-4 py-2.5 text-left">Position</th>
             <th scope="col" className="px-3 py-2.5 text-right">Standard</th>
+            <th scope="col" className="px-3 py-2.5 text-right">Price-only</th>
             <th scope="col" className="px-3 py-2.5 text-right">Quantity-aware</th>
-            <th scope="col" className="px-4 py-2.5 text-right">Change per unit</th>
           </tr></thead>
           <tbody>{changed.map(({key, text}) => <tr key={key} className="border-t border-slate-200">
             <th scope="row" className="px-4 py-2.5 text-left font-medium"><span className="mr-2 text-xs text-slate-500">{key}</span>{text}</th>
             <td className="px-3 py-2.5 text-right">{amount(standard.rates[key])}</td>
+            <td className="px-3 py-2.5 text-right">{amount(blind.rates[key])}</td>
             <td className="px-3 py-2.5 text-right font-semibold">{amount(aware.rates[key])}</td>
-            <td className="px-4 py-2.5 text-right">{formatter.format(Number(aware.rates[key]) - Number(standard.rates[key]))}</td>
           </tr>)}</tbody>
         </table>
       </div>

@@ -15,9 +15,12 @@ import argparse
 import json
 from pathlib import Path
 import sys
+import time
 
 from ..adapter import from_data
 from ..contracts import AnalysisInput, Finding, Line, Target
+from ..bid_pricing import quantity_opportunities
+from ..quantity_relationships import RULE_ID as RELATIONSHIP_RULE
 from ..runner import analyze
 from . import run
 from .provider import ProviderUnavailable, audit_provider_from_env, provider_from_env
@@ -112,9 +115,30 @@ def evaluate(provider, audit_provider=None) -> dict:
     }
 
 
+def evaluate_quantity_relationships(provider) -> dict:
+    cases = json.loads(Path(__file__).with_name("quantity_eval_cases.json").read_text(encoding="utf-8"))
+    rows = []
+    for case in cases:
+        snapshot = from_data({"lines": case["lines"], "sections": []})
+        started = time.monotonic()
+        # An injected provider uses a fresh in-memory cache so elapsed time includes the model request.
+        assessment = analyze(snapshot, (1, 2, 3), include_risk=False, layer3_provider=provider)
+        elapsed = time.monotonic() - started
+        found = {(op["position"], format(op["quantity"].normalize(), "f"))
+                 for op in quantity_opportunities(snapshot, assessment) if op["rule_id"] == RELATIONSHIP_RULE}
+        expected = {tuple(item) for item in case["expect"]}
+        rows.append({"id": case["id"], "language": case["language"], "latency_seconds": round(elapsed, 3),
+                     "coverage": assessment.l3_status, "hits": sorted(found & expected),
+                     "misses": sorted(expected - found), "false_positives": sorted(found - expected)})
+    return {"model": provider.model_id, "cases": rows,
+            "misses": sum(len(row["misses"]) for row in rows),
+            "false_positives": sum(len(row["false_positives"]) for row in rows)}
+
+
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(prog="python -m analysis.layer3.eval")
     parser.add_argument("--json", action="store_true", help="print the full result as JSON")
+    parser.add_argument("--quantity-relationships", action="store_true", help="evaluate held-out quantity relationships")
     args = parser.parse_args(argv)
     try:
         provider = provider_from_env()
@@ -124,6 +148,11 @@ def main(argv=None) -> int:
     if provider is None:
         print("ANALYSIS_L3_PROVIDER=none: nothing to evaluate", file=sys.stderr)
         return 2
+    if args.quantity_relationships:
+        sys.stdout.reconfigure(encoding="utf-8")
+        result = evaluate_quantity_relationships(provider)
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+        return 2 if all(row["coverage"]["validated"] == 0 for row in result["cases"]) else 0
     try:
         audit_provider = audit_provider_from_env(provider)
     except ProviderUnavailable as exc:

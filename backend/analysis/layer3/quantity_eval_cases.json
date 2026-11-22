@@ -1,0 +1,38 @@
+[
+  {
+    "id": "en-storage-shelves",
+    "language": "en",
+    "lines": [
+      {"id": "rack", "code": "1.10", "short_text": "Storage rack", "long_text": "Provide five shelves for each rack.", "quantity": 9, "unit": "ea"},
+      {"id": "shelf", "code": "1.20", "short_text": "Adjustable shelves", "quantity": 23, "unit": "ea"}
+    ],
+    "expect": [["1.20", "22"]]
+  },
+  {
+    "id": "de-doors-and-badges",
+    "language": "de",
+    "lines": [
+      {"id": "door", "code": "2.10", "short_text": "Zugangstür", "long_text": "Je Zugangstür sind drei Ausweise zu liefern.", "quantity": 7, "unit": "St"},
+      {"id": "badge", "code": "2.20", "short_text": "Ausweis", "quantity": 13, "unit": "St"}
+    ],
+    "expect": [["2.20", "8"]]
+  },
+  {
+    "id": "en-included-batteries",
+    "language": "en",
+    "lines": [
+      {"id": "sensor", "code": "3.10", "short_text": "Sensor package", "long_text": "Two batteries per sensor are included in the package.", "quantity": 13, "unit": "ea"},
+      {"id": "battery", "code": "3.20", "short_text": "Batteries", "quantity": 5, "unit": "ea"}
+    ],
+    "expect": []
+  },
+  {
+    "id": "de-optional-brackets",
+    "language": "de",
+    "lines": [
+      {"id": "shelf", "code": "4.10", "short_text": "Regal", "long_text": "Bei Bedarf zwei Halter je Regal liefern.", "quantity": 11, "unit": "St"},
+      {"id": "bracket", "code": "4.20", "short_text": "Halter", "quantity": 6, "unit": "St"}
+    ],
+    "expect": []
+  }
+]

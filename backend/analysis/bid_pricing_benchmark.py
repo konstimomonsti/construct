@@ -9,17 +9,26 @@ from pathlib import Path
 from . import adapter
 from .bid_pricing import DEFAULT_SEARCH_NODES, PricingAssumptions, compare, evaluate, prepare
 from .layer1.common import money
+from .layer3.prompts import RELATIONSHIP_VERSION
+from .layer3.provider import FakeProvider
 from .runner import analyze
 
 
 def benchmark(directory: Path, *, search_nodes: int = DEFAULT_SEARCH_NODES) -> dict:
+    bundled = Path(__file__).resolve().parents[2] / "data/examples/bid-pricing"
+    replay = (json.loads(Path(__file__).with_name("bid_pricing_replay.json").read_text(encoding="utf-8"))
+              if directory.resolve() == bundled else {})
     cases = {}
     for tender in sorted(directory.glob("*.X83")):
         assumptions = PricingAssumptions.model_validate_json(tender.with_suffix(".json").read_text(encoding="utf-8"))
         snapshot = adapter.from_file(tender)
-        assessment = analyze(snapshot)
-        if assessment.errors:
-            raise ValueError(f"{tender.name}: {assessment.errors}")
+        answer = replay.get(tender.stem)
+        provider = FakeProvider(lambda request: answer if request.prompt_version == RELATIONSHIP_VERSION
+                                else {key: [] for key in request.schema["required"]}) if answer else None
+        assessment = analyze(snapshot, (1, 2, 3), layer3_provider=provider) if provider else analyze(snapshot)
+        errors = [error for error in assessment.errors if not error.startswith("layer 3 coverage:")]
+        if errors:
+            raise ValueError(f"{tender.name}: {errors}")
         positions, forecast = prepare(snapshot, assessment, assumptions)
         bids = compare(positions, forecast, search_nodes=search_nodes)
         greedy = compare(positions, forecast, search_nodes=0)["quantity_aware"]
@@ -44,6 +53,7 @@ def benchmark(directory: Path, *, search_nodes: int = DEFAULT_SEARCH_NODES) -> d
         cases[tender.stem] = {
             "currency": assumptions.currency,
             "positions": len(positions),
+            "assessment": {"provider": "fake" if provider else None, "coverage": assessment.l3_status},
             "quantity_changes": {key: {"quantity": c.quantity, "finding_id": c.finding_id}
                                  for s in forecast for key, c in s.changes.items()},
             "forecast": {name: bid.summary() for name, bid in bids.items()},

@@ -19,7 +19,7 @@
       "winning_bid_ceiling": "1120",
       "changes": {
         "01.0020": {
-          "extra_quantity": "27",
+          "finding_rule": "L3.QTY.RELATIONSHIP",
           "quoted_rate_share": "1",
           "other_unit_rate": "20"
         }
@@ -36,7 +36,7 @@
       "winning_bid_ceiling": "1300",
       "changes": {
         "01.0020": {
-          "extra_quantity": "27",
+          "finding_rule": "L3.QTY.RELATIONSHIP",
           "quoted_rate_share": "1",
           "other_unit_rate": "20"
         }

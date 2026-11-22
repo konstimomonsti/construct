@@ -4,14 +4,17 @@ export type BidPosition = {
   key: string; id: string; text: string | null; quantity: string; unit: string | null; can_change_quantity: boolean
 }
 export type Opportunity = {
-  position: string; quantity: string; title: string; rule_id: string; finding_id: string; ai_reviewed: boolean
+  position: string; position_id: string; quantity: string; title: string; rule_id: string; finding_id: string
+  ai_reviewed: boolean; calculation?: string | null
 }
 export type PricingTender = {
   input_hash: string; currency: string; assessment_layers: number[]; positions: BidPosition[]; opportunities: Opportunity[]
+  manual_only?: boolean
 }
 export type Rates = { cost: string; standard: string; floor: string; ceiling: string }
 export type Market = { id: number; threshold: string; chance: string }
-export type Change = { position: string; quantity: string; share: string; other: string; rule?: string }
+export type Change = { position: string; quantity: string; share: string; other: string; findingId?: string }
+export type OpportunitySelection = { inputHash: string; findingId: string; positionId: string }
 export type Strategy = {
   bid_total: string | null; expected_profit: string; win_probability: string
   worst_awarded_profit: string | null; base_profit: string; optimality_gap_bound: string | null; rates: Record<string, string>
@@ -21,6 +24,20 @@ export type PricingResult = {
   strategies: Record<'standard' | 'price_only' | 'quantity_aware', Strategy>
 }
 const PERCENT = 10_000
+
+export function selectedOpportunity(tender: PricingTender, selection: OpportunitySelection) {
+  return tender.input_hash === selection.inputHash && tender.opportunities.find((opportunity) =>
+    opportunity.finding_id === selection.findingId && opportunity.position_id === selection.positionId)
+}
+
+export function selectQuantityChange(changes: Change[], position: string, opportunity?: Opportunity): Change[] {
+  const existing = changes.find((change) => change.position === position)
+  if (existing?.findingId === opportunity?.finding_id && existing) return changes
+  return [...changes.filter((change) => change.position !== position), {
+    position, quantity: opportunity?.quantity.replace('.', ',') ?? '', findingId: opportunity?.finding_id,
+    share: '', other: '',
+  }]
+}
 
 function number(raw: string, name: string, places: number): number {
   const parsed = parseNumber(raw)
@@ -55,7 +72,7 @@ export function bidAssumptions(tender: PricingTender, rates: Record<string, Rate
     const quantity = number(change.quantity, `${change.position} extra quantity`, 6)
     if (!quantity) throw new Error(`Enter a positive extra quantity for ${change.position}.`)
     return [change.position, {
-      ...(change.rule ? { finding_rule: change.rule } : { extra_quantity: quantity }),
+      ...(change.findingId ? { finding_id: change.findingId } : { extra_quantity: quantity }),
       quoted_rate_share: (share / PERCENT).toFixed(4),
       ...(share < PERCENT ? { other_unit_rate: number(change.other, `${change.position} other settlement rate`, 2) } : {}),
     }]

@@ -17,6 +17,7 @@ from .contracts import AnalysisInput, AnalysisResult, Finding, Summary
 from .graph import validate_graph
 from .layer1.arithmetic import working_totals
 from .layer3 import empty_outcome
+from .layer3.provider import LLMProvider, ResponseCache
 from .questions import build_questions
 from .risk import assess
 
@@ -25,7 +26,8 @@ _SEVERITY_ORDER = {"error": 0, "warning": 1, "info": 2}
 
 
 def analyze(analysis_input: AnalysisInput, layers: Iterable[int] = DEFAULT_LAYERS, *,
-            include_risk: bool = True, excluded_report_rules: frozenset[str] = frozenset()) -> AnalysisResult:
+            include_risk: bool = True, excluded_report_rules: frozenset[str] = frozenset(),
+            layer3_provider: LLMProvider | None = None) -> AnalysisResult:
     if not analysis_input.input_hash:
         analysis_input = analysis_input.with_hash()
     graph = validate_graph(analysis_input)
@@ -42,7 +44,8 @@ def analyze(analysis_input: AnalysisInput, layers: Iterable[int] = DEFAULT_LAYER
             errors.append(f"layer {layer}: not implemented yet")
             continue
         try:
-            findings.extend(module.run(analysis_input, list(findings), errors))
+            kwargs = {"provider": layer3_provider, "cache": ResponseCache(None)} if layer == 3 and layer3_provider else {}
+            findings.extend(module.run(analysis_input, list(findings), errors, **kwargs))
         except Exception:
             if layer != 3:
                 raise

@@ -94,6 +94,7 @@ export type AdvisoryStatus = {
 }
 
 export type Report = {
+  input_hash?: string
   run_id?: string
   findings: Finding[]
   errors: string[]

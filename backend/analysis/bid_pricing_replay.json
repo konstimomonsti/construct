@@ -1,0 +1,16 @@
+{
+  "tables-and-chairs": {
+    "relationships": [
+      {
+        "source_ref": "P1",
+        "quote": "Provide three chairs per table.",
+        "base_ref": "P1",
+        "base_item": "table",
+        "dependent_ref": "P2",
+        "dependent_item": "chairs",
+        "ratio": "3",
+        "qualifier": null
+      }
+    ]
+  }
+}

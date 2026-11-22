@@ -15,7 +15,7 @@ import type { SubcontractPackage } from '../lib/subcontract'
 import { currentPhase } from '../lib/workflow'
 import { ErrorBoundary } from '../components/ErrorBoundary'
 import { LedgerTable } from '../components/LedgerTable'
-import { BidSimulator } from '../components/BidSimulator'
+import { BidSimulator, type BidSimulatorHandle } from '../components/BidSimulator'
 import { ChangeOrderText, FindingFilter, FindingText } from '../components/RiskAssessment'
 import { assessmentMatchesEdits, canApplyAssessmentFix, currentDecisions, decisionsOf, indexFindings, matchesFindingFilter, openQuestions, reportRisk, SEVERITIES, useUploadAssessment, type Assessment, type ChangeOrderSignal, type Decision, type Finding, type Question, type Report, type ReviewItem } from '../lib/risk-assessment'
 import { riskXlsx, downloadBytes } from '../lib/risk-export'
@@ -335,6 +335,8 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   const { lists, folders, documents } = useModel()
   const attached = documents.filter((document) => document.listId === imported.id)
   const original = attached.find((document) => document.original && document.name === imported.fileName)
+  const canSimulateBid = original && imported.phase === 'X83' && imported.source?.kind === 'gaeb-xml'
+  const bidSimulator = useRef<BidSimulatorHandle>(null)
   const catalogueEnabled = Boolean(imported.userCreated && imported.source?.kind && imported.source.kind !== 'blank' && imported.positions.length)
   const documentVersion = useStore((state) => attached.map(({ id }) =>
     [id, state.sync?.hashes.userDocuments?.[id], state.sync?.hashes.documentLinks?.[id]].join(':'),
@@ -936,8 +938,8 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
             <Button variant="primary" icon="add" onClick={() => setAdding(true)} aria-label="Add position" className="max-sm:w-10 max-sm:px-0">
               <span className="max-sm:hidden">Add position</span>
             </Button>
-            {original && imported.phase === 'X83' && imported.source?.kind === 'gaeb-xml' && (
-              <BidSimulator listId={doc.id} title={heading} standardRates={bidStandardRates} />
+            {canSimulateBid && (
+              <BidSimulator key={doc.id} ref={bidSimulator} listId={doc.id} title={heading} standardRates={bidStandardRates} />
             )}
             <ExportMenu listId={doc.id} doc={doc} original={original} selectedIds={[...selected]} filteredIds={filtered ? rows.map((position) => position.id) : undefined} />
             <RowMenu items={more} label={`More actions for ${title}`} />
@@ -1302,6 +1304,23 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
                   {'severity' in item
                     ? <FindingText finding={item} decision={decisions[item.id]} changed={changedFindings.has(item.id)} hideRationale={!!sharedRationale} details />
                     : <ChangeOrderText signal={item} decision={decisions[item.id]} />}
+                  {'severity' in item && item.rule_id === 'L3.QTY.RELATIONSHIP' && (
+                    <div className="ml-[15px] flex flex-wrap gap-2">
+                      {[item.target.line_id, ...item.related_line_ids].filter((id): id is string =>
+                        !!id && id !== detail?.id && codes.has(id)).map((id) =>
+                        <Button key={id} size="sm" onClick={() => openDetail(id, 'findings')}>Position {codes.get(id)}</Button>)}
+                      {canSimulateBid && !fixtureReport && !isStale && !changedFindings.has(item.id) &&
+                        decisions[item.id]?.status !== 'dismissed' && item.evidence?.reason === 'shortfall' &&
+                        uploadReport?.graph_valid !== false && uploadReport?.input_hash && item.target.line_id && (
+                          <Button size="sm" icon="calculate" onClick={() => {
+                            bidSimulator.current?.openFor({
+                              inputHash: uploadReport.input_hash!, findingId: item.id, positionId: item.target.line_id!,
+                            })
+                            setDetailId(null)
+                          }}>Simulate extra units</Button>
+                        )}
+                    </div>
+                  )}
                   <FindingQuestions title={title} questions={questionsByFinding.get(item.id)} />
                   <DecisionControls className="ml-[15px]" title={item.title} decision={decisions[item.id]}
                     onDecide={(decision) => decideInDrawer(item.id, item.title, decision)} />

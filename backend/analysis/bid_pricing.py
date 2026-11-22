@@ -6,11 +6,12 @@ from fractions import Fraction
 from heapq import heappop, heappush
 from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
 from .adapter import to_decimal
 from .contracts import AddLine, AnalysisInput, AnalysisResult, Line
 from .layer1.common import excluded_scope_sections, is_counted, money
+from .quantity_relationships import RULE_ID as RELATIONSHIP_RULE, Relationship, verify
 from .units import Dimension, convert, dimension
 
 CENT = Decimal("0.01")
@@ -48,13 +49,14 @@ class PriceBand(Assumption):
 class QuantityChange(Assumption):
     extra_quantity: Decimal | None = Field(default=None, gt=0, max_digits=18, decimal_places=6)
     finding_rule: str | None = Field(default=None, min_length=1)
+    finding_id: str | None = Field(default=None, min_length=1)
     quoted_rate_share: Probability
     other_unit_rate: Rate | None = None
 
     @model_validator(mode="after")
     def validate_quantity_source(self):
-        if (self.extra_quantity is None) == (self.finding_rule is None):
-            raise ValueError("Specify either an extra quantity or a shortfall rule")
+        if sum(value is not None for value in (self.extra_quantity, self.finding_rule, self.finding_id)) != 1:
+            raise ValueError("Specify one quantity source: extra quantity, finding ID or shortfall rule")
         if self.quoted_rate_share < 1 and self.other_unit_rate is None:
             raise ValueError("Specify the settlement rate for units paid outside the bid rate")
         return self
@@ -166,26 +168,66 @@ def included_positions(snapshot: AnalysisInput) -> dict[str, tuple[Line, Decimal
     return positions
 
 
-def quantity_opportunities(snapshot: AnalysisInput, result: AnalysisResult) -> list[dict]:
+def _opportunities(snapshot: AnalysisInput, result: AnalysisResult):
     lines = snapshot.line_by_id()
     excluded = excluded_scope_sections(snapshot)
-    opportunities = []
+    candidates = {}
+    dependency_targets = set()
     for finding in result.findings:
         ids = finding.evidence.get("dependency_line_ids")
-        if (finding.layer != 2 or finding.evidence.get("reason") != "quantity_shortfall"
-                or not isinstance(ids, list) or len(ids) != 1):
+        if (finding.layer == 2 and finding.evidence.get("reason") == "quantity_shortfall"
+                and isinstance(ids, list) and len(ids) == 1):
+            dependency_targets.add(ids[0])
+    for finding in result.findings:
+        ids = finding.evidence.get("dependency_line_ids")
+        if (finding.layer == 2 and finding.evidence.get("reason") == "quantity_shortfall"
+                and isinstance(ids, list) and len(ids) == 1):
+            line = lines.get(ids[0])
+        elif (result.graph_valid is not False and finding.layer == 3 and finding.rule_id == RELATIONSHIP_RULE
+              and finding.target.line_id not in dependency_targets):
+            line = lines.get(finding.target.line_id)
+        else:
             continue
-        line = lines.get(ids[0])
-        if line is None or not is_counted(line) or line.section_id in excluded or line.pricing_basis != "unit_rate":
+        if (line is None or not is_counted(line) or line.section_id in excluded or line.pricing_basis != "unit_rate"
+                or not line.unit or line.quantity is None or not line.quantity.is_finite() or line.quantity <= 0):
             continue
-        try:
-            quantity, finding_id, reviews = _finding_change(line, finding.rule_id, result)
-        except ValueError:
-            continue
-        opportunities.append({"position": line.code or line.id, "quantity": quantity,
-                              "title": finding.title, "rule_id": finding.rule_id,
-                              "finding_id": finding_id, "ai_reviewed": bool(reviews)})
-    return opportunities
+        if finding.layer == 2:
+            try:
+                quantity, finding_id, reviews = _finding_change(line, finding.rule_id, result)
+            except ValueError:
+                continue
+            if finding_id != finding.id:
+                continue
+            coverage = None
+        else:
+            if (finding.evidence.get("reason") != "shortfall" or finding.severity != "warning"
+                    or finding.status in {"rejected", "stale", "applied"}):
+                continue
+            try:
+                relationship = Relationship.model_validate(finding.evidence.get("relationship"))
+            except ValidationError:
+                continue
+            checked = verify(snapshot, relationship)
+            if checked is None or checked.reason != "shortfall" or checked.dependent.id != line.id:
+                continue
+            quantity, reviews = checked.extra, ()
+            coverage = (checked.base.id, relationship.ratio)
+        candidates.setdefault(line.id, []).append((finding, line, quantity, reviews, coverage))
+    for choices in candidates.values():
+        # One scenario change can cover a position. Conflicting calculations require review.
+        if len({(choice[2], choice[4]) for choice in choices}) == 1:
+            yield min(choices, key=lambda choice: choice[0].id)
+
+
+def quantity_opportunities(snapshot: AnalysisInput, result: AnalysisResult) -> list[dict]:
+    if result.input_hash != snapshot.compute_hash():
+        return []
+    return [
+        {"position": line.code or line.id, "position_id": line.id, "quantity": quantity,
+         "title": finding.title, "rule_id": finding.rule_id, "finding_id": finding.id,
+         "ai_reviewed": bool(reviews), "calculation": finding.evidence.get("calculation")}
+        for finding, line, quantity, reviews, _ in _opportunities(snapshot, result)
+    ]
 
 
 def prepare(snapshot: AnalysisInput, result: AnalysisResult,
@@ -204,7 +246,8 @@ def prepare(snapshot: AnalysisInput, result: AnalysisResult,
     positions = {key: Position(quantity, assumptions.prices[key]) for key, (_, quantity) in included.items()}
     lines = {key: line for key, (line, _) in included.items()}
 
-    resolved = {}
+    opportunities = {(line.id, finding.id): (quantity, finding.id, reviews, finding.rule_id)
+                     for finding, line, quantity, reviews, _ in _opportunities(snapshot, result)}
     scenarios = []
     for scenario in assumptions.scenarios:
         changes = {}
@@ -213,11 +256,15 @@ def prepare(snapshot: AnalysisInput, result: AnalysisResult,
             if line is None or line.pricing_basis != "unit_rate" or not line.unit:
                 raise ValueError(f"{key}: quantity changes require an included position with a unit rate and unit")
             quantity, finding_id, review_ids = change.extra_quantity, None, ()
-            if change.finding_rule:
-                cache_key = (key, change.finding_rule)
-                if cache_key not in resolved:
-                    resolved[cache_key] = _finding_change(line, change.finding_rule, result)
-                quantity, finding_id, review_ids = resolved[cache_key]
+            if change.finding_id or change.finding_rule:
+                matches = [entry for (line_id, fid), entry in opportunities.items() if line_id == line.id and
+                           (fid == change.finding_id if change.finding_id else entry[3] == change.finding_rule)]
+                if len(matches) != 1:
+                    # Preserve the detailed legacy error for an AI exclusion or a partial dependency.
+                    if change.finding_rule and change.finding_rule != RELATIONSHIP_RULE:
+                        _finding_change(line, change.finding_rule, result)
+                    raise ValueError(f"{key}: selected shortfall is no longer available on this position")
+                quantity, finding_id, review_ids, _ = matches[0]
             changes[key] = Change(quantity, change.quoted_rate_share, change.other_unit_rate or ZERO,
                                   finding_id, review_ids)
         scenarios.append(Scenario(scenario.name, scenario.probability, scenario.winning_bid_ceiling, changes))
