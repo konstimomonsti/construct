@@ -21,7 +21,6 @@ import { analysisCoverage, assessmentMatchesEdits, canApplyAssessmentFix, curren
 import { riskXlsx, downloadBytes } from '../lib/risk-export'
 import type { RowRisk } from '../components/LedgerTable'
 import { DecisionControls, DismissMenu } from '../components/risk/DecisionControls'
-import { RiskSummary } from '../components/risk/RiskSummary'
 import { WarningsPanel, type WarningEntry } from '../components/risk/WarningsPanel'
 import { runSteps, type FixPlan } from '../lib/apply-fix'
 import { FindingQuestions } from '../components/risk/BidderQuestions'
@@ -971,7 +970,6 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
         }
       >
       {tab === 'x83' && <PhasePanel phase="x83">
-      {risk && <RiskSummary risk={risk} decisions={decisions} coverage={coverage} outdated={isStale} />}
       {comparableCap && <p role="status" className="mb-4 text-sm font-medium text-slate-800">
         {budgetStatus(Number(comparableCap.working_net), Number(comparableCap.cap)).word}
         {' · Working net '}{budgetMoney(Number(comparableCap.working_net), comparableCap.currency)}
