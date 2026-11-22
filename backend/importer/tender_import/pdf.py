@@ -34,6 +34,8 @@ _QUANTITY = re.compile(
 _JOINED_QUANTITY = re.compile(rf"^(?P<quantity>{_NUMBER})(?P<unit>[^\s\d]\S*)(?P<tail>[ \t]+EP\b.*)$", re.I)
 _UNIT = re.compile(r"^(?:m(?:[²³23])?(?:wo|d)?|cm[²23]?|mm|km[²2]?|kg|t|to|l|kwh|st(?:k|ck)?\.?|stwo|satz|set|pau|psch\.?|h|std\.?|wo\.?|mt\.?|mo\.?|d|j(?:r|ahre?)|lfm)$", re.I)
 _TOTAL = re.compile(rf"^\s*(?P<label>(?:Summe|Gesamt(?:betrag|summe|preis)|Angebotssumme|Übertrag|MwSt|USt|zzgl\. Mehrwertsteuer|Mehrwertsteuer|Nachlass)[^\n]*?)[ \t]{{2,}}(?:EUR\s+)?(?P<amount>{_NUMBER})\s*(?:EUR|€)?\s*$", re.I)
+# A section total the bidder has not priced yet: "Summe 1.1. Baustelleinrichtung ........." (dots instead of an amount).
+_BLANK_TOTAL = re.compile(r"^\s*Summe\b[^\n]*?[ \t]*\.{5,}[ \t]*$", re.I)
 _NOTE_TITLE = re.compile(r"^(?:Spezifikation\s+\S|Vorbemerkung(?:en)?\b|.{1,60}\s+-\s+Vorbemerkung(?:en)?\b)", re.I)
 _REDACTED_LINE = re.compile(r"\[(?:FIRMA|PERSON|ORT|ADRESSE|TELEFON)_\d+\]", re.I)
 _PRICE_ONLY = re.compile(r"nur\s+(?:einh[. -]*pr\.?|einheitspreis|EP)\b", re.I)
@@ -431,7 +433,7 @@ def extract_pdf_tables(pages, result):
                 continue
             if summary_page:
                 continue
-            if total or re.match(r"^\s*(?:Übertrag\s*:|Druckdatum:|Seite\s*:)", raw, re.I):
+            if total or _BLANK_TOTAL.fullmatch(raw) or re.match(r"^\s*(?:Übertrag\s*:|Druckdatum:|Seite\s*:)", raw, re.I):
                 continue
             header = header_row[1]
             indent = len(header["indent"])
