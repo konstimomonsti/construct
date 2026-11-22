@@ -12,6 +12,11 @@ export const ACCEPT = '.x80,.x81,.x82,.x83,.x84,.x85,.x86,.x87,.x88,.x89,.d80,.d
 
 const uid = () => crypto.randomUUID()
 const fileStem = (name: string) => name.replace(/\.[^.]+$/, '')
+const missingImportModule = (error: unknown) => error instanceof Error &&
+  /failed to fetch dynamically imported module|error loading dynamically imported module|importing a module script failed|failed to load module script/i.test(error.message)
+const reloadImporter = () => toast('The file importer could not load. Reload this page, then select the file again.', 'error', {
+  label: 'Reload', run: () => window.location.reload(),
+})
 const slug = (s: string) =>
   s.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'liste'
 
@@ -91,6 +96,10 @@ export async function importFiles(files: File[], folderId: string, activeListId?
   const done = startImport(files.map((f) => f.name))
   try {
     return await runImport(files, folderId, activeListId)
+  } catch (error) {
+    if (!missingImportModule(error)) throw error
+    reloadImporter()
+    return { lists: [], positions: 0, docs: 0, failed: files.map((file) => file.name) }
   } finally {
     done()
   }
@@ -101,6 +110,7 @@ async function runImport(files: File[], folderId: string, activeListId?: string)
   const res: ImportResult = { lists: [], positions: 0, docs: 0, failed: [] }
   const documents: File[] = []
   const importErrors: string[] = []
+  let chunkLoadFailed = false
   const offerFiles = new Set([
     ...files.map((file) => file.name),
     ...selectModel(useStore.getState()).lists
@@ -126,6 +136,7 @@ async function runImport(files: File[], folderId: string, activeListId?: string)
     } catch (err) {
       console.warn(`import failed: ${name}`, err)
       res.failed.push(name)
+      if (missingImportModule(err)) chunkLoadFailed = true
       if (err instanceof Error) importErrors.push(`${name}: ${err.message}`)
     }
   }
@@ -157,7 +168,8 @@ async function runImport(files: File[], folderId: string, activeListId?: string)
   if (res.lists.length) parts.push(`${res.lists.length} ${res.lists.length === 1 ? 'list' : 'lists'} (${res.positions.toLocaleString('de-DE')} positions)`)
   if (res.docs) parts.push(`${res.docs} ${res.docs === 1 ? 'document' : 'documents'}`)
   if (parts.length) toast(`Imported ${parts.join(' + ')}`)
-  if (res.failed.length) toast(importErrors[0] ?? `Could not read: ${res.failed.join(', ')}`, 'error')
+  if (chunkLoadFailed) reloadImporter()
+  else if (res.failed.length) toast(importErrors[0] ?? `Could not read: ${res.failed.join(', ')}`, 'error')
   return res
 }
 
