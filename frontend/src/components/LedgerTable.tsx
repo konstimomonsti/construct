@@ -213,8 +213,8 @@ const Row = memo(function Row({ listId, p, showCategory, selected, flash, edited
           <input type="checkbox" className="checkbox" checked={selected} onChange={() => onToggle(p.id)} aria-label={`Select ${p.oz} ${p.short}`} />
         </label>
       </td>
-      <td data-a="hide" className="w-[88px] px-2 py-1 font-mono text-[13px] leading-9 whitespace-nowrap text-slate-600 tabular-nums lg:pl-[calc(0.5rem+var(--ind,0)*28px)]">{p.oz}</td>
-      <td data-a="title" className="min-w-0 px-2 py-1 lg:pl-[calc(0.5rem+var(--ind,0)*28px)]">
+      <td data-a="hide" className="px-2 py-3 font-mono text-[13px] leading-5 wrap-anywhere text-slate-600 tabular-nums lg:pl-[calc(0.5rem+var(--ind,0)*0.25rem)]">{p.oz}</td>
+      <td data-a="title" className="min-w-0 px-2 py-1 lg:pl-[calc(0.5rem+var(--ind,0)*0.25rem)]">
         <button
           type="button"
           data-open-detail
@@ -225,7 +225,7 @@ const Row = memo(function Row({ listId, p, showCategory, selected, flash, edited
           className={clsx('block max-w-full text-left text-[15px] underline-offset-4 hover:underline max-lg:line-clamp-2 max-lg:font-medium lg:truncate lg:leading-9', zero ? 'text-slate-600' : 'text-slate-900')}
         >
           {/* cards lead with the OZ, the way the group headers do */}
-          <span lang="" className="mr-1.5 font-mono text-[13px] font-normal text-slate-600 lg:hidden">{p.oz}</span>
+          <span lang="" className="mr-1.5 font-mono text-[13px] wrap-anywhere font-normal text-slate-600 lg:hidden">{p.oz}</span>
           {hasShort ? nbHyphen(p.short) : <span className="text-slate-600 italic">(ohne Kurztext)</span>}
           <span lang="en" className="sr-only">, open details</span>
         </button>
@@ -449,7 +449,7 @@ export function LedgerTable({
                 />
               </label>
             </th>
-            <th scope="col" className="w-[88px] px-2 py-2 font-medium">OZ</th>
+            <th scope="col" className="w-32 px-2 py-2 font-medium">OZ</th>
             <th scope="col" className="px-2 py-2 font-medium">Kurztext</th>
             <th scope="col" className={clsx('w-24 py-2 pr-3 pl-2 text-right font-medium', !visible.length && 'text-transparent')}>
 Menge
