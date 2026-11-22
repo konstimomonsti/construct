@@ -74,6 +74,13 @@ or skipped batches. Production defaults to four model calls per run and a 45-sec
 Use `ANALYSIS_L3_MAX_CALLS` and `ANALYSIS_L3_TIMEOUT` to tune those limits. Responses are cached
 in the Docker `analysis_cache` volume.
 
+### Classify line items with Claude
+
+Set `ANTHROPIC_API_KEY` and rebuild the deployment to enable automatic line classification.
+BillBuild sends the short and long descriptions of automatic positions in the open list to
+Claude Haiku 5.5. This works independently of the layer 3 risk setting. BillBuild caches the
+labels by description and uses its description rules while Claude is unavailable.
+
 ### Test the production configuration locally
 
 Use a separate Compose project and settings file:

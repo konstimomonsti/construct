@@ -65,8 +65,11 @@ export function ownFormat(doc: ListDoc): FormatId | null {
   return null
 }
 
-export function isEdited(doc: ListDoc, positions: Position[]): boolean {
-  return diffList(doc, positions).any
+export function isEdited(doc: ListDoc, positions: Position[], format?: FormatId): boolean {
+  if (diffList(doc, positions).any) return true
+  if (format !== 'json') return false
+  const originalTypes = new Map(doc.positions.map((position) => [position.id, position.lineType]))
+  return positions.some((position) => position.lineType !== originalTypes.get(position.id))
 }
 
 export function fidelityNote(doc: ListDoc, format: FormatId, edited: boolean, hasOriginal: boolean): string {
@@ -95,8 +98,7 @@ export async function exportList(req: ExportRequest): Promise<ExportResult> {
   const now = req.now ?? new Date()
   const scope = req.scope ?? 'all'
   const longTexts = req.longTexts ?? true
-  const diff = diffList(doc, req.resolved.positions)
-  const edited = req.edited ?? diff.any
+  const edited = req.edited ?? isEdited(doc, req.resolved.positions, format)
   let positions = req.resolved.positions
   if (scope === 'selection') {
     const s = new Set(req.selectedIds)

@@ -27,7 +27,7 @@ export function ExportMenu({ listId, doc, selectedIds, filteredIds, original }: 
         doc, resolved, format, longTexts: true, prices: true,
         scope: exportIds ? 'selection' : 'all',
         selectedIds: exportIds,
-        loadOriginal: originalLoader(doc, original), loadLayout: layoutLoader(doc), edited: isEdited(doc, resolved.positions),
+        loadOriginal: originalLoader(doc, original), loadLayout: layoutLoader(doc), edited: isEdited(doc, resolved.positions, format),
       })
       downloadResult(res)
       toast(`Exported ${res.fileName}`)

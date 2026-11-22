@@ -22,6 +22,8 @@ import workspace_analysis
 import workspace_bid_pricing
 import workspace_catalogue
 import workspace_parse
+import workspace_line_types
+from analysis.layer3.provider import ProviderError
 from exports import export
 
 
@@ -522,7 +524,7 @@ class BrowserHandler(BaseHTTPRequestHandler):
     def workspace_request(self, request, write):
         """Shared workspace sync: GET/POST state, GET/POST file, POST file-delete."""
         path = request.path.removeprefix("/api/workspace/")
-        operations = {"state", "file", "file-delete", "catalogue", "analysis", "parse", "bid-pricing"} if write else {"state", "file", "catalogue", "analysis", "bid-pricing"}
+        operations = {"state", "file", "file-delete", "catalogue", "analysis", "parse", "bid-pricing", "line-types"} if write else {"state", "file", "catalogue", "analysis", "bid-pricing"}
         if path not in operations:
             self.json(HTTPStatus.NOT_FOUND, {"error": "Action not found"})
             return
@@ -530,7 +532,7 @@ class BrowserHandler(BaseHTTPRequestHandler):
             params = {key: value[-1] for key, value in parse_qs(request.query, max_num_fields=4).items()}
             content = None
             if write:
-                limit = {"file": MAX_FILE_BYTES, "parse": MAX_FILE_BYTES, "catalogue": 1024, "analysis": 16 * 1024 * 1024, "bid-pricing": 1024 * 1024}.get(path, workspace.MAX_STATE_BYTES)
+                limit = {"file": MAX_FILE_BYTES, "parse": MAX_FILE_BYTES, "catalogue": 1024, "analysis": 16 * 1024 * 1024, "bid-pricing": 1024 * 1024, "line-types": 1024 * 1024}.get(path, workspace.MAX_STATE_BYTES)
                 length = int(self.headers.get("Content-Length", 0))
                 if not 0 < length <= limit:
                     self.json(HTTPStatus.REQUEST_ENTITY_TOO_LARGE, {"error": "The request is empty or too large."})
@@ -548,6 +550,14 @@ class BrowserHandler(BaseHTTPRequestHandler):
                 payload = json.loads(content)
                 if not isinstance(payload, dict):
                     raise ValueError("Invalid request body.")
+            if path == "line-types":
+                try:
+                    response = workspace_line_types.classify(payload)
+                except ProviderError:
+                    self.json(HTTPStatus.SERVICE_UNAVAILABLE, {"error": "Line classification is temporarily unavailable."})
+                    return
+                self.json(HTTPStatus.OK, response)
+                return
             if path == "analysis" and ((write and "original" not in params) or (not write and "id" not in params)):
                 response = workspace_analysis.run(payload) if write else workspace_analysis.options()
                 self.json(HTTPStatus.OK, response)

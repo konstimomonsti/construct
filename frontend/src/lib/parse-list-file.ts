@@ -1,6 +1,8 @@
 import { decodeGaeb90, parseCsv, parseGaeb90, parseGaebXml, type ParsedList } from './gaeb'
 import type { ListDoc, Position } from './types'
 
+import { parseLineType } from './line-type'
+
 function normalizeJson(raw: unknown): Position[] {
   const arr = Array.isArray(raw) ? raw : (raw as { positions?: unknown })?.positions
   if (!Array.isArray(arr) || arr.some((row) => !row || typeof row !== 'object' || Array.isArray(row))) throw new Error('Expected an array of list positions.')
@@ -11,6 +13,7 @@ function normalizeJson(raw: unknown): Position[] {
     long: r.long ? String(r.long) : undefined,
     qty: Number.isFinite(Number(r.qty)) ? Number(r.qty) : 1,
     unit: String(r.unit ?? 'St'),
+    lineType: parseLineType(r.lineType),
     up: r.up == null || r.up === '' || !Number.isFinite(Number(r.up)) ? null : Number(r.up),
     category: String(r.category ?? 'Import'),
     group: r.group ? String(r.group) : undefined,

@@ -53,7 +53,7 @@ export interface ListEdits {
   removed: string[]
   added: Position[]
   /** per-position text, unit, and position-number overrides */
-  patch: Record<string, Partial<Pick<Position, 'short' | 'long' | 'unit' | 'oz'>>>
+  patch: Record<string, Partial<Pick<Position, 'short' | 'long' | 'unit' | 'oz' | 'lineType'>>>
   /** position id → target category OZ (renumbered by resolveList) */
   moves: Record<string, string>
   categories: { added: { oz: string; label: string; parentOz: string | null }[]; renamed: Record<string, string> }

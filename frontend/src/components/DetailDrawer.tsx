@@ -4,6 +4,8 @@ import { AnimatePresence, motion } from 'motion/react'
 import { Button, Icon, Menu, useInertRoot } from './ui'
 import { LOCALE, amount, money, nbHyphen, parseNumber, qty } from '../lib/format'
 import { positionTotal } from '../lib/money'
+import { LineTypeSelect } from './LineType'
+import type { LineType } from '../lib/line-type'
 import type { CategoryRef, Position } from '../lib/types'
 
 const parseNum = (s: string) => parseNumber(s) ?? NaN
@@ -43,7 +45,7 @@ function Labeled({ label, children, className }: { label: string; children: Reac
 }
 
 export function DetailDrawer({
-  p, catalogue, webSuggestion, suggestion, findings, focusField, onClose, edited, added, onPatch, onCode, onQty, onUp, onReset, onMoveCategory, onRemove, onPrev, onNext, position, listTotal, imported, pendingPrice,
+  p, catalogue, webSuggestion, suggestion, findings, focusField, lineTypeSuggestion, onClose, edited, added, onPatch, onCode, onQty, onUp, onReset, onMoveCategory, onRemove, onPrev, onNext, position, listTotal, imported, pendingPrice,
 }: {
   onRemove?: () => void
   /** live list total for the position’s share of the estimate */
@@ -57,10 +59,11 @@ export function DetailDrawer({
   pendingPrice?: number | null
   findings?: React.ReactNode
   focusField?: string | null
+  lineTypeSuggestion?: LineType
   onClose: () => void
   edited: boolean
   added: boolean
-  onPatch: (patch: Partial<Pick<Position, 'short' | 'long' | 'unit'>>) => void
+  onPatch: (patch: Partial<Pick<Position, 'short' | 'long' | 'unit' | 'lineType'>>) => void
   onCode: (code: string) => boolean
   onQty: (n: number) => void
   onUp: (n: number | null) => void
@@ -417,6 +420,10 @@ export function DetailDrawer({
                     <Icon name="chevron_right" size={20} className="shrink-0 text-slate-600" />
                   </button>
                 </div>
+                <Labeled label="Line type">
+                  <LineTypeSelect value={p.lineType} short={p.short} long={p.long} suggestion={lineTypeSuggestion}
+                    onChange={(lineType) => { onPatch({ lineType }); didSave() }} />
+                </Labeled>
                 <div className="space-y-1.5">
                   <div className="flex min-h-8 items-center justify-between gap-2">
                     <span id={`${uid}-long`} className="block text-[13px] font-semibold text-slate-600">Langtext</span>

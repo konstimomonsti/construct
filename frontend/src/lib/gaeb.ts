@@ -4,11 +4,14 @@
  * (scripts/build-data.ts) and by the in-browser import flow.
  */
 
+import type { LineTypeSetting } from './line-type'
+
 export interface Position {
   id: string
   oz: string
   short: string
   long?: string
+  lineType?: LineTypeSetting
   qty: number
   unit: string
   /** unit price in EUR, null = not priced yet */
