@@ -131,11 +131,17 @@ def assess(analysis_input: AnalysisInput, findings: list[Finding]) -> RiskReport
     for signal in signals:
         line = lines[signal.line_id]
         wording = signal.kind in WORDING_KINDS
+        overlaps = any(finding_id in points for finding_id in signal.finding_ids)
+        amount = amounts[line.id]
         base = Decimal(str(signal.points))
-        if wording:
+        if overlaps:
+            base = Decimal(0)
+            amount = None
+        elif wording:
             base = min(WORDING_SECTION_CAP, base) if signal.id in winning_signals else Decimal(0)
-        add(signal.id, base, line.id, line.section_id, "change_order", signal.title,
-            amounts[line.id], LIKELIHOOD["signal"], capped=wording)
+        category = "dependency" if signal.kind == "missing_dependency" else "change_order"
+        add(signal.id, base, line.id, line.section_id, category, signal.title,
+            amount, LIKELIHOOD["signal"], capped=wording or overlaps)
         signal.points = points[signal.id]
     ordered = sorted(line_points, key=lambda id: (-line_points[id], -(amounts[id] or Decimal(0)),
                                                   lines[id].sort_order, id))
