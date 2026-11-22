@@ -170,5 +170,13 @@ SELECT NOT EXISTS (
     INSERT INTO db_migration.applied_version (version) VALUES (22);
 \endif
 
+SELECT NOT EXISTS (
+    SELECT FROM db_migration.applied_version WHERE version = 23
+) AS apply_activity_catalogue \gset
+\if :apply_activity_catalogue
+    \ir migrations/023_activity_catalogue.sql
+    INSERT INTO db_migration.applied_version (version) VALUES (23);
+\endif
+
 \ir runtime_role.sql
 COMMIT;
