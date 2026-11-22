@@ -39,7 +39,7 @@ import { matchesPricingFilter, usePriceSuggestions, type PriceSuggestion, type P
 import { CategoryTree, useExpanded, type CheckState } from '../components/split/CategoryTree'
 import { MoveToCategory } from '../components/split/MoveToCategory'
 import { budgetMoney, budgetStatus, int, money, parseNumber, plural } from '../lib/format'
-import { positionTotal } from '../lib/money'
+import { positionTotal, sumPositionTotals } from '../lib/money'
 import { groupByOz, hasSectionLabel } from '../lib/oz-groups'
 import { applyMoves, globalStep, indexTree, leafOz, nextChildOz, nextPositionOz, pathOf, resolveList, treeStats, type CatStat } from '../lib/resolve'
 import { normEdits, selectModel, statsOf, useModel, useStore } from '../lib/store'
@@ -858,32 +858,40 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
 
   // confirming writes the suggested price as the position's own price, the same as typing it
   const confirmPrices = (ids: string[]) => {
-    const picks = ids.flatMap((id) => {
-      const s = pending.get(id)
-      return s ? [[id, s] as [string, PriceSuggestion]] : []
+    const chosen = new Set(ids)
+    const picks = positions.flatMap((position) => {
+      const suggestion = pending.get(position.id)
+      return chosen.has(position.id) && position.up == null && suggestion ? [{ ...position, up: suggestion.price }] : []
     })
     if (!picks.length) return
     const store = useStore.getState()
     const edits = normEdits(store.edits[doc.id])
     const before = edits.up
     const up = { ...before }
-    for (const [id, s] of picks) up[id] = s.price
+    for (const position of picks) up[position.id] = position.up
     store.setEdits(doc.id, { ...edits, up })
-    const oz = positions.find((p) => p.id === picks[0][0])?.oz
     // undo puts back only these prices, so edits made after confirming survive
     const undo = () => {
       const e = useStore.getState().edits[doc.id]
       if (!e) return
       const up = { ...e.up }
-      for (const [id] of picks) {
+      for (const { id, up: price } of picks) {
+        if (up[id] !== price) continue
         if (id in before) up[id] = before[id]
         else delete up[id]
       }
       useStore.getState().setEdits(doc.id, { ...e, up })
     }
-    toast(picks.length === 1 ? `Confirmed ${money(picks[0][1].price)} for position ${oz}` : `Confirmed ${plural(picks.length, 'price', 'prices')}, ${money(picks.reduce((sum, [id, s]) => sum + s.price * (positions.find((p) => p.id === id)?.qty ?? 0), 0))} added`, 'ok', {
+    const message = picks.length === 1
+      ? `Confirmed ${money(picks[0].up)} for position ${picks[0].oz}`
+      : `Confirmed ${plural(picks.length, 'price', 'prices')}. The list total changed by ${money(sumPositionTotals(picks))}`
+    toast(message, 'ok', {
       label: 'Undo', run: undo,
     })
+  }
+  const confirmPricesFromToolbar = (ids: string[]) => {
+    confirmPrices(ids)
+    requestAnimationFrame(() => searchRef.current?.focus({ preventScroll: true }))
   }
   const dismissPrice = (id: string) => {
     const store = useStore.getState()
@@ -905,9 +913,15 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   const { pending: pendingCount, edited: editedCount } = pricingCounts
   // what the pending suggestions would add; shown beside the total, never inside it
   const pendingTotal = positions.reduce((sum, p) => sum + (pending.get(p.id)?.price ?? 0) * p.qty, 0)
-  // bulk confirm covers the rows on screen whose units are known; the rest are checked one by one in the drawer
-  const confirmable = rows.filter((p) => p.up == null && pending.get(p.id)?.unitKnown).map((p) => p.id)
-  const confirmableTotal = confirmable.reduce((sum, id) => sum + (pending.get(id)?.price ?? 0) * (positions.find((p) => p.id === id)?.qty ?? 0), 0)
+  // Suggestions with missing units still need individual review in the drawer.
+  const confirmable = new Map<string, Position>()
+  for (const position of positions) {
+    const suggestion = pending.get(position.id)
+    if (position.up == null && suggestion?.unitKnown) confirmable.set(position.id, { ...position, up: suggestion.price })
+  }
+  const confirmableTotal = sumPositionTotals([...confirmable.values()])
+  const shownConfirmable = pricingFilter === 'pending' ? rows.flatMap((p) => confirmable.get(p.id) ?? []) : []
+  const shownConfirmableTotal = sumPositionTotals(shownConfirmable)
   const filtered = !!q.trim() || !!cats || !!positionFilter || lineTypeFilter !== 'all' || findingFilter !== 'all'
   const sections = pricingSections(tree, catStats)
   const live = view && !view.trashedAt ? view : null
@@ -1110,13 +1124,17 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
               <span className="num">{int(rows.length)}</span>
             </FilterPill>
           )}
-          {pricingFilter === 'pending' && confirmable.length > 0 && (
-            <button type="button" onClick={() => {
-              confirmPrices(confirmable)
-              requestAnimationFrame(() => searchRef.current?.focus({ preventScroll: true }))
-            }} title={`Adds ${money(confirmableTotal)}: the list total becomes ${money(st.total + confirmableTotal)}`} aria-label={`Confirm ${plural(confirmable.length, 'shown price', 'shown prices')}, adds ${money(confirmableTotal)}; the list total becomes ${money(st.total + confirmableTotal)}`} className="inline-flex h-10 items-center gap-1.5 rounded-md px-3 text-sm font-semibold text-slate-800 hover:bg-slate-100">
-              <Icon name="done_all" size={18} />Confirm {plural(confirmable.length, 'price', 'prices')}
-              <span className="num font-medium text-slate-600">+{money(confirmableTotal)}</span>
+          {confirmable.size > 0 && (
+            <Button size="lg" icon="done_all" onClick={() => confirmPricesFromToolbar([...confirmable.keys()])}
+              title={`Confirm ${plural(confirmable.size, 'suggested price', 'suggested prices')} across this list. The list total will be ${money(st.total + confirmableTotal)}. Suggestions that need a unit check stay pending.`}>
+              Confirm all prices
+            </Button>
+          )}
+          {shownConfirmable.length > 0 && shownConfirmable.length < confirmable.size && (
+            <button type="button" onClick={() => confirmPricesFromToolbar(shownConfirmable.map((p) => p.id))}
+              title={`The list total will be ${money(st.total + shownConfirmableTotal)}`} className="inline-flex h-10 items-center gap-1.5 rounded-md px-3 text-sm font-semibold text-slate-800 hover:bg-slate-100">
+              <Icon name="check" size={18} />Confirm {plural(shownConfirmable.length, 'shown price', 'shown prices')}
+              <span className="num font-medium text-slate-600">{shownConfirmableTotal >= 0 ? '+' : ''}{money(shownConfirmableTotal)}</span>
             </button>
           )}
           {pricingFilter === 'edited' && editedCount > 0 && (
