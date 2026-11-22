@@ -83,6 +83,9 @@ Signals live in `risk.change_order_signals`, never in `findings`.
 | Provisional | Bedarfs-/Eventual-/Wahlposition or conditional GAEB flag | `provisional` |
 | Daywork | Stundenlohn, Regie or unit `h` | `hourly_work` |
 | Cost-plus | nach (tatsächlichem) Aufwand | `scope_gap` |
+| Separate payment | Mehrmengen, Mehrleistungen or additional work explicitly paid or billed separately | `scope_gap` |
+| Unresolved site condition | Explicitly unknown ground, groundwater, contamination, existing conditions or obstacles | `scope_gap` |
+| Late scope decision | Scope or quantity set later; execution and billing explicitly subject to approval | `scope_gap` |
 | By client | bauseits, beigestellt | `by_client` |
 | Client decides | nach Angabe/Wahl/Anordnung des AG, Bemusterung | `scope_gap` |
 | Conditional | ggf., evtl., soweit erforderlich | `scope_gap` |
@@ -102,7 +105,10 @@ For wording kinds (`scope_gap`, `provisional`, `hourly_work`, `by_client`,
 direct section receives points, capped at 2.5 per signal. A signal matching
 several families uses its first matching family and is charged once. The others
 remain visible with zero points
-and can still be reviewed. Missing-dependency and priced-zero-quantity signals
+and can still be reviewed. Explicit payment, unresolved site conditions, and
+late scope decisions take precedence over generic wording for the cap and quote
+the matched tender clause. These signals support pre-award clarification.
+Missing-dependency and priced-zero-quantity signals
 retain their individual points because they are not wording-only signals.
 Missing-dependency signals retain their source `finding_ids`. Findings and these
 derived signals are separate review items and each has its own points entry.
