@@ -181,7 +181,10 @@ class AnthropicProvider:
             self._client = client
         else:
             try:
-                self._client = anthropic.Anthropic(timeout=timeout, max_retries=2)
+                # Use response encodings supported by the standard-library decoders.
+                self._client = anthropic.Anthropic(
+                    timeout=timeout, max_retries=2, default_headers={"Accept-Encoding": "gzip, deflate"},
+                )
             except Exception as exc:  # e.g. no credentials could be resolved
                 raise ProviderUnavailable("Anthropic client could not be created") from exc
 

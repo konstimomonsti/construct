@@ -28,6 +28,9 @@ import { RiskPrint } from '../components/risk/RiskPrint'
 import { AddSectionDialog, PricingLegend, PricingBreakdown, pricingSections } from '../components/PricingSummary'
 import { useActions } from '../lib/actions'
 import { DetailDrawer } from '../components/DetailDrawer'
+import { LineTypeOptions, LineTypeSelect } from '../components/LineType'
+import { lineTypeOf } from '../lib/line-type'
+import { useLineTypes } from '../lib/use-line-types'
 import { loadList } from '../lib/data'
 import { ExportMenu } from '../components/ExportMenu'
 import { CatalogueDetails, CatalogueOverview } from '../components/WorkspaceCatalogue'
@@ -219,6 +222,7 @@ function CategoryFilter({ tree, stats, value, onChange, byOz }: { tree: Category
 
 function AddItemDialog({ open, onClose, listId, tree, positions }: { open: boolean; onClose: () => void; listId: string; tree: CategoryNode[]; positions: Position[] }) {
   const [f, setF] = useState({ oz: '', short: '', qty: '1', unit: 'St', up: '', cat: '' })
+  const [lineType, setLineType] = useState<Position['lineType']>()
   const index = useMemo(() => indexTree(tree), [tree])
   const path = pathOf(index, f.cat)
   const taken = new Set(positions.map((position) => position.oz))
@@ -242,6 +246,7 @@ function AddItemDialog({ open, onClose, listId, tree, positions }: { open: boole
       id: `u-${crypto.randomUUID()}`,
       oz: f.oz.trim() || nextOz,
       short: f.short.trim(),
+      lineType,
       qty: q,
       unit: f.unit.trim() || 'St',
       up,
@@ -251,6 +256,7 @@ function AddItemDialog({ open, onClose, listId, tree, positions }: { open: boole
     useStore.getState().addPosition(listId, p)
     toast(`Added ${p.oz}`)
     setF({ oz: '', short: '', qty: '1', unit: 'St', up: '', cat: '' })
+    setLineType(undefined)
     onClose()
   }
   return (
@@ -274,6 +280,9 @@ function AddItemDialog({ open, onClose, listId, tree, positions }: { open: boole
         </div>
         <Field label="Menge"><input inputMode="decimal" className={`${inputCls} num`} value={f.qty} onChange={set('qty')} /></Field>
         <Field label="Einheitspreis (€)"><input inputMode="decimal" className={`${inputCls} num`} value={f.up} onChange={set('up')} placeholder="optional" /></Field>
+        <div className="col-span-2">
+          <Field label="Line type"><LineTypeSelect value={lineType} short={f.short} onChange={setLineType} /></Field>
+        </div>
         <div className="col-span-2">
           <Field label="Kategorie">
             <select className={inputCls} value={f.cat} onChange={set('cat')}>
@@ -347,6 +356,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   const edits = useStore((s) => s.edits[doc.id])
   const resolved = useMemo(() => resolveList(doc, edits), [doc, edits])
   const positions = resolved.positions
+  const lineTypes = useLineTypes(positions)
   const bidStandardRates = useMemo(() => {
     if (!original || imported.phase !== 'X83') return new Map<string, number>()
     const units = new Map(imported.positions.map((p) => [p.id, p.unit]))
@@ -539,6 +549,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   }, [positions, reviewByRow, listWide, listSignals, risk])
 
   const [q, setQ] = useState('')
+  const [lineTypeFilter, setLineTypeFilter] = useState('all')
   const [categoryFilter, setCategoryFilter] = useState<Set<string> | null>(null)
   const [ozFilter, setOzFilter] = useState<Set<string> | null>(null)
   const cats = grouped ? ozFilter : categoryFilter
@@ -612,6 +623,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
       || p.path?.some((part) => part.label.toLowerCase().includes(t))
     const originalMatches = grouped && t ? new Set(positions.filter(matchesText).map((p) => p.id)) : null
     const r = ledgerPositions.filter(p =>
+      (lineTypeFilter === 'all' || lineTypeOf(p, lineTypes.get(p.id)) === lineTypeFilter) &&
       (!pricingFilter || matchesPricingFilter(pricingFilter, p, pending, modifiedIds)) &&
       (!researchShow || researchFilterOf(report?.positions[p.id]?.state) === researchShow) &&
       (!cats || cats.has(leafOz(p))) &&
@@ -621,7 +633,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
     if (sort === 'amount') r.sort((a, b) => positionTotal(b) - positionTotal(a))
     if (sort === 'risk') r.sort((a, b) => (rowPoints.get(b.id) ?? 0) - (rowPoints.get(a.id) ?? 0))
     return r
-  }, [positions, ledgerPositions, grouped, q, cats, sort, rowPoints, pricingFilter, researchShow, report, pending, modifiedIds, findingFilter, reviewByRow, settled])
+  }, [positions, ledgerPositions, grouped, q, cats, lineTypeFilter, lineTypes, sort, rowPoints, pricingFilter, researchShow, report, pending, modifiedIds, findingFilter, reviewByRow, settled])
   const repeatedIds = useMemo(() => {
     if (!findingFilter.startsWith('rule:')) return []
     const ids = new Set<string>()
@@ -763,6 +775,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   }
   const clearPositionFilters = () => {
     setPositionFilter(null)
+    setLineTypeFilter('all')
     setQ('')
     setCategoryFilter(null)
     setOzFilter(null)
@@ -886,7 +899,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   // bulk confirm covers the rows on screen whose units are known; the rest are checked one by one in the drawer
   const confirmable = rows.filter((p) => p.up == null && pending.get(p.id)?.unitKnown).map((p) => p.id)
   const confirmableTotal = confirmable.reduce((sum, id) => sum + (pending.get(id)?.price ?? 0) * (positions.find((p) => p.id === id)?.qty ?? 0), 0)
-  const filtered = !!q.trim() || !!cats || !!positionFilter || findingFilter !== 'all'
+  const filtered = !!q.trim() || !!cats || !!positionFilter || lineTypeFilter !== 'all' || findingFilter !== 'all'
   const sections = pricingSections(tree, catStats)
   const live = view && !view.trashedAt ? view : null
   const more: (MenuItem | 'sep')[] = [
@@ -1061,6 +1074,11 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
             </label>
           )}
           <CategoryFilter key={ledgerGrouping} tree={ledgerTree} stats={ledgerStats} value={cats} onChange={setCats} byOz={!!grouped} />
+          <select aria-label="Filter by line type" className={pillCls(lineTypeFilter !== 'all')} value={lineTypeFilter}
+            onChange={(e) => setLineTypeFilter(e.target.value)}>
+            <option value="all">All line types</option>
+            <LineTypeOptions />
+          </select>
           <FindingFilter rows={filterFindings} reviewed={settled} value={findingFilter} onChange={setFindingFilter} />
           {repeatedIds.length > 1 && (
             <DismissMenu label={`Dismiss ${repeatedIds.length} shown warnings`} onDismiss={(decision) => decide(repeatedIds, decision)}>
@@ -1130,6 +1148,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
           qtyEdited={qtyEdited}
           upEdited={upEdited}
           risks={risks}
+          lineTypes={lineTypes}
           pending={pending}
           catalogue={report?.positions}
           onConfirmPrice={(pid) => confirmPrices([pid])}
@@ -1251,6 +1270,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
       <AddItemDialog open={adding} onClose={() => setAdding(false)} listId={doc.id} tree={tree} positions={positions} />
       <DetailDrawer
         p={detail}
+        lineTypeSuggestion={detail ? lineTypes.get(detail.id) : undefined}
         pendingPrice={detail && detail.up == null ? pending.get(detail.id)?.price ?? null : null}
         suggestion={detail && detail.up == null && pending.get(detail.id) ? (
           <PriceSuggestionNote key={detail.id} s={pending.get(detail.id)!} unit={detail.unit}

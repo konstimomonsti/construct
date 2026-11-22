@@ -1,6 +1,8 @@
 import { GAEB_ITEM_SCOPE_TAGS, decodeGaeb90, parseCsv, parseGaeb90, parseGaebXml, type ParsedList } from './gaeb'
 import type { ListDoc, Position } from './types'
 
+import { parseLineType } from './line-type'
+
 function readItemScope(value: unknown): Position['gaebItemScope'] {
   if (!value || typeof value !== 'object') return
   const scope = value as Record<string, unknown>
@@ -17,6 +19,7 @@ function normalizeJson(raw: unknown): Position[] {
     long: r.long ? String(r.long) : undefined,
     qty: Number.isFinite(Number(r.qty)) ? Number(r.qty) : 1,
     unit: String(r.unit ?? 'St'),
+    lineType: parseLineType(r.lineType),
     up: r.up == null || r.up === '' || !Number.isFinite(Number(r.up)) ? null : Number(r.up),
     category: String(r.category ?? 'Import'),
     group: r.group ? String(r.group) : undefined,

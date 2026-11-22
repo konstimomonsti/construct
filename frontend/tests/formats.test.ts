@@ -5,6 +5,7 @@ import { DOMParser } from '@xmldom/xmldom'
 import ExcelJS from 'exceljs'
 import { PDFDocument } from 'pdf-lib'
 import { FORMATS, exportList, type FormatId } from '../src/lib/export/index'
+import { lineTypeOf } from '../src/lib/line-type'
 import { normOz } from '../src/lib/export/util'
 import { decodeGaeb90, parseGaeb90 } from '../src/lib/gaeb'
 import { parseListFile } from '../src/lib/parse-list-file'
@@ -35,6 +36,20 @@ const run = (format: FormatId, options: Partial<Parameters<typeof exportList>[0]
 const asFile = (name: string, data: Uint8Array | string) => new File([typeof data === 'string' ? data : new Uint8Array(data)], name)
 const sample = (name: string) => readFile(new URL('../../data/tenders/' + encodeURIComponent(name), import.meta.url))
 const fixture = (path: string) => readFile(new URL('../../data/fixtures/' + path, import.meta.url))
+
+test('automatic line types respect the AI result and an explicit override survives JSON export', async () => {
+  const source = { ...doc, fileName: 'work.json', source: { kind: 'json' as const } }
+  const resolved = resolveList(source, { patch: { pipe: { lineType: 'activity' } } })
+  const pipe = resolved.positions.find((position) => position.id === 'pipe')!
+  assert.equal(lineTypeOf(positions[0], 'combined'), 'combined')
+  assert.equal(lineTypeOf(pipe, 'combined'), 'activity')
+  const output = await exportList({
+    doc: source, resolved, format: 'json', loadOriginal: async () => new TextEncoder().encode(JSON.stringify(source)),
+  })
+  assert.equal(output.mode, 'generated')
+  const imported = await parseListFile(asFile(output.fileName, output.data))
+  assert.equal(imported?.positions.find((position) => position.id === 'pipe')?.lineType, 'activity')
+})
 
 for (const format of FORMATS) {
   test(format.id + ' export and import preserve the supported fields', async () => {
