@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { clsx } from 'clsx'
 import { Button, Icon } from './ui'
 import { MetaLink } from './Kit'
 import type { Position } from '../lib/types'
@@ -172,9 +173,13 @@ export function CatalogueDetails({ result, position, onApply }: {
   const note = suggestion ? suggestionNote(suggestion) : ''
   const applied = Boolean(note && position.long?.includes(note))
   return (
-    <section aria-labelledby="drawer-catalogue-h" className="space-y-1.5 text-sm leading-relaxed text-slate-700">
-      <h3 id="drawer-catalogue-h" className="text-[15px] font-semibold text-slate-900">Catalogue research</h3>
-      <p>
+    <section aria-labelledby="drawer-catalogue-h" className={clsx('space-y-1.5 text-sm leading-relaxed text-slate-700', suggestion && 'rounded-lg border border-brand-200 bg-brand-50/50 p-4')}>
+      <h3 id="drawer-catalogue-h" tabIndex={suggestion ? -1 : undefined} data-risk-field={suggestion ? 'web_suggestion' : undefined}
+        className="flex items-center gap-1.5 rounded text-[15px] font-semibold text-slate-900">
+        {suggestion && <Icon name="language" size={17} className="text-brand-700" />}
+        {suggestion ? 'Web suggestion' : 'Catalogue research'}
+      </h3>
+      {!suggestion && <p>
         {result.state === 'no_evidence' ? (result.model_review ? 'Catalogue match unresolved.' : 'No matching product found online.') : <>
           <span className="font-medium text-slate-800">{
             result.model_review && result.state === 'queued' ? 'Catalogue review queued' :
@@ -182,16 +187,16 @@ export function CatalogueDetails({ result, position, onApply }: {
           }.</span>
           {result.state === 'needs_description' && ' The imported row has no description to search for.'}
         </>}
-      </p>
+      </p>}
       {result.recovered?.source && <p>Missing description recovered from the companion offer PDF.</p>}
       {result.product && <p><strong>{result.product.name}</strong> · {result.product.category}</p>}
       {suggestion && <>
         <p><strong>{suggestion.name}</strong> · {suggestion.description}</p>
-        {suggestion.price && <p>Retail price: {money(Number(suggestion.price))} per product package. This is not the tender unit price.</p>}
+        {suggestion.price && <p><strong className="num text-slate-900">{money(Number(suggestion.price))}</strong> per retail package</p>}
         <div className="flex flex-wrap gap-x-2">
           <a href={suggestion.url} target="_blank" rel="noreferrer" className="font-medium text-brand-700 underline">View product on {suggestion.source}</a>
         </div>
-        <p>Check the source against the tender specifications before applying.</p>
+        <p>Check the source against the tender specifications before entering a unit price in the EP field above.</p>
         <Button size="sm" disabled={applied} onClick={() => onApply([position.long, note].filter(Boolean).join('\n\n'))}>
           {applied ? 'Suggestion applied' : 'Apply to long description'}
         </Button>

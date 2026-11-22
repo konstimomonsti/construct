@@ -43,13 +43,14 @@ function Labeled({ label, children, className }: { label: string; children: Reac
 }
 
 export function DetailDrawer({
-  p, catalogue, suggestion, findings, focusField, onClose, edited, added, onPatch, onCode, onQty, onUp, onReset, onMoveCategory, onRemove, onPrev, onNext, position, listTotal, imported, pendingPrice,
+  p, catalogue, webSuggestion, suggestion, findings, focusField, onClose, edited, added, onPatch, onCode, onQty, onUp, onReset, onMoveCategory, onRemove, onPrev, onNext, position, listTotal, imported, pendingPrice,
 }: {
   onRemove?: () => void
   /** live list total for the position’s share of the estimate */
   listTotal?: number
   p: Position | null
   catalogue?: React.ReactNode
+  webSuggestion?: React.ReactNode
   /** a catalogue price waiting for confirmation, shown right under the GP */
   suggestion?: React.ReactNode
   /** the suggested unit price behind `suggestion`, so the GP can show what confirming would add */
@@ -391,6 +392,7 @@ export function DetailDrawer({
                     </p>
                   )}
                 </div>
+                {webSuggestion}
                 {findings}
                 {catalogue}
                 <div className="space-y-1.5">

@@ -619,6 +619,10 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   const detail = detailId ? positions.find((p) => p.id === detailId) ?? null : null
   const detailIdx = detailId ? rows.findIndex((r) => r.id === detailId) : -1
   const detailCatalogue = detail && report?.positions[detail.id]
+  const catalogueDetails = detail && detailCatalogue && !(detail.up == null && pending.has(detail.id)) ? (
+    <CatalogueDetails result={detailCatalogue} position={detail}
+      onApply={(long) => useStore.getState().patchPosition(doc.id, detail.id, { long })} />
+  ) : undefined
   const detailFindings = detail ? findingsByRow.get(detail.id) : undefined
   const detailItems = detail ? findingsByRow.get(detail.id) : undefined
   const detailOpen = detailItems?.filter((item) => !settled.has(item.id)).length ?? 0
@@ -761,10 +765,6 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
 
   // the note is gone once a suggestion is settled: the cursor moves to the EP it filled (or left empty)
   const focusDrawerPrice = () => requestAnimationFrame(() => document.querySelector<HTMLElement>('[role=dialog] [data-risk-field="unit_price"]')?.focus())
-
-  const openRow = (position: Position, fromFinding?: boolean) => {
-    openDetail(position.id, fromFinding ? 'findings' : undefined)
-  }
 
   const removeSelected = () => {
     const ids = [...selected]
@@ -1004,7 +1004,8 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
       <div ref={tableRef} className="scroll-mt-20">
         {catalogueEnabled && researchShow && (
           <div className="mb-6">
-            <CatalogueOverview part="list" show={researchShow} setShow={filter => applyPositionFilter(filter ? { catalogue: filter } : null)} report={report} error={error} retryFailed={retryFailed} positions={rows} onOpen={openDetail}
+            <CatalogueOverview part="list" show={researchShow} setShow={filter => applyPositionFilter(filter ? { catalogue: filter } : null)} report={report} error={error} retryFailed={retryFailed} positions={rows}
+              onOpen={(id) => openDetail(id, researchShow === 'suggested' ? 'web_suggestion' : undefined)}
               onApplyAll={applySuggestions} onPrice={setOwnPrice} />
           </div>
         )}
@@ -1100,13 +1101,14 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
           selected={selected}
           setSelected={setSelected}
           focusId={focusId}
-          onOpen={openRow}
+          onOpen={(position, field) => openDetail(position.id, field)}
           onMove={(pid) => setMovePids([pid])}
           editedIds={editedIds}
           qtyEdited={qtyEdited}
           upEdited={upEdited}
           risks={risks}
           pending={pending}
+          catalogue={report?.positions}
           onConfirmPrice={(pid) => confirmPrices([pid])}
           sectionsOpen={sectionsOpen}
           sortActive={sort !== 'oz'}
@@ -1256,11 +1258,8 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
           <PriceSuggestionNote key={detail.id} s={pending.get(detail.id)!} unit={detail.unit}
             onConfirm={() => { confirmPrices([detail.id]); focusDrawerPrice() }} onDismiss={() => { dismissPrice(detail.id); focusDrawerPrice() }} />
         ) : undefined}
-        // while a suggestion waits, its note already names the matched product; the research block would repeat it
-        catalogue={detail && detailCatalogue && !(detail.up == null && pending.has(detail.id)) ? (
-          <CatalogueDetails result={detailCatalogue} position={detail}
-            onApply={(long) => useStore.getState().patchPosition(doc.id, detail.id, { long })} />
-        ) : undefined}
+        webSuggestion={detailCatalogue?.suggestion ? catalogueDetails : undefined}
+        catalogue={detailCatalogue?.suggestion ? undefined : catalogueDetails}
         findings={detailItems?.length ? (
           <section aria-labelledby="drawer-findings-h">
             <h3 id="drawer-findings-h" tabIndex={-1} data-risk-field="findings" className="rounded text-[15px] font-semibold text-slate-900">

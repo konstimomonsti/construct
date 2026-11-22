@@ -5,6 +5,7 @@ import { QtyInput, editableCls } from './QtyStepper'
 import { FindingBadge, RISK_UI } from './RiskAssessment'
 import { amount, int, nbHyphen, parseNumber, plural } from '../lib/format'
 import type { PriceSuggestion } from '../lib/price-suggestions'
+import type { CatalogueReport } from '../lib/workspace-catalogue'
 import { positionTotal } from '../lib/money'
 import { useStore } from '../lib/store'
 import { leafOz, treeStats, type CatStat } from '../lib/resolve'
@@ -64,6 +65,7 @@ function PriceCell({ value, onSave, oz, edited, muted, className }: { value: num
         onFocus={(e) => e.currentTarget.select()}
         onKeyDown={(e) => {
           if (e.key === 'Enter') {
+            e.preventDefault()
             refocus.current = true
             commit()
           }
@@ -141,12 +143,13 @@ interface RowProps {
   risk?: RowRisk
   /** catalogue price waiting for confirmation (only on positions without a price) */
   pending?: PriceSuggestion
+  hasWebSuggestion: boolean
   onConfirmPrice?: (pid: string) => void
-  onOpen: (p: Position, fromFinding?: boolean) => void
+  onOpen: (p: Position, field?: 'findings' | 'web_suggestion') => void
   onMove: (pid: string) => void
 }
 
-const Row = memo(function Row({ listId, p, showCategory, selected, flash, edited, qtyEdited, upEdited, risk, pending, onConfirmPrice, onToggle, onOpen, onMove }: RowProps) {
+const Row = memo(function Row({ listId, p, showCategory, selected, flash, edited, qtyEdited, upEdited, risk, pending, hasWebSuggestion, onConfirmPrice, onToggle, onOpen, onMove }: RowProps) {
   const severity = risk ? risk.severity ?? 'info' : undefined
   const reviewLabel = risk && plural(risk.count, 'finding', 'findings')
   const total = positionTotal(p)
@@ -174,7 +177,19 @@ const Row = memo(function Row({ listId, p, showCategory, selected, flash, edited
           document.querySelector<HTMLElement>('[data-results-heading]')?.focus()
         })
       }} onReview={() => onOpen(p)} className={className} />
-    : <PriceCell value={p.up} oz={p.oz} edited={upEdited} muted={zero} onSave={setUp} className={className} />
+    : (
+      <div className="flex items-center justify-end gap-1">
+        <PriceCell value={p.up} oz={p.oz} edited={upEdited} muted={zero} onSave={setUp}
+          className={className ?? 'w-full min-w-0'} />
+        {hasWebSuggestion && (
+          <button type="button" aria-haspopup="dialog" aria-label={`View web suggestion for ${p.oz}`} title="View web suggestion"
+            onClick={() => onOpen(p, 'web_suggestion')}
+            className="inline-flex h-9 shrink-0 items-center gap-1 rounded-md border border-brand-200 bg-white px-1.5 text-[13px] font-medium text-brand-700 hover:border-brand-400 hover:bg-brand-50">
+            <Icon name="language" size={16} />Web
+          </button>
+        )}
+      </div>
+    )
   return (
     <tr
       data-pid={p.id}
@@ -212,7 +227,7 @@ const Row = memo(function Row({ listId, p, showCategory, selected, flash, edited
         {risk && severity && (
           <button
             type="button"
-            onClick={() => onOpen(p, true)}
+            onClick={() => onOpen(p, 'findings')}
             title={risk.label}
             aria-label={`Review ${reviewLabel} for ${p.oz}${hasShort ? ` ${p.short}` : ''}: ${risk.label}`}
             className="mb-1.5 block rounded-md max-lg:mt-1"
@@ -228,11 +243,11 @@ const Row = memo(function Row({ listId, p, showCategory, selected, flash, edited
       </td>
       <td data-a="qty" className="relative w-24 py-1 pr-1 pl-2 text-right">
         <span className="hidden lg:inline"><EditDot on={qtyEdited} /></span>
-        <div className="flex items-center gap-1.5 lg:block">
+        <div className={clsx('flex items-center gap-1.5 lg:block', hasWebSuggestion && 'flex-wrap')}>
           <QtyInput value={p.qty} label={p.oz} edited={qtyEdited} muted={zero} onChange={(n) => useStore.getState().setQty(listId, p.id, n)} />
           <span className="text-sm whitespace-nowrap text-slate-600 lg:hidden">{p.unit || '—'} ×</span>
           <span className="relative lg:hidden">
-            {price('w-auto min-w-20')}
+            {price(hasWebSuggestion ? 'w-auto min-w-20 max-w-28' : 'w-auto min-w-20')}
           </span>
           {edited && <span className="size-1.5 shrink-0 rounded-md bg-brand-600 lg:hidden" aria-hidden title="Edited" />}
         </div>
@@ -274,10 +289,11 @@ const EMPTY = new Set<string>()
 const SEVERITY_RANK: Record<Severity, number> = { error: 0, warning: 1, info: 2 }
 
 export function LedgerTable({
-  listId, rows, tree, byOz, showEmpty, selected, setSelected, focusId, onOpen, onMove, editedIds, qtyEdited, upEdited, risks, pending, onConfirmPrice, sortActive, selectMode, sectionsOpen = false,
+  listId, rows, tree, byOz, showEmpty, selected, setSelected, focusId, onOpen, onMove, editedIds, qtyEdited, upEdited, risks, pending, catalogue, onConfirmPrice, sortActive, selectMode, sectionsOpen = false,
 }: {
   /** catalogue prices waiting for confirmation, by position id */
   pending?: ReadonlyMap<string, PriceSuggestion>
+  catalogue?: CatalogueReport['positions']
   onConfirmPrice?: (pid: string) => void
   /** sections start collapsed so a long list reads as an outline; "Expand all" opens every level */
   sectionsOpen?: boolean
@@ -537,6 +553,7 @@ Einheitspreis (€)
                   upEdited={upEdited.has(p.id)}
                   risk={risks?.get(p.id)}
                   pending={pending?.get(p.id)}
+                  hasWebSuggestion={Boolean(catalogue?.[p.id]?.suggestion)}
                   onConfirmPrice={onConfirmPrice}
                   onToggle={toggle}
                   onOpen={onOpen}
