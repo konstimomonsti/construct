@@ -1,9 +1,12 @@
+import type { CategoryRef } from './gaeb'
+
 type AmountInput = {
   qty: number
   up: number | null
   lumpSum?: boolean
   quantityMissing?: boolean
   totalRule?: 'unit_price_only' | 'conditional'
+  path?: CategoryRef[]
 }
 
 function decimal(value: number): [bigint, number] {
@@ -26,7 +29,7 @@ export function round2(value: number): number {
 }
 
 function positionCents(position: AmountInput): bigint {
-  const quantity = position.quantityMissing ? (position.lumpSum ? 1 : null) : position.qty
+  const quantity = position.lumpSum ? 1 : position.quantityMissing ? null : position.qty
   if (position.up == null || quantity == null || !Number.isFinite(position.up) || !Number.isFinite(quantity)) return 0n
   const [rate, rateScale] = decimal(position.up)
   const [qty, qtyScale] = decimal(quantity)
@@ -35,6 +38,10 @@ function positionCents(position: AmountInput): bigint {
 
 /** Position amounts retain their sign. Rollups include firm items only. */
 export const positionTotal = (position: AmountInput) => Number(positionCents(position)) / 100
-export const includedPositionTotal = (position: AmountInput) => position.totalRule ? 0 : positionTotal(position)
+export const isExcludedPosition = (position: AmountInput) => Boolean(position.totalRule || position.path?.some(({ gaebSectionScope }) =>
+  gaebSectionScope?.NotAppl === 'Yes'
+  || (gaebSectionScope?.Accepted !== 'Yes' && /^0*[1-9]\d*$/.test(gaebSectionScope?.ALNBSerNo ?? '')),
+))
+export const includedPositionTotal = (position: AmountInput) => isExcludedPosition(position) ? 0 : positionTotal(position)
 export const sumPositionTotals = (positions: readonly AmountInput[]) =>
-  Number(positions.reduce((sum, position) => sum + (position.totalRule ? 0n : positionCents(position)), 0n)) / 100
+  Number(positions.reduce((sum, position) => sum + (isExcludedPosition(position) ? 0n : positionCents(position)), 0n)) / 100

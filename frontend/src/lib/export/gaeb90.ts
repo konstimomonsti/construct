@@ -196,7 +196,11 @@ function textRecords(p: Position, dos: boolean, longTexts: boolean): string[] {
 function rec21(key: string, p: Position, dos: boolean): string {
   const b = blank()
   put(b, 0, '21' + key)
-  put(b, 11, 'NNN')
+  const scope = p.gaebItemScope
+  const alternative = p.totalRule === 'conditional' && !scope?.Provis
+  put(b, 11, alternative ? 'A' : scope?.ALNSerNo === '0' ? 'G' : 'N')
+  put(b, 12, p.totalRule === 'unit_price_only' ? 'E' : 'N')
+  put(b, 13, p.lumpSum ? 'L' : 'N')
   put(b, 23, digits(p.qty * 1000, 11))
   put(b, 34, toByteString(p.unit, dos).slice(0, 4))
   return b.join('')

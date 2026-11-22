@@ -10,7 +10,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from .adapter import to_decimal
 from .contracts import AddLine, AnalysisInput, AnalysisResult, Line
-from .layer1.common import money
+from .layer1.common import excluded_scope_sections, is_counted, money
 from .units import Dimension, convert, dimension
 
 CENT = Decimal("0.01")
@@ -144,8 +144,9 @@ def included_positions(snapshot: AnalysisInput) -> dict[str, tuple[Line, Decimal
            for section in snapshot.sections):
         raise ValueError("The simulator requires an undiscounted BoQ with position-level pricing")
     positions = {}
+    excluded = excluded_scope_sections(snapshot)
     for line in snapshot.lines:
-        if line.total_rule != "include":
+        if not is_counted(line) or line.section_id in excluded:
             continue
         key = line.code or line.id
         if key in positions:
@@ -167,6 +168,7 @@ def included_positions(snapshot: AnalysisInput) -> dict[str, tuple[Line, Decimal
 
 def quantity_opportunities(snapshot: AnalysisInput, result: AnalysisResult) -> list[dict]:
     lines = snapshot.line_by_id()
+    excluded = excluded_scope_sections(snapshot)
     opportunities = []
     for finding in result.findings:
         ids = finding.evidence.get("dependency_line_ids")
@@ -174,7 +176,7 @@ def quantity_opportunities(snapshot: AnalysisInput, result: AnalysisResult) -> l
                 or not isinstance(ids, list) or len(ids) != 1):
             continue
         line = lines.get(ids[0])
-        if line is None or line.total_rule != "include" or line.pricing_basis != "unit_rate":
+        if line is None or not is_counted(line) or line.section_id in excluded or line.pricing_basis != "unit_rate":
             continue
         try:
             quantity, finding_id, reviews = _finding_change(line, finding.rule_id, result)

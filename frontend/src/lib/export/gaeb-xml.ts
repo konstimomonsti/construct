@@ -6,6 +6,7 @@
  * (string splicing, no re-serialisation) so every untouched byte stays identical.
  */
 import type { ListDoc, Position } from '../types'
+import { GAEB_ITEM_SCOPE_TAGS, GAEB_SECTION_SCOPE_TAGS } from '../gaeb'
 import {
   type Cat, type OzMask, buildCats, diffList, inferMask, normOz, rnoPart, xmlEsc,
 } from './util'
@@ -68,9 +69,17 @@ function itemXml(p: Position, rno: string, id: string, o: { variant: XmlVariant;
   const detail = st3 ? STYLE32_DETAIL : NOSTYLE
   const outline = st3 ? STYLE32_OUTLINE : NOSTYLE
   let x = `<Item ID="${id}" RNoPart="${xmlEsc(rno)}">`
+  const scope = p.gaebItemScope ?? (p.totalRule === 'unit_price_only' ? { Provis: 'WithoutTotal' } : undefined)
+  for (const tag of GAEB_ITEM_SCOPE_TAGS) {
+    const value = scope?.[tag]
+    if (value) x += `<${tag}>${xmlEsc(value)}</${tag}>`
+  }
   if (p.lumpSum) x += '<LumpSumItem>Yes</LumpSumItem>'
   x += `<Qty>${fmtQty(p.qty)}</Qty><QU>${xmlEsc(p.unit)}</QU>`
-  if (o.priced && o.prices && p.up != null) x += `<UP>${fmtUp(p.up)}</UP><IT>${fmtIt(p.qty, p.up)}</IT>`
+  if (o.priced && o.prices && p.up != null) {
+    x += `<UP>${fmtUp(p.up)}</UP>`
+    if (p.totalRule !== 'unit_price_only') x += `<IT>${fmtIt(p.lumpSum ? 1 : p.qty, p.up)}</IT>`
+  }
   x += '<Description><CompleteText>'
   if (o.longTexts && p.long) x += `<DetailTxt><Text>${ptags(p.long, detail)}</Text></DetailTxt>`
   x += `<OutlineText><OutlTxt><TextOutlTxt>${ptags(p.short, outline)}</TextOutlTxt></OutlTxt></OutlineText>`
@@ -119,6 +128,7 @@ export function generateGaebXml(o: GenOpts): string {
     return { ...position, path: prefix.map((part, index) => ({
       oz: prefix.slice(0, index + 1).join('.'),
       label: position.path?.[index]?.label ?? part,
+      gaebSectionScope: position.path?.[index]?.gaebSectionScope,
     })) }
   })
   const tree = buildCats(positions, o.tree)
@@ -133,7 +143,12 @@ export function generateGaebXml(o: GenOpts): string {
   const io = { variant: o.variant, longTexts: o.longTexts, prices: o.prices, priced }
   const lblStyle = o.variant === '3.2' ? STYLE32_OUTLINE : NOSTYLE
   const ctgy = (c: Cat): string => {
-    let x = `<BoQCtgy ID="${nid()}" RNoPart="${xmlEsc(part(c.oz, c.depth))}"><LblTx>${ptags(c.label || ' ', lblStyle)}</LblTx><BoQBody>`
+    let x = `<BoQCtgy ID="${nid()}" RNoPart="${xmlEsc(part(c.oz, c.depth))}"><LblTx>${ptags(c.label || ' ', lblStyle)}</LblTx>`
+    for (const tag of GAEB_SECTION_SCOPE_TAGS) {
+      const value = c.gaebSectionScope?.[tag]
+      if (value) x += `<${tag}>${xmlEsc(value)}</${tag}>`
+    }
+    x += '<BoQBody>'
     for (const k of c.cats) x += ctgy(k)
     if (c.items.length) x += '<Itemlist>' + c.items.map((p) => itemXml(p, part(p.oz, p.oz.split('.').length, true), nid(), io)).join('') + '</Itemlist>'
     return x + '</BoQBody></BoQCtgy>'

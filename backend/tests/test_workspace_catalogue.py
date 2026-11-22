@@ -8,6 +8,7 @@ from psycopg.rows import dict_row
 import pytest
 
 import workspace
+from catalogues import write as write_catalogue
 
 import workspace_catalogue as catalogue
 
@@ -113,6 +114,23 @@ def test_workspace_worker_matches_an_upload_without_source_links(monkeypatch):
             assert report["state"] == "ready"
             assert report["positions"]["match"]["product"]["id"] == str(product)
             assert report["positions"]["variant"]["product"] is None
+
+            workspace.apply(connection, {"changes": {"edits": {"set": {
+                list_id: {"patch": {"match": {"unit": "St"}}, "removed": ["variant"]},
+            }}}})
+            assert catalogue.status(connection, "default", list_id)["positions"] == {}
+            assert catalogue.classify_next(connection)
+            report = catalogue.status(connection, "default", list_id)
+            assert report["positions"]["match"]["product"] is None
+            assert "variant" not in report["positions"]
+
+            workspace.apply(connection, {"changes": {"edits": {"delete": [list_id]}}})
+            assert catalogue.classify_next(connection)
+            assert catalogue.status(connection, "default", list_id)["positions"]["match"]["product"]["id"] == str(product)
+            write_catalogue(connection, "products", {"id": str(product), "action": "archive"})
+            assert catalogue.status(connection, "default", list_id)["positions"] == {}
+            assert catalogue.classify_next(connection)
+            assert catalogue.status(connection, "default", list_id)["positions"]["match"]["product"] is None
 
 
 def test_research_uses_merchant_products_and_ignores_unrelated_search_hits(monkeypatch):

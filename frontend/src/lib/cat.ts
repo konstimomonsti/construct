@@ -30,7 +30,7 @@ export function treeFromPaths(positions: Position[]): CategoryNode[] {
     for (const r of p.path ?? []) {
       let n = byOz.get(r.oz)
       if (!n) {
-        n = newNode(r.oz, r.label)
+        n = { ...newNode(r.oz, r.label), gaebSectionScope: r.gaebSectionScope }
         n.depth = (parent?.depth ?? 0) + 1
         byOz.set(r.oz, n)
         ;(parent ? parent.children : tree).push(n)

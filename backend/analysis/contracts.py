@@ -62,6 +62,7 @@ class Section(_Model):
     code_parts: list[str] = Field(default_factory=list)
     title: str | None = None
     sort_order: int
+    gaeb_flags: dict[str, str] = Field(default_factory=dict)
     stated_total: Decimal | None = None  # subtotal written in the source file, if any
     # Subtotal after a section discount (GAEB XML TotAfterDisc). Parent sections add this amount, not stated_total.
     stated_total_after_discount: Decimal | None = None
@@ -153,6 +154,9 @@ class AnalysisInput(_Model):
 
     def compute_hash(self) -> str:
         payload = self.model_dump(mode="json", exclude={"input_hash"})
+        for section in payload["sections"]:
+            if not section["gaeb_flags"]:
+                section.pop("gaeb_flags")
         canonical = json.dumps(payload, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
         return sha256(canonical.encode("utf-8")).hexdigest()
 

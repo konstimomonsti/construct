@@ -130,12 +130,12 @@ def orphan_alternative(ctx):
 
 
 @rule("L1.STRUCT.PROVISIONAL_ITEM", layer=1, category="structure", severity="info", title="Optional item (Bedarfsposition)",
-      description="Optional items are not in the total. VOB/A §7 (1) 4 generally disallows them in public tenders.")
+      description="Optional items may be included in the written total depending on their GAEB pricing flag.")
 def provisional_item(ctx):
     for line in ctx.input.lines:
         if is_optional(line):
             yield ctx.finding(line=line, field="total_rule",
-                              message=f"{label(line)} is an optional item and is not counted in the total. Confirm the quantity to price and whether it will be evaluated.",
+                              message=f"{label(line)} is an optional item. Confirm the quantity to price and whether it will be evaluated.",
                               evidence={"total_rule": line.total_rule, "flags": line.gaeb_flags})
 
 

@@ -1,5 +1,6 @@
 /** CSV, Excel, Word and JSON writers (everything that is not a GAEB / PDF notation) */
-import { documentList, DOCX_LIST_NAMESPACE, DOCX_LIST_PART } from '../list-file'
+import { isExcludedPosition } from '../money'
+import { documentList, exportPosition, DOCX_LIST_NAMESPACE, DOCX_LIST_PART } from '../list-file'
 import type { ListDoc, Position } from '../types'
 import { type Cat, type CatTree, buildCats, catCount, catSum, deDate, deNum, gp, round2, walk } from './util'
 
@@ -52,14 +53,10 @@ export function toCsvTable(o: TableOpts): string {
 /* ------------------------------------------------------------------ */
 
 export function toJson(o: TableOpts, resolvedTree: unknown): string {
-  const positions = o.positions.map((p) => {
-    const q = { ...p }
-    if (!o.longTexts) delete q.long
-    if (!o.prices) q.up = null
-    return q
-  })
+  const positions = o.positions.map((p) => exportPosition(p, o.longTexts, o.prices))
   const total = round2(positions.reduce((s, p) => s + gp(p), 0))
-  return JSON.stringify({ ...o.doc, positions, tree: resolvedTree, positionsCount: positions.length, total: o.prices ? total : 0 }, null, 2)
+  const pricedCount = positions.filter((p) => p.up !== null).length
+  return JSON.stringify({ ...o.doc, positions, tree: resolvedTree, positionsCount: positions.length, pricedCount, total }, null, 2)
 }
 
 /* ------------------------------------------------------------------ */
@@ -126,8 +123,8 @@ export async function toXlsx(o: TableOpts): Promise<Uint8Array> {
       if (o.prices) {
         if (p.up != null) r.getCell(upI).value = p.up
         r.getCell(upI).numFmt = '#,##0.00 "€"'
-        if (!p.totalRule && (!p.quantityMissing || p.lumpSum)) {
-          const quantity = p.quantityMissing ? '1' : `${qL}${row}`
+        if (!isExcludedPosition(p) && (!p.quantityMissing || p.lumpSum)) {
+          const quantity = p.lumpSum ? '1' : `${qL}${row}`
           r.getCell(gpI).value = { formula: `ROUND(${quantity}*${uL}${row},2)`, result: gp(p) }
         }
         r.getCell(gpI).numFmt = '#,##0.00 "€"'

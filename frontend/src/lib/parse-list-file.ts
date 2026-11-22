@@ -1,5 +1,11 @@
-import { decodeGaeb90, parseCsv, parseGaeb90, parseGaebXml, type ParsedList } from './gaeb'
+import { GAEB_ITEM_SCOPE_TAGS, decodeGaeb90, parseCsv, parseGaeb90, parseGaebXml, type ParsedList } from './gaeb'
 import type { ListDoc, Position } from './types'
+
+function readItemScope(value: unknown): Position['gaebItemScope'] {
+  if (!value || typeof value !== 'object') return
+  const scope = value as Record<string, unknown>
+  return Object.fromEntries(GAEB_ITEM_SCOPE_TAGS.flatMap((key) => typeof scope[key] === 'string' ? [[key, scope[key]]] : []))
+}
 
 function normalizeJson(raw: unknown): Position[] {
   const arr = Array.isArray(raw) ? raw : (raw as { positions?: unknown })?.positions
@@ -16,6 +22,7 @@ function normalizeJson(raw: unknown): Position[] {
     group: r.group ? String(r.group) : undefined,
     lumpSum: r.lumpSum ? true : undefined,
     quantityMissing: r.quantityMissing === true || undefined,
+    gaebItemScope: readItemScope(r.gaebItemScope),
     totalRule: r.totalRule === 'unit_price_only' || r.totalRule === 'conditional' ? r.totalRule : undefined,
     path: Array.isArray(r.path) && r.path.every((part) => part && typeof part.oz === 'string' && typeof part.label === 'string')
       ? r.path : undefined,

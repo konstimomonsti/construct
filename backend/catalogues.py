@@ -185,6 +185,13 @@ def write(connection, kind, payload):
         row = connection.execute(query, (record_id,)).fetchone()
         if not row:
             raise LookupError("This catalogue record was not found.")
+        if kind == "products":
+            connection.execute(
+                """UPDATE workspace_catalogue_run r SET state='queued'
+                   WHERE EXISTS (SELECT 1 FROM workspace_catalogue_position p
+                                 WHERE p.workspace=r.workspace AND p.list_id=r.list_id
+                                   AND p.product->>'id'=%s)""", (str(record_id),),
+            )
         return row
     if action != "save":
         raise ValueError("Select a valid catalogue action.")
