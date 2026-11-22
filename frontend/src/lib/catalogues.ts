@@ -61,6 +61,41 @@ export async function requestCatalogue<T>(kind: CatalogueKind, params = '', init
   return response.json()
 }
 
+/** one price of an activity: ours when `subcontractor` is null, otherwise the offer of that subcontractor */
+export type ActivityPrice = {
+  unit_price: string
+  currency: string | null
+  valid_from: string
+  valid_until: string | null
+  source_note: string | null
+  subcontractor_id: string | null
+  subcontractor: string | null
+}
+
+/** an activity (installation, removal, disposal, planning, site costs...) of the tender catalogue, with its valid prices */
+export type ActivityEntry = {
+  code: string
+  name: string
+  unit: string | null
+  kind: 'activity' | 'supply'
+  prices: ActivityPrice[]
+}
+
+/** the API reads at most this many position codes per request; matches MAX_ACTIVITY_CODES in backend/catalogues.py */
+const ACTIVITY_CODES_PER_REQUEST = 100
+
+/** the valid prices of the activities whose tender position code is in `codes`; codes without a price are left out */
+export async function requestActivities(codes: readonly string[]): Promise<ActivityEntry[]> {
+  const chunks: string[][] = []
+  for (let i = 0; i < codes.length; i += ACTIVITY_CODES_PER_REQUEST) chunks.push(codes.slice(i, i + ACTIVITY_CODES_PER_REQUEST))
+  const pages = await Promise.all(chunks.map(async (chunk) => {
+    const response = await fetch(`/api/catalogues/activities?codes=${encodeURIComponent(chunk.join(','))}`, { cache: 'no-store' })
+    if (!response.ok) throw new Error('The activity prices could not be read.')
+    return (await response.json()) as { rows: ActivityEntry[] }
+  }))
+  return pages.flatMap((page) => page.rows)
+}
+
 export const writeCatalogue = (kind: CatalogueKind, fields: Record<string, unknown>) =>
   requestCatalogue<{ id: string }>(kind, '', {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(fields),

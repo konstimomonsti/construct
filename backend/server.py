@@ -399,8 +399,11 @@ class BrowserHandler(BaseHTTPRequestHandler):
 
     def catalogue_request(self, request, write):
         kind = request.path.removeprefix("/api/catalogues/")
-        if kind not in catalogues.TABLES:
+        if kind not in catalogues.TABLES and kind not in catalogues.READ_ONLY:
             self.json(HTTPStatus.NOT_FOUND, {"error": "Catalogue not found."})
+            return
+        if write and kind in catalogues.READ_ONLY:
+            self.json(HTTPStatus.METHOD_NOT_ALLOWED, {"error": "This catalogue can only be read."})
             return
         try:
             if write:

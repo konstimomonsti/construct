@@ -1472,7 +1472,7 @@ function PriceSuggestionNote({ s, unit, onConfirm, onDismiss }: { s: PriceSugges
         <span className="num text-[15px] font-semibold text-slate-900">{money(s.price)}<span className="font-normal text-slate-600">{(unit || s.unit) && ` / ${unit || s.unit}`}</span></span>
       </p>
       <p className="mt-1 text-sm leading-relaxed text-slate-700">
-        From the catalogue match <span lang="de" className="font-medium">{s.product.name}</span>{source && <> ({source})</>}.
+        From the {s.kind === 'activity' ? 'activity catalogue' : 'catalogue match'} <span lang="de" className="font-medium">{s.product.name}</span>{source && <> ({source})</>}.
       </p>
       {!s.unitKnown && (
         // one side names no unit: show both, and ask for a deliberate yes before the price can count

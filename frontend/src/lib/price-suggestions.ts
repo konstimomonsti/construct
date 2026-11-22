@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
-import { requestCatalogue, type CatalogueEntry } from './catalogues'
+import { requestActivities, requestCatalogue, type ActivityEntry, type CatalogueEntry } from './catalogues'
 import type { CatalogueReport } from './workspace-catalogue'
 import type { Position } from './types'
 
 /**
  * A position has one of three pricing states:
  * - priced: it has a unit price (from the file, typed, or a confirmed suggestion)
- * - pending: no unit price yet, but a matched catalogue product proposes one; it waits for the user to confirm it
+ * - pending: no unit price yet, but a matched catalogue product, or the activity catalogue (our own price or a
+ *   subcontractor's offer for the same tender position), proposes one; it waits for the user to confirm it
  * - unpriced: no unit price and nothing to propose
  * Pending prices never count toward totals until they are confirmed.
  */
@@ -20,6 +21,8 @@ export type PriceSuggestion = {
   validFrom: string | null
   /** both the catalogue and the position name a unit (and they match); otherwise the user checks the unit first */
   unitKnown: boolean
+  /** what the price comes from; a missing kind is a product */
+  kind?: 'product' | 'activity'
 }
 
 // one request per product for the whole session; the catalogue rarely changes while a list is open
@@ -44,6 +47,50 @@ const unitKey = (unit: string | null | undefined) => {
 
 /** a catalogue price only fits a position priced in the same unit; no unit on either side is taken as a fit */
 const unitsFit = (a: string | null | undefined, b: string | null | undefined) => !unitKey(a) || !unitKey(b) || unitKey(a) === unitKey(b)
+
+/** the name of a tender position without the numbered Muster-LV suffix, case, punctuation and spacing */
+const activityName = (text: string | null | undefined) =>
+  (text ?? '').replace(/\s*(?:MLV-FSB)?_?\d{6,}.*$/s, '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim()
+
+/**
+ * the price the activity catalogue proposes for a position: the cheapest valid EUR price, our own or a subcontractor's.
+ * The activity must carry the position's tender code (the caller looks it up by it) and its name, and the units must fit.
+ */
+export function activitySuggestion(p: Position, entry: ActivityEntry | null | undefined): PriceSuggestion | null {
+  if (!entry || !activityName(p.short) || activityName(p.short) !== activityName(entry.name) || !unitsFit(entry.unit, p.unit)) return null
+  let best: { price: number; from: ActivityEntry['prices'][number] } | null = null
+  for (const from of entry.prices) {
+    const price = Number(from.unit_price)
+    if (!Number.isFinite(price) || price < 0 || (from.currency && from.currency !== 'EUR')) continue
+    // the cheapest wins; at the same price our own is kept over an offer
+    if (!best || price < best.price || (price === best.price && !from.subcontractor && best.from.subcontractor)) best = { price, from }
+  }
+  if (!best) return null
+  return {
+    price: Math.round(best.price * 100) / 100,
+    unit: entry.unit ?? null,
+    product: { id: entry.code, name: entry.name, supplier: best.from.subcontractor ?? 'Own price' },
+    basis: null,
+    validFrom: best.from.valid_from,
+    unitKnown: !!unitKey(entry.unit) && !!unitKey(p.unit),
+    kind: 'activity',
+  }
+}
+
+// one request per position code for the whole session, like the products; a code with no price is remembered as null
+const activities = new Map<string, Promise<ActivityEntry | null>>()
+function activitiesFor(codes: string[]) {
+  const missing = codes.filter((code) => !activities.has(code))
+  if (missing.length) {
+    const batch = requestActivities(missing).then((rows) => new Map(rows.map((row) => [row.code, row] as const)))
+    for (const code of missing) {
+      const hit = batch.then((found) => found.get(code) ?? null)
+      hit.catch(() => activities.delete(code))
+      activities.set(code, hit)
+    }
+  }
+  return Promise.all(codes.map(async (code) => [code, await activities.get(code)!.catch(() => null)] as const))
+}
 
 export const priceStateOf = (p: Position, pending: ReadonlyMap<string, PriceSuggestion>): PriceState =>
   p.up != null ? 'priced' : pending.has(p.id) ? 'pending' : 'unpriced'
@@ -81,6 +128,13 @@ export function usePriceSuggestions(report: CatalogueReport | null, positions: P
   }, [report, positions])
   const ids = useMemo(() => [...new Set([...wanted.values()].map((w) => w.productId))].sort().join(','), [wanted])
   const [entries, setEntries] = useState<Record<string, CatalogueEntry | null>>({})
+  // positions the product catalogue did not price are looked up as activities by their tender position code
+  const activityCodes = useMemo(
+    () => [...new Set(positions.filter((p) => p.up == null && p.oz && !wanted.has(p.id)).map((p) => p.oz))].sort(),
+    [positions, wanted],
+  )
+  const activityKey = activityCodes.join(',')
+  const [activityEntries, setActivityEntries] = useState<Record<string, ActivityEntry | null>>({})
 
   useEffect(() => {
     if (!ids) return
@@ -92,6 +146,17 @@ export function usePriceSuggestions(report: CatalogueReport | null, positions: P
       live = false
     }
   }, [ids])
+
+  useEffect(() => {
+    if (!activityKey) return
+    let live = true
+    activitiesFor(activityKey.split(',')).then((pairs) => {
+      if (live) setActivityEntries((prev) => ({ ...prev, ...Object.fromEntries(pairs) }))
+    })
+    return () => {
+      live = false
+    }
+  }, [activityKey])
 
   return useMemo(() => {
     const skip = new Set(dismissed)
@@ -111,6 +176,11 @@ export function usePriceSuggestions(report: CatalogueReport | null, positions: P
         unitKnown: !!unitKey(entry.unit) && !!unitKey(unit),
       })
     }
+    for (const p of positions) {
+      if (p.up != null || out.has(p.id) || wanted.has(p.id) || skip.has(p.id)) continue
+      const suggestion = activitySuggestion(p, activityEntries[p.oz])
+      if (suggestion) out.set(p.id, suggestion)
+    }
     return out
-  }, [wanted, entries, dismissed])
+  }, [wanted, entries, positions, activityEntries, dismissed])
 }
