@@ -117,7 +117,7 @@ export type Report = {
     missing_amounts: number
     source_net: string | null
   } | null
-  phase_validation?: { state: 'unverified' | 'invalid' | 'verified'; reason?: string; predecessor_id?: string; matched_positions?: number }
+  phase_validation?: { state: 'unverified' | 'invalid' | 'verified'; reason?: string; predecessor_id?: string; matched_positions?: number; missing_positions?: string[]; added_positions?: string[] }
   cap_comparison?:
     | { state: 'unverified' | 'unavailable'; reason: string }
     | { state: 'over' | 'at' | 'almost' | 'near' | 'under'; cap: string; working_net: string; currency: string; confirmation_reference: string }

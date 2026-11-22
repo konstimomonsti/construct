@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from decimal import ROUND_HALF_UP, Decimal
 import re
 
+from ..adapter import is_unselected_scope
 from ..contracts import AnalysisInput, Line, Section
 
 
@@ -41,6 +42,20 @@ def money(value: Decimal) -> Decimal:
 def is_counted(line: Line) -> bool:
     """Line amount goes into the totals (not optional, not alternative, not unit-price-only)."""
     return line.total_rule == "include"
+
+
+def excluded_scope_sections(snapshot: AnalysisInput) -> set[str]:
+    children: dict[str | None, list[str]] = {}
+    for section in snapshot.sections:
+        children.setdefault(section.parent_id, []).append(section.id)
+    pending = [section.id for section in snapshot.sections if is_unselected_scope(section.gaeb_flags)]
+    excluded = set()
+    while pending:
+        section_id = pending.pop()
+        if section_id not in excluded:
+            excluded.add(section_id)
+            pending.extend(children.get(section_id, []))
+    return excluded
 
 
 def is_optional(line: Line) -> bool:

@@ -31,7 +31,7 @@ export type SourceKind = 'gaeb-xml' | 'gaeb90' | 'pdf' | 'docx' | 'csv' | 'xlsx'
 export function sourceKindOf(doc: ListDoc): SourceKind {
   if (doc.source?.kind) return doc.source.kind
   const e = extOf(doc.fileName ?? '').toLowerCase()
-  if (e === 'x83') return 'gaeb-xml'
+  if (/^x8[0-9]$/.test(e)) return 'gaeb-xml'
   if (/^d\d\d$/.test(e)) return 'gaeb90'
   if (e === 'pdf') return 'pdf'
   if (e === 'docx') return 'docx'
@@ -74,6 +74,7 @@ export function isEdited(doc: ListDoc, positions: Position[], format?: FormatId)
 
 export function fidelityNote(doc: ListDoc, format: FormatId, edited: boolean, hasOriginal: boolean): string {
   const own = ownFormat(doc)
+  if (format.startsWith('x83') && doc.positions.some((position) => position.up != null)) return 'Regenerated without prices'
   if (own === format && hasOriginal && !edited) return 'Byte-identical to the original file'
   if (own === format && hasOriginal && (format.startsWith('x83') || format.startsWith('d8'))) return 'Original patched in place, untouched records stay byte-identical'
   if (format === 'pdf') return own === 'pdf' ? 'Regenerated in original layout' : 'Regenerated in the printout layout of this list'
@@ -85,7 +86,8 @@ export function exportFileName(doc: ListDoc, format: FormatId, edited: boolean):
   const info = formatInfo(format)
   const own = ownFormat(doc)
   const base = baseName(doc.fileName || doc.title || doc.id)
-  const ext = own === format && doc.fileName ? extOf(doc.fileName) : info.ext
+  const originalExtension = extOf(doc.fileName ?? '')
+  const ext = own === format && originalExtension.toLowerCase() === info.ext.toLowerCase() ? originalExtension : info.ext
   const sameAsSource = own === format && !edited
   return `${base}${sameAsSource ? '' : edited ? '-bearbeitet' : ''}.${ext}`
 }
@@ -123,11 +125,16 @@ export async function exportList(req: ExportRequest): Promise<ExportResult> {
   if (own === format && !subset && defaults && req.loadOriginal) {
     const orig = await req.loadOriginal()
     if (!orig && /^(x83|d8)/.test(format)) throw new Error('The original source file is unavailable.')
-    if (orig) {
+    // A tender source can contain internal estimates despite having a phase-83 extension.
+    const xmlTender = tender && format.startsWith('x83')
+    const tenderXml = xmlTender && orig ? new TextDecoder().decode(orig) : ''
+    const pricedTender = xmlTender && (doc.positions.some((position) => position.up !== null)
+      || /<(?:[\w.-]+:)?(?:UP|IT|UPComp\d*|Total|TotalNet|TotalGross|TotalLSUM|TotAfterDisc|VATAmount)(?:\s[^>]*)?>\s*[+-]?\d/.test(tenderXml))
+    if (orig && !pricedTender) {
       if (!edited) return mk(orig, 'original')
       if (format === 'x83' || format === 'x83-2004') {
         const { patchGaebXml } = await import('./gaeb-xml')
-        const r = patchGaebXml(new TextDecoder('utf-8').decode(orig), doc, positions, undefined, { prices })
+        const r = patchGaebXml(tenderXml, doc, positions, undefined, { prices })
         return text(r.xml, 'patched')
       }
       if (format === 'd83' || format === 'd84' || format === 'd86') {

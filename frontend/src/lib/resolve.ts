@@ -73,7 +73,7 @@ export function pathOf(idx: TreeIndex, oz: string): CategoryRef[] {
   const out: CategoryRef[] = []
   let n = idx.node.get(oz) ?? null
   while (n) {
-    out.unshift({ oz: n.oz, label: n.label })
+    out.unshift({ oz: n.oz, label: n.label, gaebSectionScope: n.gaebSectionScope })
     n = idx.parent.get(n.oz) ?? null
   }
   return out
@@ -274,7 +274,7 @@ export function resolveList(doc: ListDoc, editsIn?: Partial<ListEdits>): Resolve
   for (const p of base) {
     let parent: string | null = null
     for (const r of p.path ?? []) {
-      if (!idx.node.has(r.oz)) attach(newNode(r.oz, r.label), parent)
+      if (!idx.node.has(r.oz)) attach({ ...newNode(r.oz, r.label), gaebSectionScope: r.gaebSectionScope }, parent)
       parent = r.oz
     }
   }

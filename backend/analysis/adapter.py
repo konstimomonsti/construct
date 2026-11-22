@@ -87,12 +87,19 @@ def derive_pricing(flags: dict[str, str], unit: str | None = None) -> tuple[str,
     pricing = "lump_sum" if lump else "unit_rate"
     if flags.get("Provis") == "WithoutTotal" or flags.get("provisional_flag") == "E" or flags.get("unit_price_only") == "Yes":
         total_rule = "unit_price_only"
-    elif (flags.get("Provis") or flags.get("AltItem") or flags.get("position_type") == "A"
-          or flags.get("provisional_included") == "Yes" or flags.get("alternative_item") == "Yes"):
+    elif (flags.get("Provis") or is_unselected_scope(flags) or flags.get("provisional_included") == "Yes"
+          or flags.get("alternative_item") == "Yes"):
         total_rule = "conditional"
     else:
         total_rule = "include"
     return pricing, total_rule
+
+
+def is_unselected_scope(flags: dict[str, str]) -> bool:
+    serial = flags.get("ALNSerNo") or flags.get("ALNBSerNo") or ""
+    return flags.get("NotAppl") == "Yes" or (flags.get("Accepted") != "Yes" and bool(
+        flags.get("AltItem") or flags.get("position_type") == "A" or re.fullmatch(r"0*[1-9][0-9]*", serial)
+    ))
 
 
 def stable_id(*parts: Any) -> str:
@@ -343,6 +350,7 @@ def _sections_from_records(records, doc_key) -> tuple[list[Section], dict]:
         sections.append(Section(
             id=section_id, parent_id=parent, code=payload.get("code") or ".".join(parts) or None,
             code_parts=parts, title=clean_short(payload.get("label")), sort_order=ordinal,
+            gaeb_flags=clean_flags(payload.get("flags")),
         ))
         if locator.get("xml_path"):
             keys[locator["xml_path"]] = section_id

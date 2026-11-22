@@ -19,6 +19,7 @@ from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 
 from analysis.layer3.provider import ProviderError, ProviderUnavailable
+from workspace_analysis import _apply_edits
 from workspace_product_ai import adjudicate, catalogue_check, companion_check, configured_model, catalogue_provider
 from workspace_product_companions import catalogue_matches, position_number
 from workspace_product_match import ProductMatcher, clean_description, clipped_description, tender_unit
@@ -88,12 +89,17 @@ def requeue_project(connection, workspace, folders):
         )
 
 
-def workspace_changed(connection, workspace, writes, old_folders=()):
+def workspace_changed(connection, workspace, writes, old_folders=(), edits_changed=()):
     lists = {key for collection, key, value in writes if collection == "userLists" and catalogue_list(value)}
     pdfs = {key for collection, key, value in writes if
             (collection == "userDocuments" and isinstance(value, dict) and str(value.get("name", "")).lower().endswith(".pdf")) or
             collection == "documentLinks"}
     enqueue(connection, workspace, lists)
+    if lists or edits_changed:
+        connection.execute(
+            "UPDATE workspace_catalogue_run SET state='queued' WHERE workspace=%s AND list_id=ANY(%s)",
+            (workspace, list(lists | set(edits_changed))),
+        )
     if configured_model():
         changed = lists | {key for collection, key, _ in writes if collection == "listPatch"}
         requeue_project(connection, workspace, set(old_folders) | project_folders(connection, workspace, changed))
@@ -152,10 +158,14 @@ def status(connection, workspace, list_id, start=False, retry=False):
             (workspace, list_id),
         ).fetchone()
         rows = connection.execute(
-            """SELECT position_id, state, input->'recovered' AS recovered, product, suggestion,
-                      input ? 'model_check' AS model_review
-               FROM workspace_catalogue_position WHERE workspace=%s AND list_id=%s""", (workspace, list_id),
-        ).fetchall()
+            """SELECT m.position_id, m.state, m.input->'recovered' AS recovered, m.product, m.suggestion,
+                      m.input ? 'model_check' AS model_review
+               FROM workspace_catalogue_position m
+               WHERE m.workspace=%s AND m.list_id=%s
+                 AND NOT EXISTS (
+                     SELECT 1 FROM product p WHERE p.id::text=m.product->>'id' AND p.archived_at IS NOT NULL
+                 )""", (workspace, list_id),
+        ).fetchall() if run and run["state"] == "ready" else []
     research = web_research_enabled()
     model = configured_model()
     for row in rows:
@@ -349,10 +359,14 @@ def sibling_positions(connection, workspace, list_id):
 
 
 def classify(connection, workspace, list_id):
-    value = connection.execute(
-        "SELECT value FROM workspace_record WHERE workspace=%s AND collection='userLists' AND record_id=%s",
+    records = {row["collection"]: row["value"] for row in connection.execute(
+        """SELECT collection, value FROM workspace_record
+           WHERE workspace=%s AND record_id=%s AND collection IN ('userLists', 'edits')""",
         (workspace, list_id),
-    ).fetchone()["value"]
+    )}
+    original_value = records["userLists"]
+    value = _apply_edits(original_value, records.get("edits"))
+    originals = {p["id"]: p for p in original_value["positions"] if isinstance(p, dict) and "id" in p}
     documents = workspace_documents(connection, workspace, list_id)
     filename = str(value.get("fileName") or "")
     original = next((d for d in documents if d["value"].get("original") and d["value"].get("name") == filename), None)
@@ -388,15 +402,18 @@ def classify(connection, workspace, list_id):
             continue
         key = code(position.get("oz"))
         short, long_text = (clean_description(position.get(field)) for field in ("short", "long"))
-        source_text = legacy_texts.get(key)
+        original_position = originals.get(position["id"], {})
+        source_matches = all(position.get(field) == original_position.get(field)
+                             for field in ("oz", "short", "long", "unit"))
+        source_text = legacy_texts.get(key) if source_matches else None
         if source_text:
             source_short = clean_description(source_text.get("short_description"))
             source_long = clean_description(source_text.get("long_description"))
             if is_offer or source_short or source_long:
                 short, long_text = source_short, source_long
-        if xml_texts and isinstance(source_id := position.get("srcRef"), str):
+        if source_matches and xml_texts and isinstance(source_id := position.get("srcRef"), str):
             long_text = restored_xml_description(position, long_text, xml_texts.get(source_id))
-        companion = descriptions.get(key)
+        companion = descriptions.get(key) if source_matches else None
         # Some priced GAEB offers carry a blank bidder field instead of a description.
         has_short = bool(re.search(r"\w", short))
         has_long = bool(re.search(r"\w", long_text))
@@ -411,7 +428,7 @@ def classify(connection, workspace, list_id):
             recovered = {"short": short[:4000], "long": long_text[:12000], "source": "Companion offer PDF" if used_pdf else None}
         candidate = {**position, "short": short, "long": long_text}
         resolved = references.resolve(candidate)
-        state, product = position_match(resolved, links.get(key, []), matcher)
+        state, product = position_match(resolved, links.get(key, []) if source_matches else [], matcher)
         job = {"name": short[:400], "unit": str(position.get("unit") or "")[:30], "recovered": recovered}
         prepared.append((candidate, resolved, state, product, job))
     companions = {}
@@ -432,6 +449,10 @@ def classify(connection, workspace, list_id):
                 job["model_id"] = model
                 state = "queued"
         records.append((workspace, list_id, candidate["id"], state, Jsonb(job), Jsonb(product) if product else None))
+    connection.execute(
+        """DELETE FROM workspace_catalogue_position WHERE workspace=%s AND list_id=%s
+           AND NOT (position_id=ANY(%s))""", (workspace, list_id, [record[2] for record in records]),
+    )
     with connection.cursor() as cursor:
         cursor.executemany(
             """
@@ -441,7 +462,10 @@ def classify(connection, workspace, list_id):
                 input=excluded.input, product=excluded.product, suggestion=NULL, lease_until=NULL
             WHERE workspace_catalogue_position.input IS DISTINCT FROM excluded.input
                OR (workspace_catalogue_position.product IS DISTINCT FROM excluded.product
-                   AND (excluded.product IS NOT NULL OR NOT (excluded.input ? 'model_check')))
+                   AND (excluded.product IS NOT NULL OR NOT (excluded.input ? 'model_check')
+                        OR NOT EXISTS (SELECT 1 FROM product p
+                                       WHERE p.id::text=workspace_catalogue_position.product->>'id'
+                                         AND p.archived_at IS NULL)))
             """, records,
         )
     connection.execute(

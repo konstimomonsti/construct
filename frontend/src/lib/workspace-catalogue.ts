@@ -71,11 +71,13 @@ export function useWorkspaceCatalogue(id: string | null, documentIds: string) {
         if (controller.signal.aborted) return
         setReport(result)
         setError('')
-        if (result.state === 'queued' || Object.values(result.positions).some((p) => p.state === 'queued' || p.state === 'researching')) {
-          timer = setTimeout(refresh, 1800)
-        }
+        const active = result.state === 'queued' || Object.values(result.positions).some((p) => p.state === 'queued' || p.state === 'researching')
+        timer = setTimeout(refresh, active ? 1800 : 10000)
       } catch {
-        if (!controller.signal.aborted) setError('Catalogue results are temporarily unavailable.')
+        if (!controller.signal.aborted) {
+          setError('Catalogue results are temporarily unavailable.')
+          timer = setTimeout(refresh, 10000)
+        }
       }
     }
     void refresh()

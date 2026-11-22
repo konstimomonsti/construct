@@ -22,6 +22,7 @@ export interface Position {
   /** A missing original quantity uses a table placeholder until the user supplies one. */
   quantityMissing?: boolean
   totalRule?: 'unit_price_only' | 'conditional'
+  gaebItemScope?: Partial<Record<GaebItemScopeTag, string>>
   /** full category chain root→leaf (OZ prefix + label), e.g. [{oz:'1',label:'Bereich 1'},{oz:'1.1',label:'Abschnitt'}] */
   path?: CategoryRef[]
   /** source-specific ids for lossless same-format export (GAEB XML Item ID, GAEB90 first record line no., PDF page) */
@@ -30,9 +31,14 @@ export interface Position {
   positionKey?: string
 }
 
+export const GAEB_ITEM_SCOPE_TAGS = ['Provis', 'ALNGroupNo', 'ALNSerNo', 'AltItem', 'NotAppl', 'Accepted'] as const
+type GaebItemScopeTag = (typeof GAEB_ITEM_SCOPE_TAGS)[number]
+export const GAEB_SECTION_SCOPE_TAGS = ['ALNBGroupNo', 'ALNBSerNo', 'NotAppl', 'Accepted'] as const
+
 export interface CategoryRef {
   oz: string
   label: string
+  gaebSectionScope?: Partial<Record<(typeof GAEB_SECTION_SCOPE_TAGS)[number], string>>
 }
 
 /** category tree node (ListDoc.tree); positions reference nodes via Position.path */
@@ -152,7 +158,7 @@ export function parseGaebXml(xml: string): ParsedList {
     header: {},
   }
   // Tokenise the structural tags. Items never nest, categories do.
-  const re = /<BoQCtgy\b([^>]*)>|<\/BoQCtgy>|<LblTx>([\s\S]*?)<\/LblTx>|<Item\b([^>]*)>([\s\S]*?)<\/Item>/g
+  const re = /<BoQCtgy\b([^>]*)>|<\/BoQCtgy>|<LblTx>([\s\S]*?)<\/LblTx>|<Item\b([^>]*)>([\s\S]*?)<\/Item>|<(ALNBGroupNo|ALNBSerNo|NotAppl|Accepted)>([^<]*)<\/\5>/g
   const stack: { rno: string; label: string; node: CategoryNode }[] = []
   let pendingCtgy = false
   let m: RegExpExecArray | null
@@ -175,6 +181,12 @@ export function parseGaebXml(xml: string): ParsedList {
         stack[stack.length - 1].node.label = stack[stack.length - 1].label
         pendingCtgy = false
       }
+    } else if (m[5] !== undefined) {
+      const category = stack.at(-1)?.node
+      if (category) {
+        category.gaebSectionScope ??= {}
+        category.gaebSectionScope[m[5] as (typeof GAEB_SECTION_SCOPE_TAGS)[number]] = m[6].trim()
+      }
     } else if (m[3] !== undefined) {
       pendingCtgy = false
       const attrs = m[3]
@@ -189,7 +201,12 @@ export function parseGaebXml(xml: string): ParsedList {
       const upRaw = tag(body, 'UP')
       const quantity = qtyRaw == null || !qtyRaw.trim() ? NaN : Number(qtyRaw)
       const rate = upRaw == null || !upRaw.trim() ? NaN : Number(upRaw)
-      const provisional = tag(body, 'Provis')
+      const scope = Object.fromEntries(GAEB_ITEM_SCOPE_TAGS.flatMap((key) => {
+        const value = tag(body, key)?.trim()
+        return value ? [[key, value]] : []
+      }))
+      const isAlternative = scope.Accepted !== 'Yes'
+        && (scope.AltItem || /^0*[1-9]\d*$/.test(scope.ALNSerNo ?? ''))
       out.positions.push({
         id: `p${n++}`,
         oz,
@@ -201,10 +218,11 @@ export function parseGaebXml(xml: string): ParsedList {
         up: Number.isFinite(rate) ? rate : null,
         category: stack[stack.length - 1]?.label || 'Allgemein',
         group: stack[0]?.label,
-        lumpSum: /<LumpSumItem>Yes<\/LumpSumItem>/.test(body) || undefined,
-        totalRule: provisional === 'WithoutTotal' ? 'unit_price_only'
-          : provisional || tag(body, 'AltItem') ? 'conditional' : undefined,
-        path: stack.map((s) => ({ oz: s.node.oz, label: s.label })),
+        lumpSum: tag(body, 'LumpSumItem') === 'Yes' || /^psch\.?$/i.test(tag(body, 'QU')?.trim() ?? '') || undefined,
+        totalRule: scope.Provis === 'WithoutTotal' ? 'unit_price_only'
+          : scope.Provis || isAlternative || scope.NotAppl === 'Yes' ? 'conditional' : undefined,
+        gaebItemScope: Object.keys(scope).length ? scope : undefined,
+        path: stack.map(({ node, label }) => ({ oz: node.oz, label, gaebSectionScope: node.gaebSectionScope })),
         srcRef: attrs.match(/\bID="([^"]*)"/)?.[1],
       })
     }
