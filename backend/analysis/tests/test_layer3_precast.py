@@ -469,10 +469,10 @@ def test_worker_keeps_layer_1_2_findings_when_layer_3_crashes(monkeypatch):
 
     real_analyze = workspace_analysis.analyze
 
-    def analyze_with_broken_layer3(snapshot, layers):
+    def analyze_with_broken_layer3(snapshot, layers, **kwargs):
         if 3 in layers:
             raise RuntimeError("boom")
-        return real_analyze(snapshot, layers)
+        return real_analyze(snapshot, layers, **kwargs)
 
     monkeypatch.setenv("ANALYSIS_L3_PROVIDER", "anthropic")
     monkeypatch.setattr(workspace_analysis, "analyze", analyze_with_broken_layer3)

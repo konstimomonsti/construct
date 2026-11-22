@@ -25,6 +25,7 @@ from workspace_parse import read_document
 
 
 LOG = logging.getLogger(__name__)
+EXCLUDED_REPORT_RULES = frozenset({"L1.TEXT.SPEC_PLACEHOLDER"})
 
 
 def options():
@@ -255,14 +256,15 @@ def run(payload, connection=None, workspace=None, list_id=None, file_id=None, fi
         if not used_source and not source_notice:
             source_notice = "Original file evidence is missing or could not be matched. Findings are based on the working list."
     try:
-        result = analyze(snapshot, layers)
+        result = analyze(snapshot, layers, excluded_report_rules=EXCLUDED_REPORT_RULES)
     except Exception:
         if 3 not in layers:
             raise
         # Layer 3 handles provider failures itself; this is the last line of defence, so an unexpected
         # crash there still leaves the reviewer with the layer 1 and 2 findings.
         LOG.warning("Layer 3 failed unexpectedly during workspace analysis")
-        result = analyze(snapshot, [layer for layer in layers if layer != 3])
+        result = analyze(snapshot, [layer for layer in layers if layer != 3],
+                         excluded_report_rules=EXCLUDED_REPORT_RULES)
         result.errors.append("layer 3: failed unexpectedly; findings are from layers 1 and 2 only")
         result.errors.append("layer 3 coverage: 0/0 batches")
         result.l3_status = empty_outcome("unavailable", "Advisory checks failed unexpectedly")

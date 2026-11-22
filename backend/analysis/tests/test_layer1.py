@@ -8,6 +8,7 @@ from analysis import adapter
 from analysis import layer1  # noqa: F401  registers the rules
 from analysis.contracts import (
     AnalysisInput, Bom, Distribution, ImportWarning, Line, PriceInfo, Project, ReferenceRange, Section, SourceAmounts,
+    SourceDocument,
 )
 from analysis.registry import rules_for
 from analysis.runner import analyze
@@ -23,8 +24,9 @@ def make_line(number=1, **fields):
     return Line(**{**defaults, **fields})
 
 
-def run(*lines, phase="83", sections=(SECTION,), **input_fields):
-    analysis_input = AnalysisInput(project=Project(gaeb_phase=phase, currency="EUR"), sections=list(sections),
+def run(*lines, phase="83", sections=(SECTION,), source_format=None, **input_fields):
+    project = Project(gaeb_phase=phase, currency="EUR", source_document=SourceDocument(format=source_format))
+    analysis_input = AnalysisInput(project=project, sections=list(sections),
                                    lines=list(lines), **input_fields)
     return analyze(analysis_input, [1])
 
@@ -63,6 +65,16 @@ def test_quantity_missing_negative_zero():
     assert only(result, "L1.QTY.NEGATIVE")[0].target.line_id == "l2"
     zero = {f.target.line_id: f.severity for f in only(result, "L1.QTY.ZERO")}
     assert zero == {"l3": "warning", "l4": "error"}
+
+
+def test_pdf_tender_zero_quantity_only_flags_priced_lines():
+    result = run(make_line(1, quantity=D(0), unit="h"),
+                 make_line(2, quantity=D(0), unit="m"),
+                 make_line(3, quantity=D(0), price=PriceInfo(unit_price=D(50))),
+                 make_line(4, quantity=None),
+                 phase=None, source_format="pdf")
+    assert [(f.target.line_id, f.severity) for f in only(result, "L1.QTY.ZERO")] == [("l3", "error")]
+    assert only(result, "L1.QTY.MISSING")[0].target.line_id == "l4"
 
 
 def test_fractional_count():

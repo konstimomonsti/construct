@@ -50,6 +50,20 @@ def upload_report(monkeypatch, source, payload):
     return workspace_analysis.run(payload, connection=object(), filename=source.project.source_document.filename)
 
 
+def test_workspace_review_excludes_placeholder_findings_and_questions():
+    payload = {"layers": [1], "snapshot": {"sections": [], "lines": [
+        {"id": "first", "code": "01", "short_text": "Rohr", "long_text": "Fabrikat: [FIRMA_095], Dicke: ?",
+         "quantity": 1, "unit": "m"},
+    ]}}
+    snapshot, layers = workspace_analysis.prepare(payload)
+    placeholder = next(f for f in analyze(snapshot, layers).findings if f.rule_id == "L1.TEXT.SPEC_PLACEHOLDER")
+    report = workspace_analysis.run(payload)
+    assert "L1.TEXT.UNCLEAR_DIMENSION" in report["summary"]["by_rule"]
+    assert "L1.TEXT.SPEC_PLACEHOLDER" not in report["summary"]["by_rule"]
+    assert placeholder.id not in report["risk"]["points"]
+    assert all(placeholder.id not in question["finding_ids"] for question in report["questions"])
+
+
 def test_planted_x83_upload_checks_line_section_and_net_amounts(monkeypatch):
     source, payload = upload_payload(HALL)
     report = upload_report(monkeypatch, source, payload)

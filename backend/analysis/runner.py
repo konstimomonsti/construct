@@ -25,7 +25,7 @@ _SEVERITY_ORDER = {"error": 0, "warning": 1, "info": 2}
 
 
 def analyze(analysis_input: AnalysisInput, layers: Iterable[int] = DEFAULT_LAYERS, *,
-            include_risk: bool = True) -> AnalysisResult:
+            include_risk: bool = True, excluded_report_rules: frozenset[str] = frozenset()) -> AnalysisResult:
     if not analysis_input.input_hash:
         analysis_input = analysis_input.with_hash()
     graph = validate_graph(analysis_input)
@@ -54,7 +54,10 @@ def analyze(analysis_input: AnalysisInput, layers: Iterable[int] = DEFAULT_LAYER
             l3_status = module.get_last_outcome() or empty_outcome("unavailable", "Advisory outcome is missing")
         layers_run.append(layer)
 
-    findings = _sorted(_attach_dependency_reviews(_dedupe(findings)), analysis_input)
+    findings = _sorted([
+        finding for finding in _attach_dependency_reviews(_dedupe(findings))
+        if finding.rule_id not in excluded_report_rules
+    ], analysis_input)
     risk, questions = None, []
     if include_risk:
         try:

@@ -162,5 +162,13 @@ SELECT NOT EXISTS (
     INSERT INTO db_migration.applied_version (version) VALUES (21);
 \endif
 
+SELECT NOT EXISTS (
+    SELECT FROM db_migration.applied_version WHERE version = 22
+) AS refresh_workspace_review_findings \gset
+\if :refresh_workspace_review_findings
+    \ir migrations/022_refresh_workspace_review_findings.sql
+    INSERT INTO db_migration.applied_version (version) VALUES (22);
+\endif
+
 \ir runtime_role.sql
 COMMIT;

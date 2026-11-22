@@ -5,7 +5,7 @@ from collections import defaultdict
 from .. import units
 from ..contracts import Fix, SetField
 from ..registry import rule
-from .common import BID_PHASE, is_counted, label
+from .common import BID_PHASE, is_counted, label, phase_has_prices
 
 
 def is_markup(line) -> bool:
@@ -51,8 +51,9 @@ def quantity_negative(ctx):
 
 
 @rule("L1.QTY.ZERO", layer=1, category="completeness", severity="warning", title="Quantity is zero",
-      description="Quantity 0 on a counted item. With a unit price the line contributes nothing to the total.")
+      description="Quantity 0 on a counted item. Unpriced PDF tender items can carry a zero placeholder.")
 def quantity_zero(ctx):
+    pdf_tender = ctx.input.project.source_document.format == "pdf" and not phase_has_prices(ctx.input)
     for line in ctx.input.lines:
         if line.quantity is None or line.quantity != 0 or not is_counted(line):
             continue
@@ -63,7 +64,7 @@ def quantity_zero(ctx):
                        f"total. Either the quantity is missing or the item should be unit-price-only.")
             yield ctx.finding(line=line, field="quantity", severity="error", message=message,
                               evidence={"quantity": line.quantity, "unit_price": unit_price})
-        else:
+        elif not pdf_tender:
             yield ctx.finding(line=line, field="quantity", message=f"{label(line)} has quantity 0.",
                               evidence={"quantity": line.quantity})
 
