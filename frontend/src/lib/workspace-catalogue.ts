@@ -17,6 +17,23 @@ export type CatalogueReport = {
   web_research?: boolean
 }
 
+export type ResearchFilter = 'matched' | 'suggested' | 'unresolved'
+
+export function researchFilterOf(state: CataloguePosition['state'] | undefined): ResearchFilter | null {
+  switch (state) {
+    case 'matched':
+    case 'suggested':
+      return state
+    case 'failed':
+    case 'no_evidence':
+    case 'needs_description':
+    case 'research_disabled':
+      return 'unresolved'
+    default:
+      return null
+  }
+}
+
 const endpoint = (id: string) => `/api/workspace/catalogue?id=${encodeURIComponent(id)}`
 
 async function readReport(response: Response): Promise<CatalogueReport> {

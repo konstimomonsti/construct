@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 
 from ...contracts import Line
+from ...layer1.textvalues import MEASURE, centimetres, values
 from ...registry import rule
 from .. import prompts
 from ..common import batches, clip, current, l1_error_fields, line_label
@@ -77,13 +78,24 @@ def _finding(ctx, session, line: Line, item: ContradictionItem):
     if not quote_in(item.short_quote, line.short_text) or not quote_in(item.long_quote, line.long_text):
         return None
     short_value, long_value = normalize(item.short_quote), normalize(item.long_quote)
-    if short_value == long_value or short_value in long_value:
+    if (re.sub(r"\s+", "", short_value) == re.sub(r"\s+", "", long_value)
+            or quote_in(item.short_quote, item.long_quote)):
+        return None
+    short_values, long_values = values(item.short_quote), values(item.long_quote)
+    shared_families = [family for family in short_values if short_values[family] and long_values[family]]
+    if shared_families and all(short_values[family] == long_values[family] for family in shared_families):
+        return None
+    short_lengths = re.findall(MEASURE, short_value)
+    long_lengths = re.findall(MEASURE, long_value)
+    if (len(short_lengths) == len(long_lengths) == 1
+            and centimetres(*short_lengths[0]) == centimetres(*long_lengths[0])):
         return None
     # The long text also states the short-text value: probably two parts of one item, not a conflict.
     also_in_long = quote_in(item.short_quote, line.long_text)
     confidence = clamp_confidence(item.confidence) if not also_in_long else min(clamp_confidence(item.confidence), 0.3)
     message = (f"{line_label(line)}: {item.message.strip()} "
-               f"Short text: \"{item.short_quote.strip()}\"; long text: \"{item.long_quote.strip()}\".")
+               f'Short text says "{item.short_quote.strip()}". Long text says "{item.long_quote.strip()}". '
+               "Confirm the value to price.")
     if also_in_long:
         message += " The long text also contains the short-text value, so both may be right."
     return ctx.finding(

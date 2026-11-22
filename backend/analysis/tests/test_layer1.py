@@ -93,7 +93,7 @@ def test_quantity_and_unit_missing_once_in_bid():
     for rule_id in ("L1.QTY.MISSING", "L1.UNIT.MISSING"):
         findings = only(bid, rule_id)
         assert len(findings) == 1 and findings[0].scope == "bom" and findings[0].severity == "info"
-        assert len(findings[0].related_line_ids) == 3
+        assert findings[0].related_line_ids == [] and list(findings[0].evidence.values()) == [3]
     tender = run(*lines)
     assert len(only(tender, "L1.QTY.MISSING")) == 3 and len(only(tender, "L1.UNIT.MISSING")) == 3
 
@@ -154,19 +154,28 @@ def test_structure_rules():
                  sections=sections)
     assert only(result, "L1.CODE.OUTSIDE_SECTION")[0].target.line_id == "l1"
     assert only(result, "L1.STRUCT.ORPHAN_LINE")[0].target.line_id == "l2"
-    assert only(result, "L1.STRUCT.EMPTY_SECTION")[0].target.section_id == "s2"
+    assert "L1.STRUCT.EMPTY_SECTION" not in rules(result)
     assert only(result, "L1.STRUCT.ORPHAN_ALTERNATIVE")[0].target.line_id == "l3"
     assert only(result, "L1.STRUCT.PROVISIONAL_ITEM")[0].target.line_id == "l4"
     assert only(result, "L1.STRUCT.UNIT_PRICE_ONLY_IN_TOTAL")[0].target.line_id == "l4"
 
 
-def test_suspected_duplicate_suggests_low_confidence_merge():
+def test_suspected_duplicate_shows_both_items_for_manual_comparison():
     result = run(make_line(1, short_text="Wurzelstock entsorgen", long_text="x", quantity=D(2)),
                  make_line(2, short_text="Wurzelstock entsorgen", long_text="x", quantity=D(3)))
     finding = only(result, "L1.DUP.SUSPECTED")[0]
-    merge = finding.suggested_fix.operations[0]
-    assert merge.keep_line_id == "l1" and merge.remove_line_ids == ["l2"] and merge.new_quantity == D(5)
-    assert finding.suggested_fix.confidence < 0.5
+    assert finding.target.line_id == "l2" and finding.related_line_ids == ["l1"]
+    assert finding.evidence["quantities"] == ["2", "3"]
+    assert finding.suggested_fix is None
+
+
+def test_position_prefix_requires_action_when_it_points_to_another_section():
+    second = Section(id="s2", code="02", code_parts=["02"], title="Empty", sort_order=1)
+    result = run(make_line(1, code="02.0001", code_parts=["02", "0001"]),
+                 make_line(2, code="03.0002", code_parts=["03", "0002"]), sections=[SECTION, second])
+    findings = {f.target.line_id: f for f in only(result, "L1.CODE.OUTSIDE_SECTION")}
+    assert findings["l1"].severity == "warning" and findings["l1"].evidence["matching_section_code"] == "02"
+    assert findings["l2"].severity == "info"
 
 
 def test_distribution_sum():
@@ -275,6 +284,17 @@ def test_pricing_rules():
     assert ids("L1.PRICE.STALE") == ["l8"]
 
 
+def test_source_prices_use_the_same_billing_unit_and_currency():
+    def rate(number, unit, currency="EUR"):
+        return make_line(number, unit="kg", source_amounts=SourceAmounts(unit_price=D(2)),
+                         price=PriceInfo(unit_price=D(500), price_unit=unit, currency=currency))
+
+    finding, = only(run(rate(1, "t"), rate(2, "m"), rate(3, "t", "CHF")), "L1.PRICE.SOURCE_DEVIATION")
+    assert finding.target.line_id == "l1"
+    assert D(finding.evidence["our_price"]) == D("0.5")
+    assert D(finding.evidence["difference"]) == D("1.5")
+
+
 def test_price_missing_in_bid_and_deviation():
     result = run(make_line(1), make_line(2, source_amounts=SourceAmounts(unit_price=D(50), line_amount=D(500)),
                                          price=PriceInfo(unit_price=D(20), price_unit="m²", currency="EUR")),
@@ -310,6 +330,18 @@ def test_clean_tenders_have_no_errors(name):
     result = analyze(adapter.from_file(DATA / name), [1])
     assert result.summary.by_severity.get("error", 0) == 0
     assert result.errors == []
+
+
+def test_import_issues_group_occurrences_and_preserve_locator_evidence():
+    warnings = [ImportWarning(code="invalid_quantity", message=f"Bad value {page}", locator={"page": page})
+                for page in range(1, 4)]
+    warnings.append(ImportWarning(code="pdf_inventory_review", message="Optional inventory unavailable"))
+    findings = {f.evidence["code"]: f for f in only(run(make_line(1), import_warnings=warnings), "L1.IMPORT.WARNING")}
+    lost = findings["invalid_quantity"]
+    assert lost.severity == "warning" and lost.evidence["occurrences"] == 3
+    assert lost.evidence["locations"] == [{"page": 1}, {"page": 2}, {"page": 3}]
+    assert "page 1" in lost.message
+    assert findings["pdf_inventory_review"].severity == "info"
 
 
 def test_findings_are_stable_between_runs():

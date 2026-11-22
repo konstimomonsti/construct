@@ -1,14 +1,7 @@
 """L3.REVIEW.L2_CONFIRM: re-read the texts behind each layer 2 "missing dependency" finding.
 
-Layer 2 matches keywords, so it can't see "inkl. Randdämmstreifen" written differently, or "bauseits".
-For every layer 2 finding that reports missing or insufficient work, the model gets the trigger items,
-any matched dependency items and the other items of the same section, and decides: included, excluded,
-missing or unclear. This rule never edits the layer 2 finding. It emits its own finding that points at
-it (`evidence.reviews_finding_id`), so the review UI can show both together:
-
-- included / excluded -> info, "probably a false positive", with a quote verified in the cited item;
-- missing             -> warning, "confirmed";
-- unclear             -> nothing (the layer 2 finding stands on its own).
+The model gets trigger items, matching dependencies and neighboring items. Included or excluded
+work needs a source quote. The shared runner attaches the result to the original dependency finding.
 """
 
 from __future__ import annotations
@@ -27,7 +20,8 @@ MAX_FINDINGS_PER_CALL = 8
 
 
 def reviewable(finding: Finding) -> bool:
-    return finding.layer == 2 and finding.evidence.get("reason") in REVIEWED_REASONS
+    return (finding.layer == 2 and finding.evidence.get("reason") in REVIEWED_REASONS
+            and not finding.evidence.get("external_scope"))
 
 
 def context_lines(analysis_input: AnalysisInput, finding: Finding) -> list[tuple[Line, str]]:
@@ -119,9 +113,9 @@ def _finding(ctx, session, sections, reviewed: Finding, review: L2Review, line_r
                 "confidence": clamp_confidence(review.confidence), "prompt_version": prompts.L2_CONFIRM_VERSION}
     related = list(reviewed.related_line_ids)
     if review.verdict == "missing":
-        title = f"Confirmed missing: {dependency.lower()}"
-        message = f"Layer 2 reported missing {dependency.lower()}; the texts don't cover it. {review.reason.strip()}"
-        severity = "warning"
+        title = f"AI found no additional coverage: {dependency.lower()}"
+        message = review.reason.strip()
+        severity = "info"
     else:
         # Anti-hallucination: included/excluded must cite an item we sent, with a verbatim quote.
         line = line_refs.get(review.line_ref.strip())

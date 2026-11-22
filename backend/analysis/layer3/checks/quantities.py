@@ -8,6 +8,7 @@ with a layer 1 error on the quantity or unit are left out (their values aren't r
 from __future__ import annotations
 
 import json
+import re
 
 from ...contracts import Line
 from ...registry import rule
@@ -77,10 +78,14 @@ def implausible_quantity(ctx):
                 continue
             seen.add(line.id)
             quantity = f"{format(line.quantity, 'f')} {line.unit_raw or line.unit or ''}".strip()
+            expected = item.expected.strip()
+            has_comparison = bool(re.search(r"\d", expected))
+            comparison = (f" AI comparison: {expected}." if has_comparison
+                          else " Check the quantity against the takeoff.")
             yield ctx.finding(
                 line=line, field="quantity", origin="llm", model=session.model_id,
-                message=f"{line_label(line)}: quantity {quantity} looks implausible. {item.reason.strip()}"
-                        + (f" Expected about {item.expected.strip()}." if item.expected.strip() else ""),
+                severity="warning" if has_comparison else "info",
+                message=f"{line_label(line)}: check quantity {quantity}. {item.reason.strip()}" + comparison,
                 evidence={"quantity": format(line.quantity, "f"), "unit": line.unit_raw or line.unit,
                           "reason": item.reason.strip(), "expected": item.expected.strip(),
                           "confidence": clamp_confidence(item.confidence),

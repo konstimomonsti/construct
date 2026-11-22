@@ -81,7 +81,7 @@ ANALYSIS_CONTRACT.md §7.
   missing text, missing or duplicate OZ.
 - **Consistency** (`consistency.py`): unit contradicting an explicit "Abrechnung nach …" in the text,
   inconsistent lump sums, empty bidder fields (info in a tender, warning in a bid or award),
-  "oder gleichwertig" products, OZ outside its section, items outside any section, empty sections,
+  "oder gleichwertig" products, OZ outside its section, items outside any section,
   alternatives without a base item, optional items (Bedarfspositionen), unit-price-only items with
   an amount, suspected duplicates, room split ≠ quantity.
 - **Arithmetic** (`arithmetic.py`): qty × unit price vs line amount (the unit price prevails,
@@ -90,14 +90,12 @@ ANALYSIS_CONTRACT.md §7.
 - **Prices** (`pricing.py`): missing in a bid, not found by the pricing phase, zero, unit or currency
   mismatch, outliers against reference prices, low-confidence or AI matches, file price vs our price,
   stale prices. Import warnings are surfaced too.
-- **Text quality** (`text_quality.py`, `spelling.py`), all info and without an LLM:
+- **Typo detection** (`text_quality.py`, `spelling.py`) runs without an LLM:
   - `L1.TEXT.TYPO`: a word unknown to the domain lexicon (`lexicon_de.txt`, words in ≥ 3 projects) and to
     the German hunspell dictionary, one edit away from a known word. Inflections, cut or broken words and
     product names are skipped. The fix replaces the word in every item. It runs only when `spylls` and a
     local de_DE dictionary are available (`ANALYSIS_SPELL_DIC`, or MiKTeX / `/usr/share/hunspell`
     auto-detected); the dictionary is GPL and never shipped.
-  - `L1.TEXT.SPELLING_VARIANT`: one word written two ways (Anschluß/Anschluss, Baustrom-Kabel/Baustromkabel).
-  - `L1.TEXT.NOTATION_VARIANT`: St/Stk, psch/Psch, DN 100/DN100, 5 x 25/5x25.
 
 What it found in `data/tenders/`: 38 change-order items priced but with quantity 0 and no unit, a
 subtotal off by exactly the amount of an item with a damaged OZ, a duplicate item, empty bidder
@@ -181,8 +179,8 @@ and are easy to evaluate.
 7. **Failures don't break the run.** A timeout, bad JSON or a missing model goes to `errors`; layers 1
    and 2 still return their findings.
 8. **Severity:** layer 3 findings are `warning` or `info`, never `error` (they're never certain).
-   `L3.REVIEW.L2_CONFIRM` doesn't edit layer 2 findings. It emits its own finding with
-   `related_line_ids` and `evidence.reviews_finding_id`, and the UI shows them together.
+   The runner attaches `L3.REVIEW.L2_CONFIRM` to the original finding in `evidence.dependency_review`.
+   The warning count and review queue use the original finding ID.
 9. **Tests run with no network:** a fake provider returns canned JSON. Add golden tests on real LV
    excerpts and a small labelled set to measure precision before enabling a rule.
 
@@ -236,9 +234,9 @@ order in which the call budget is spent (`checks/__init__.py`):
   decides which text is right.
 - **`L3.REVIEW.L2_CONFIRM`** (`checks/l2_confirm.py`). For each layer 2 finding with reason `missing` or
   `quantity_shortfall`, sends the trigger items, the matched dependency items and up to 25 items of the
-  same section. Verdicts: `included` / `excluded` → info "probably a false positive", with the quote
-  verified in the cited item; `missing` → warning "confirmed"; `unclear` → no finding. The layer 2
-  finding is never edited; the new one carries `evidence.reviews_finding_id` and the same target.
+  same section. A verified quote for `included` or `excluded` disables the add-item proposal.
+  The runner downgrades single-item presence checks with either verdict to info. A `missing` verdict
+  adds context to the original finding. An `unclear` verdict adds no evidence.
 - **`L3.TEXT.UNDERSPECIFIED`** (warning, `checks/underspecified.py`). Only lines whose long text is missing or
   under 60 characters, or that have a layer 1 text signal (unclear dimension, missing spec attribute,
   placeholder, unresolved reference). Answer: `missing_property` from a fixed list, a verbatim quote

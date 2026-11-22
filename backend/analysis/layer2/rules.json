@@ -8,7 +8,7 @@
     "Required_Dependencies": [
       {"DependencyName": "Edge insulation", "Regex": "(?i)\\b(randdämmstreifen)\\b", "CheckType": "Boolean", "SuggestedText": "Randdämmstreifen", "SuggestedUnit": "m"},
       {"DependencyName": "Underlays and insulation", "Regex": "(?i)\\b(?:trittschall)?dämmung\\b|\\b(?:eps|xps)\\b", "CheckType": "Boolean", "SuggestedText": "Trittschalldämmung unter Estrich", "SuggestedUnit": "m²"},
-      {"DependencyName": "Primer and leveling", "Regex": "(?i)\\b(?:tief|haft)?grund(?:ierung)?\\b|\\b(?:spachtel|nivellier|ausgleichs)masse\\b|\\bnivellierausgleich\\b", "CheckType": "QuantityMatch", "QuantityUnit": "m²", "ExcludeRegex": "(?i)(\\bauf\\s+(?:tsd|wd|tsd/wd|dämm\\w*|trennlage\\w*|trittschall\\w*)\\b|schwimmend\\w*)", "SuggestedText": "Untergrundvorbereitung / Grundierung / Ausgleichsmasse"},
+      {"DependencyName": "Primer and leveling", "Regex": "(?i)\\b(?:tief|haft)?grund(?:ierung)?\\b|\\b(?:spachtel|nivellier|ausgleichs)masse\\b|\\bnivellierausgleich\\b", "CheckType": "QuantityMatch", "QuantityUnit": "m²", "ExcludeRegex": "(?i)(\\bauf\\s+(?:tsd|wd|tsd/wd|dämm\\w*|trennlage\\w*|trittschall\\w*)\\b|schwimmend\\w*)", "SuggestedText": "Untergrundvorbereitung / Grundierung / Ausgleichsmasse", "Severity": "info"},
       {"DependencyName": "Floor covering", "Regex": "(?i)\\b(?:pvc|vinyl|kautschuk(?:boden)?|laminat(?:böden|bodenbeläge)?|teppich(?:boden)?|kugelgarn|bodenfliesen?|naturstein(?:belag)?)\\b", "CheckType": "QuantityMatch", "QuantityUnit": "m²", "SuggestedText": "Bodenbelag, Ausführung durch Fachplanung festzulegen", "Severity": "info"},
       {"DependencyName": "Skirting", "Regex": "(?i)\\b([a-zäöüß]*sockel(?:leiste|fliese)?(?:n|s)?)\\b", "CheckType": "Boolean", "SuggestedText": "Sockelleisten", "SuggestedUnit": "m", "Severity": "info"}
     ]
@@ -71,7 +71,7 @@
       {"DependencyName": "Device boxes", "Regex": "(?i)\\b(geräte(?:einbau)?dosen?|schalterdosen?|hohlwanddosen?|unterputzdosen?|up-dosen?|einbaudosen?|abzweigdosen?|verbindungsdosen?|abzweigkästen|abzweigkasten)\\b", "CheckType": "Boolean", "SuggestedText": "Schalter- und Gerätedosen", "SuggestedUnit": "ea"},
       {"DependencyName": "RCD protection", "Regex": "(?i)\\b(fehlerstrom\\w*|fi-?\\s*schutzschalter\\w*|fi/ls\\w*|fi-ls\\w*|rcd|rcbo|differenzstrom\\w*)\\b", "CheckType": "Boolean", "Severity": "info", "SuggestedText": "Fehlerstrom-Schutzeinrichtung (RCD) für Steckdosenstromkreise", "SuggestedUnit": "ea"},
       {"DependencyName": "Initial verification", "Regex": "(?i)\\b(erstprüfung\\w*|(?:din\\s*)?vde\\s*0100[- ]?600|prüfprotokoll\\w*|messprotokoll\\w*|me(?:ss|ß)-?\\s*und\\s*prüf\\w*|e-check|isolationsmessung\\w*)", "CheckType": "Boolean", "SuggestedText": "Erstprüfung nach DIN VDE 0100-600 mit Prüfprotokoll", "SuggestedUnit": "ea"},
-      {"DependencyName": "As-built documents", "Regex": "(?i)\\b(revisionsunterlagen|revisionspläne?|bestandsunterlagen|bestandspläne?|ausführungsunterlagen|dokumentation\\w*)\\b", "CheckType": "Boolean", "SuggestedText": "Revisions- und Bestandsunterlagen", "SuggestedUnit": "lump_sum"}
+      {"DependencyName": "As-built documents", "Regex": "(?i)\\b(revisionsunterlagen|revisionspläne?|bestandsunterlagen|bestandspläne?|ausführungsunterlagen|dokumentation\\w*)\\b", "CheckType": "Boolean", "SuggestedText": "Revisions- und Bestandsunterlagen", "SuggestedUnit": "lump_sum", "Severity": "info"}
     ]
   },
   {
@@ -82,7 +82,7 @@
     "ExcludeRegex": "(?i)\\b(abbrechen|abbruch\\w*|rückbau\\w*|zurückbauen|ausbauen|demontage|demontieren|entfernen|entsorg\\w*|aufnehmen|abtragen|stemmen|fräsen|\\w*warnleuchte\\w*|baustellen\\w*|baustrom\\w*|vorhalt\\w*|absperr\\w*|\\w*notleuchte\\w*|sicherheitsleuchte\\w*|rettungszeichen\\w*|verstärkung\\w*|schutz|\\w*bestand\\w*|aussparung\\w*|ausschnitt\\w*)\\b",
     "Required_Dependencies": [
       {"DependencyName": "Emergency lighting", "Regex": "(?i)\\b(notbeleuchtung\\w*|sicherheitsbeleuchtung\\w*|\\w*notleuchten?|sicherheitsleuchten?|rettungszeichen\\w*|fluchtweg(?:leuchte|zeichen|beleuchtung)\\w*|notlicht\\w*|zentralbatterie\\w*|einzelbatterie\\w*)", "CheckType": "Boolean", "Severity": "info", "ExcludeRegex": "(?i)\\b(au(?:ß|ss)en\\w*|poller\\w*|flutlicht\\w*|\\w*mast\\w*|aufsatzleuchte\\w*|fassade\\w*|wegeleuchte\\w*)", "SuggestedText": "Sicherheitsbeleuchtung / Rettungszeichenleuchten nach DIN EN 1838 und DIN VDE V 0108-100", "SuggestedUnit": "ea"},
-      {"DependencyName": "Lighting control", "Regex": "(?i)\\b(\\w*schalter\\w*|\\w*taster\\w*|bewegungsmelder\\w*|präsenzmelder\\w*|lichtsteuer\\w*|lichtmanagement\\w*|dali|knx|dämmerungs\\w*|zeitschalt\\w*)", "CheckType": "Boolean", "SuggestedText": "Schalter / Präsenzmelder für die Beleuchtung", "SuggestedUnit": "ea"}
+      {"DependencyName": "Lighting control", "Regex": "(?i)\\b(\\w*schalter\\w*|\\w*taster\\w*|bewegungsmelder\\w*|präsenzmelder\\w*|lichtsteuer\\w*|lichtmanagement\\w*|dali|knx|dämmerungs\\w*|zeitschalt\\w*)", "CheckType": "Boolean", "SuggestedText": "Schalter / Präsenzmelder für die Beleuchtung", "SuggestedUnit": "ea", "Severity": "info"}
     ]
   },
   {
@@ -189,6 +189,7 @@
     "Required_Dependencies": [
       {
         "DependencyName": "Shop drawings",
+        "Severity": "info",
         "Regex": "(?i)\\b(?:werkstatt|montage)[-\\s]*(?:pläne|plaene|zeichnungen)\\b|\\b(?:werkstatt|montage)-[^\\n.;]{0,50}\\bplänen\\b",
         "CheckType": "Boolean",
         "SuggestedText": "Werkstatt- und Montagepläne für Fertigteile",
@@ -210,6 +211,7 @@
       },
       {
         "DependencyName": "Anchors and embedded parts",
+        "Severity": "info",
         "Regex": "(?i)\\b(?:\\w*anker\\w*|ankerschiene\\w*|einbauteil\\w*|halfen\\w*)",
         "CheckType": "Boolean",
         "SuggestedText": "Anker und Einbauteile für Fertigteile",

@@ -131,7 +131,8 @@ class RuleTests(unittest.TestCase):
         # A match measured in another dimension is skipped, not summed and not "not assessable".
         input = input_for(line("s", "Estrich"), line("v", "Grundierung", "100", "kg"))
         finding = selected(input, "PRIMER_AND_LEVELING")[0]
-        self.assertEqual(finding.severity, "warning")
+        self.assertEqual(finding.severity, "info")
+        self.assertTrue(finding.evidence["scope_question"])
         self.assertEqual(finding.evidence["reason"], "missing")
         self.assertEqual(Decimal(finding.evidence["dependency_quantity"]), 0)
         self.assertEqual([item["line_id"] for item in finding.evidence["skipped_dependency_lines"]],
@@ -460,15 +461,29 @@ class FalsePositiveTests(unittest.TestCase):
 class EngineTweakTests(unittest.TestCase):
     """NEXT_FEATURES_IMPLEMENTATION_PLAN.md §2.4: per-dependency severity, dimension skipping, PDF item flags."""
 
-    def test_info_dependency_is_info_but_keeps_its_proposal(self):
+    def test_unknown_package_ownership_is_a_scope_question_without_an_addition(self):
         findings = selected(input_for(line("s", "UP-Schuko-Steckdose", "10", "St")), "RCD_PROTECTION")
         self.assertEqual(len(findings), 1)
         self.assertEqual(findings[0].severity, "info")
         self.assertEqual(findings[0].evidence["dependency_severity"], "info")
-        self.assertIsNotNone(findings[0].suggested_fix)
+        self.assertTrue(findings[0].title.startswith("Confirm scope:"))
+        self.assertIsNone(findings[0].suggested_fix)
         meta = {item["rule_id"]: item for item in rule_metadata()}
         self.assertEqual(meta["L2.ELEC.INSTALLATION_NEEDS_RCD_PROTECTION"]["default_severity"], "info")
         self.assertEqual(meta["L2.ELEC.INSTALLATION_NEEDS_DEVICE_BOXES"]["default_severity"], "warning")
+
+    def test_explicit_scope_wording_distinguishes_client_supply_and_required_positions(self):
+        by_client = input_for(line("s", "Estrich", long_text="Randdämmstreifen werden bauseits gestellt."))
+        finding, = selected(by_client, "EDGE_INSULATION")
+        self.assertEqual(finding.severity, "info")
+        self.assertIn("bauseits", finding.evidence["external_scope"]["s"])
+        self.assertIsNone(finding.suggested_fix)
+        required = input_for(line("s", "UP-Schuko-Steckdose", "10", "St",
+                                  long_text="RCD als eigene Position anzubieten."))
+        finding, = selected(required, "RCD_PROTECTION")
+        self.assertEqual(finding.severity, "warning")
+        self.assertIn("RCD", finding.evidence["required_scope"]["s"])
+        self.assertIsNotNone(finding.suggested_fix)
 
     def test_severity_must_be_warning_or_info(self):
         with self.assertRaises(ValueError):

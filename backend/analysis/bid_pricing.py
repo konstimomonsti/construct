@@ -129,9 +129,14 @@ def _resolve_finding(line, finding, result):
     reviews = [f for f in result.findings if f.rule_id == "L3.REVIEW.L2_CONFIRM"
                and f.status not in {"rejected", "stale"}
                and f.evidence.get("reviews_finding_id") == finding.id]
-    if any(f.evidence.get("verdict") in {"included", "excluded"} for f in reviews):
+    attached = evidence.get("dependency_review") or {}
+    if (attached.get("verdict") in {"included", "excluded"}
+            or any(f.evidence.get("verdict") in {"included", "excluded"} for f in reviews)):
         raise ValueError(f"{line.code or line.id}: AI review found alternative coverage or a scope exclusion")
-    return quantity, finding.id, tuple(f.id for f in reviews)
+    review_ids = [f.id for f in reviews]
+    if attached.get("id"):
+        review_ids.append(attached["id"])
+    return quantity, finding.id, tuple(dict.fromkeys(review_ids))
 
 
 def included_positions(snapshot: AnalysisInput) -> dict[str, tuple[Line, Decimal]]:

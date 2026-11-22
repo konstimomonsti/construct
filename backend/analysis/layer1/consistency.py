@@ -4,11 +4,11 @@ from collections import defaultdict
 from decimal import Decimal
 
 from .. import units
-from ..contracts import Fix, MergeLines, SetField
+from ..contracts import Fix, SetField
 from ..registry import rule
 from .common import (
     BILLING_UNIT, BIDDER_INPUT, OR_EQUIVALENT, THRESHOLDS, excerpt, label, phase_has_prices, section_label,
-    section_subtrees, text_of,
+    text_of,
 )
 
 
@@ -84,7 +84,7 @@ def or_equivalent(ctx):
         if match:
             yield ctx.finding(line=line, field="long_text",
                               message=f"{label(line)} names a reference product 'or equivalent': "
-                                      f"'{excerpt(text, match)}'. The bidder must state the offered product.",
+                                      f"'{excerpt(text, match)}'. Confirm which technical criteria the offered product must meet.",
                               evidence={"excerpt": excerpt(text, match)})
 
 
@@ -92,14 +92,20 @@ def or_equivalent(ctx):
       title="OZ code does not match its section", description="The OZ prefix should be the code of the parent section.")
 def code_outside_section(ctx):
     sections = ctx.input.section_by_id()
+    section_codes = {tuple(section.code_parts) for section in sections.values() if section.code_parts}
     for line in ctx.input.lines:
         section = sections.get(line.section_id)
         if not section or not section.code_parts or not line.code:
             continue
         if line.code_parts[:len(section.code_parts)] != section.code_parts:
-            yield ctx.finding(line=line, field="code", related_line_ids=[],
-                              message=f"OZ {line.code} sits in section {section_label(section)}.",
-                              evidence={"code": line.code, "section_code": section.code})
+            expected = next((tuple(line.code_parts[:depth]) for depth in range(len(line.code_parts) - 1, 0, -1)
+                             if tuple(line.code_parts[:depth]) in section_codes), None)
+            consequence = (" Check which section should include its amount and export this position."
+                           if expected else " Check whether the position number should use this section’s prefix.")
+            yield ctx.finding(line=line, field="code", severity="warning" if expected else "info",
+                              message=f"OZ {line.code} sits in section {section_label(section)}." + consequence,
+                              evidence={"code": line.code, "section_code": section.code,
+                                        "matching_section_code": ".".join(expected) if expected else None})
 
 
 @rule("L1.STRUCT.ORPHAN_LINE", layer=1, category="structure", severity="warning", title="Item outside any section",
@@ -111,16 +117,6 @@ def orphan_line(ctx):
         if line.section_id is None:
             yield ctx.finding(line=line, field="section",
                               message=f"{label(line)} is not inside any section, so it is missing from section subtotals.")
-
-
-@rule("L1.STRUCT.EMPTY_SECTION", layer=1, category="structure", severity="info", title="Empty section",
-      description="A section without items.")
-def empty_section(ctx):
-    subtrees = section_subtrees(ctx.input)
-    used = {line.section_id for line in ctx.input.lines}
-    for section in ctx.input.sections:
-        if not subtrees[section.id] & used:
-            yield ctx.finding(section=section, message=f"Section {section_label(section)} contains no items.")
 
 
 @rule("L1.STRUCT.ORPHAN_ALTERNATIVE", layer=1, category="structure", severity="warning",
@@ -139,7 +135,7 @@ def provisional_item(ctx):
     for line in ctx.input.lines:
         if line.gaeb_flags.get("Provis") or line.gaeb_flags.get("provisional_flag") == "E":
             yield ctx.finding(line=line, field="total_rule",
-                              message=f"{label(line)} is an optional item and is not counted in the total.",
+                              message=f"{label(line)} is an optional item and is not counted in the total. Confirm the quantity to price and whether it will be evaluated.",
                               evidence={"total_rule": line.total_rule, "flags": line.gaeb_flags})
 
 
@@ -167,11 +163,10 @@ def suspected_duplicate(ctx):
     for lines in groups.values():
         first, *repeats = lines
         for line in repeats:
-            total = (first.quantity or 0) + (line.quantity or 0)
-            fix = Fix(operations=[MergeLines(keep_line_id=first.id, remove_line_ids=[line.id], new_quantity=total)],
-                      confidence=0.3, rationale="Only if both items describe the same work.")
-            yield ctx.finding(line=line, related_line_ids=[first.id], suggested_fix=fix,
-                              message=f"{label(line)} has the same description and unit as {first.code}.",
+            yield ctx.finding(line=line, related_line_ids=[first.id],
+                              message=f"{label(line)} and {first.code or first.id} have the same description and unit "
+                                      f"in this section (quantities {line.quantity} and {first.quantity}). Compare "
+                                      "their locations and scope before adjusting either position.",
                               evidence={"same_as": first.code, "quantities": [first.quantity, line.quantity]})
 
 

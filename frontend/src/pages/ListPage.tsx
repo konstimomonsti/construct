@@ -16,8 +16,8 @@ import { currentPhase } from '../lib/workflow'
 import { ErrorBoundary } from '../components/ErrorBoundary'
 import { LedgerTable } from '../components/LedgerTable'
 import { BidSimulator } from '../components/BidSimulator'
-import { ChangeOrderText, FindingFilter, FindingText } from '../components/RiskAssessment'
-import { analysisCoverage, assessmentMatchesEdits, canApplyAssessmentFix, currentDecisions, decisionsOf, indexFindings, matchesFindingFilter, openQuestions, reportRisk, SEVERITIES, useUploadAssessment, type Assessment, type ChangeOrderSignal, type Decision, type Finding, type Question, type Report, type ReviewItem } from '../lib/risk-assessment'
+import { FindingFilter, FindingText } from '../components/RiskAssessment'
+import { analysisCoverage, assessmentMatchesEdits, canApplyAssessmentFix, currentDecisions, decisionsOf, indexFindings, matchesFindingFilter, openQuestions, reportRisk, SEVERITIES, useUploadAssessment, type Assessment, type Decision, type Finding, type Question, type Report } from '../lib/risk-assessment'
 import { riskXlsx, downloadBytes } from '../lib/risk-export'
 import type { RowRisk } from '../components/LedgerTable'
 import { DecisionControls, DismissMenu } from '../components/risk/DecisionControls'
@@ -30,9 +30,9 @@ import { useActions } from '../lib/actions'
 import { DetailDrawer } from '../components/DetailDrawer'
 import { loadList } from '../lib/data'
 import { ExportMenu } from '../components/ExportMenu'
-import { CatalogueDetails, CatalogueOverview, type ResearchView } from '../components/WorkspaceCatalogue'
-import { useWorkspaceCatalogue } from '../lib/workspace-catalogue'
-import { usePriceSuggestions, type PriceSuggestion } from '../lib/price-suggestions'
+import { CatalogueDetails, CatalogueOverview } from '../components/WorkspaceCatalogue'
+import { researchFilterOf, useWorkspaceCatalogue, type ResearchFilter } from '../lib/workspace-catalogue'
+import { matchesPricingFilter, usePriceSuggestions, type PriceSuggestion, type PricingFilter } from '../lib/price-suggestions'
 import { CategoryTree, useExpanded, type CheckState } from '../components/split/CategoryTree'
 import { MoveToCategory } from '../components/split/MoveToCategory'
 import { budgetMoney, budgetStatus, int, money, parseNumber, plural } from '../lib/format'
@@ -44,6 +44,21 @@ import { useUi } from '../lib/ui-store'
 import type { CategoryNode, ListDoc, Position } from '../lib/types'
 
 const SplitOverlay = lazy(() => import('../components/split/SplitOverlay').then((m) => ({ default: m.SplitOverlay })))
+
+const PRICING_FILTERS = {
+  unpriced: 'Not priced',
+  pending: 'Pending confirmation',
+  zero: 'Priced with quantity 0',
+  edited: 'Edited',
+} satisfies Record<PricingFilter, string>
+const PRICING_FILTER_KEYS = Object.keys(PRICING_FILTERS) as PricingFilter[]
+
+const CATALOGUE_FILTERS = {
+  matched: 'Catalogue matches',
+  suggested: 'Web suggestions',
+  unresolved: 'Without a match',
+} satisfies Record<ResearchFilter, string>
+type PositionFilter = { pricing: PricingFilter } | { catalogue: ResearchFilter }
 
 export function ListPage() {
   const { listId = '' } = useParams()
@@ -421,29 +436,13 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
     return index
   }, [questions, decisions, isStale])
   const codes = useMemo(() => new Map(imported.positions.map((p) => [p.id, p.oz])), [imported.positions])
-  const { byRow: findingsByRow, listWide } = useMemo(
-    () => indexFindings(uploadReport?.findings ?? [], positions), [uploadReport, positions],
-  )
-  const { signalsByRow, listSignals } = useMemo(() => {
-    const signalsByRow = new Map<string, ChangeOrderSignal[]>()
-    const listSignals: ChangeOrderSignal[] = []
-    const positionIds = new Set(positions.map((position) => position.id))
-    for (const signal of risk?.change_order_signals ?? []) {
-      if (signal.line_id && positionIds.has(signal.line_id)) {
-        const items = signalsByRow.get(signal.line_id) ?? []
-        items.push(signal)
-        signalsByRow.set(signal.line_id, items)
-      } else {
-        listSignals.push(signal)
-      }
+  const { byRow: findingsByRow, listWide, optimizations } = useMemo(() => {
+    const findings = uploadReport?.findings ?? []
+    return {
+      ...indexFindings(findings.filter(finding => finding.category !== 'optimization'), positions),
+      optimizations: findings.filter(finding => finding.category === 'optimization'),
     }
-    return { signalsByRow, listSignals }
-  }, [risk, positions])
-  const reviewByRow = useMemo(() => {
-    const items = new Map<string, ReviewItem[]>(findingsByRow)
-    for (const [id, signals] of signalsByRow) items.set(id, [...(findingsByRow.get(id) ?? []), ...signals])
-    return items
-  }, [findingsByRow, signalsByRow])
+  }, [uploadReport, positions])
   // a finding about a field the user has since edited no longer describes the position: show it as
   // "changed since upload" instead of flagging the row with an error the edit may already have fixed
   const changedFindings = useMemo(() => {
@@ -482,41 +481,39 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
       const id = finding.target.line_id
       add(id && positionIds.has(id) ? id : finding.related_line_ids.find((id) => positionIds.has(id)), finding.id)
     }
-    for (const [id, signals] of signalsByRow) for (const signal of signals) add(id, signal.id)
     return points
-  }, [uploadReport, positions, risk, settled, signalsByRow])
+  }, [uploadReport, positions, risk, settled])
   // rows are memoized: reuse unchanged risk data across decisions
   const riskCacheRef = useRef(new Map<string, RowRisk>())
   const risks = useMemo(() => {
     const prev = riskCacheRef.current
-    return new Map([...reviewByRow].flatMap(([id, items]) => {
+    return new Map([...findingsByRow].flatMap(([id, items]) => {
       const open = items.filter((item) => !settled.has(item.id))
       if (!open.length) return []
-      const severity = SEVERITIES.find((level) => open.some((item) => 'severity' in item && item.severity === level))
-      const signalCount = open.filter((item) => !('severity' in item)).length
-      const rowRisk: RowRisk = { severity, count: open.length - signalCount, signalCount, points: rowPoints.get(id) ?? 0, label: open.map((item) => item.title).join(', ') }
+      const severity = SEVERITIES.find((level) => open.some((item) => item.severity === level))
+      const rowRisk: RowRisk = { severity, count: open.length, points: rowPoints.get(id) ?? 0, label: open.map((item) => item.title).join(', ') }
       const old = prev.get(id)
-      return [[id, old && old.severity === rowRisk.severity && old.count === rowRisk.count && old.signalCount === rowRisk.signalCount && old.points === rowRisk.points && old.label === rowRisk.label ? old : rowRisk] as const]
+      return [[id, old && old.severity === rowRisk.severity && old.count === rowRisk.count && old.points === rowRisk.points && old.label === rowRisk.label ? old : rowRisk] as const]
     }))
-  }, [reviewByRow, rowPoints, settled])
+  }, [findingsByRow, rowPoints, settled])
   useEffect(() => {
     riskCacheRef.current = risks
   }, [risks])
-  const filterFindings = useMemo(() => [...reviewByRow.values()], [reviewByRow])
+  const filterFindings = useMemo(() => [...findingsByRow.values()], [findingsByRow])
   // every warning once, in list order (a warning on several rows sits at its first one), then the list-wide ones
   const warningEntries = useMemo(() => {
     const seen = new Set<string>()
     const out: WarningEntry[] = []
     for (const position of positions) {
-      for (const item of reviewByRow.get(position.id) ?? []) {
+      for (const item of findingsByRow.get(position.id) ?? []) {
         if (seen.has(item.id)) continue
         seen.add(item.id)
         out.push({ item, position })
       }
     }
-    for (const item of [...listWide, ...listSignals]) if (!seen.has(item.id)) out.push({ item, position: null })
+    for (const item of listWide) if (!seen.has(item.id)) out.push({ item, position: null })
     return out
-  }, [positions, reviewByRow, listWide, listSignals])
+  }, [positions, findingsByRow, listWide])
 
   const [q, setQ] = useState('')
   const [categoryFilter, setCategoryFilter] = useState<Set<string> | null>(null)
@@ -524,11 +521,9 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   const cats = grouped ? ozFilter : categoryFilter
   const setCats = grouped ? setOzFilter : setCategoryFilter
   const [sort, setSort] = useState<'oz' | 'amount' | 'risk'>('oz')
-  const [onlyUnpriced, setOnlyUnpriced] = useState(false)
-  const [onlyPending, setOnlyPending] = useState(false)
-  const [researchShow, setResearchShow] = useState<ResearchView>(null)
-  const [onlyZero, setOnlyZero] = useState(false)
-  const [onlyEdited, setOnlyEdited] = useState(false)
+  const [positionFilter, setPositionFilter] = useState<PositionFilter | null>(null)
+  const pricingFilter = positionFilter && 'pricing' in positionFilter ? positionFilter.pricing : null
+  const researchShow = positionFilter && 'catalogue' in positionFilter ? positionFilter.catalogue : null
   const [selectMode, setSelectMode] = useState(false)
   const [sectionsOpen, setSectionsOpen] = useState(false)
   // the sticky total only appears once the hero total has scrolled away, so the number is never on screen twice
@@ -583,6 +578,8 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   const title = view?.title ?? doc.title
   const editedIds = useMemo(() => new Set([...Object.keys(edits?.qty ?? {}), ...Object.keys(edits?.up ?? {}), ...Object.keys(edits?.patch ?? {}), ...Object.keys(edits?.moves ?? {})]), [edits])
   const addedIds = useMemo(() => new Set((edits?.added ?? []).map((p) => p.id)), [edits])
+  const modifiedIds = useMemo(() => new Set(positions
+    .filter(p => editedIds.has(p.id) && !addedIds.has(p.id)).map(p => p.id)), [positions, editedIds, addedIds])
   const qtyEdited = useMemo(() => new Set(Object.keys(edits?.qty ?? {})), [edits])
   const upEdited = useMemo(() => new Set(Object.keys(edits?.up ?? {})), [edits])
 
@@ -591,13 +588,17 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
     const matchesText = (p: Position) => p.oz.toLowerCase().includes(t) || p.short.toLowerCase().includes(t)
       || p.path?.some((part) => part.label.toLowerCase().includes(t))
     const originalMatches = grouped && t ? new Set(positions.filter(matchesText).map((p) => p.id)) : null
-    const r = ledgerPositions.filter(
-      (p) => matchesFindingFilter(findingFilter, reviewByRow.get(p.id) ?? [], settled) && (!cats || cats.has(leafOz(p))) && (!onlyUnpriced || (p.up == null && !pending.has(p.id))) && (!onlyPending || (p.up == null && pending.has(p.id))) && (!onlyZero || (p.up != null && p.qty === 0)) && (!onlyEdited || editedIds.has(p.id) || addedIds.has(p.id)) && (!t || matchesText(p) || originalMatches?.has(p.id)),
+    const r = ledgerPositions.filter(p =>
+      (!pricingFilter || matchesPricingFilter(pricingFilter, p, pending, modifiedIds)) &&
+      (!researchShow || researchFilterOf(report?.positions[p.id]?.state) === researchShow) &&
+      (!cats || cats.has(leafOz(p))) &&
+      (!t || matchesText(p) || originalMatches?.has(p.id)) &&
+      matchesFindingFilter(findingFilter, findingsByRow.get(p.id) ?? [], settled)
     )
     if (sort === 'amount') r.sort((a, b) => positionTotal(b) - positionTotal(a))
     if (sort === 'risk') r.sort((a, b) => (rowPoints.get(b.id) ?? 0) - (rowPoints.get(a.id) ?? 0))
     return r
-  }, [positions, ledgerPositions, grouped, q, cats, sort, rowPoints, onlyUnpriced, onlyPending, pending, onlyZero, onlyEdited, editedIds, addedIds, findingFilter, reviewByRow, settled])
+  }, [positions, ledgerPositions, grouped, q, cats, sort, rowPoints, pricingFilter, researchShow, report, pending, modifiedIds, findingFilter, findingsByRow, settled])
   const repeatedIds = useMemo(() => {
     if (!findingFilter.startsWith('rule:')) return []
     const ids = new Set<string>()
@@ -619,7 +620,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   const detailIdx = detailId ? rows.findIndex((r) => r.id === detailId) : -1
   const detailCatalogue = detail && report?.positions[detail.id]
   const detailFindings = detail ? findingsByRow.get(detail.id) : undefined
-  const detailItems = detail ? reviewByRow.get(detail.id) : undefined
+  const detailItems = detail ? findingsByRow.get(detail.id) : undefined
   const detailOpen = detailItems?.filter((item) => !settled.has(item.id)).length ?? 0
   const detailExposure = detail && risk?.top_risks.find((row) => row.line_id === detail.id)?.amount
   // the next row (in table order, wrapping) that still has an open finding, so review can run row to row
@@ -627,10 +628,10 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
     if (detailIdx < 0) return null
     for (let step = 1; step < rows.length; step++) {
       const row = rows[(detailIdx + step) % rows.length]
-      if (reviewByRow.get(row.id)?.some((item) => !settled.has(item.id))) return row
+      if (findingsByRow.get(row.id)?.some((item) => !settled.has(item.id))) return row
     }
     return null
-  }, [rows, detailIdx, reviewByRow, settled])
+  }, [rows, detailIdx, findingsByRow, settled])
   // several findings often carry the same advice; say it once under the heading instead of under each
   const rationales = detailFindings?.map((finding) => finding.suggested_fix?.rationale ?? '') ?? []
   const sharedRationale = rationales.length > 1 && rationales[0] && rationales.every((note) => note === rationales[0]) ? rationales[0] : ''
@@ -733,13 +734,21 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
       },
     })
   }
-  const showWarnings = (filter: string) => {
-    setOnlyUnpriced(false)
-    setOnlyPending(false)
-    setOnlyZero(false)
-    setOnlyEdited(false)
+  const clearPositionFilters = () => {
+    setPositionFilter(null)
     setQ('')
-    setCats(null)
+    setCategoryFilter(null)
+    setOzFilter(null)
+    setFindingFilter('all')
+    setSelected(new Set())
+  }
+  const applyPositionFilter = (filter: PositionFilter | null) => {
+    clearPositionFilters()
+    setPositionFilter(filter)
+    toTable()
+  }
+  const showWarnings = (filter: string) => {
+    clearPositionFilters()
     setFindingFilter(filter)
     toTable()
   }
@@ -798,20 +807,11 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
     setFindingFilter('all')
     toTable()
   }
-  const only = (k: 'unpriced' | 'pending' | 'zero' | 'edited') => {
-    setOnlyUnpriced(k === 'unpriced')
-    setOnlyPending(k === 'pending')
-    setOnlyZero(k === 'zero')
-    setOnlyEdited(k === 'edited')
-    setQ('')
-    setCats(null)
-    toTable()
-  }
   const resetAll = () => {
     const prev = useStore.getState().edits[doc.id]
-    const ids = [...editedIds].filter((x) => !addedIds.has(x))
+    const ids = [...modifiedIds]
     ids.forEach((x) => useStore.getState().resetPosition(doc.id, x))
-    setOnlyEdited(false)
+    if (pricingFilter === 'edited') setPositionFilter(null)
     toast(`Reset ${plural(ids.length, 'position', 'positions')} to the imported values`, 'ok', { label: 'Undo', run: () => useStore.getState().setEdits(doc.id, prev) })
   }
 
@@ -848,16 +848,22 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   }
 
   const heading = title
-  const zeroQty = positions.filter((p) => p.up != null && p.qty === 0).length
-  const pendingCount = pending.size
-  const unpriced = st.positionsCount - st.pricedCount - pendingCount
+  const pricingCounts = useMemo(() => {
+    const counts: Record<PricingFilter, number> = { unpriced: 0, pending: 0, zero: 0, edited: 0 }
+    for (const position of positions) {
+      for (const filter of PRICING_FILTER_KEYS) {
+        if (matchesPricingFilter(filter, position, pending, modifiedIds)) counts[filter]++
+      }
+    }
+    return counts
+  }, [positions, pending, modifiedIds])
+  const { pending: pendingCount, edited: editedCount } = pricingCounts
   // what the pending suggestions would add; shown beside the total, never inside it
   const pendingTotal = positions.reduce((sum, p) => sum + (pending.get(p.id)?.price ?? 0) * p.qty, 0)
   // bulk confirm covers the rows on screen whose units are known; the rest are checked one by one in the drawer
   const confirmable = rows.filter((p) => p.up == null && pending.get(p.id)?.unitKnown).map((p) => p.id)
   const confirmableTotal = confirmable.reduce((sum, id) => sum + (pending.get(id)?.price ?? 0) * (positions.find((p) => p.id === id)?.qty ?? 0), 0)
-  const editedCount = [...editedIds].filter((x) => !addedIds.has(x)).length
-  const filtered = !!q.trim() || !!cats || onlyUnpriced || onlyPending || onlyZero || onlyEdited || findingFilter !== 'all'
+  const filtered = !!q.trim() || !!cats || !!positionFilter || findingFilter !== 'all'
   const sections = pricingSections(tree, catStats)
   const live = view && !view.trashedAt ? view : null
   const more: (MenuItem | 'sep')[] = [
@@ -934,7 +940,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
         )}
         // research sits in the status row under the meter, so every list hero has the same height
         note={catalogueEnabled && (
-          <CatalogueOverview part="line" show={researchShow} setShow={setResearchShow} report={report} error={error} retryFailed={retryFailed} positions={positions} onOpen={openDetail} hideMatched={pending} />
+          <CatalogueOverview part="line" show={researchShow} setShow={filter => applyPositionFilter(filter ? { catalogue: filter } : null)} report={report} error={error} retryFailed={retryFailed} positions={positions} onOpen={openDetail} />
         )}
         extra={sections.length > 1 && showSections && (
           <div id="pricing-legend" aria-label="Pricing summary" role="region" className="mt-4 max-w-xl rounded-lg bg-slate-50 p-4">
@@ -943,15 +949,18 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
           </div>
         )}
         meta={
-          <div className="flex flex-wrap items-center gap-x-1 gap-y-1">
+          <div role="group" aria-label="Pricing position filters" className="flex flex-wrap items-center gap-x-1 gap-y-1">
             <span className="inline-flex w-[5.5rem] shrink-0 items-center gap-1.5 text-[13px] font-medium text-slate-500">
               <Icon name="sell" size={16} />Pricing
             </span>
-            <span className="num px-2"><span className="font-semibold text-slate-900">{int(st.positionsCount)}</span> {st.positionsCount === 1 ? 'position' : 'positions'}</span>
-            {unpriced > 0 && <MetaLink onClick={() => only('unpriced')} pressed={onlyUnpriced}><span className="num">{int(unpriced)}</span> not priced</MetaLink>}
-            {pendingCount > 0 && <MetaLink onClick={() => only('pending')} pressed={onlyPending}><span className="num">{int(pendingCount)}</span> pending confirmation</MetaLink>}
-            {zeroQty > 0 && <MetaLink onClick={() => only('zero')} pressed={onlyZero}><span className="num">{int(zeroQty)}</span> priced with quantity 0</MetaLink>}
-            {editedCount > 0 && <MetaLink onClick={() => only('edited')} pressed={onlyEdited}><span className="num">{int(editedCount)}</span> edited</MetaLink>}
+            <MetaLink onClick={() => applyPositionFilter(null)} pressed={!filtered}>All <span className="num">{int(st.positionsCount)}</span> {st.positionsCount === 1 ? 'position' : 'positions'}</MetaLink>
+            {PRICING_FILTER_KEYS.filter(filter => pricingCounts[filter] > 0 || pricingFilter === filter)
+              .map(filter => (
+                <MetaLink key={filter} pressed={pricingFilter === filter}
+                  onClick={() => applyPositionFilter(pricingFilter === filter ? null : { pricing: filter })}>
+                  <span className="num">{int(pricingCounts[filter])}</span> {PRICING_FILTERS[filter].toLowerCase()}
+                </MetaLink>
+              ))}
             {(sections.length > 1 || largest) && (
               <span className="flex items-center gap-1 sm:ml-auto">
                 {sections.length > 1 && (
@@ -982,15 +991,23 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
           onDecide={decide} onApplyFixes={applyFixes} />
       )}
 
-      {catalogueEnabled && researchShow && (
-        <div className="mb-6">
-          <CatalogueOverview part="list" show={researchShow} setShow={setResearchShow} report={report} error={error} retryFailed={retryFailed} positions={positions} onOpen={openDetail}
-            onApplyAll={applySuggestions} onPrice={setOwnPrice} />
-        </div>
+      {optimizations.length > 0 && (
+        <details className="mb-5 max-w-4xl rounded-lg bg-slate-50 p-4">
+          <summary className="cursor-pointer font-medium">Optimization suggestions ({optimizations.length})</summary>
+          <ul className="mt-2 space-y-2 text-sm text-slate-700">
+            {optimizations.map(finding => <li key={finding.id}><strong>{finding.title}</strong> · {finding.message}</li>)}
+          </ul>
+        </details>
       )}
 
       <div ref={heroEnd} aria-hidden />
       <div ref={tableRef} className="scroll-mt-20">
+        {catalogueEnabled && researchShow && (
+          <div className="mb-6">
+            <CatalogueOverview part="list" show={researchShow} setShow={filter => applyPositionFilter(filter ? { catalogue: filter } : null)} report={report} error={error} retryFailed={retryFailed} positions={rows} onOpen={openDetail}
+              onApplyAll={applySuggestions} onPrice={setOwnPrice} />
+          </div>
+        )}
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <div className="relative w-full sm:w-auto sm:min-w-56 sm:flex-1 lg:max-w-sm">
             <Icon name="search" size={20} className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-slate-600" />
@@ -1036,22 +1053,22 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
               <Icon name="error" size={18} />Upload check unavailable
             </span>
           )}
-          {/* the status line above offers these filters; the toolbar only shows the one that is on, with a way out */}
-          {onlyUnpriced && <FilterPill on onClick={() => setOnlyUnpriced(false)}>Not priced <span className="num">{int(unpriced)}</span></FilterPill>}
-          {onlyPending && <FilterPill on onClick={() => setOnlyPending(false)}>Pending confirmation <span className="num">{int(pendingCount)}</span></FilterPill>}
-          {onlyPending && confirmable.length > 0 && (
+          {(pricingFilter || researchShow) && (
+            <FilterPill on onClick={() => setPositionFilter(null)}>
+              {pricingFilter ? PRICING_FILTERS[pricingFilter] : researchShow && CATALOGUE_FILTERS[researchShow]}
+              <span className="num">{int(rows.length)}</span>
+            </FilterPill>
+          )}
+          {pricingFilter === 'pending' && confirmable.length > 0 && (
             <button type="button" onClick={() => confirmPrices(confirmable)} title={`Adds ${money(confirmableTotal)}: the list total becomes ${money(st.total + confirmableTotal)}`} aria-label={`Confirm ${plural(confirmable.length, 'shown price', 'shown prices')}, adds ${money(confirmableTotal)}; the list total becomes ${money(st.total + confirmableTotal)}`} className="inline-flex h-10 items-center gap-1.5 rounded-md px-3 text-sm font-semibold text-slate-800 hover:bg-slate-100">
               <Icon name="done_all" size={18} />Confirm {plural(confirmable.length, 'price', 'prices')}
               <span className="num font-medium text-slate-600">+{money(confirmableTotal)}</span>
             </button>
           )}
-          {onlyZero && <FilterPill on onClick={() => setOnlyZero(false)}>Priced with quantity 0 <span className="num">{int(zeroQty)}</span></FilterPill>}
-          {onlyEdited && (
-            <>
-              <FilterPill on onClick={() => setOnlyEdited(false)}>Edited <span className="num">{int(editedCount)}</span></FilterPill>
-              {editedCount > 0 && <button type="button" onClick={resetAll} className="h-10 rounded-md px-3 text-sm font-semibold text-slate-800 hover:bg-slate-100">Reset all</button>}
-            </>
+          {pricingFilter === 'edited' && editedCount > 0 && (
+            <button type="button" onClick={resetAll} className="h-10 rounded-md px-3 text-sm font-semibold text-slate-800 hover:bg-slate-100">Reset all</button>
           )}
+          {filtered && <Button size="sm" variant="ghost" onClick={clearPositionFilters}>Clear filters</Button>}
           <div className="flex items-center gap-2 sm:ml-auto">
             <button
               type="button"
@@ -1138,7 +1155,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
         </div>
       </div>
 
-      {(assessment || listWide.length > 0 || listSignals.length > 0 || uploadReport?.source_notice || analysisErrors.length > 0) && (
+      {(assessment || listWide.length > 0 || uploadReport?.source_notice || analysisErrors.length > 0) && (
         <section aria-labelledby="list-findings-h" className="mt-8">
           <h2 id="list-findings-h" className="font-heading text-base font-bold text-slate-900">Warnings for the whole list</h2>
           {(assessment || uploadReport?.source_notice || analysisErrors.length > 0) && (
@@ -1152,12 +1169,11 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
               {analysisErrors.slice(0, 3).map((error, index) => <p key={index}>{error}</p>)}
             </div>
           )}
-          {(listWide.length > 0 || listSignals.length > 0) && (
+          {(listWide.length > 0) && (
             <ul className="mt-3 space-y-4">
-              {[...listWide, ...listSignals].map((item) => (
+              {listWide.map((item) => (
                 <li key={item.id} className="space-y-3">
-                  {'severity' in item ? <FindingText finding={item} decision={decisions[item.id]} details />
-                    : <ChangeOrderText signal={item} decision={decisions[item.id]} />}
+                  <FindingText finding={item} decision={decisions[item.id]} details />
                   <FindingQuestions title={title} questions={questionsByFinding.get(item.id)} />
                   <DecisionControls className="ml-[15px]" title={item.title} decision={decisions[item.id]}
                     onDecide={(decision) => decide([item.id], decision, item.title)} />
@@ -1211,7 +1227,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
             positions={positions}
             pending={pending}
             onSubcontractors={() => setTab('subcontractors')}
-            onReviewAi={() => { setTab('x83'); only('pending') }}
+            onReviewAi={() => { setTab('x83'); applyPositionFilter({ pricing: 'pending' }) }}
           />
         </PhasePanel>
       )}
@@ -1228,12 +1244,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
 
       <AddSectionDialog open={addingSection} onClose={() => setAddingSection(false)} onAdd={(name) => {
         addCategory(null, name)
-        setQ('')
-        setCats(null)
-        setOnlyUnpriced(false)
-        setOnlyPending(false)
-        setOnlyZero(false)
-        setOnlyEdited(false)
+        clearPositionFilters()
         setSort('oz')
         toast(`Added section "${name}"`)
       }} />
@@ -1271,9 +1282,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
             <ul className="mt-3 space-y-5">
               {detailItems.map((item) => (
                 <li key={item.id} className="space-y-3">
-                  {'severity' in item
-                    ? <FindingText finding={item} decision={decisions[item.id]} changed={changedFindings.has(item.id)} hideRationale={!!sharedRationale} details />
-                    : <ChangeOrderText signal={item} decision={decisions[item.id]} />}
+                  <FindingText finding={item} decision={decisions[item.id]} changed={changedFindings.has(item.id)} hideRationale={!!sharedRationale} details />
                   <FindingQuestions title={title} questions={questionsByFinding.get(item.id)} />
                   <DecisionControls className="ml-[15px]" title={item.title} decision={decisions[item.id]}
                     onDecide={(decision) => decideInDrawer(item.id, item.title, decision)} />

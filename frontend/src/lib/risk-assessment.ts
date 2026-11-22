@@ -18,6 +18,10 @@ export type Evidence = {
   bieterfrage_de?: string
   amount_at_stake?: string
   change_order?: boolean
+  standard?: string
+  excerpt?: string
+  clause?: string
+  dependency_review?: { verdict?: string; quote?: string; quote_line_code?: string; reason?: string }
   [key: string]: unknown
 }
 
@@ -44,7 +48,6 @@ export type ChangeOrderSignal = {
   id: string; kind: string; line_id: string | null; line_code: string | null
   title: string; message: string; points: number; finding_ids: string[]
 }
-export type ReviewItem = Finding | ChangeOrderSignal
 
 export const findingCategory = (category: string) => category === 'din'
   ? 'DIN 1045-2' : category.charAt(0).toUpperCase() + category.slice(1).replaceAll('_', ' ')
@@ -73,7 +76,8 @@ export type Risk = {
 export type Question = { id: string; topic: string; text_de: string; line_codes: string[]; finding_ids: string[]; rule_id: string | null }
 
 export const openQuestions = (questions: Question[], decisions: Decisions) =>
-  questions.filter((question) => !question.finding_ids.length || question.finding_ids.some((id) => decisions[id]?.status !== 'dismissed'))
+  questions.filter((question) => !question.rule_id?.startsWith('CO.') &&
+    (!question.finding_ids.length || question.finding_ids.some((id) => decisions[id]?.status !== 'dismissed')))
 
 export type AdvisoryStatus = {
   state: 'disabled' | 'no-candidates' | 'complete' | 'degraded' | 'unavailable'
@@ -121,9 +125,51 @@ export type Report = {
   state?: string
 }
 
+export function dependencyReviewLines(finding: Finding): string[] {
+  const review = finding.evidence?.dependency_review
+  if (!review?.verdict) return []
+  const title = review.verdict === 'included' ? 'AI found possible coverage'
+    : review.verdict === 'excluded' ? 'AI found a possible scope exclusion' : 'AI found no additional coverage'
+  return [
+    title,
+    ...(review.quote ? [`${review.quote_line_code ? `Position ${review.quote_line_code} · ` : ''}“${review.quote}”`] : []),
+    ...(review.reason ? [review.reason] : []),
+  ]
+}
+
 export function reportRisk(report: Report | null): Risk | null {
-  const risk = report?.risk
-  return risk ? { ...risk, ...report?.review_metrics } : null
+  if (!report?.risk) return null
+  const risk = { ...report.risk, ...report.review_metrics }
+  if (!risk.change_order_signals?.length) return risk
+
+  const signalIds = new Set(risk.change_order_signals.map(signal => signal.id))
+  const withoutSignals = <T,>(values: Record<string, T>) =>
+    Object.fromEntries(Object.entries(values).filter(([id]) => !signalIds.has(id)))
+  const titles = new Map(report.findings.map(finding => [finding.id, finding.title]))
+  const points = withoutSignals(risk.points)
+  const { score, level } = rescore({ points, scale: risk.scale }, {})
+  const cleaned: Risk = {
+    ...risk, score, level, points, change_order_signals: [],
+    item_sections: risk.item_sections && withoutSignals(risk.item_sections),
+    item_exposure: risk.item_exposure && withoutSignals(risk.item_exposure),
+    by_category: {},
+    top_risks: risk.top_risks.flatMap(row => {
+      const item_ids = row.item_ids.filter(id => !signalIds.has(id))
+      if (!item_ids.length) return []
+      if (item_ids.length === row.item_ids.length) return [row]
+      const reasons = [...new Set(item_ids.flatMap(id => titles.get(id) ?? []))]
+      return [{ ...row, item_ids, points: item_ids.reduce((sum, id) => sum + (points[id] ?? 0), 0),
+        reasons, amount: null }]
+    }).sort((a, b) => b.points - a.points),
+  }
+  for (const finding of report.findings) {
+    if (finding.category && points[finding.id] != null) {
+      cleaned.by_category[finding.category] = (cleaned.by_category[finding.category] ?? 0) + points[finding.id]
+    }
+  }
+  cleaned.by_section = cleaned.item_sections ? openSections(cleaned, {}).filter(section => section.open > 0) : []
+  cleaned.money_at_stake = cleaned.item_exposure ? openExposure(cleaned, {}) : null
+  return cleaned
 }
 
 export function analysisCoverage(report: Report): { message: string; details: string[]; partial: boolean } {
@@ -282,13 +328,12 @@ export function indexFindings(findings: Finding[], positions: Position[]) {
   return { byRow, listWide }
 }
 
-export function matchesFindingFilter(filter: string, findings: ReviewItem[], reviewed: Set<string>) {
+export function matchesFindingFilter(filter: string, findings: Finding[], reviewed: Set<string>) {
   if (filter === 'all') return true
   if (filter === 'reviewed') return findings.some((finding) => reviewed.has(finding.id))
   return findings.some((item) => {
     if (reviewed.has(item.id)) return false
     if (filter === 'flagged') return true
-    if (!('severity' in item)) return filter === 'change-orders'
     return filter === item.severity || filter === `rule:${item.rule_id}` || filter === `category:${item.category}`
   })
 }

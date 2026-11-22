@@ -5,7 +5,7 @@ from collections import defaultdict
 from .. import units
 from ..contracts import Fix, SetField
 from ..registry import rule
-from .common import BID_PHASE, label
+from .common import BID_PHASE, is_counted, label
 
 
 def is_markup(line) -> bool:
@@ -16,13 +16,13 @@ def is_markup(line) -> bool:
 def bid_file_summary(ctx, missing, field: str, title: str):
     """GAEB 84 bids carry only prices; quantities, units and texts are in the tender (GAEB 83).
 
-    Instead of one error per line, report the gap once so it doesn't bury the real findings.
+    Report the gap once for the tender file.
     """
     return ctx.finding(
         severity="info", title=title,
         message=f"{len(missing)} of {len(ctx.input.lines)} items have no {field}. GAEB 84 bids only carry prices; "
                 f"analyze them together with the tender (GAEB 83) to check the {field}s.",
-        evidence={f"lines_without_{field}": len(missing)}, related_line_ids=[line.id for line in missing][:50],
+        evidence={f"lines_without_{field}": len(missing)},
     )
 
 
@@ -54,7 +54,7 @@ def quantity_negative(ctx):
       description="Quantity 0 on a counted item. With a unit price the line contributes nothing to the total.")
 def quantity_zero(ctx):
     for line in ctx.input.lines:
-        if line.quantity is None or line.quantity != 0 or line.total_rule == "unit_price_only":
+        if line.quantity is None or line.quantity != 0 or not is_counted(line):
             continue
         unit_price = (line.source_amounts.unit_price if line.source_amounts else None) or \
             (line.price.unit_price if line.price else None)

@@ -1,4 +1,4 @@
-"""Layer 1 text quality: typos, spelling variants and notation variants (no LLM)."""
+"""Layer 1 likely typos and accepted spelling and notation variants."""
 
 from decimal import Decimal as D
 
@@ -139,47 +139,12 @@ def test_real_dictionary_when_installed():
     assert {f.evidence["suggestion"] for f in by_rule(findings, "L1.TEXT.TYPO")} == {"Auftragnehmer", "Elektrotechnik"}
 
 
-# ---------------------------------------------------------------- spelling variants
-
-
-def test_spelling_variants():
-    findings = run(line(1, "Anschluss", "Der Anschluss und das Baustromkabel"),
-                   line(2, "Anschluss", "Der Anschluss und das Baustromkabel"),
-                   line(3, "Anschluß", "Der Anschluß und das Baustrom-Kabel"),
-                   line(4, "Sektionaltor", "Das Sectionaltor und die Leistung"))
-    variants = {f.evidence["preferred"]: f for f in by_rule(findings, "L1.TEXT.SPELLING_VARIANT")}
-    assert set(variants) == {"Anschluss", "Baustromkabel", "Sektionaltor"}
-    anschluss = variants["Anschluss"]
-    assert anschluss.target.line_id == "l3" and anschluss.evidence["spellings"] == {"Anschluss": 4, "Anschluß": 2}
-    fixed = {(op.line_id, op.field): op.new_value for op in anschluss.suggested_fix.operations}
-    assert fixed == {("l3", "short_text"): "Anschluss", ("l3", "long_text"): "Der Anschluss und das Baustrom-Kabel"}
-    assert variants["Sektionaltor"].target.line_id == "l4"
-    # "Sectionaltor" is a variant, not also a typo
-    assert by_rule(findings, "L1.TEXT.TYPO") == []
-
-
-def test_case_only_difference_is_not_a_variant():
-    findings = run(line(1, "Leistung", "Material und Leistung"), line(2, "Leistung", "das material und die Leistung"))
-    assert by_rule(findings, "L1.TEXT.SPELLING_VARIANT") == []
-
-
-# ---------------------------------------------------------------- notation variants
-
-
-def test_notation_variants():
-    findings = run(line(1, "Rohr DN 100", "Rohr DN 100 und Formteile 5 x 25"), line(2, "Rohr DN 100"),
-                   line(3, "Rohr DN100", unit_raw="Stk"), line(4, "Kabel 5x25"))
-    found = {f.evidence.get("kind") or f"unit:{f.evidence['unit']}": f
-             for f in by_rule(findings, "L1.TEXT.NOTATION_VARIANT")}
-    assert set(found) == {"unit:ea", "DN", "dimension"}
-    assert found["unit:ea"].target.line_id == "l3" and found["unit:ea"].evidence["spellings"] == {"St": 3, "Stk": 1}
-    assert found["DN"].target.line_id == "l3"
-    assert found["dimension"].evidence["styles"] == {"spaced": 1, "compact": 1}
-
-
-def test_consistent_notation_has_no_finding():
-    findings = run(line(1, "Rohr DN 100"), line(2, "Rohr DN 150"), line(3, "Kabel 5x25"), line(4, "Kabel 3x1,5"))
-    assert by_rule(findings, "L1.TEXT.NOTATION_VARIANT") == []
+def test_spelling_and_notation_variants_do_not_create_findings():
+    findings = run(line(1, "Anschluss DN 100", "Der Anschluss und das Baustromkabel"),
+                   line(2, "Anschluß DN100", "Der Anschluß und das Baustrom-Kabel", unit_raw="Stk"),
+                   line(3, "Sektionaltor", "Das Sectionaltor und die Leistung"),
+                   line(4, "Kabel 5x25"), line(5, "Kabel 5 x 25"))
+    assert not [finding for finding in findings if finding.rule_id.startswith("L1.TEXT.")]
 
 
 # ---------------------------------------------------------------- lexicon

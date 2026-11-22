@@ -159,11 +159,9 @@ def test_demo_hall_and_precast_questions_never_duplicate_position_prefix():
         assert all(item.text_de.count("Zu Pos.") <= 1 for item in report.questions)
 
 
-def test_high_value_signals_generate_formal_german_questions_without_findings():
+def test_change_order_wording_alone_does_not_generate_questions():
     inp = make_input()
     inp.lines[0].long_text = "Graben im Homogenbereich X1 mit Grundwasser."
     inp.lines[1].long_text = "Geräte bauseits beigestellt."
     result = q.build_questions(inp, [])
-    assert any("Baugrundgutachten" in item.text_de for item in result)
-    assert any("Bereitstellung" in item.text_de for item in result)
-    assert all("Bitte" in item.text_de and "Sie" in item.text_de for item in result)
+    assert result == []
