@@ -19,6 +19,18 @@ SIZE = re.compile(rf"\b{NUMBER}\s*(?:mm|cm|m)?\s*[x×/]\s*{NUMBER}\s*(?:mm|cm|m)
 SKIP_ATTRIBUTE = re.compile(r"\b(?:abbruch\w*|abbrechen|demont\w*|ausbauen|rückbau\w*|entfernen|"
                             r"zulage\w*|zul\.|messung\w*|\w*prüfung\w*|repar\w*|markieren|anbohren|dämmstoffdübel\w*)", re.I)
 INCLUDED_CLAUSE = re.compile(r"\b(?:einschlie(?:ß|ss)lich|einschl\.|inkl\.|inklusive|zuzüglich|sowie)\b[^.;\n]*", re.I)
+_COMPONENT_DN = re.compile(r"\b[\w-]*(rohr|flansch)\s*,?\s+DN\s*([0-9]+)\b", re.I)
+
+
+def _same_component_dn_conflict(short: str, long: str) -> bool:
+    short_sizes = {(kind.casefold(), int(dn)) for kind, dn in _COMPONENT_DN.findall(short)}
+    long_sizes = {(kind.casefold(), int(dn)) for kind, dn in _COMPONENT_DN.findall(long)}
+    if len(short_sizes) != 1 or len(long_sizes) != 1:
+        return False
+    (short_kind, short_dn), = short_sizes
+    (long_kind, long_dn), = long_sizes
+    return short_kind == long_kind and short_dn != long_dn
+
 FAMILY_DE = {"concrete": "Betonfestigkeitsklasse", "DN": "Nennweite", "fire": "Feuerwiderstand",
              "IP": "IP-Schutzart", "board": "Plattentyp", "length": "Länge in cm", "thickness": "Dicke in cm"}
 ATTRIBUTE_DE = {"DN or size": "Nennweite bzw. Abmessung", "cable cross-section": "Kabelquerschnitt",
@@ -61,16 +73,19 @@ def unclear_dimension(ctx):
 
 
 @rule("L1.TEXT.VALUE_CONFLICT", layer=1, category="text", severity="warning",
-      title="Short and long text disagree", description="Disjoint values in DN, concrete, fire, IP, board, labelled length or thickness; DN is informational.")
+      title="Short and long text disagree", description="Disjoint values in DN, concrete, fire, IP, board, labelled length or thickness; DN is a warning for a single conflicting pipe or flange size.")
 def value_conflict(ctx):
     for line in ctx.input.lines:
         # Values inside "einschließlich …" clauses belong to an included component (a blinding layer, an edge
         # strip), not to the item the short text names.
-        short, long = values(line.short_text or ""), values(INCLUDED_CLAUSE.sub(" ", line.long_text or ""))
+        short_text = line.short_text or ""
+        long_text = line.long_text or ""
+        short, long = values(short_text), values(INCLUDED_CLAUSE.sub(" ", long_text))
         for family in short:
             if short[family] and long[family] and short[family].isdisjoint(long[family]):
                 yield ctx.finding(line=line, field="long_text", discriminator=family,
-                    severity="info" if family == "DN" else "warning",
+                    severity=("info" if family == "DN" and not _same_component_dn_conflict(short_text, long_text)
+                              else "warning"),
                     message=(f"{label(line)}: {family} is {', '.join(sorted(short[family]))} in the short text "
                              f"and {', '.join(sorted(long[family]))} in the long text. Confirm the governing value."),
                     evidence={"family": family, "short_values": sorted(short[family]), "long_values": sorted(long[family]),

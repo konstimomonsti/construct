@@ -2,6 +2,7 @@
 
 from ..contracts import AnalysisInput, Finding
 from ..registry import rule as register_rule, run_layer
+from . import scope  # noqa: F401
 from .engine import run as _engine_run
 from .schema import load_rules
 
