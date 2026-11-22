@@ -7,7 +7,7 @@ from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from typing import Iterable
 
 from ..contracts import AnalysisInput, Finding, Line, RiskReport, SectionRisk, TopRisk
-from .signals import WORDING_KINDS, anchor, collect, excluded_sections, wording_families
+from .signals import WORDING_KINDS, anchor, collect, excluded_sections, review_order, wording_families
 
 SCALE = 40
 SCALE_PER_LINE = Decimal("0.65")
@@ -154,4 +154,5 @@ def assess(analysis_input: AnalysisInput, findings: list[Finding]) -> RiskReport
                       if priced else None,
                       points=points, open_counts=dict(counts), top_risks=top, by_section=by_section,
                       by_category={key: float(value) for key, value in sorted(category_points.items())},
-                      change_order_signals=signals, item_sections=item_sections, item_exposure=item_exposure)
+                      change_order_signals=review_order(signals, lines, live),
+                      item_sections=item_sections, item_exposure=item_exposure)

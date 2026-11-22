@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections import Counter
+from collections import Counter, defaultdict
 from hashlib import sha256
 import re
 
@@ -171,3 +171,41 @@ def collect(analysis_input: AnalysisInput, findings: list[Finding]) -> list[Chan
                                         title=TITLES[kind], message="; ".join(reasons) + ".",
                                         points=BASE_POINTS[kind], finding_ids=sorted(finding_ids)))
     return sorted(result, key=lambda item: (lines[item.line_id].sort_order, item.kind, item.id))
+
+
+def review_order(signals: list[ChangeOrderSignal], lines: dict[str, Line],
+                 findings: list[Finding]) -> list[ChangeOrderSignal]:
+    """Prioritize direct evidence within the change-order queue after scoring."""
+    points: dict[str, float] = defaultdict(float)
+    for signal in signals:
+        points[signal.line_id] += signal.points
+
+    def by_points(line_id):
+        return -points[line_id], lines[line_id].sort_order, line_id
+
+    direct = {
+        finding.id: finding.evidence["trigger_line_ids"][0]
+        for finding in findings
+        if finding.layer == 2 and finding.severity in {"error", "warning"}
+        and finding.evidence.get("reason") in {"missing", "quantity_shortfall"}
+        and isinstance(finding.evidence.get("trigger_line_ids"), list)
+        and len(finding.evidence["trigger_line_ids"]) == 1
+        and isinstance(finding.evidence["trigger_line_ids"][0], str)
+    }
+    priority = {signal.line_id: 1 for signal in signals
+                if any(direct.get(finding_id) == signal.line_id for finding_id in signal.finding_ids)}
+    scope_lines = {signal.line_id for signal in signals if signal.kind == "scope_gap"}
+    seen = set()
+    for line_id in sorted(scope_lines, key=by_points):
+        line = lines[line_id]
+        if line.total_rule != "include" or (line.quantity is not None and line.quantity <= 0):
+            continue
+        text = line_text(line)
+        clauses = tuple(sorted({clause.casefold() for family in EXPLICIT_SCOPE_FAMILIES
+                                if (clause := _scope_clause(family, text))}))
+        signature = line.section_id, clauses
+        if clauses and signature not in seen:
+            priority[line_id] = 2
+            seen.add(signature)
+    return sorted(signals, key=lambda signal: (-priority.get(signal.line_id, 0),
+                                               *by_points(signal.line_id), signal.kind, signal.id))

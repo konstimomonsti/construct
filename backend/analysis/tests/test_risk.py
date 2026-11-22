@@ -82,9 +82,9 @@ def test_explicit_clauses_share_the_stable_id_and_keep_their_own_section_cap():
                     price=PriceInfo(unit_price=100))
     signals = assess(AnalysisInput(sections=[section], lines=[ordinary, affected]), []).change_order_signals
     assert len(signals) == 2
-    assert (signals[1].id, signals[1].kind) == ("co_2_scope_gap", "scope_gap")
-    assert "Grundwasserstand ist noch offen" in signals[1].message
-    assert "Mehrmengen werden zusätzlich vergütet" in signals[1].message
+    assert (signals[0].id, signals[0].kind) == ("co_2_scope_gap", "scope_gap")
+    assert "Grundwasserstand ist noch offen" in signals[0].message
+    assert "Mehrmengen werden zusätzlich vergütet" in signals[0].message
     assert [signal.points for signal in signals] == [2.5, 2.5]
 
 
@@ -162,7 +162,7 @@ def test_wording_signals_keep_only_strongest_kind_per_section():
              price=PriceInfo(unit_price=50)),
     ])
     report = assess(inp, [])
-    assert [report.points[signal.id] for signal in report.change_order_signals] == [0, 2.5, 2.5]
+    assert {signal.line_id: signal.points for signal in report.change_order_signals} == {"l1": 0, "l2": 2.5, "l3": 2.5}
     assert report.money_at_stake == 147
     assert report.top_risks[0].amount == 1000
     assert sum(report.points.values()) == report.by_section[0].points == 5
@@ -205,6 +205,39 @@ def test_related_lines_anchor_once_and_input_is_unchanged():
     report = assess(inp, [f])
     assert len(report.top_risks) == 1 and report.top_risks[0].line_id == "l1"
     assert inp.model_dump() == before
+
+
+def test_review_order_promotes_explicit_clauses_and_defers_repeated_wording_in_a_section():
+    sections = [Section(id="a", sort_order=0), Section(id="b", sort_order=1)]
+    clause = "Mehrmengen werden zusätzlich vergütet."
+    inp = AnalysisInput(sections=sections, lines=[
+        line("generic", "Entsorgung gemäß Homogenbereich A", section_id="a", code="1"),
+        line("repeat", clause, section_id="a", code="2", sort_order=1),
+        line("representative", clause, section_id="a", code="3", sort_order=2, price=PriceInfo(unit_price=200)),
+        line("other_clause", "Die Menge wird erst nach Aufmaß festgelegt.", section_id="a", code="4", sort_order=3),
+        line("other_section", clause, section_id="b", code="5", sort_order=4),
+        line("optional", clause, section_id="a", code="6", sort_order=5, total_rule="conditional"),
+    ])
+    result = assess(inp, [])
+    order = list(dict.fromkeys(signal.line_id for signal in result.change_order_signals))
+    assert set(order[:3]) == {"representative", "other_clause", "other_section"}
+    assert set(order[3:]) == {"generic", "repeat", "optional"}
+    assert sum(result.points.values()) == sum(risk.points for risk in result.by_section)
+
+
+def test_review_order_promotes_only_dependencies_with_a_unique_trigger():
+    inp = AnalysisInput(lines=[
+        line("generic", "Bedarfsposition", code="1"),
+        line("shared", code="2", sort_order=1),
+        line("single", code="3", sort_order=2),
+    ])
+    shared = finding("shared-dep", "shared", layer=2, rule_id="L2.TAPER_NEEDS_SEAL",
+                     evidence={"reason": "missing", "trigger_line_ids": ["shared", "generic"]})
+    unique = finding("single-dep", "single", layer=2, rule_id="L2.COVER_NEEDS_SEAL",
+                      evidence={"reason": "missing", "trigger_line_ids": ["single"]})
+    result = assess(inp, [shared, unique])
+    assert [signal.line_id for signal in result.change_order_signals] == ["single", "generic", "shared"]
+    assert result.points["co_3_missing_dependency"] == 0
 
 
 def test_real_excavation_requirements_quote_the_approval_condition():

@@ -522,7 +522,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
     riskCacheRef.current = risks
   }, [risks])
   const filterFindings = useMemo(() => [...reviewByRow.values()], [reviewByRow])
-  // every warning once, in list order (a warning on several rows sits at its first one), then the list-wide ones
+  // Keep findings in position order and fill the change-order slots in the assessment’s review order.
   const warningEntries = useMemo(() => {
     const seen = new Set<string>()
     const out: WarningEntry[] = []
@@ -534,8 +534,12 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
       }
     }
     for (const item of [...listWide, ...listSignals]) if (!seen.has(item.id)) out.push({ item, position: null })
-    return out
-  }, [positions, reviewByRow, listWide, listSignals])
+    const ranks = new Map(risk?.change_order_signals.map((signal, index) => [signal.id, index]))
+    const changes = out.filter(({ item }) => !('severity' in item))
+      .sort((a, b) => (ranks.get(a.item.id) ?? Infinity) - (ranks.get(b.item.id) ?? Infinity))
+    let nextChange = 0
+    return out.map((entry) => 'severity' in entry.item ? entry : changes[nextChange++])
+  }, [positions, reviewByRow, listWide, listSignals, risk])
 
   const [q, setQ] = useState('')
   const [categoryFilter, setCategoryFilter] = useState<Set<string> | null>(null)

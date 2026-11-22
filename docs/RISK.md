@@ -108,6 +108,12 @@ remain visible with zero points
 and can still be reviewed. Explicit payment, unresolved site conditions, and
 late scope decisions take precedence over generic wording for the cap and quote
 the matched tender clause. These signals support pre-award clarification.
+The change-order review queue puts explicit clauses first, then dependencies
+with one warning or error tied to a single trigger position, then other signals
+by their existing points. Repeated clauses in a section give priority to one
+position. The remaining positions stay visible in the queue. The ordering
+does not change risk points or estimated exposure.
+
 Missing-dependency and priced-zero-quantity signals
 retain their individual points because they are not wording-only signals.
 Missing-dependency signals retain their source `finding_ids`. Findings and these
