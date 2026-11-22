@@ -50,7 +50,7 @@ def test_change_order_signals_do_not_contribute_to_reports():
              pricing_basis="lump_sum", price=PriceInfo(unit_price=100)),
         line("l2", "Fels", section_id="s", code="2", sort_order=1, quantity=1,
              price=PriceInfo(unit_price=1000)),
-        line("l3", "Abrechnung nach Aufwand", section_id="s", code="3", sort_order=2, quantity=1,
+        line("l3", "Mehrmengen werden gesondert vergütet", section_id="s", code="3", sort_order=2, quantity=1,
              price=PriceInfo(unit_price=50)),
     ])
     report = assess(inp, [finding("f1", "l3")])
