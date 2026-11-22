@@ -77,7 +77,7 @@ curl -fsS -o "$work/original" "$base/api/mvp/original?id=$document"
 cmp -s "$work/original" "$file" || fail "original download differs from the upload"
 
 # BillBuild assesses imported positions before the original arrives and refreshes the
-# assessment when original metadata or working edits reach the shared workspace.
+# assessment when original metadata reaches the shared workspace.
 list_id="smoke-$(python3 -c 'from uuid import uuid4; print(uuid4())')"
 file_id="d-$list_id"
 wait_for_assessment() {
@@ -111,12 +111,13 @@ original_revision=$(post /api/workspace/state "{\"changes\":{\"userDocuments\":{
 wait_for_assessment "$original_revision"
 [ "$(json 'any(f["rule_id"] == "L2.CONCRETE.STRUCTURE_NEEDS_FORMWORK" for f in d["report"]["findings"])' <"$work/workspace-assessment.json")" = True ] || fail "missing construction warning"
 [ "$(json 'any(f["rule_id"] == "L1.UNIT.MISSING" for f in d["report"]["findings"])' <"$work/workspace-assessment.json")" = True ] || fail "missing billing-unit warning"
-edit_revision=$(post /api/workspace/state "{\"changes\":{\"edits\":{\"set\":{\"$list_id\":{
+post /api/workspace/state "{\"changes\":{\"edits\":{\"set\":{\"$list_id\":{
+    \"up\":{\"missing-unit\":25},
     \"patch\":{\"missing-unit\":{\"unit\":\"m\"}}
-}}}}}" | json 'd["revision"]')
-wait_for_assessment "$edit_revision"
-[ "$(json 'd["report"]["assessed_edits"]["patch"]["missing-unit"]["unit"]' <"$work/workspace-assessment.json")" = m ] || fail "assessment did not use the working edits"
-[ "$(json 'not any(f["rule_id"] == "L1.UNIT.MISSING" for f in d["report"]["findings"])' <"$work/workspace-assessment.json")" = True ] || fail "resolved warning remains after reassessment"
+}}}}}" >"$work/workspace-after-edit.json"
+[ "$(json "d['collections']['edits']['$list_id']['up']['missing-unit']" <"$work/workspace-after-edit.json")" = 25 ] || fail "working price was not saved"
+get "/api/workspace/analysis?id=$list_id" >"$work/assessment-after-edit.json"
+cmp -s "$work/workspace-assessment.json" "$work/assessment-after-edit.json" || fail "working edits changed the upload assessment"
 key=$(json 'next(f["id"] for f in d["report"]["findings"] if f["rule_id"] == "L2.CONCRETE.STRUCTURE_NEEDS_FORMWORK")' <"$work/workspace-assessment.json")
 post /api/workspace/state "{\"changes\":{
     \"listPatch\":{\"set\":{\"$list_id\":{\"reviewedFindings\":[\"$key\"]}}}
