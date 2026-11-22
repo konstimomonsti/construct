@@ -185,6 +185,10 @@ export function declineOffer(packages: readonly SubcontractPackage[], pkgId: str
   }) : next
 }
 
+/** the request email went out from the mail program: a draft becomes `sent`; a later status is kept */
+export const markSent = (packages: readonly SubcontractPackage[], pkgId: string, at: string): SubcontractPackage[] =>
+  mapPackage(packages, pkgId, (p) => (p.status === 'draft' ? { ...p, status: 'sent', sentAt: at } : { ...p, sentAt: p.sentAt ?? at }))
+
 /** a package whose positions were deleted from the list loses them */
 export function pruneMissing(pkg: SubcontractPackage, existingIds: ReadonlySet<string>): SubcontractPackage {
   const positionIds = pkg.positionIds.filter((id) => existingIds.has(id))
@@ -223,6 +227,26 @@ export function defaultPackageName(positions: readonly Pick<Position, 'path'>[])
     else break
   }
   return label.trim() || 'Leistungspaket'
+}
+
+const DASH = ' – '
+
+/** the title of a request: the main project, then the section being sent ("Schulungshalle – Estricharbeiten") */
+export function proposalTitle(project: string, section: string): string {
+  const p = project.trim()
+  const s = section.trim()
+  if (!p) return s
+  if (!s || s === p) return p
+  return `${p}${DASH}${s}`
+}
+
+/** the package name without a leading project name, so text that names the project anyway does not repeat it */
+export function withoutProject(packageName: string, project: string): string {
+  const n = packageName.trim()
+  const p = project.trim()
+  if (!p || !n.startsWith(p)) return n
+  const sep = /^\s*[–—-]\s*(.+)$/.exec(n.slice(p.length))
+  return sep ? sep[1].trim() : n
 }
 
 /* ------------------------------------------------------------------ */
@@ -287,8 +311,9 @@ export const salutation = (contactName?: string | null): string => {
   return name ? `Sehr geehrte/r ${name},` : 'Sehr geehrte Damen und Herren,'
 }
 
+/** "Anfrage Nachunternehmerleistung: <project> – <package>", the project named once */
 export const emailSubject = (packageName: string, project: string): string =>
-  `Anfrage Nachunternehmerleistung: ${packageName.trim() || 'Leistungspaket'} – ${project.trim()}`
+  `Anfrage Nachunternehmerleistung: ${proposalTitle(project, withoutProject(packageName, project) || 'Leistungspaket')}`
 
 const HOW: Record<SubcontractFormat, string> = {
   x83: 'Bitte hinterlegen Sie Ihre Einheitspreise in der beigefügten GAEB-Datei (X83) und senden Sie uns die ausgefüllte Datei zurück.',
@@ -300,7 +325,7 @@ const HOW: Record<SubcontractFormat, string> = {
 export function emailBody(o: { project: string; packageName: string; positionCount: number; dueDate?: string; format: SubcontractFormat }): string {
   const n = o.positionCount
   const lines = [
-    `für unser Projekt „${o.project.trim()}“ bitten wir Sie um ein Angebot für das Leistungspaket „${o.packageName.trim() || 'Leistungspaket'}“ (${n} ${n === 1 ? 'Position' : 'Positionen'}).`,
+    `für unser Projekt „${o.project.trim()}“ bitten wir Sie um ein Angebot für das Leistungspaket „${withoutProject(o.packageName, o.project) || 'Leistungspaket'}“ (${n} ${n === 1 ? 'Position' : 'Positionen'}).`,
     '',
     HOW[o.format],
     '',

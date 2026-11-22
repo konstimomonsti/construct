@@ -12,11 +12,11 @@ import { useSubcontractors } from './useSubcontractors'
 import { downloadResult, layoutLoader } from '../../lib/export/index'
 import { amount, money, parseNumber, plural } from '../../lib/format'
 import { useMedia } from '../../lib/hooks'
-import { useStore } from '../../lib/store'
+import { useModel, useStore } from '../../lib/store'
 import {
-  composeEmail, defaultPackageName, emailBody, emailSubject, findConflicts, makeBudget, mergeSavedPackage, newPackageId, prefillBudget, pruneMissing,
-  removePackage, salutation, sectionLabels, setStatus, suggestSubcontractors, toRequest, upsertPackage,
-  type SubcontractFormat, type SubcontractPackage,
+  composeEmail, defaultPackageName, emailBody, emailSubject, findConflicts, makeBudget, markSent, mergeSavedPackage, newPackageId, prefillBudget,
+  proposalTitle, pruneMissing, removePackage, salutation, sectionLabels, setStatus, suggestSubcontractors, toRequest, upsertPackage,
+  withoutProject, type SubcontractFormat, type SubcontractPackage,
 } from '../../lib/subcontract'
 import { endOfDay, isoInDays, logEvents, requestItems } from '../../lib/crm'
 import { copyText, exportAndDraft, loadSender, projectName, saveSender, type Recipient } from '../../lib/subcontract-send'
@@ -62,7 +62,10 @@ function Panel({ onClose, listId, doc, resolved, selectedIds }: Props) {
 
   const existing = useMemo(() => new Set(resolved.positions.map((p) => p.id)), [resolved.positions])
   const prefill = useMemo(() => prefillBudget(resolved.positions), [resolved.positions])
-  const project = projectName(doc)
+  // the main project is the folder the list sits in (as in the breadcrumb), else the list's own project or title
+  const { lists, folders } = useModel()
+  const folderId = lists.find((l) => l.id === listId)?.folderId ?? doc.folderId
+  const project = (folders.find((f) => f.id === folderId)?.name ?? '').trim() || projectName(doc)
 
   const [view, setView] = useState<'new' | 'packages'>('new')
   const [pane, setPane] = useState<'what' | 'details'>('what')
@@ -84,14 +87,14 @@ function Panel({ onClose, listId, doc, resolved, selectedIds }: Props) {
   /* ---------- derived ---------- */
   const chosen = useMemo(() => resolved.positions.filter((p) => sel.has(p.id)), [resolved.positions, sel])
   const chosenIds = useMemo(() => chosen.map((p) => p.id), [chosen])
-  const packageName = (nameTouched ? name : defaultPackageName(chosen)).trim()
+  const packageName = (nameTouched ? name : proposalTitle(project, defaultPackageName(chosen))).trim()
   const conflicts = useMemo(
     () => findConflicts(packages, chosenIds, editingId ?? undefined).filter((c) => !keepHere.has(c.positionId)),
     [packages, chosenIds, editingId, keepHere],
   )
   const suggested = useMemo(
-    () => suggestSubcontractors(subs.rows, [packageName, ...sectionLabels(chosen)]),
-    [subs.rows, packageName, chosen],
+    () => suggestSubcontractors(subs.rows, [withoutProject(packageName, project), ...sectionLabels(chosen)]),
+    [subs.rows, packageName, project, chosen],
   )
   const recipients: Recipient[] = useMemo(
     () => subIds.flatMap((id) => {
@@ -121,13 +124,17 @@ function Panel({ onClose, listId, doc, resolved, selectedIds }: Props) {
   const why = chosen.length === 0 ? 'Select positions first' : !packageName ? 'Name the package' : recipients.length === 0 ? 'Pick a subcontractor' : conflicts.length ? 'Resolve the position conflict first' : ''
 
   /* ---------- keyboard: Escape and focus trap ---------- */
+  // The parent passes a new onClose on every render (and it re-renders on every workspace sync). Reading it through a
+  // ref keeps this effect to one run per opening, so the autofocus never pulls the cursor back to the package name.
+  const onCloseRef = useRef(onClose)
+  useEffect(() => { onCloseRef.current = onClose }, [onClose])
   useEffect(() => {
     const prev = document.activeElement as HTMLElement | null
     const t = setTimeout(() => panel.current?.querySelector<HTMLElement>('[data-autofocus]')?.focus(), 60)
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.stopPropagation()
-        onClose()
+        onCloseRef.current()
       }
       if (e.key === 'Tab' && panel.current) {
         const f = [...panel.current.querySelectorAll<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')].filter((x) => !x.hasAttribute('disabled') && x.offsetParent !== null)
@@ -142,7 +149,7 @@ function Panel({ onClose, listId, doc, resolved, selectedIds }: Props) {
       window.removeEventListener('keydown', onKey)
       prev?.focus?.()
     }
-  }, [onClose])
+  }, [])
 
   /* ---------- actions ---------- */
   const writePackages = (next: SubcontractPackage[]) => useStore.getState().patchList(listId, { subcontractPackages: next })
@@ -237,7 +244,7 @@ function Panel({ onClose, listId, doc, resolved, selectedIds }: Props) {
       // the text kept for "View request": generic salutation (each draft gets its own), sender block, no budget
       const pkg = { ...buildPackage('sent', now.toISOString()), sentText: composeEmail({ salutation: salutation(), body, sender }) }
       const result = await exportAndDraft({
-        doc, resolved, request: toRequest(pkg), recipients, body, sender, now,
+        doc, resolved, request: toRequest(pkg), recipients, body, sender, now, project,
         loadLayout: format === 'pdf' ? layoutLoader(doc) : undefined,
       })
       downloadResult(result.download)
@@ -253,6 +260,18 @@ function Panel({ onClose, listId, doc, resolved, selectedIds }: Props) {
     } finally {
       setBusy(false)
     }
+  }
+
+  /** the email already went out from the mail program: save the package as sent without downloading anything again */
+  const saveAsSent = () => {
+    if (!canExport) return
+    const pkg = { ...buildPackage('sent', new Date().toISOString()), sentText: composeEmail({ salutation: salutation(), body, sender }) }
+    saveSender(sender)
+    writePackages(upsertPackage(current(), mergeSavedPackage(current().find((p) => p.id === pkg.id), pkg)))
+    void logToCrm('rfq_sent', pkg, recipients.map((r) => r.id), chosen)
+    toast(`Package “${pkg.name}” saved as sent`)
+    reset([])
+    setView('packages')
   }
 
   const copy = async (r: Recipient) => {
@@ -291,7 +310,7 @@ function Panel({ onClose, listId, doc, resolved, selectedIds }: Props) {
             aria-label="Package name"
             value={nameTouched ? name : chosen.length ? packageName : ''}
             onChange={(e) => { setName(e.target.value); setNameTouched(true) }}
-            placeholder="e.g. Estricharbeiten"
+            placeholder={proposalTitle(project, 'Estricharbeiten')}
             maxLength={100}
             className={inputCls}
           />
@@ -391,6 +410,12 @@ function Panel({ onClose, listId, doc, resolved, selectedIds }: Props) {
                 writePackages(setStatus(current(), p.id, 'offer_received'))
                 void logToCrm('offer_received', p, p.subcontractorIds)
               }}
+              onMarkSent={(p) => {
+                const before = current()
+                writePackages(markSent(before, p.id, new Date().toISOString()))
+                void logToCrm('rfq_sent', p, p.subcontractorIds, resolved.positions.filter((x) => p.positionIds.includes(x.id)))
+                toast(`Package “${p.name}” marked as sent`, 'ok', { label: 'Undo', run: () => writePackages(before) })
+              }}
               onDelete={onDelete}
               onNew={startNew}
             />
@@ -426,6 +451,15 @@ function Panel({ onClose, listId, doc, resolved, selectedIds }: Props) {
               <div className="flex items-center gap-2">
                 <Button onClick={onClose}>Cancel</Button>
                 <Button disabled={!chosen.length || !packageName} onClick={saveDraft}>Save as draft</Button>
+                <Button
+                  icon="mark_email_read"
+                  disabled={!canExport}
+                  title={why || 'The email is already sent from your mail program: save the package as sent, without downloading the file and drafts again'}
+                  onClick={saveAsSent}
+                  data-testid="sc-mark-sent"
+                >
+                  Already sent
+                </Button>
                 <Button variant="primary" size="lg" icon="forward_to_inbox" disabled={!canExport} title={why || undefined} onClick={run} data-testid="sc-export">
                   {busy ? 'Exporting…' : 'Export & draft email'}
                 </Button>

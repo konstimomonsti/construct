@@ -9,7 +9,7 @@
 import { exportList, type ExportResult } from './export/index'
 import type { LayoutFile } from './export/types'
 import { buildCats, deDate } from './export/util'
-import { DEFAULT_SENDER, composeEmail, emailSubject, salutation, type PackageRequest, type SubcontractFormat } from './subcontract'
+import { DEFAULT_SENDER, composeEmail, emailSubject, salutation, withoutProject, type PackageRequest, type SubcontractFormat } from './subcontract'
 import type { CategoryNode, ListDoc, Position } from './types'
 
 export type RequestFile = { fileName: string; mime: string; data: Uint8Array }
@@ -48,8 +48,9 @@ const MIME: Record<SubcontractFormat, string> = {
   pdf: 'application/pdf',
 }
 
-export const requestFileName = (doc: Pick<ListDoc, 'title' | 'project' | 'projectLabel'>, req: Pick<PackageRequest, 'name' | 'format'>): string =>
-  `Anfrage_${slug(req.name, 40)}_${slug(projectName(doc), 40)}.${EXT[req.format]}`
+/** `project` is the main project the request is titled with, when it is not the list's own (see `projectName`) */
+export const requestFileName = (doc: Pick<ListDoc, 'title' | 'project' | 'projectLabel'>, req: Pick<PackageRequest, 'name' | 'format'>, project = projectName(doc)): string =>
+  `Anfrage_${slug(withoutProject(req.name, project), 40)}_${slug(project, 40)}.${EXT[req.format]}`
 
 /* ------------------------------------------------------------------ */
 /* the request file                                                    */
@@ -145,6 +146,8 @@ export async function buildRequestFile(a: {
   doc: ListDoc
   resolved: Resolved
   request: PackageRequest
+  /** the main project, when it is not the list's own */
+  project?: string
   now?: Date
   loadLayout?: () => Promise<LayoutFile | null>
 }): Promise<RequestFile> {
@@ -152,7 +155,7 @@ export async function buildRequestFile(a: {
   const ids = new Set(request.positionIds)
   const positions = resolved.positions.filter((p) => ids.has(p.id))
   if (!positions.length) throw new Error('The package has no positions.')
-  const fileName = requestFileName(doc, request)
+  const fileName = requestFileName(doc, request, a.project || undefined)
   const mime = MIME[request.format]
   if (request.format === 'xlsx') return { fileName, mime, data: await buildXlsxRequest(doc, positions, request.dueDate) }
   const res = await exportList({
@@ -294,12 +297,14 @@ export async function exportAndDraft(a: {
   recipients: Recipient[]
   body: string
   sender?: string
+  /** the main project, when it is not the list's own */
+  project?: string
   now?: Date
   loadLayout?: () => Promise<LayoutFile | null>
 }): Promise<DraftBundle> {
   if (!a.recipients.length) throw new Error('Pick at least one subcontractor.')
   const file = await buildRequestFile(a)
-  const drafts = buildDrafts({ file, recipients: a.recipients, packageName: a.request.name, project: projectName(a.doc), body: a.body, sender: a.sender, now: a.now })
+  const drafts = buildDrafts({ file, recipients: a.recipients, packageName: a.request.name, project: a.project || projectName(a.doc), body: a.body, sender: a.sender, now: a.now })
   return { file, drafts, download: await bundleDrafts(file, drafts, a.request.name) }
 }
 

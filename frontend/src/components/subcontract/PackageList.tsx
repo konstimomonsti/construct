@@ -12,13 +12,15 @@ const STATUS: Record<SubcontractStatus, { label: string; cls: string }> = {
 
 /** the packages of this list: status, recipients, internal budget and what can be done next */
 export function PackageList({
-  packages, nameOf, onReexport, onReceived, onDelete, onNew,
+  packages, nameOf, onReexport, onReceived, onMarkSent, onDelete, onNew,
 }: {
   packages: SubcontractPackage[]
   /** a subcontractor's name from its catalogue id */
   nameOf: (id: string) => string | undefined
   onReexport: (p: SubcontractPackage) => void
   onReceived: (p: SubcontractPackage) => void
+  /** the email of a draft package went out from the mail program */
+  onMarkSent: (p: SubcontractPackage) => void
   onDelete: (p: SubcontractPackage) => void
   onNew: () => void
 }) {
@@ -61,6 +63,7 @@ export function PackageList({
             </div>
             <div className="flex flex-wrap items-center gap-1.5">
               <Button size="sm" icon="forward_to_inbox" onClick={() => onReexport(p)}>{p.status === 'draft' ? 'Edit & send' : 'Re-export / new draft'}</Button>
+              {p.status === 'draft' && <Button size="sm" icon="mark_email_read" onClick={() => onMarkSent(p)} title="The email is already sent from your mail program" data-testid="sc-package-mark-sent">Mark as sent</Button>}
               {p.status !== 'offer_received' && <Button size="sm" icon="task_alt" onClick={() => onReceived(p)}>Mark offer received</Button>}
               <Button size="sm" variant="ghost" icon="delete" aria-label={`Delete ${p.name}`} onClick={() => onDelete(p)} className="text-rose-700 hover:bg-rose-50" />
             </div>

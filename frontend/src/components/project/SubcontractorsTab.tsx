@@ -9,12 +9,15 @@ import { parseListFile } from '../../lib/parse-list-file'
 import { matchOffer, ozOverlap, type OfferMatch } from '../../lib/subcontract-offer'
 import { useModel, useStore } from '../../lib/store'
 import { useUi } from '../../lib/ui-store'
+import { endOfDay, isoInDays, logEvents, requestItems } from '../../lib/crm'
 import {
-  chooseSubcontractor, declineOffer, offerOf, setOffer, type SubcontractOffer, type SubcontractPackage,
+  chooseSubcontractor, declineOffer, emailSubject, markSent, offerOf, setOffer, type SubcontractOffer, type SubcontractPackage,
 } from '../../lib/subcontract'
+import { projectName } from '../../lib/subcontract-send'
 import type { CategoryNode, DocMeta, ListDoc, Position } from '../../lib/types'
 
-type PendingFile = { fileName: string; positions: Position[]; file: File }
+/** `target`: the package and subcontractor the file was attached from, preselected in the import dialog */
+type PendingFile = { fileName: string; positions: Position[]; file: File; target?: { pkgId: string; subId: string } }
 
 const ACCEPT = '.x84,.d84,.x83,.d83,.x86,.d86,.xlsx,.xls,.csv'
 const EMPTY: SubcontractPackage[] = []
@@ -44,6 +47,8 @@ export function SubcontractorsTab({ listId, doc, resolved, packages, demoIds, de
   const [viewing, setViewing] = useState<string | null>(null)
   const [pending, setPending] = useState<PendingFile | null>(null)
   const fileInput = useRef<HTMLInputElement>(null)
+  /** the row whose "Attach X84" opened the file picker */
+  const target = useRef<PendingFile['target']>(undefined)
 
   /** applies `fn` to the stored packages and offers Undo; demo-only packages are never written */
   const change = (pkgId: string, fn: (all: SubcontractPackage[]) => SubcontractPackage[], text: string) => {
@@ -64,10 +69,34 @@ export function SubcontractorsTab({ listId, doc, resolved, packages, demoIds, de
         toast('No positions found in that file', 'error')
         return
       }
-      setPending({ fileName: file.name, positions: parsed.positions, file })
+      setPending({ fileName: file.name, positions: parsed.positions, file, target: target.current })
     } catch (e) {
       toast(`The file could not be read: ${(e as Error).message}`, 'error')
     }
+  }
+
+  /** the request email went out from the mail program; logged like an exported request (the log is a separate service) */
+  const onMarkSent = (pkg: SubcontractPackage) => {
+    const at = new Date().toISOString()
+    change(pkg.id, (all) => markSent(all, pkg.id, at), `Marked “${pkg.name}” as sent`)
+    if (demoIds?.has(pkg.id) || !pkg.subcontractorIds.length) return
+    logEvents(pkg.subcontractorIds.map((id) => ({
+      kind: 'rfq_sent' as const,
+      party_kind: 'subcontractor' as const,
+      party_id: id,
+      list_id: listId,
+      list_title: doc.title,
+      subject: emailSubject(pkg.name, projectName(doc)),
+      items: requestItems(pkg.positionIds.flatMap((pid) => byId.get(pid) ?? []), () => null),
+      due_at: pkg.dueDate ? endOfDay(pkg.dueDate) : undefined,
+      remind_at: endOfDay(isoInDays(3)),
+    }))).catch((e) => toast(`Not added to the request log: ${(e as Error).message}`, 'error'))
+  }
+
+  /** opens the file picker for one subcontractor's offer */
+  const attachFor = (pkgId: string, subId: string) => {
+    target.current = { pkgId, subId }
+    fileInput.current?.click()
   }
 
   /** keeps the offer file the way the award document is kept; demo packages never write, so they keep nothing */
@@ -134,6 +163,8 @@ export function SubcontractorsTab({ listId, doc, resolved, packages, demoIds, de
                         pkg.chosenId === subId ? `${who.name} is no longer chosen for ${pkg.name}` : `Chose ${who.name} for ${pkg.name}`)}
                       onDecline={() => change(pkg.id, (all) => declineOffer(all, pkg.id, subId, !offer.declined),
                         offer.declined ? `Reopened the offer from ${who.name}` : `Declined the offer from ${who.name}`)}
+                      onMarkSent={() => onMarkSent(pkg)}
+                      onAttach={() => attachFor(pkg.id, subId)}
                     />
                     {editing === key && (
                       <ReplyForm
@@ -155,7 +186,7 @@ export function SubcontractorsTab({ listId, doc, resolved, packages, demoIds, de
 
       <div className="flex flex-wrap items-center gap-2">
         <input ref={fileInput} type="file" accept={ACCEPT} hidden aria-label="Offer file" onChange={(e) => { void onFile(e.target.files?.[0]); e.target.value = '' }} />
-        <Button variant="primary" icon="download" onClick={() => fileInput.current?.click()} disabled={packages.length === 0}>Import offer</Button>
+        <Button variant="primary" icon="download" onClick={() => { target.current = undefined; fileInput.current?.click() }} disabled={packages.length === 0}>Import offer</Button>
         <Button icon="add" onClick={onNew}>New category…</Button>
       </div>
 
@@ -190,7 +221,7 @@ function DateCard({ label, date, empty }: { label: string; date?: string; empty:
   )
 }
 
-function Row({ pkg, offer, who, chosen, onView, names, onEdit, onChoose, onDecline }: {
+function Row({ pkg, offer, who, chosen, onView, names, onEdit, onChoose, onDecline, onMarkSent, onAttach }: {
   pkg: SubcontractPackage
   offer: SubcontractOffer
   who: SubName
@@ -201,6 +232,10 @@ function Row({ pkg, offer, who, chosen, onView, names, onEdit, onChoose, onDecli
   onEdit: () => void
   onChoose: () => void
   onDecline: () => void
+  /** marks the whole package as sent (the request goes to all its subcontractors at once) */
+  onMarkSent: () => void
+  /** imports this subcontractor's offer file (X84, Excel) */
+  onAttach: () => void
 }) {
   const sent = pkg.status === 'draft' ? '' : shortDate(offer.sentAt ?? pkg.sentAt)
   const received = shortDate(offer.receivedAt)
@@ -216,9 +251,21 @@ function Row({ pkg, offer, who, chosen, onView, names, onEdit, onChoose, onDecli
         {chosen && <span className="mt-0.5 inline-flex items-center gap-1 text-xs font-semibold text-emerald-800"><Icon name="check_circle" size={14} fill />Chosen</span>}
         {offer.declined && <span className="mt-0.5 inline-flex items-center gap-1 text-xs font-semibold text-slate-700"><Icon name="block" size={14} />Declined</span>}
       </div>
-      <div className={dim}><DateCard label="Sent X83" date={sent} empty="Not sent" /></div>
+      <div className={dim}>
+        <DateCard label="Sent X83" date={sent} empty="Not sent" />
+        {!sent && (
+          <button type="button" onClick={onMarkSent} aria-label={`Mark ${pkg.name} as sent`} title="The email already went out from your mail program. Marks the request as sent to every subcontractor of this package." className={LINK}>
+            <Icon name="mark_email_read" size={16} />Mark as sent
+          </button>
+        )}
+      </div>
       <div className={dim}>
         <DateCard label="Received X84" date={received} empty="Waiting" />
+        {!offer.fileName && (
+          <button type="button" onClick={onAttach} aria-label={`Attach offer file from ${who.name}`} className={LINK}>
+            <Icon name="attach_file" size={16} />Attach X84
+          </button>
+        )}
         {onView && (
           <button type="button" onClick={onView} aria-label={`View offer file from ${who.name}`} className="mt-1 inline-flex items-center gap-1 text-[13px] font-medium text-slate-700 underline decoration-slate-400 underline-offset-4 hover:text-slate-900">
             <Icon name="visibility" size={16} />View
@@ -267,6 +314,8 @@ function Row({ pkg, offer, who, chosen, onView, names, onEdit, onChoose, onDecli
     </div>
   )
 }
+
+const LINK = 'mt-1 inline-flex items-center gap-1 text-[13px] font-medium text-slate-700 underline decoration-slate-400 underline-offset-4 hover:text-slate-900'
 
 const todayInput = () => new Date().toISOString().slice(0, 10)
 
@@ -319,6 +368,8 @@ function ImportForm({ pending, packages, positions, nameOf, onClose, onAssign }:
   const defaultSub = (p?: SubcontractPackage) => p?.subcontractorIds.find((id) => offerOf(p, id).amount == null) ?? p?.subcontractorIds[0] ?? ''
   // the package whose positions the file covers best is preselected, once per import
   const [start] = useState(() => {
+    const picked = pending.target && packages.find((p) => p.id === pending.target?.pkgId)
+    if (picked) return picked
     let top = packages[0]
     let score = -1
     for (const p of packages) {
@@ -329,7 +380,7 @@ function ImportForm({ pending, packages, positions, nameOf, onClose, onAssign }:
   })
   const [pkgId, setPkgId] = useState(start?.id ?? '')
   const pkg = packages.find((p) => p.id === pkgId)
-  const [subId, setSubId] = useState(defaultSub(start))
+  const [subId, setSubId] = useState(() => (pending.target && start?.subcontractorIds.includes(pending.target.subId) ? pending.target.subId : defaultSub(start)))
   const match: OfferMatch | null = pkg ? matchOffer(pkgPositions(pkg), pending) : null
   const total = match ? match.matched + match.missing.length : 0
   const ready = !!pkg && !!subId && !!match && match.matched > 0

@@ -9,10 +9,10 @@ import { parseListFile } from '../src/lib/parse-list-file'
 import { resolveList } from '../src/lib/resolve'
 import {
   DEFAULT_SENDER, claims, composeEmail, defaultPackageName, emailBody, emailSubject, findConflicts, mailtoLink, makeBudget,
-  newPackageId, prefillBudget, pruneMissing, removePackage, salutation, sectionLabels, setStatus, suggestSubcontractors, sumBudget,
+  markSent, newPackageId, prefillBudget, proposalTitle, pruneMissing, withoutProject, removePackage, salutation, sectionLabels, setStatus, suggestSubcontractors, sumBudget,
   summarize, toRequest, tradeMatches, upsertPackage, type SubcontractFormat, type SubcontractPackage,
 } from '../src/lib/subcontract'
-import { buildEml, buildRequestFile, encodeHeader, exportAndDraft, projectName, quotedPrintable, slug, type Recipient } from '../src/lib/subcontract-send'
+import { buildEml, buildRequestFile, encodeHeader, exportAndDraft, projectName, quotedPrintable, requestFileName, slug, type Recipient } from '../src/lib/subcontract-send'
 import type { ListDoc, Position } from '../src/lib/types'
 
 Object.assign(globalThis, { DOMParser })
@@ -132,7 +132,9 @@ test('the German email: salutation, project, package, count, deadline and the re
   assert.equal(salutation('Erika Müller'), 'Sehr geehrte/r Erika Müller,')
   assert.equal(salutation(null), 'Sehr geehrte Damen und Herren,')
   assert.equal(salutation('  '), 'Sehr geehrte Damen und Herren,')
-  assert.equal(emailSubject('Estricharbeiten', 'Schulungshalle'), 'Anfrage Nachunternehmerleistung: Estricharbeiten – Schulungshalle')
+  assert.equal(emailSubject('Estricharbeiten', 'Schulungshalle'), 'Anfrage Nachunternehmerleistung: Schulungshalle – Estricharbeiten')
+  assert.equal(emailSubject('Schulungshalle – Estricharbeiten', 'Schulungshalle'), 'Anfrage Nachunternehmerleistung: Schulungshalle – Estricharbeiten', 'the project is named once')
+  assert.match(emailBody({ project: 'Schulungshalle', packageName: 'Schulungshalle – Estrich', positionCount: 2, format: 'x83' }), /Leistungspaket „Estrich“/)
 
   const body = emailBody({ project: 'Schulungshalle', packageName: 'Estricharbeiten', positionCount: 12, dueDate: '2026-12-05', format: 'x83' })
   assert.match(body, /„Schulungshalle“/)
@@ -347,7 +349,7 @@ test('one recipient downloads an .eml, several download a .zip with the request 
     assert.match(m.text, /Bau GmbH/)
     assert.match(m.text, /05\.12\.2026/)
     assert.deepEqual(m.attachment, two.file.data, 'each draft carries the file')
-    assert.equal(decodeWords(m.headers.get('subject')!), `Anfrage Nachunternehmerleistung: Estricharbeiten – ${projectName(doc)}`)
+    assert.equal(decodeWords(m.headers.get('subject')!), `Anfrage Nachunternehmerleistung: ${projectName(doc)} – Estricharbeiten`)
   }
 })
 
@@ -428,4 +430,30 @@ test('the sanity check really can find a number (the leak test is not vacuous)',
   assert.ok(!text(file.data).includes('4242'), 'the X83 request drops a list price')
   const csv = await exportList({ doc: priced, resolved: resolveList(priced), format: 'csv', scope: 'selection', selectedIds: [own.id], prices: true })
   assert.ok(text(csv.data).includes('4242,42'), 'a priced export does carry it, and the search finds it')
+})
+
+test('the request title is the main project, then the section being sent', () => {
+  assert.equal(proposalTitle('Schulungshalle', 'Estricharbeiten'), 'Schulungshalle – Estricharbeiten')
+  assert.equal(proposalTitle('', 'Estricharbeiten'), 'Estricharbeiten')
+  assert.equal(proposalTitle('Schulungshalle', ''), 'Schulungshalle')
+  assert.equal(withoutProject('Schulungshalle – Estricharbeiten', 'Schulungshalle'), 'Estricharbeiten')
+  assert.equal(withoutProject('Schulungshalle - Estrich', 'Schulungshalle'), 'Estrich')
+  assert.equal(withoutProject('Hallenboden', 'Halle'), 'Hallenboden', 'a name that only starts with the project text is kept')
+  assert.equal(withoutProject('Estrich', 'Schulungshalle'), 'Estrich')
+  assert.equal(withoutProject('Schulungshalle', 'Schulungshalle'), 'Schulungshalle')
+  const doc = { title: 'Angebot AN24-0305' }
+  assert.equal(requestFileName(doc, { name: 'Fernleitung – Rohrgraben', format: 'x83' }, 'Fernleitung'), 'Anfrage_Rohrgraben_Fernleitung.X83', 'the project is in the file name once')
+  assert.equal(requestFileName(doc, { name: 'Rohrgraben', format: 'pdf' }), 'Anfrage_Rohrgraben_Angebot_AN24_0305.pdf')
+})
+
+test('marking a request as sent without exporting it again', () => {
+  const at = '2026-11-22T09:00:00.000Z'
+  const list = [pkg('a', ['p1'], { status: 'draft' }), pkg('b', ['p2'], { status: 'offer_received', sentAt: '2026-11-20T08:00:00.000Z' })]
+  const a = markSent(list, 'a', at)
+  assert.equal(a[0].status, 'sent')
+  assert.equal(a[0].sentAt, at)
+  assert.equal(a[1], list[1], 'other packages are untouched')
+  const b = markSent(list, 'b', at)
+  assert.equal(b[1].status, 'offer_received', 'a later status is kept')
+  assert.equal(b[1].sentAt, '2026-11-20T08:00:00.000Z', 'the real sent date is kept')
 })
