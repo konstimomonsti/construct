@@ -3,7 +3,7 @@ import { Button, Icon } from './ui'
 import { MetaLink } from './Kit'
 import type { Position } from '../lib/types'
 import { money, parseNumber } from '../lib/format'
-import type { CataloguePosition, CatalogueReport } from '../lib/workspace-catalogue'
+import { researchFilterOf, type CataloguePosition, type CatalogueReport, type ResearchFilter } from '../lib/workspace-catalogue'
 
 const labels: Record<CataloguePosition['state'], string> = {
   matched: 'Catalogue match',
@@ -17,7 +17,7 @@ const labels: Record<CataloguePosition['state'], string> = {
   research_disabled: 'Web research disabled',
 }
 
-export type ResearchView = 'suggested' | 'matched' | 'unresolved' | null
+type ResearchView = ResearchFilter | null
 
 /**
  * catalogue research for a list in two parts that share one `show` state: `line` is a single status line that sits in the
@@ -57,13 +57,11 @@ function PriceInput({ position, onPrice }: { position: Position; onPrice: (id: s
   )
 }
 
-export function CatalogueOverview({ report, error, retryFailed, positions, onOpen, part, show, setShow, hideMatched, onApplyAll, onPrice }: {
+export function CatalogueOverview({ report, error, retryFailed, positions, onOpen, part, show, setShow, onApplyAll, onPrice }: {
   /** adds several web suggestions to their long descriptions in one go */
   onApplyAll?: (changes: { id: string; long: string }[]) => void
   /** sets the unit price of a position that has no catalogue or web match */
   onPrice?: (id: string, price: number | null) => void
-  /** matches that already became pending prices: the pricing status says it, so the research line doesn't repeat it */
-  hideMatched?: { has: (id: string) => boolean }
   report: CatalogueReport | null
   error: string
   retryFailed: () => Promise<void>
@@ -78,20 +76,23 @@ export function CatalogueOverview({ report, error, retryFailed, positions, onOpe
     const result = report?.positions[item.id]
     return result ? [{ item, result }] : []
   })
-  const count = (state: CataloguePosition['state']) => rows.filter(({ item, result }) => result.state === state && !(state === 'matched' && hideMatched?.has(item.id))).length
-  const pending = count('queued') + count('researching')
-  const unresolved = count('failed') + count('no_evidence') + count('needs_description') + count('research_disabled')
-  const visible = rows.filter(({ result }) =>
-    show === 'unresolved' ? ['failed', 'no_evidence', 'needs_description', 'research_disabled'].includes(result.state) : result.state === show,
-  )
+  const pending = rows.filter(({ result }) => result.state === 'queued' || result.state === 'researching').length
+  const failed = rows.some(({ result }) => result.state === 'failed')
+  const totals: Record<ResearchFilter, number> = { matched: 0, suggested: 0, unresolved: 0 }
+  for (const { result } of rows) {
+    const filter = researchFilterOf(result.state)
+    if (filter) totals[filter]++
+  }
+  const { matched, suggested, unresolved } = totals
+  const visible = rows.filter(({ result }) => show && researchFilterOf(result.state) === show)
 
   const ready = report?.state === 'ready' && !pending && !error
   if (part === 'line') {
     const toggle = (v: Exclude<ResearchView, null>) => setShow(show === v ? null : v)
     const links = report?.state === 'ready' ? [
-      count('matched') > 0 && <MetaLink key="m" pressed={show === 'matched'} onClick={() => toggle('matched')}><span className="num">{count('matched')}</span> {count('matched') === 1 ? 'match' : 'matches'}</MetaLink>,
-      count('suggested') > 0 && <MetaLink key="s" pressed={show === 'suggested'} onClick={() => toggle('suggested')}><span className="num">{count('suggested')}</span> web {count('suggested') === 1 ? 'suggestion' : 'suggestions'}</MetaLink>,
-      unresolved > 0 && <MetaLink key="u" pressed={show === 'unresolved'} onClick={() => toggle('unresolved')}><span className="num">{unresolved}</span> without a match</MetaLink>,
+      (matched > 0 || show === 'matched') && <MetaLink key="m" pressed={show === 'matched'} onClick={() => toggle('matched')}><span className="num">{matched}</span> {matched === 1 ? 'match' : 'matches'}</MetaLink>,
+      (suggested > 0 || show === 'suggested') && <MetaLink key="s" pressed={show === 'suggested'} onClick={() => toggle('suggested')}><span className="num">{suggested}</span> web {suggested === 1 ? 'suggestion' : 'suggestions'}</MetaLink>,
+      (unresolved > 0 || show === 'unresolved') && <MetaLink key="u" pressed={show === 'unresolved'} onClick={() => toggle('unresolved')}><span className="num">{unresolved}</span> without a match</MetaLink>,
     ].filter(Boolean) : []
     const label = error || (report?.state === 'failed' ? 'Catalogue matching failed' :
       !report || report.state === 'queued' || report.state === 'unstarted' ? 'Matching positions to the catalogue…' :
@@ -100,14 +101,14 @@ export function CatalogueOverview({ report, error, retryFailed, positions, onOpe
     // once results are in, the row label names the group and the counts speak for themselves
     const quiet = ready && links.length > 0
     return (
-      <span className="flex flex-wrap items-center gap-x-1 gap-y-1">
+      <span role="group" aria-label="Catalogue position filters" className="flex flex-wrap items-center gap-x-1 gap-y-1">
         <span className="inline-flex w-[5.5rem] shrink-0 items-center gap-1.5 text-[13px] font-medium text-slate-500">
           <Icon name="inventory_2" size={16} />Catalogue
         </span>
         <span role="status" className={quiet ? 'sr-only' : 'px-2'}>{label}</span>
         {links}
-        {ready && !links.length && !rows.some(({ item }) => hideMatched?.has(item.id)) && <span className="px-2">Nothing found</span>}
-        {(error || report?.state === 'failed' || count('failed') > 0) &&
+        {ready && !links.length && <span className="px-2">Nothing found</span>}
+        {(error || report?.state === 'failed' || failed) &&
           <Button size="sm" onClick={() => void retryFailed()}>Retry</Button>}
       </span>
     )
@@ -126,7 +127,7 @@ export function CatalogueOverview({ report, error, retryFailed, positions, onOpe
         <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
           <p className="text-slate-600">{applicable.length
             ? 'Check each source against the tender text. Ticked suggestions are added to the long descriptions; Undo puts them back.'
-            : 'Every web suggestion is already in its long description.'}</p>
+            : 'No unapplied web suggestions in the shown positions.'}</p>
           {applicable.length > 0 && (
             <Button size="sm" variant="primary" icon="done_all" disabled={!picked.length} onClick={() => { onApplyAll(picked); setUnpicked(new Set()) }}>
               {picked.length === applicable.length ? `Apply all ${applicable.length}` : `Apply ${picked.length} of ${applicable.length}`}
@@ -136,7 +137,7 @@ export function CatalogueOverview({ report, error, retryFailed, positions, onOpe
       )}
       {show === 'unresolved' && onPrice && visible.length > 0 && (
         <p className="mb-2 text-slate-600">
-          Neither the catalogue nor the web found these. Enter your own unit price; it counts in the total like a typed price.
+          These positions have no catalogue match or web suggestion. You can enter your own unit price here.
           {' '}<span className="num">{unpricedLeft}</span> still without a price{pricedTotal > 0 && <>, <span className="num font-medium text-slate-800">{money(pricedTotal)}</span> priced here</>}.
         </p>
       )}
@@ -155,7 +156,7 @@ export function CatalogueOverview({ report, error, retryFailed, positions, onOpe
               {(show === 'unresolved' || show === 'suggested') && onPrice && <PriceInput position={item} onPrice={onPrice} />}
             </li>
           ))}
-          {!visible.length && <li className="px-2 py-2 text-slate-600">There are no positions in this view yet.</li>}
+          {!visible.length && <li className="px-2 py-2 text-slate-600">No catalogue results match the current filters.</li>}
         </ul>
       )}
     </section>

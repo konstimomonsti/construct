@@ -30,9 +30,9 @@ import { useActions } from '../lib/actions'
 import { DetailDrawer } from '../components/DetailDrawer'
 import { loadList } from '../lib/data'
 import { ExportMenu } from '../components/ExportMenu'
-import { CatalogueDetails, CatalogueOverview, type ResearchView } from '../components/WorkspaceCatalogue'
-import { useWorkspaceCatalogue } from '../lib/workspace-catalogue'
-import { usePriceSuggestions, type PriceSuggestion } from '../lib/price-suggestions'
+import { CatalogueDetails, CatalogueOverview } from '../components/WorkspaceCatalogue'
+import { researchFilterOf, useWorkspaceCatalogue, type ResearchFilter } from '../lib/workspace-catalogue'
+import { matchesPricingFilter, usePriceSuggestions, type PriceSuggestion, type PricingFilter } from '../lib/price-suggestions'
 import { CategoryTree, useExpanded, type CheckState } from '../components/split/CategoryTree'
 import { MoveToCategory } from '../components/split/MoveToCategory'
 import { budgetMoney, budgetStatus, int, money, parseNumber, plural } from '../lib/format'
@@ -44,6 +44,21 @@ import { useUi } from '../lib/ui-store'
 import type { CategoryNode, ListDoc, Position } from '../lib/types'
 
 const SplitOverlay = lazy(() => import('../components/split/SplitOverlay').then((m) => ({ default: m.SplitOverlay })))
+
+const PRICING_FILTERS = {
+  unpriced: 'Not priced',
+  pending: 'Pending confirmation',
+  zero: 'Priced with quantity 0',
+  edited: 'Edited',
+} satisfies Record<PricingFilter, string>
+const PRICING_FILTER_KEYS = Object.keys(PRICING_FILTERS) as PricingFilter[]
+
+const CATALOGUE_FILTERS = {
+  matched: 'Catalogue matches',
+  suggested: 'Web suggestions',
+  unresolved: 'Without a match',
+} satisfies Record<ResearchFilter, string>
+type PositionFilter = { pricing: PricingFilter } | { catalogue: ResearchFilter }
 
 export function ListPage() {
   const { listId = '' } = useParams()
@@ -506,11 +521,9 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   const cats = grouped ? ozFilter : categoryFilter
   const setCats = grouped ? setOzFilter : setCategoryFilter
   const [sort, setSort] = useState<'oz' | 'amount' | 'risk'>('oz')
-  const [onlyUnpriced, setOnlyUnpriced] = useState(false)
-  const [onlyPending, setOnlyPending] = useState(false)
-  const [researchShow, setResearchShow] = useState<ResearchView>(null)
-  const [onlyZero, setOnlyZero] = useState(false)
-  const [onlyEdited, setOnlyEdited] = useState(false)
+  const [positionFilter, setPositionFilter] = useState<PositionFilter | null>(null)
+  const pricingFilter = positionFilter && 'pricing' in positionFilter ? positionFilter.pricing : null
+  const researchShow = positionFilter && 'catalogue' in positionFilter ? positionFilter.catalogue : null
   const [selectMode, setSelectMode] = useState(false)
   const [sectionsOpen, setSectionsOpen] = useState(false)
   // the sticky total only appears once the hero total has scrolled away, so the number is never on screen twice
@@ -565,6 +578,8 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   const title = view?.title ?? doc.title
   const editedIds = useMemo(() => new Set([...Object.keys(edits?.qty ?? {}), ...Object.keys(edits?.up ?? {}), ...Object.keys(edits?.patch ?? {}), ...Object.keys(edits?.moves ?? {})]), [edits])
   const addedIds = useMemo(() => new Set((edits?.added ?? []).map((p) => p.id)), [edits])
+  const modifiedIds = useMemo(() => new Set(positions
+    .filter(p => editedIds.has(p.id) && !addedIds.has(p.id)).map(p => p.id)), [positions, editedIds, addedIds])
   const qtyEdited = useMemo(() => new Set(Object.keys(edits?.qty ?? {})), [edits])
   const upEdited = useMemo(() => new Set(Object.keys(edits?.up ?? {})), [edits])
 
@@ -573,13 +588,17 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
     const matchesText = (p: Position) => p.oz.toLowerCase().includes(t) || p.short.toLowerCase().includes(t)
       || p.path?.some((part) => part.label.toLowerCase().includes(t))
     const originalMatches = grouped && t ? new Set(positions.filter(matchesText).map((p) => p.id)) : null
-    const r = ledgerPositions.filter(
-      (p) => matchesFindingFilter(findingFilter, findingsByRow.get(p.id) ?? [], settled) && (!cats || cats.has(leafOz(p))) && (!onlyUnpriced || (p.up == null && !pending.has(p.id))) && (!onlyPending || (p.up == null && pending.has(p.id))) && (!onlyZero || (p.up != null && p.qty === 0)) && (!onlyEdited || editedIds.has(p.id) || addedIds.has(p.id)) && (!t || matchesText(p) || originalMatches?.has(p.id)),
+    const r = ledgerPositions.filter(p =>
+      (!pricingFilter || matchesPricingFilter(pricingFilter, p, pending, modifiedIds)) &&
+      (!researchShow || researchFilterOf(report?.positions[p.id]?.state) === researchShow) &&
+      (!cats || cats.has(leafOz(p))) &&
+      (!t || matchesText(p) || originalMatches?.has(p.id)) &&
+      matchesFindingFilter(findingFilter, findingsByRow.get(p.id) ?? [], settled)
     )
     if (sort === 'amount') r.sort((a, b) => positionTotal(b) - positionTotal(a))
     if (sort === 'risk') r.sort((a, b) => (rowPoints.get(b.id) ?? 0) - (rowPoints.get(a.id) ?? 0))
     return r
-  }, [positions, ledgerPositions, grouped, q, cats, sort, rowPoints, onlyUnpriced, onlyPending, pending, onlyZero, onlyEdited, editedIds, addedIds, findingFilter, findingsByRow, settled])
+  }, [positions, ledgerPositions, grouped, q, cats, sort, rowPoints, pricingFilter, researchShow, report, pending, modifiedIds, findingFilter, findingsByRow, settled])
   const repeatedIds = useMemo(() => {
     if (!findingFilter.startsWith('rule:')) return []
     const ids = new Set<string>()
@@ -715,13 +734,21 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
       },
     })
   }
-  const showWarnings = (filter: string) => {
-    setOnlyUnpriced(false)
-    setOnlyPending(false)
-    setOnlyZero(false)
-    setOnlyEdited(false)
+  const clearPositionFilters = () => {
+    setPositionFilter(null)
     setQ('')
-    setCats(null)
+    setCategoryFilter(null)
+    setOzFilter(null)
+    setFindingFilter('all')
+    setSelected(new Set())
+  }
+  const applyPositionFilter = (filter: PositionFilter | null) => {
+    clearPositionFilters()
+    setPositionFilter(filter)
+    toTable()
+  }
+  const showWarnings = (filter: string) => {
+    clearPositionFilters()
     setFindingFilter(filter)
     toTable()
   }
@@ -780,20 +807,11 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
     setFindingFilter('all')
     toTable()
   }
-  const only = (k: 'unpriced' | 'pending' | 'zero' | 'edited') => {
-    setOnlyUnpriced(k === 'unpriced')
-    setOnlyPending(k === 'pending')
-    setOnlyZero(k === 'zero')
-    setOnlyEdited(k === 'edited')
-    setQ('')
-    setCats(null)
-    toTable()
-  }
   const resetAll = () => {
     const prev = useStore.getState().edits[doc.id]
-    const ids = [...editedIds].filter((x) => !addedIds.has(x))
+    const ids = [...modifiedIds]
     ids.forEach((x) => useStore.getState().resetPosition(doc.id, x))
-    setOnlyEdited(false)
+    if (pricingFilter === 'edited') setPositionFilter(null)
     toast(`Reset ${plural(ids.length, 'position', 'positions')} to the imported values`, 'ok', { label: 'Undo', run: () => useStore.getState().setEdits(doc.id, prev) })
   }
 
@@ -830,16 +848,22 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   }
 
   const heading = title
-  const zeroQty = positions.filter((p) => p.up != null && p.qty === 0).length
-  const pendingCount = pending.size
-  const unpriced = st.positionsCount - st.pricedCount - pendingCount
+  const pricingCounts = useMemo(() => {
+    const counts: Record<PricingFilter, number> = { unpriced: 0, pending: 0, zero: 0, edited: 0 }
+    for (const position of positions) {
+      for (const filter of PRICING_FILTER_KEYS) {
+        if (matchesPricingFilter(filter, position, pending, modifiedIds)) counts[filter]++
+      }
+    }
+    return counts
+  }, [positions, pending, modifiedIds])
+  const { pending: pendingCount, edited: editedCount } = pricingCounts
   // what the pending suggestions would add; shown beside the total, never inside it
   const pendingTotal = positions.reduce((sum, p) => sum + (pending.get(p.id)?.price ?? 0) * p.qty, 0)
   // bulk confirm covers the rows on screen whose units are known; the rest are checked one by one in the drawer
   const confirmable = rows.filter((p) => p.up == null && pending.get(p.id)?.unitKnown).map((p) => p.id)
   const confirmableTotal = confirmable.reduce((sum, id) => sum + (pending.get(id)?.price ?? 0) * (positions.find((p) => p.id === id)?.qty ?? 0), 0)
-  const editedCount = [...editedIds].filter((x) => !addedIds.has(x)).length
-  const filtered = !!q.trim() || !!cats || onlyUnpriced || onlyPending || onlyZero || onlyEdited || findingFilter !== 'all'
+  const filtered = !!q.trim() || !!cats || !!positionFilter || findingFilter !== 'all'
   const sections = pricingSections(tree, catStats)
   const live = view && !view.trashedAt ? view : null
   const more: (MenuItem | 'sep')[] = [
@@ -916,7 +940,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
         )}
         // research sits in the status row under the meter, so every list hero has the same height
         note={catalogueEnabled && (
-          <CatalogueOverview part="line" show={researchShow} setShow={setResearchShow} report={report} error={error} retryFailed={retryFailed} positions={positions} onOpen={openDetail} hideMatched={pending} />
+          <CatalogueOverview part="line" show={researchShow} setShow={filter => applyPositionFilter(filter ? { catalogue: filter } : null)} report={report} error={error} retryFailed={retryFailed} positions={positions} onOpen={openDetail} />
         )}
         extra={sections.length > 1 && showSections && (
           <div id="pricing-legend" aria-label="Pricing summary" role="region" className="mt-4 max-w-xl rounded-lg bg-slate-50 p-4">
@@ -925,15 +949,18 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
           </div>
         )}
         meta={
-          <div className="flex flex-wrap items-center gap-x-1 gap-y-1">
+          <div role="group" aria-label="Pricing position filters" className="flex flex-wrap items-center gap-x-1 gap-y-1">
             <span className="inline-flex w-[5.5rem] shrink-0 items-center gap-1.5 text-[13px] font-medium text-slate-500">
               <Icon name="sell" size={16} />Pricing
             </span>
-            <span className="num px-2"><span className="font-semibold text-slate-900">{int(st.positionsCount)}</span> {st.positionsCount === 1 ? 'position' : 'positions'}</span>
-            {unpriced > 0 && <MetaLink onClick={() => only('unpriced')} pressed={onlyUnpriced}><span className="num">{int(unpriced)}</span> not priced</MetaLink>}
-            {pendingCount > 0 && <MetaLink onClick={() => only('pending')} pressed={onlyPending}><span className="num">{int(pendingCount)}</span> pending confirmation</MetaLink>}
-            {zeroQty > 0 && <MetaLink onClick={() => only('zero')} pressed={onlyZero}><span className="num">{int(zeroQty)}</span> priced with quantity 0</MetaLink>}
-            {editedCount > 0 && <MetaLink onClick={() => only('edited')} pressed={onlyEdited}><span className="num">{int(editedCount)}</span> edited</MetaLink>}
+            <MetaLink onClick={() => applyPositionFilter(null)} pressed={!filtered}>All <span className="num">{int(st.positionsCount)}</span> {st.positionsCount === 1 ? 'position' : 'positions'}</MetaLink>
+            {PRICING_FILTER_KEYS.filter(filter => pricingCounts[filter] > 0 || pricingFilter === filter)
+              .map(filter => (
+                <MetaLink key={filter} pressed={pricingFilter === filter}
+                  onClick={() => applyPositionFilter(pricingFilter === filter ? null : { pricing: filter })}>
+                  <span className="num">{int(pricingCounts[filter])}</span> {PRICING_FILTERS[filter].toLowerCase()}
+                </MetaLink>
+              ))}
             {(sections.length > 1 || largest) && (
               <span className="flex items-center gap-1 sm:ml-auto">
                 {sections.length > 1 && (
@@ -973,15 +1000,14 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
         </details>
       )}
 
-      {catalogueEnabled && researchShow && (
-        <div className="mb-6">
-          <CatalogueOverview part="list" show={researchShow} setShow={setResearchShow} report={report} error={error} retryFailed={retryFailed} positions={positions} onOpen={openDetail}
-            onApplyAll={applySuggestions} onPrice={setOwnPrice} />
-        </div>
-      )}
-
       <div ref={heroEnd} aria-hidden />
       <div ref={tableRef} className="scroll-mt-20">
+        {catalogueEnabled && researchShow && (
+          <div className="mb-6">
+            <CatalogueOverview part="list" show={researchShow} setShow={filter => applyPositionFilter(filter ? { catalogue: filter } : null)} report={report} error={error} retryFailed={retryFailed} positions={rows} onOpen={openDetail}
+              onApplyAll={applySuggestions} onPrice={setOwnPrice} />
+          </div>
+        )}
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <div className="relative w-full sm:w-auto sm:min-w-56 sm:flex-1 lg:max-w-sm">
             <Icon name="search" size={20} className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-slate-600" />
@@ -1027,22 +1053,22 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
               <Icon name="error" size={18} />Upload check unavailable
             </span>
           )}
-          {/* the status line above offers these filters; the toolbar only shows the one that is on, with a way out */}
-          {onlyUnpriced && <FilterPill on onClick={() => setOnlyUnpriced(false)}>Not priced <span className="num">{int(unpriced)}</span></FilterPill>}
-          {onlyPending && <FilterPill on onClick={() => setOnlyPending(false)}>Pending confirmation <span className="num">{int(pendingCount)}</span></FilterPill>}
-          {onlyPending && confirmable.length > 0 && (
+          {(pricingFilter || researchShow) && (
+            <FilterPill on onClick={() => setPositionFilter(null)}>
+              {pricingFilter ? PRICING_FILTERS[pricingFilter] : researchShow && CATALOGUE_FILTERS[researchShow]}
+              <span className="num">{int(rows.length)}</span>
+            </FilterPill>
+          )}
+          {pricingFilter === 'pending' && confirmable.length > 0 && (
             <button type="button" onClick={() => confirmPrices(confirmable)} title={`Adds ${money(confirmableTotal)}: the list total becomes ${money(st.total + confirmableTotal)}`} aria-label={`Confirm ${plural(confirmable.length, 'shown price', 'shown prices')}, adds ${money(confirmableTotal)}; the list total becomes ${money(st.total + confirmableTotal)}`} className="inline-flex h-10 items-center gap-1.5 rounded-md px-3 text-sm font-semibold text-slate-800 hover:bg-slate-100">
               <Icon name="done_all" size={18} />Confirm {plural(confirmable.length, 'price', 'prices')}
               <span className="num font-medium text-slate-600">+{money(confirmableTotal)}</span>
             </button>
           )}
-          {onlyZero && <FilterPill on onClick={() => setOnlyZero(false)}>Priced with quantity 0 <span className="num">{int(zeroQty)}</span></FilterPill>}
-          {onlyEdited && (
-            <>
-              <FilterPill on onClick={() => setOnlyEdited(false)}>Edited <span className="num">{int(editedCount)}</span></FilterPill>
-              {editedCount > 0 && <button type="button" onClick={resetAll} className="h-10 rounded-md px-3 text-sm font-semibold text-slate-800 hover:bg-slate-100">Reset all</button>}
-            </>
+          {pricingFilter === 'edited' && editedCount > 0 && (
+            <button type="button" onClick={resetAll} className="h-10 rounded-md px-3 text-sm font-semibold text-slate-800 hover:bg-slate-100">Reset all</button>
           )}
+          {filtered && <Button size="sm" variant="ghost" onClick={clearPositionFilters}>Clear filters</Button>}
           <div className="flex items-center gap-2 sm:ml-auto">
             <button
               type="button"
@@ -1201,7 +1227,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
             positions={positions}
             pending={pending}
             onSubcontractors={() => setTab('subcontractors')}
-            onReviewAi={() => { setTab('x83'); only('pending') }}
+            onReviewAi={() => { setTab('x83'); applyPositionFilter({ pricing: 'pending' }) }}
           />
         </PhasePanel>
       )}
@@ -1218,12 +1244,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
 
       <AddSectionDialog open={addingSection} onClose={() => setAddingSection(false)} onAdd={(name) => {
         addCategory(null, name)
-        setQ('')
-        setCats(null)
-        setOnlyUnpriced(false)
-        setOnlyPending(false)
-        setOnlyZero(false)
-        setOnlyEdited(false)
+        clearPositionFilters()
         setSort('oz')
         toast(`Added section "${name}"`)
       }} />

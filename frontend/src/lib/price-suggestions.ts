@@ -48,6 +48,22 @@ const unitsFit = (a: string | null | undefined, b: string | null | undefined) =>
 export const priceStateOf = (p: Position, pending: ReadonlyMap<string, PriceSuggestion>): PriceState =>
   p.up != null ? 'priced' : pending.has(p.id) ? 'pending' : 'unpriced'
 
+export type PricingFilter = 'unpriced' | 'pending' | 'zero' | 'edited'
+
+export function matchesPricingFilter(
+  filter: PricingFilter, position: Position, pending: ReadonlyMap<string, PriceSuggestion>, edited: ReadonlySet<string>,
+): boolean {
+  switch (filter) {
+    case 'unpriced':
+    case 'pending':
+      return priceStateOf(position, pending) === filter
+    case 'zero':
+      return position.up != null && position.qty === 0
+    case 'edited':
+      return edited.has(position.id)
+  }
+}
+
 /**
  * unit prices proposed for unpriced positions from the catalogue products they were matched to, minus the ones the
  * user dismissed. Reads products one by one (GET only) and only for positions that still lack a price.

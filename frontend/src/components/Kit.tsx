@@ -123,7 +123,8 @@ export function Summary({ label, amount, sub }: { label: string; amount: string;
 
 export function MetaLink({ children, onClick, pressed }: { children: ReactNode; onClick: () => void; pressed?: boolean }) {
   return (
-    <button type="button" aria-pressed={pressed} onClick={onClick} className="relative inline-flex h-7 items-center gap-1 rounded-md px-2 text-slate-600 transition-colors after:absolute after:inset-x-0 after:-inset-y-1 after:content-[''] hover:bg-slate-100 hover:text-slate-900 aria-pressed:bg-slate-900 aria-pressed:text-white [&_.num]:font-semibold [&_.num]:text-slate-900 aria-pressed:[&_.num]:text-white">
+    <button type="button" aria-pressed={pressed} onClick={onClick} className={clsx("relative inline-flex min-h-8 items-center gap-1 rounded-md px-2 text-slate-600 transition-colors after:absolute after:inset-x-0 after:-inset-y-1 after:content-[''] hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-700 aria-pressed:bg-slate-900 aria-pressed:text-white [&_.num]:font-semibold [&_.num]:text-slate-900 aria-pressed:[&_.num]:text-white",
+      pressed !== undefined && 'ring-1 ring-inset ring-slate-200 aria-pressed:ring-slate-900')}>
       {children}
     </button>
   )
