@@ -119,7 +119,7 @@ export function WarningsPanel({ entries, decisions, settled, positions, allowFix
                       <li key={item.id}>
                         <button type="button" disabled={!position} onClick={() => position && onOpen(position.id)}
                           className="flex min-h-9 w-full items-center gap-2 rounded-md px-2 text-left text-sm hover:bg-slate-100 disabled:hover:bg-transparent">
-                          <span className="num w-20 shrink-0 font-mono text-[13px] text-slate-600">{position?.oz ?? 'List'}</span>
+                          <span className="num min-w-[12ch] shrink-0 whitespace-nowrap font-mono text-[13px] text-slate-600">{position?.oz ?? 'List'}</span>
                           <span className="min-w-0 flex-1 truncate text-slate-800">{position?.short || item.message}</span>
                           {position && <span className="shrink-0 text-[13px] font-semibold text-brand-700">Go to</span>}
                         </button>
