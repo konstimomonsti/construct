@@ -9,7 +9,7 @@ from decimal import Decimal
 from .. import units
 from ..graph import validate_graph
 from ..registry import rule
-from .common import THRESHOLDS, is_counted, label, money, section_label
+from .common import THRESHOLDS, is_counted, is_optional, label, money, section_label
 
 
 @rule("L1.ARITH.LINE_AMOUNT", layer=1, category="arithmetic", severity="error", title="Line amount is wrong",
@@ -22,7 +22,7 @@ def line_amount(ctx):
         amounts = line.source_amounts
         if not amounts or amounts.unit_price is None or amounts.line_amount is None or line.quantity is None:
             continue
-        if line.total_rule == "unit_price_only":
+        if line.total_rule == "unit_price_only" and not is_optional(line):
             continue  # reported by L1.STRUCT.UNIT_PRICE_ONLY_IN_TOTAL
         expected = money(line.quantity * amounts.unit_price)
         difference = amounts.line_amount - expected

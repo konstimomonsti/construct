@@ -163,13 +163,24 @@ def test_structure_rules():
                  make_line(3, gaeb_flags={"position_type": "A"}), make_line(4, gaeb_flags={"Provis": "WithoutTotal"},
                                                                           total_rule="unit_price_only",
                                                                           source_amounts=SourceAmounts(unit_price=D(5), line_amount=D(50))),
+                 make_line(5, gaeb_flags={"unit_price_only": "Yes"}, total_rule="unit_price_only",
+                           source_amounts=SourceAmounts(unit_price=D(5), line_amount=D(50))),
                  sections=sections)
     assert only(result, "L1.CODE.OUTSIDE_SECTION")[0].target.line_id == "l1"
     assert only(result, "L1.STRUCT.ORPHAN_LINE")[0].target.line_id == "l2"
     assert "L1.STRUCT.EMPTY_SECTION" not in rules(result)
     assert only(result, "L1.STRUCT.ORPHAN_ALTERNATIVE")[0].target.line_id == "l3"
     assert only(result, "L1.STRUCT.PROVISIONAL_ITEM")[0].target.line_id == "l4"
-    assert only(result, "L1.STRUCT.UNIT_PRICE_ONLY_IN_TOTAL")[0].target.line_id == "l4"
+    # An optional item may show its amount for information; only a "Nur Einheitspreis" amount is an error.
+    assert only(result, "L1.STRUCT.UNIT_PRICE_ONLY_IN_TOTAL")[0].target.line_id == "l5"
+
+
+def test_optional_item_amount_is_still_recalculated():
+    optional = dict(gaeb_flags={"Provis": "WithoutTotal"}, total_rule="unit_price_only", quantity=D(10))
+    assert "L1.ARITH.LINE_AMOUNT" not in rules(run(make_line(1, **optional,
+                                                             source_amounts=SourceAmounts(unit_price=D(5), line_amount=D(50)))))
+    assert only(run(make_line(1, **optional, source_amounts=SourceAmounts(unit_price=D(5), line_amount=D(60)))),
+                "L1.ARITH.LINE_AMOUNT")
 
 
 def test_suspected_duplicate_shows_both_items_for_manual_comparison():

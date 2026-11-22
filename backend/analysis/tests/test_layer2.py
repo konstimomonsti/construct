@@ -160,6 +160,13 @@ class RuleTests(unittest.TestCase):
         bundled = line("a", "Metallständerwand GKB inkl. Mineralwolle, Fugen Spachtelung, Kantenschutz")
         self.assertEqual(run(input_for(bundled), []), [])
 
+    def test_abbreviated_impact_sound_insulation_satisfies_screed_underlay(self):
+        for text in ["Trittschalldämmsch. pfl. Faserdämmst. d 30mm", "TSD 30-2 unter Estrich", "Dämmschicht EPS 035"]:
+            screed = input_for(line("s", "Zementestrich ZE 20 d 40mm"), line("i", text))
+            self.assertEqual(selected(screed, "UNDERLAYS_AND_INSULATION"), [], text)
+        for other in [line("r", "Randdämmstreifen", "40", "m"), line("w", "Wärmedämmung PIR", long_text="Dämmplatten verlegen")]:
+            self.assertEqual(len(selected(input_for(line("s", "Zementestrich ZE 20 d 40mm"), other), "UNDERLAYS_AND_INSULATION")), 1)
+
     def test_case_long_text_and_tags(self):
         input = input_for(line("a", "Bauteil", long_text="DACHABDICHTUNG EPDM"),
                           line("b", "Material", tags=["Dampfsperre"]),

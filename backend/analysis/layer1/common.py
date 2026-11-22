@@ -43,6 +43,11 @@ def is_counted(line: Line) -> bool:
     return line.total_rule == "include"
 
 
+def is_optional(line: Line) -> bool:
+    """Bedarfsposition: GAEB XML Provis or GAEB 90 provisional flag E."""
+    return bool(line.gaeb_flags.get("Provis")) or line.gaeb_flags.get("provisional_flag") == "E"
+
+
 def label(line: Line) -> str:
     text = line.short_text or line.long_text or ""
     text = text if len(text) <= 60 else text[:57] + "..."
