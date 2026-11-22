@@ -14,7 +14,7 @@ export function LineTypeSelect({ value, short, long, suggestion, onChange }: {
 }) {
   return (
     <select className={inputCls} value={value ?? 'automatic'} onChange={(e) => onChange(parseLineType(e.target.value) ?? 'automatic')}>
-      <option value="automatic">{suggestion ? 'Claude Haiku 5.5' : 'From description'} ({LINE_TYPE_LABELS[suggestion ?? inferLineType(short, long)]})</option>
+      <option value="automatic">{suggestion ? 'Automatic suggestion' : 'From description'} ({LINE_TYPE_LABELS[suggestion ?? inferLineType(short, long)]})</option>
       <LineTypeOptions />
     </select>
   )
