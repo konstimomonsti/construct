@@ -9,6 +9,9 @@ from psycopg import sql
 
 PAGE_SIZE = 50
 TABLES = {"products": "product", "suppliers": "supplier", "subcontractors": "subcontractor"}
+# Catalogues the API only reads: the activity prices are loaded by a seed or a migration, not edited here.
+READ_ONLY = frozenset({"activities"})
+MAX_ACTIVITY_CODES = 200
 
 PRODUCT_FIELDS = """
     p.id, p.name, p.supplier_sku AS sku, p.unit_code AS unit,
@@ -59,7 +62,40 @@ def identifier(value):
         raise ValueError("Select a valid catalogue record.") from error
 
 
+def read_activities(connection, params):
+    """Current prices of the activities with the given tender position codes, ours and the subcontractors' offers.
+
+    The newest price per activity and subcontractor that is valid today. A price without a subcontractor is our own.
+    """
+    codes = [code.strip() for code in params.get("codes", "").split(",") if code.strip()]
+    if not codes or len(codes) > MAX_ACTIVITY_CODES or any(len(code) > 40 or "\0" in code for code in codes):
+        raise ValueError(f"Enter between 1 and {MAX_ACTIVITY_CODES} position codes.")
+    rows = connection.execute(
+        """
+        SELECT DISTINCT ON (a.id, p.subcontractor_id)
+               a.code, a.name, a.unit_code AS unit, a.kind, p.unit_price, p.currency, p.valid_from, p.valid_until,
+               p.source_note, p.subcontractor_id, s.name AS subcontractor
+        FROM activity a
+        JOIN activity_price p ON p.activity_id = a.id
+        LEFT JOIN subcontractor s ON s.id = p.subcontractor_id
+        WHERE a.code = ANY(%s) AND a.archived_at IS NULL AND s.archived_at IS NULL
+          AND p.valid_from <= CURRENT_DATE AND (p.valid_until IS NULL OR p.valid_until >= CURRENT_DATE)
+        ORDER BY a.id, p.subcontractor_id, p.valid_from DESC
+        """, (codes,),
+    ).fetchall()
+    found = {}
+    for row in rows:
+        entry = found.setdefault(row["code"], {
+            "code": row["code"], "name": row["name"], "unit": row["unit"], "kind": row["kind"], "prices": [],
+        })
+        entry["prices"].append({key: row[key] for key in (
+            "unit_price", "currency", "valid_from", "valid_until", "source_note", "subcontractor_id", "subcontractor")})
+    return {"rows": list(found.values())}
+
+
 def read(connection, kind, params):
+    if kind == "activities":
+        return read_activities(connection, params)
     if kind == "products":
         if "id" in params:
             query = f"SELECT p.description, {PRODUCT_FIELDS} {PRODUCT_RELATIONS} WHERE p.id=%s"
