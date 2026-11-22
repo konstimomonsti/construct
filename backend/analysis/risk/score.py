@@ -7,14 +7,16 @@ from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from typing import Iterable
 
 from ..contracts import AnalysisInput, Finding, Line, RiskReport, SectionRisk, TopRisk
-from .scope import anchor, excluded_sections
+from .signals import WORDING_KINDS, anchor, collect, excluded_sections, review_order, wording_families
 
 SCALE = 40
 SCALE_PER_LINE = Decimal("0.65")
 SEVERITY_POINTS = {"error": Decimal(8), "warning": Decimal(4), "info": Decimal(1)}
+WORDING_SECTION_CAP = Decimal("2.5")
 # Likelihood and affected share of exposure, respectively. These are estimates,
 # not probabilities that a finding is correct.
-LIKELIHOOD = {"error": Decimal("0.65"), "warning": Decimal("0.45"), "info": Decimal("0.15")}
+LIKELIHOOD = {"error": Decimal("0.65"), "warning": Decimal("0.45"), "info": Decimal("0.15"),
+              "signal": Decimal("0.35")}
 IMPACT = Decimal("0.4")
 
 
@@ -68,8 +70,9 @@ def assess(analysis_input: AnalysisInput, findings: list[Finding]) -> RiskReport
     item_exposure: dict[str, tuple[str, Decimal]] = {}
 
     def add(id: str, base: Decimal, line_id: str | None, section_id: str | None,
-            category: str, title: str, amount: Decimal | None, likelihood: Decimal) -> None:
-        uplift = min(Decimal(10), amount / 1000) if priced and amount is not None else Decimal(0)
+            category: str, title: str, amount: Decimal | None, likelihood: Decimal,
+            *, capped: bool = False) -> None:
+        uplift = min(Decimal(10), amount / 1000) if priced and amount is not None and not capped else Decimal(0)
         value = base + uplift
         points[id] = float(value)
         item_sections[id] = section_id
@@ -90,6 +93,7 @@ def assess(analysis_input: AnalysisInput, findings: list[Finding]) -> RiskReport
             expected[id] = amount * likelihood * IMPACT
             item_exposure[id] = (id, expected[id])
 
+    live = []
     for finding in sorted(findings, key=lambda item: (item.layer, item.id)):
         line_id = anchor(finding, lines)
         section_id = lines[line_id].section_id if line_id else finding.target.section_id
@@ -98,6 +102,7 @@ def assess(analysis_input: AnalysisInput, findings: list[Finding]) -> RiskReport
             continue
         if finding.evidence.get("reviews_finding_id") in points:
             continue
+        live.append(finding)
         amount = number(finding.evidence.get("amount_at_stake"))
         amount = abs(amount) if amount is not None else amounts.get(line_id)
         base = SEVERITY_POINTS[finding.severity]
@@ -107,6 +112,37 @@ def assess(analysis_input: AnalysisInput, findings: list[Finding]) -> RiskReport
         add(finding.id, base, line_id, section_id, finding.category, finding.title, amount,
             LIKELIHOOD[finding.severity])
         counts[finding.severity] += 1
+    signals = collect(analysis_input, live)
+    signals_by_id = {signal.id: signal for signal in signals}
+    strongest: dict[tuple[str | None, str], str] = {}
+    for signal in signals:
+        if signal.kind not in WORDING_KINDS:
+            continue
+        section_id = lines[signal.line_id].section_id
+        families = wording_families(lines[signal.line_id], signal.kind)
+        if not families:
+            continue
+        key = (section_id, families[0])
+        current = strongest.get(key)
+        current_amount = amounts[signals_by_id[current].line_id] if current else None
+        if current is None or (amounts[signal.line_id] or Decimal(0)) > (current_amount or Decimal(0)):
+            strongest[key] = signal.id
+    winning_signals = set(strongest.values())
+    for signal in signals:
+        line = lines[signal.line_id]
+        wording = signal.kind in WORDING_KINDS
+        overlaps = any(finding_id in points for finding_id in signal.finding_ids)
+        amount = amounts[line.id]
+        base = Decimal(str(signal.points))
+        if overlaps:
+            base = Decimal(0)
+            amount = None
+        elif wording:
+            base = min(WORDING_SECTION_CAP, base) if signal.id in winning_signals else Decimal(0)
+        category = "dependency" if signal.kind == "missing_dependency" else "change_order"
+        add(signal.id, base, line.id, line.section_id, category, signal.title,
+            amount, LIKELIHOOD["signal"], capped=wording or overlaps)
+        signal.points = points[signal.id]
     ordered = sorted(line_points, key=lambda id: (-line_points[id], -(amounts[id] or Decimal(0)),
                                                   lines[id].sort_order, id))
     top = [TopRisk(line_id=id, line_code=lines[id].code, short_text=lines[id].short_text,
@@ -124,4 +160,5 @@ def assess(analysis_input: AnalysisInput, findings: list[Finding]) -> RiskReport
                       if priced else None,
                       points=points, open_counts=dict(counts), top_risks=top, by_section=by_section,
                       by_category={key: float(value) for key, value in sorted(category_points.items())},
+                      change_order_signals=review_order(signals, lines, live),
                       item_sections=item_sections, item_exposure=item_exposure)

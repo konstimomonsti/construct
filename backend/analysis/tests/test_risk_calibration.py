@@ -14,12 +14,12 @@ ROOT = Path(__file__).resolve().parents[3]
 
 
 @pytest.mark.parametrize("path,score_range,money_range", [
-    ("backend/analysis/eval/seeds/building_hall.json", (0, 0), (0, 0)),
-    ("data/demo/building_hall_planted.X83", (40, 55), (3000, 8000)),
+    ("backend/analysis/eval/seeds/building_hall.json", (0, 24), (5000, 20000)),
+    ("data/demo/building_hall_planted.X83", (50, 70), (8000, 30000)),
     ("backend/analysis/tests/fixtures/lv11_precast.json", (25, 49), None),
-    ("data/tenders/8209.003_Leistungsverzeichnis_leer.X83", (35, 50), None),
-    ("data/tenders/StBALV23040.D86", (30, 50), (3000, 9000)),
-    ("data/tenders/[ORT_024] LV24069.D86", (65, 85), (20000, 70000)),
+    ("data/tenders/8209.003_Leistungsverzeichnis_leer.X83", (50, 74), None),
+    ("data/tenders/StBALV23040.D86", (50, 74), (20000, 70000)),
+    ("data/tenders/[ORT_024] LV24069.D86", (75, 90), (20000, 70000)),
 ])
 def test_reference_lists(path, score_range, money_range):
     source = ROOT / path

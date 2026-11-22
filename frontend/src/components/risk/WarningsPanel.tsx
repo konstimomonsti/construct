@@ -1,20 +1,22 @@
 import { clsx } from 'clsx'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Button, Dialog, Icon, kbdCls } from '../ui'
-import { FindingText, RISK_UI } from '../RiskAssessment'
+import { ChangeOrderText, FindingText, RISK_UI } from '../RiskAssessment'
 import { FindingQuestions } from './BidderQuestions'
 import { DismissMenu, accepted } from './DecisionControls'
 import { planFix, planFixAll, type FixPlan } from '../../lib/apply-fix'
 import { int, plural } from '../../lib/format'
-import { SEVERITIES, type Decision, type Decisions, type Finding, type Question, type Severity } from '../../lib/risk-assessment'
+import { SEVERITIES, type Decision, type Decisions, type Finding, type Question, type ReviewItem, type Severity } from '../../lib/risk-assessment'
 import type { Position } from '../../lib/types'
 
-export type WarningEntry = { item: Finding; position: Position | null }
+export type WarningEntry = { item: ReviewItem; position: Position | null }
 
 type ApplyFixes = (plans: { finding: Finding; plan: FixPlan }[]) => Promise<boolean> | boolean | void
 
-const KIND_LABEL: Record<Severity, string> = { error: 'Critical', warning: 'Warning', info: 'Note' }
-const KIND_PLURAL: Record<Severity, string> = { error: 'Critical', warning: 'Warnings', info: 'Notes' }
+const isFinding = (item: ReviewItem): item is Finding => 'severity' in item
+const kindOf = (item: ReviewItem): Severity | 'change' => (isFinding(item) ? item.severity : 'change')
+const KIND_LABEL: Record<Severity | 'change', string> = { error: 'Critical', warning: 'Warning', info: 'Note', change: 'Change order' }
+const KIND_PLURAL: Record<Severity | 'change', string> = { error: 'Critical', warning: 'Warnings', info: 'Notes', change: 'Change orders' }
 
 /**
  * The warnings of the uploaded tender at a glance: counts per kind, one line per type that jumps to the positions,
@@ -37,19 +39,19 @@ export function WarningsPanel({ entries, decisions, settled, positions, allowFix
   const open = useMemo(() => entries.filter(({ item }) => !settled.has(item.id)), [entries, settled])
   const { plans, rest } = useMemo(() => planFixAll(open.map(({ item }) => item), positions, allowFixes), [open, positions, allowFixes])
   const counts = useMemo(() => {
-    const out = new Map<Severity, number>()
-    for (const { item } of open) out.set(item.severity, (out.get(item.severity) ?? 0) + 1)
+    const out = new Map<Severity | 'change', number>()
+    for (const { item } of open) out.set(kindOf(item), (out.get(kindOf(item)) ?? 0) + 1)
     return out
   }, [open])
   const types = useMemo(() => {
-    const out = new Map<string, { title: string; kind: Severity; entries: WarningEntry[] }>()
+    const out = new Map<string, { title: string; kind: Severity | 'change'; entries: WarningEntry[] }>()
     for (const entry of open) {
-      const key = `rule:${entry.item.rule_id}`
-      const group = out.get(key) ?? { title: entry.item.title, kind: entry.item.severity, entries: [] }
+      const key = isFinding(entry.item) ? `rule:${entry.item.rule_id}` : `change:${entry.item.kind}`
+      const group = out.get(key) ?? { title: entry.item.title, kind: kindOf(entry.item), entries: [] }
       group.entries.push(entry)
       out.set(key, group)
     }
-    const rank = (kind: Severity) => SEVERITIES.indexOf(kind)
+    const rank = (kind: Severity | 'change') => (kind === 'change' ? 3 : SEVERITIES.indexOf(kind))
     return [...out].sort(([, a], [, b]) => rank(a.kind) - rank(b.kind) || b.entries.length - a.entries.length)
   }, [open])
 
@@ -68,11 +70,11 @@ export function WarningsPanel({ entries, decisions, settled, positions, allowFix
             {open.length ? plural(open.length, 'finding to review', 'findings to review') : 'Review complete'}
           </h2>
           <p className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-slate-600">
-            {SEVERITIES.filter((kind) => counts.get(kind)).map((kind) => (
-              <button key={kind} type="button" onClick={() => onFilter(kind)}
+            {([...SEVERITIES, 'change'] as const).filter((kind) => counts.get(kind)).map((kind) => (
+              <button key={kind} type="button" onClick={() => onFilter(kind === 'change' ? 'change-orders' : kind)}
                 className="inline-flex items-center gap-1 rounded font-medium hover:text-slate-900 hover:underline"
                 title={`Show positions with ${KIND_PLURAL[kind].toLowerCase()}`}>
-                <Icon name="flag" size={14} fill className={RISK_UI[kind].ink} />
+                <Icon name="flag" size={14} fill className={kind === 'change' ? 'text-orange-600' : RISK_UI[kind].ink} />
                 <span className="num">{int(counts.get(kind) ?? 0)}</span> {(counts.get(kind) === 1 ? KIND_LABEL : KIND_PLURAL)[kind].toLowerCase()}
               </button>
             ))}
@@ -103,7 +105,7 @@ export function WarningsPanel({ entries, decisions, settled, positions, allowFix
                   <button type="button" aria-expanded={isOpen} onClick={() => setExpanded(isOpen ? null : key)}
                     className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-1 py-1.5 text-left text-sm hover:bg-slate-100">
                     <Icon name="expand_more" size={18} className={clsx('shrink-0 text-slate-500 transition-transform', isOpen && 'rotate-180')} />
-                    <Icon name="flag" size={15} fill className={clsx('shrink-0', RISK_UI[group.kind].ink)} />
+                    <Icon name="flag" size={15} fill className={clsx('shrink-0', group.kind === 'change' ? 'text-orange-600' : RISK_UI[group.kind].ink)} />
                     <span className="min-w-0 truncate font-medium text-slate-900">{group.title}</span>
                     <span className="num shrink-0 text-slate-600">{int(group.entries.length)}</span>
                   </button>
@@ -192,7 +194,7 @@ function ReviewStepper({ open, positions, decisions, allowFixes, title, question
   const entry = open[index]
   const item = entry?.item
   const currentId = item?.id
-  const plan = allowFixes && item && item.origin !== 'llm' ? planFix(item, positions) : null
+  const plan = allowFixes && item && isFinding(item) && item.origin !== 'llm' ? planFix(item, positions) : null
   const move = (step: number) => {
     const next = (index + step + open.length) % open.length
     setCursor({ id: open[next]?.item.id, index: next })
@@ -200,7 +202,7 @@ function ReviewStepper({ open, positions, decisions, allowFixes, title, question
   const card = useRef<HTMLDivElement>(null)
 
   const accept = () => item && onDecide([item.id], accepted(), item.title)
-  const fix = () => item && plan?.steps.length && onApplyFixes([{ finding: item, plan }])
+  const fix = () => item && plan?.steps.length && isFinding(item) && onApplyFixes([{ finding: item, plan }])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -236,7 +238,7 @@ function ReviewStepper({ open, positions, decisions, allowFixes, title, question
           <span className="shrink-0 text-[13px] font-semibold text-brand-700">Open position</span>
         </button>
       )}
-      <FindingText finding={item} decision={decisions[item.id]} details />
+      {isFinding(item) ? <FindingText finding={item} decision={decisions[item.id]} details /> : <ChangeOrderText signal={item} decision={decisions[item.id]} />}
       {plan && (plan.steps.length > 0 || plan.skipped.length > 0) && (
         <div className="mt-3 ml-[15px] rounded-md bg-slate-50 px-3 py-2 text-[13px]">
           {plan.steps.map((step, i) => <p key={i} className="text-slate-800"><Icon name="arrow_right_alt" size={15} className="mr-1 align-[-3px] text-slate-500" />{step.label}</p>)}

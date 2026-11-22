@@ -16,8 +16,8 @@ import { currentPhase } from '../lib/workflow'
 import { ErrorBoundary } from '../components/ErrorBoundary'
 import { LedgerTable } from '../components/LedgerTable'
 import { BidSimulator } from '../components/BidSimulator'
-import { FindingFilter, FindingText } from '../components/RiskAssessment'
-import { analysisCoverage, assessmentMatchesEdits, canApplyAssessmentFix, currentDecisions, decisionsOf, indexFindings, matchesFindingFilter, openQuestions, reportRisk, SEVERITIES, useUploadAssessment, type Assessment, type Decision, type Finding, type Question, type Report } from '../lib/risk-assessment'
+import { ChangeOrderText, FindingFilter, FindingText } from '../components/RiskAssessment'
+import { analysisCoverage, assessmentMatchesEdits, canApplyAssessmentFix, currentDecisions, decisionsOf, indexFindings, matchesFindingFilter, openQuestions, reportRisk, SEVERITIES, useUploadAssessment, type Assessment, type ChangeOrderSignal, type Decision, type Finding, type Question, type Report, type ReviewItem } from '../lib/risk-assessment'
 import { riskXlsx, downloadBytes } from '../lib/risk-export'
 import type { RowRisk } from '../components/LedgerTable'
 import { DecisionControls, DismissMenu } from '../components/risk/DecisionControls'
@@ -443,6 +443,26 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
       optimizations: findings.filter(finding => finding.category === 'optimization'),
     }
   }, [uploadReport, positions])
+  const { signalsByRow, listSignals } = useMemo(() => {
+    const signalsByRow = new Map<string, ChangeOrderSignal[]>()
+    const listSignals: ChangeOrderSignal[] = []
+    const positionIds = new Set(positions.map((position) => position.id))
+    for (const signal of risk?.change_order_signals ?? []) {
+      if (signal.line_id && positionIds.has(signal.line_id)) {
+        const items = signalsByRow.get(signal.line_id) ?? []
+        items.push(signal)
+        signalsByRow.set(signal.line_id, items)
+      } else {
+        listSignals.push(signal)
+      }
+    }
+    return { signalsByRow, listSignals }
+  }, [risk, positions])
+  const reviewByRow = useMemo(() => {
+    const items = new Map<string, ReviewItem[]>(findingsByRow)
+    for (const [id, signals] of signalsByRow) items.set(id, [...(findingsByRow.get(id) ?? []), ...signals])
+    return items
+  }, [findingsByRow, signalsByRow])
   // a finding about a field the user has since edited no longer describes the position: show it as
   // "changed since upload" instead of flagging the row with an error the edit may already have fixed
   const changedFindings = useMemo(() => {
@@ -481,39 +501,45 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
       const id = finding.target.line_id
       add(id && positionIds.has(id) ? id : finding.related_line_ids.find((id) => positionIds.has(id)), finding.id)
     }
+    for (const [id, signals] of signalsByRow) for (const signal of signals) add(id, signal.id)
     return points
-  }, [uploadReport, positions, risk, settled])
+  }, [uploadReport, positions, risk, settled, signalsByRow])
   // rows are memoized: reuse unchanged risk data across decisions
   const riskCacheRef = useRef(new Map<string, RowRisk>())
   const risks = useMemo(() => {
     const prev = riskCacheRef.current
-    return new Map([...findingsByRow].flatMap(([id, items]) => {
+    return new Map([...reviewByRow].flatMap(([id, items]) => {
       const open = items.filter((item) => !settled.has(item.id))
       if (!open.length) return []
-      const severity = SEVERITIES.find((level) => open.some((item) => item.severity === level))
-      const rowRisk: RowRisk = { severity, count: open.length, points: rowPoints.get(id) ?? 0, label: open.map((item) => item.title).join(', ') }
+      const severity = SEVERITIES.find((level) => open.some((item) => 'severity' in item && item.severity === level))
+      const signalCount = open.filter((item) => !('severity' in item)).length
+      const rowRisk: RowRisk = { severity, count: open.length - signalCount, signalCount, points: rowPoints.get(id) ?? 0, label: open.map((item) => item.title).join(', ') }
       const old = prev.get(id)
-      return [[id, old && old.severity === rowRisk.severity && old.count === rowRisk.count && old.points === rowRisk.points && old.label === rowRisk.label ? old : rowRisk] as const]
+      return [[id, old && old.severity === rowRisk.severity && old.count === rowRisk.count && old.signalCount === rowRisk.signalCount && old.points === rowRisk.points && old.label === rowRisk.label ? old : rowRisk] as const]
     }))
-  }, [findingsByRow, rowPoints, settled])
+  }, [reviewByRow, rowPoints, settled])
   useEffect(() => {
     riskCacheRef.current = risks
   }, [risks])
-  const filterFindings = useMemo(() => [...findingsByRow.values()], [findingsByRow])
-  // every warning once, in list order (a warning on several rows sits at its first one), then the list-wide ones
+  const filterFindings = useMemo(() => [...reviewByRow.values()], [reviewByRow])
+  // Keep findings in position order and fill the change-order slots in the assessment’s review order.
   const warningEntries = useMemo(() => {
     const seen = new Set<string>()
     const out: WarningEntry[] = []
     for (const position of positions) {
-      for (const item of findingsByRow.get(position.id) ?? []) {
+      for (const item of reviewByRow.get(position.id) ?? []) {
         if (seen.has(item.id)) continue
         seen.add(item.id)
         out.push({ item, position })
       }
     }
-    for (const item of listWide) if (!seen.has(item.id)) out.push({ item, position: null })
-    return out
-  }, [positions, findingsByRow, listWide])
+    for (const item of [...listWide, ...listSignals]) if (!seen.has(item.id)) out.push({ item, position: null })
+    const ranks = new Map(risk?.change_order_signals.map((signal, index) => [signal.id, index]))
+    const changes = out.filter(({ item }) => !('severity' in item))
+      .sort((a, b) => (ranks.get(a.item.id) ?? Infinity) - (ranks.get(b.item.id) ?? Infinity))
+    let nextChange = 0
+    return out.map((entry) => 'severity' in entry.item ? entry : changes[nextChange++])
+  }, [positions, reviewByRow, listWide, listSignals, risk])
 
   const [q, setQ] = useState('')
   const [categoryFilter, setCategoryFilter] = useState<Set<string> | null>(null)
@@ -593,12 +619,12 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
       (!researchShow || researchFilterOf(report?.positions[p.id]?.state) === researchShow) &&
       (!cats || cats.has(leafOz(p))) &&
       (!t || matchesText(p) || originalMatches?.has(p.id)) &&
-      matchesFindingFilter(findingFilter, findingsByRow.get(p.id) ?? [], settled)
+      matchesFindingFilter(findingFilter, reviewByRow.get(p.id) ?? [], settled)
     )
     if (sort === 'amount') r.sort((a, b) => positionTotal(b) - positionTotal(a))
     if (sort === 'risk') r.sort((a, b) => (rowPoints.get(b.id) ?? 0) - (rowPoints.get(a.id) ?? 0))
     return r
-  }, [positions, ledgerPositions, grouped, q, cats, sort, rowPoints, pricingFilter, researchShow, report, pending, modifiedIds, findingFilter, findingsByRow, settled])
+  }, [positions, ledgerPositions, grouped, q, cats, sort, rowPoints, pricingFilter, researchShow, report, pending, modifiedIds, findingFilter, reviewByRow, settled])
   const repeatedIds = useMemo(() => {
     if (!findingFilter.startsWith('rule:')) return []
     const ids = new Set<string>()
@@ -624,7 +650,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
       onApply={(long) => useStore.getState().patchPosition(doc.id, detail.id, { long })} />
   ) : undefined
   const detailFindings = detail ? findingsByRow.get(detail.id) : undefined
-  const detailItems = detail ? findingsByRow.get(detail.id) : undefined
+  const detailItems = detail ? reviewByRow.get(detail.id) : undefined
   const detailOpen = detailItems?.filter((item) => !settled.has(item.id)).length ?? 0
   const detailExposure = detail && risk?.top_risks.find((row) => row.line_id === detail.id)?.amount
   // the next row (in table order, wrapping) that still has an open finding, so review can run row to row
@@ -632,10 +658,10 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
     if (detailIdx < 0) return null
     for (let step = 1; step < rows.length; step++) {
       const row = rows[(detailIdx + step) % rows.length]
-      if (findingsByRow.get(row.id)?.some((item) => !settled.has(item.id))) return row
+      if (reviewByRow.get(row.id)?.some((item) => !settled.has(item.id))) return row
     }
     return null
-  }, [rows, detailIdx, findingsByRow, settled])
+  }, [rows, detailIdx, reviewByRow, settled])
   // several findings often carry the same advice; say it once under the heading instead of under each
   const rationales = detailFindings?.map((finding) => finding.suggested_fix?.rationale ?? '') ?? []
   const sharedRationale = rationales.length > 1 && rationales[0] && rationales.every((note) => note === rationales[0]) ? rationales[0] : ''
@@ -1157,7 +1183,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
         </div>
       </div>
 
-      {(assessment || listWide.length > 0 || uploadReport?.source_notice || analysisErrors.length > 0) && (
+      {(assessment || listWide.length > 0 || listSignals.length > 0 || uploadReport?.source_notice || analysisErrors.length > 0) && (
         <section aria-labelledby="list-findings-h" className="mt-8">
           <h2 id="list-findings-h" className="font-heading text-base font-bold text-slate-900">Warnings for the whole list</h2>
           {(assessment || uploadReport?.source_notice || analysisErrors.length > 0) && (
@@ -1171,11 +1197,12 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
               {analysisErrors.slice(0, 3).map((error, index) => <p key={index}>{error}</p>)}
             </div>
           )}
-          {(listWide.length > 0) && (
+          {(listWide.length > 0 || listSignals.length > 0) && (
             <ul className="mt-3 space-y-4">
-              {listWide.map((item) => (
+              {[...listWide, ...listSignals].map((item) => (
                 <li key={item.id} className="space-y-3">
-                  <FindingText finding={item} decision={decisions[item.id]} details />
+                  {'severity' in item ? <FindingText finding={item} decision={decisions[item.id]} details />
+                    : <ChangeOrderText signal={item} decision={decisions[item.id]} />}
                   <FindingQuestions title={title} questions={questionsByFinding.get(item.id)} />
                   <DecisionControls className="ml-[15px]" title={item.title} decision={decisions[item.id]}
                     onDecide={(decision) => decide([item.id], decision, item.title)} />
@@ -1281,7 +1308,9 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
             <ul className="mt-3 space-y-5">
               {detailItems.map((item) => (
                 <li key={item.id} className="space-y-3">
-                  <FindingText finding={item} decision={decisions[item.id]} changed={changedFindings.has(item.id)} hideRationale={!!sharedRationale} details />
+                  {'severity' in item
+                    ? <FindingText finding={item} decision={decisions[item.id]} changed={changedFindings.has(item.id)} hideRationale={!!sharedRationale} details />
+                    : <ChangeOrderText signal={item} decision={decisions[item.id]} />}
                   <FindingQuestions title={title} questions={questionsByFinding.get(item.id)} />
                   <DecisionControls className="ml-[15px]" title={item.title} decision={decisions[item.id]}
                     onDecide={(decision) => decideInDrawer(item.id, item.title, decision)} />
