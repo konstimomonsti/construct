@@ -54,7 +54,7 @@ def analyze(analysis_input: AnalysisInput, layers: Iterable[int] = DEFAULT_LAYER
             l3_status = module.get_last_outcome() or empty_outcome("unavailable", "Advisory outcome is missing")
         layers_run.append(layer)
 
-    findings = _sorted(_dedupe(findings), analysis_input)
+    findings = _sorted(_attach_dependency_reviews(_dedupe(findings)), analysis_input)
     risk, questions = None, []
     if include_risk:
         try:
@@ -76,6 +76,32 @@ def _dedupe(findings: list[Finding]) -> list[Finding]:
     for finding in findings:
         seen.setdefault(finding.id, finding)
     return list(seen.values())
+
+
+def _attach_dependency_reviews(findings: list[Finding]) -> list[Finding]:
+    parents = {finding.id: finding for finding in findings if finding.layer == 2}
+    attached = set()
+    for review in findings:
+        if review.rule_id != "L3.REVIEW.L2_CONFIRM" or review.status != "open":
+            continue
+        finding = parents.get(review.evidence.get("reviews_finding_id"))
+        if finding is None:
+            continue
+        verdict = review.evidence.get("verdict")
+        finding.evidence["dependency_review"] = {
+            "id": review.id, "model": review.model, **review.evidence,
+        }
+        if verdict in {"included", "excluded"}:
+            finding.suggested_fix = None
+            finding.evidence["scope_question"] = True
+            dependency = finding.evidence.get("dependency", "work").lower()
+            finding.title = f"Verify coverage: {dependency}"
+            finding.related_line_ids = list(dict.fromkeys([*finding.related_line_ids, *review.related_line_ids]))
+            if (finding.evidence.get("check_type") == "Boolean"
+                    and len(finding.evidence.get("trigger_line_ids", ())) == 1):
+                finding.severity = "info"
+        attached.add(review.id)
+    return [finding for finding in findings if finding.id not in attached]
 
 
 def _sorted(findings: list[Finding], analysis_input: AnalysisInput) -> list[Finding]:

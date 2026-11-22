@@ -55,7 +55,7 @@ def unclear_dimension(ctx):
         matches = [m[0] for m in UNCLEAR.finditer(text_of(line))]
         if matches:
             yield ctx.finding(line=line, field="long_text",
-                message=f"{label(line)} contains unclear dimensions: {', '.join(matches)}.",
+                message=f"{label(line)} contains unclear dimensions: {', '.join(matches)}. Confirm the dimension to use for pricing.",
                 evidence={"dimensions": matches,
                           "bieterfrage_de": f"Zu Pos. {line.code}: Bitte bestätigen Sie die maßgebenden Abmessungen für die unklaren Angaben ({', '.join(matches)})."})
 
@@ -71,7 +71,8 @@ def value_conflict(ctx):
             if short[family] and long[family] and short[family].isdisjoint(long[family]):
                 yield ctx.finding(line=line, field="long_text", discriminator=family,
                     severity="info" if family == "DN" else "warning",
-                    message=f"{label(line)}: {family} values differ between short and long text.",
+                    message=(f"{label(line)}: {family} is {', '.join(sorted(short[family]))} in the short text "
+                             f"and {', '.join(sorted(long[family]))} in the long text. Confirm the governing value."),
                     evidence={"family": family, "short_values": sorted(short[family]), "long_values": sorted(long[family]),
                               "bieterfrage_de": f"Zu Pos. {line.code}: Kurz- und Langtext enthalten unterschiedliche Angaben ({FAMILY_DE[family]}: {', '.join(sorted(short[family]))} / {', '.join(sorted(long[family]))}). Bitte bestätigen Sie die maßgebende Ausführung."})
 
@@ -145,7 +146,7 @@ def spec_attribute_missing(ctx):
         for pattern, attribute, present in ATTRIBUTES:
             if re.search(pattern, identity, re.I) and not present(text):
                 yield ctx.finding(line=line, field="long_text", discriminator=attribute,
-                    message=f"{label(line)}: no {attribute} found in the item or inherited description.",
+                    message=f"{label(line)}: no {attribute} found in the item or inherited description. Check the referenced plans before pricing.",
                     evidence={"missing_attribute": attribute,
                               "bieterfrage_de": f"Zu Pos. {line.code}: Für die Kalkulation fehlen Angaben ({ATTRIBUTE_DE[attribute]}). Bitte ergänzen Sie die Spezifikation bzw. stellen Sie die zugehörigen Pläne bereit."})
                 break

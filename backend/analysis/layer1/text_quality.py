@@ -100,7 +100,7 @@ def typo(ctx):
             line=related[0], field=places[0][1], discriminator=lower, suggested_fix=fix,
             related_line_ids=[line.id for line in related[1:]],
             message=f"'{common}' looks like a typo for '{suggestion.candidate}'{also}: {len(places)} time(s) "
-                    f"in {len(related)} item(s), {codes}.",
+                    f"in {len(related)} item(s), {codes}. Check the source wording before applying the correction.",
             evidence={"word": common, "forms": sorted(forms), "suggestion": suggestion.candidate,
                       "alternatives": suggestion.alternatives, "distance": suggestion.distance,
                       "occurrences": len(places), "line_codes": [line.code for line in related[:MAX_LISTED]],

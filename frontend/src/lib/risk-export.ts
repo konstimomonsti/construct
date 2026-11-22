@@ -1,4 +1,4 @@
-import { analysisCoverage, openExposure, openSections, REASONS, reportRisk, rescore, type Decision, type Decisions, type Finding, type Report, type Severity } from './risk-assessment'
+import { analysisCoverage, dependencyReviewLines, openExposure, openSections, REASONS, reportRisk, rescore, type Decision, type Decisions, type Finding, type Report, type Severity } from './risk-assessment'
 
 const LAYER = ['', 'Layer 1 (rules)', 'Layer 2 (dependencies)', 'Layer 3 (AI)']
 const SEVERITY_FILL: Record<Severity, string> = { error: 'FFFFC7CE', warning: 'FFFFEB9C', info: 'FFDDEBF7' }
@@ -52,7 +52,9 @@ export async function riskXlsx({ title, report, decisions, codes, questionTexts 
   const coverage = analysisCoverage(report)
   const live = risk ? rescore(risk, decisions) : null
   const exposure = risk ? openExposure(risk, decisions) : null
-  const open = report.findings.filter((f) => !decisions[f.id])
+  const findings = report.findings.filter((f) => f.category !== 'optimization')
+  const optimizations = report.findings.filter((f) => f.category === 'optimization')
+  const open = findings.filter((f) => !decisions[f.id])
   const summary = wb.addWorksheet('Summary')
   summary.columns = [{ width: 30 }, { width: 60 }]
   const rows: [string, string | number][] = [
@@ -68,8 +70,8 @@ export async function riskXlsx({ title, report, decisions, codes, questionTexts 
     ] as [string, string][] : []),
     ['Money at stake', exposure != null ? `${exposure} ${risk?.currency ?? ''}`.trim() : 'Unavailable'],
     ...(report.graph_valid === false ? [['Suggested fixes', 'Blocked by invalid references']] as [string, string][] : []),
-    ['Findings', report.findings.length],
-    ['Reviewed', `${report.findings.length - open.length} of ${report.findings.length}`],
+    ['Findings', findings.length],
+    ['Reviewed', `${findings.length - open.length} of ${findings.length}`],
     ['Open errors', open.filter((f) => f.severity === 'error').length],
     ['Open warnings', open.filter((f) => f.severity === 'warning').length],
     ['Open notes', open.filter((f) => f.severity === 'info').length],
@@ -96,18 +98,25 @@ export async function riskXlsx({ title, report, decisions, codes, questionTexts 
   const log = wb.addWorksheet('Findings_Log', { views: [{ state: 'frozen', ySplit: 1 }] })
   log.columns = [14, 30, 22, 10, 16, 14, 60, 45, 60, 22, 30].map((width) => ({ width }))
   header(log, ['OZ', 'Rule', 'Layer / source', 'Severity', 'Priority / Action', 'Category', 'Message', 'Recommended action', 'Bieterfrage', 'Decision', 'Reason / note'])
-  report.findings.forEach((f, i) => {
+  findings.forEach((f, i) => {
     const d = decisions[f.id]
     const row = log.getRow(i + 2)
     row.values = [
       lineCode(f), f.rule_id, `${LAYER[f.layer] ?? `Layer ${f.layer}`}${f.origin === 'llm' && f.model ? ` · ${f.model}` : ''}`, f.severity,
       f.severity === 'error' ? 'Critical' : f.severity === 'warning' ? 'High' : 'Normal', f.category ?? '',
-      `${f.title}: ${f.message}`, f.suggested_fix?.rationale ?? '', questionOf.get(f.id) ?? f.evidence?.bieterfrage_de ?? '',
+      [`${f.title}: ${f.message}`, ...dependencyReviewLines(f)].join('\n'), f.suggested_fix?.rationale ?? '', questionOf.get(f.id) ?? f.evidence?.bieterfrage_de ?? '',
       decisionText(d), [d?.reason ? REASONS[d.reason] : '', d?.note ?? ''].filter(Boolean).join(' – '),
     ]
     row.alignment = { wrapText: true, vertical: 'top' }
     row.getCell(4).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: SEVERITY_FILL[f.severity] } }
   })
+
+  if (optimizations.length) {
+    const sheet = wb.addWorksheet('Optimizations')
+    sheet.columns = [{ width: 36 }, { width: 80 }]
+    header(sheet, ['Suggestion', 'Details'])
+    for (const finding of optimizations) sheet.addRow([finding.title, finding.message])
+  }
 
   const co = wb.addWorksheet('Change_Orders', { views: [{ state: 'frozen', ySplit: 1 }] })
   co.columns = [14, 20, 36, 60, 10, 22].map((width) => ({ width }))

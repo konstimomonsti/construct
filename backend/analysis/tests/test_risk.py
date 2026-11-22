@@ -77,13 +77,10 @@ def test_stable_signal_ids_group_scope_reasons_and_distinguish_bad_duplicate_cod
     assert "Zeitabhängige" in signals[0].message and "Bausubstanz" in signals[0].message
 
 
-def test_missing_dependency_signal_only_for_a_real_open_missing_finding():
+def test_missing_dependency_stays_on_the_original_finding():
     inp = AnalysisInput(lines=[line()])
     gap = finding(rule_id="L2.FLOOR.SCREED_NEEDS_SKIRTING", layer=2, evidence={"reason": "missing"})
-    [signal] = collect(inp, [gap])
-    assert signal.kind == "missing_dependency" and signal.finding_ids == [gap.id]
-    for change in ({"status": "rejected"}, {"evidence": {"reason": "quantity_not_assessable"}}):
-        assert collect(inp, [gap.model_copy(update=change)]) == []
+    assert collect(inp, [gap]) == []
 
 
 def test_no_prices_means_no_invented_money_and_all_section_points_reconcile():
@@ -204,9 +201,12 @@ def test_overlapping_findings_and_derived_signals_do_not_double_charge_points():
     report = assess(inp, [l2_finding, l3_corroboration])
     # The L2 finding carries the points (4.0 base + uplift)
     assert report.points["l2_gap"] > 0
-    # The derived change order signal overlaps with l2_gap -> base points are 0
-    derived_signal = [s for s in report.change_order_signals if s.kind == "missing_dependency"][0]
-    assert derived_signal.id in report.points
-    assert report.points[derived_signal.id] == 0.0
-    # The L3 corroboration overlaps with l2_gap -> base points are 0
-    assert report.points["l3_confirm"] == 0.0
+    assert all(signal.kind != "missing_dependency" for signal in report.change_order_signals)
+    assert "l3_confirm" not in report.points
+
+
+def test_zero_quantity_finding_replaces_the_duplicate_change_order_signal():
+    inp = AnalysisInput(lines=[line(quantity=0, source_amounts=SourceAmounts(unit_price=10))])
+    zero = finding(rule_id="L1.QTY.ZERO", severity="error")
+    assert any(signal.kind == "zero_qty_priced" for signal in assess(inp, []).change_order_signals)
+    assert all(signal.kind != "zero_qty_priced" for signal in assess(inp, [zero]).change_order_signals)

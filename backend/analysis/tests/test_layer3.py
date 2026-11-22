@@ -342,11 +342,33 @@ def test_l2_confirm_included_excluded_missing():
     assert analysis_input.lines[2].id in excluded.related_line_ids
 
     missing = [f for f in confirm.values() if f.evidence["verdict"] == "missing"]
-    assert missing and all(f.severity == "warning" for f in missing)
+    assert missing and all(f.severity == "info" for f in missing)
     # the unclear verdict (skirting) produces nothing
     assert reviewed["Skirting"].id not in confirm
     assert len(confirm) == 4
     assert all(f.layer == 3 and f.origin == "llm" for f in confirm.values())
+
+
+def test_shared_runner_folds_ai_review_into_the_original_dependency(monkeypatch):
+    from analysis import runner
+
+    analysis_input = screed_input()
+    actual_run = layer3.run
+    provider = FakeProvider(lambda request: answer_for(request, {
+        "Edge insulation": ("included", "01.0010", "einschließlich Randstreifen aus PE-Schaum"),
+        "Underlays and insulation": ("missing", None, ""),
+    }) if "findings" in request.prompt and "requirement" in request.prompt else {"findings": []})
+    monkeypatch.setattr(layer3, "run", lambda data, prior, errors: actual_run(
+        data, prior, errors, provider=provider, cache=ResponseCache(None)))
+    report = runner.analyze(analysis_input, (1, 2, 3))
+
+    assert not by_rule(report.findings, CONFIRM)
+    included, = by_rule(report.findings, "L2.FLOOR.SCREED_NEEDS_EDGE_INSULATION")
+    assert included.severity == "info" and included.suggested_fix is None
+    assert included.evidence["dependency_review"]["quote_line_code"] == "01.0010"
+    missing, = by_rule(report.findings, "L2.FLOOR.SCREED_NEEDS_UNDERLAYS_AND_INSULATION")
+    assert missing.severity == "warning" and missing.evidence["dependency_review"]["verdict"] == "missing"
+    assert all(signal.kind != "missing_dependency" for signal in report.risk.change_order_signals)
 
 
 def test_l2_confirm_drops_unverified_quotes_and_unknown_refs():

@@ -18,6 +18,10 @@ export type Evidence = {
   bieterfrage_de?: string
   amount_at_stake?: string
   change_order?: boolean
+  standard?: string
+  excerpt?: string
+  clause?: string
+  dependency_review?: { verdict?: string; quote?: string; quote_line_code?: string; reason?: string }
   [key: string]: unknown
 }
 
@@ -119,6 +123,18 @@ export type Report = {
     | { state: 'over' | 'at' | 'almost' | 'near' | 'under'; cap: string; working_net: string; currency: string; confirmation_reference: string }
   reopened_finding_ids?: string[]
   state?: string
+}
+
+export function dependencyReviewLines(finding: Finding): string[] {
+  const review = finding.evidence?.dependency_review
+  if (!review?.verdict) return []
+  const title = review.verdict === 'included' ? 'AI found possible coverage'
+    : review.verdict === 'excluded' ? 'AI found a possible scope exclusion' : 'AI found no additional coverage'
+  return [
+    title,
+    ...(review.quote ? [`${review.quote_line_code ? `Position ${review.quote_line_code} · ` : ''}“${review.quote}”`] : []),
+    ...(review.reason ? [review.reason] : []),
+  ]
 }
 
 export function reportRisk(report: Report | null): Risk | null {

@@ -1,8 +1,8 @@
 """DIN 1045-2 screening: strength classes against exposure-class minimums (matrix from the task specification)."""
 
 from ..registry import rule
-from .common import label, text_of
-from .textvalues import EXPOSURE, NORMAL_GRADES, STANDARD_GRADES, grades
+from .common import excerpt, label, text_of
+from .textvalues import EXPOSURE, GRADE, NORMAL_GRADES, STANDARD_GRADES, grades
 
 STRENGTH_RANK = {grade: rank for rank, grade in enumerate(NORMAL_GRADES, 1)}
 EXPOSURE_MIN_STRENGTH = {
@@ -44,14 +44,15 @@ def exposure_strength(ctx):
 
 
 @rule("L1.DIN.UNKNOWN_GRADE", layer=1, category="din", severity="warning",
-      title="Concrete grade is not a standard class", description="A stated concrete class is not a DIN EN 206 strength class (likely a typo).")
+      title="Verify the stated concrete class", description="A stated concrete class is not a DIN EN 206 strength class (likely a typo).")
 def unknown_grade(ctx):
     for line in ctx.input.lines:
         text = text_of(line)
         for grade in sorted(grades(text) - STANDARD_GRADES):
             yield ctx.finding(line=line, field="long_text", discriminator=grade,
-                message=f"{label(line)}: {grade} is not a DIN EN 206 strength class; please check for a typo.",
-                evidence={"din": facts(text, grade),
+                message=f"{label(line)}: {grade} is outside the DIN EN 206 classes supported by this check. Confirm the specified class.",
+                evidence={"din": facts(text, grade), "standard": "DIN EN 206",
+                          "excerpt": excerpt(text, next(m for m in GRADE.finditer(text) if grades(m[0]) == {grade})),
                           "bieterfrage_de": f"Zu Pos. {line.code}: Bitte bestätigen Sie die Betonfestigkeitsklasse {grade} und deren Eignung für die angegebenen Expositionsklassen."})
 
 
@@ -80,9 +81,13 @@ from . import textvalues as tv
 def waterproofing_missing(ctx):
     for line in ctx.input.lines:
         text = text_of(line)
-        if tv.PRECAST_PLINTH.search(text) and tv.GROUND_CONTACT.search(text) and not (tv.WATER_IMPACT.search(text) or tv.WATERPROOFING.search(text)):
-            yield ctx.finding(line=line, field="long_text", message=f"{label(line)}: Ground-contact precast or plinth work lacks a water-impact class or waterproofing specification.",
-                evidence={"standard": "DIN 18533", "water_impact_class": None, "waterproofing": None, "bieterfrage_de": f"Zu Pos. {line.code}: Das Bauteil befindet sich im Erd-/Spritzwasserbereich. Welche Wassereinwirkungsklasse nach DIN 18533 und welche Abdichtungsmaßnahme sind vorgesehen?"})
+        contact = tv.GROUND_CONTACT.search(text)
+        if tv.PRECAST_PLINTH.search(text) and contact and not (tv.WATER_IMPACT.search(text) or tv.WATERPROOFING.search(text)):
+            yield ctx.finding(line=line, field="long_text",
+                message=f"{label(line)}: the item mentions {contact[0]!r}. Confirm the water-impact class and "
+                        "which package supplies the waterproofing specified under DIN 18533.",
+                evidence={"standard": "DIN 18533", "excerpt": excerpt(text, contact),
+                          "water_impact_class": None, "waterproofing": None, "bieterfrage_de": f"Zu Pos. {line.code}: Das Bauteil befindet sich im Erd-/Spritzwasserbereich. Welche Wassereinwirkungsklasse nach DIN 18533 und welche Abdichtungsmaßnahme sind vorgesehen?"})
 
 
 @rule("L1.DIN.FIRE_RATING_CONFLICT", layer=1, category="din", severity="error",
@@ -113,7 +118,8 @@ def vob_deduction_violation(ctx):
                 number, unit = match.groups()
                 limit = Decimal("0.5") if unit.lower() in {"m³", "m3", "cbm"} else Decimal("2.5")
                 if Decimal(number.replace(",", ".")) <= limit:
-                    yield ctx.finding(line=line, field="long_text", message=f"{label(line)}: The opening deduction clause includes openings at or below the DIN 18331 screening threshold ({limit} {unit}).",
+                    yield ctx.finding(line=line, field="long_text", message=f"{label(line)}: {clause.strip()!r}. Check whether the DIN 18331 screening "
+                                f"threshold of {limit} {unit} applies and which deduction to price.",
                         evidence={"standard": "DIN 18331", "stated_limit": number, "unit": unit, "screening_threshold": str(limit), "clause": clause.strip(), "bieterfrage_de": f"Zu Pos. {line.code}: Die Ausschreibung sieht den Abzug kleiner Aussparungen vor. Bitte klären Sie die Abrechnung im Hinblick auf die Übermessungsgrenzen nach VOB/C DIN 18331."})
                     break
             else:
@@ -128,9 +134,11 @@ def rebar_unknown_grade(ctx):
         text = text_of(line)
         if not tv.REBAR_KEYWORD.search(text):
             continue
-        for grade in sorted({m.group().strip() for m in tv.REBAR_GRADE.finditer(text) if not tv.REBAR_VALID.fullmatch(m.group().strip())}):
-            yield ctx.finding(line=line, field="long_text", discriminator=grade.upper(), message=f"{label(line)}: Reinforcing steel grade {grade} is not a supported DIN 488 designation.",
-                evidence={"standard": "DIN 488", "grade": grade, "valid_grades": ["B500A", "B500B", "B500NR", "Bst 500 S", "Bst 500 M"], "bieterfrage_de": f"Zu Pos. {line.code}: Der angegebene Betonstahl {grade} ist nicht als DIN-488-Bezeichnung erkannt. Bitte bestätigen Sie die geforderte Stahlsorte und Duktilitätsklasse."})
+        found = {m[0].strip(): m for m in tv.REBAR_GRADE.finditer(text)
+                 if not tv.REBAR_VALID.fullmatch(m[0].strip())}
+        for grade, match in sorted(found.items()):
+            yield ctx.finding(line=line, field="long_text", discriminator=grade.upper(), message=f"{label(line)}: Reinforcing steel grade {grade} is outside the DIN 488 designations supported by this check. Confirm the steel grade and ductility class.",
+                evidence={"standard": "DIN 488", "excerpt": excerpt(text, match), "grade": grade, "valid_grades": ["B500A", "B500B", "B500NR", "Bst 500 S", "Bst 500 M"], "bieterfrage_de": f"Zu Pos. {line.code}: Der angegebene Betonstahl {grade} ist nicht als DIN-488-Bezeichnung erkannt. Bitte bestätigen Sie die geforderte Stahlsorte und Duktilitätsklasse."})
 
 
 @rule("L1.DIN.TOLERANCE_UNSPECIFIED", layer=1, category="din", severity="info",

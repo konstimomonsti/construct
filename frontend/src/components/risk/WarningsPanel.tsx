@@ -67,13 +67,13 @@ export function WarningsPanel({ entries, decisions, settled, positions, allowFix
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
           <h2 id="warnings-h" className="font-heading text-base font-bold text-slate-900">
-            {open.length ? plural(open.length, 'open warning', 'open warnings') : 'All warnings reviewed'}
+            {open.length ? plural(open.length, 'finding to review', 'findings to review') : 'Review complete'}
           </h2>
           <p className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-slate-600">
             {([...SEVERITIES, 'change'] as const).filter((kind) => counts.get(kind)).map((kind) => (
               <button key={kind} type="button" onClick={() => onFilter(kind === 'change' ? 'change-orders' : kind)}
                 className="inline-flex items-center gap-1 rounded font-medium hover:text-slate-900 hover:underline"
-                title={`Show only positions with ${KIND_LABEL[kind].toLowerCase()} warnings`}>
+                title={`Show positions with ${KIND_PLURAL[kind].toLowerCase()}`}>
                 <Icon name="flag" size={14} fill className={kind === 'change' ? 'text-orange-600' : RISK_UI[kind].ink} />
                 <span className="num">{int(counts.get(kind) ?? 0)}</span> {(counts.get(kind) === 1 ? KIND_LABEL : KIND_PLURAL)[kind].toLowerCase()}
               </button>

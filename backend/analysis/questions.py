@@ -148,14 +148,15 @@ TEMPLATES: dict[str, tuple[str, str]] = {
         "mit einer Beauftragung zu rechnen ist und ob die Position in die Wertung eingeht.",
         "Die Positionen {ozs} sind als Bedarfspositionen gekennzeichnet. Bitte teilen Sie mit, ob und in "
         "welchem Umfang mit einer Beauftragung zu rechnen ist und ob sie in die Wertung eingehen."),
+    "L1.QTY.ZERO": (
+        "{pos}: Bitte bestätigen Sie, ob die Position mit Menge 0 entfällt oder welche Menge anzubieten ist.",
+        "Bitte bestätigen Sie die anzubietenden Mengen für die Positionen {ozs}.",
+    ),
     "L1.STRUCT.ORPHAN_ALTERNATIVE": (
         "{pos}: Die Alternativposition hat keine erkennbare Grundposition. Bitte teilen Sie uns mit, auf "
         "welche Position sie sich bezieht.",
         "Die Alternativpositionen {ozs} haben keine erkennbare Grundposition. Bitte teilen Sie uns mit, auf "
         "welche Positionen sie sich beziehen."),
-    "L1.STRUCT.EMPTY_SECTION": (
-        "Der Abschnitt {oz} enthält keine Positionen. Bitte bestätigen Sie, ob Positionen fehlen.",
-        "Die Abschnitte {ozs} enthalten keine Positionen. Bitte bestätigen Sie, ob Positionen fehlen."),
     "L1.TEXT.MISSING": (
         "{pos}: Zu dieser Position liegt kein Langtext vor. Bitte stellen Sie die vollständige "
         "Leistungsbeschreibung zur Verfügung.",
@@ -233,6 +234,9 @@ def _dependency_question(finding: Finding) -> str | None:
         return None  # "not assessable" is our uncertainty, not a gap in the tender
     key = finding.rule_id.split("_NEEDS_", 1)[-1]
     dependency = DEPENDENCY_DE.get(key) or str(evidence.get("dependency") or key.replace("_", " ").title())
+    if evidence.get("scope_question"):
+        return (f"Bitte teilen Sie uns mit, ob {dependency} zu diesem Gewerk gehört, "
+                "in einer anderen Position enthalten ist oder separat vergeben wird.")
     if evidence.get("reason") == "quantity_shortfall" and evidence.get("trigger_quantity") is not None:
         if evidence.get("dependency_quantity") is None:
             return None

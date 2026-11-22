@@ -53,12 +53,6 @@ def text_of(line: Line) -> str:
     return "\n".join(part for part in (line.short_text, line.long_text) if part)
 
 
-def section_subtrees(analysis_input: AnalysisInput) -> dict[str, set[str]]:
-    """Section id -> ids of the section and all its descendants (acyclic safe)."""
-    from ..graph import validate_graph
-    return validate_graph(analysis_input).safe_section_subtrees
-
-
 def section_label(section: Section) -> str:
     return f"{section.code or ''} {section.title or ''}".strip() or section.id
 

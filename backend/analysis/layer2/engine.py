@@ -15,6 +15,11 @@ from .quantities import convert
 from .schema import DependencySpec, RuleSpec, compile_regex, load_rules
 
 ScopeMode = Literal["auto", "document", "trade", "section", "area"]
+_EXTERNAL_SCOPE = re.compile(r"\b(?:bauseits|durch den (?:AG|Auftraggeber)|"
+                             r"(?:separat|gesondert) vergeben)\b", re.I)
+_NOT_EXTERNAL = re.compile(r"\b(?:nicht|kein(?:e|en|er)?)\s+bauseits\b", re.I)
+_SEPARATE_REQUIREMENT = re.compile(r"\b(?:als (?:eigene|separate) Position|(?:separat|gesondert) anzubieten)\b",
+                                   re.I)
 
 
 @dataclass(frozen=True)
@@ -54,6 +59,23 @@ def _trigger_text(line: Line) -> str:
 
 def _is_trigger(text: str, trigger: re.Pattern, exclude: re.Pattern | None) -> bool:
     return bool(trigger.search(text)) and not (exclude and exclude.search(text))
+
+
+def _scope_clauses(text: str, dependency: re.Pattern) -> tuple[bool, str | None, str | None]:
+    """Separate explicit scope/offer wording from a position that covers the work."""
+    if not (_EXTERNAL_SCOPE.search(text) or _SEPARATE_REQUIREMENT.search(text)):
+        return True, None, None
+    covering, external, required = False, None, None
+    for clause in re.split(r"[;\n]+|(?<=\.)\s+", text):
+        if not dependency.search(clause):
+            continue
+        if _EXTERNAL_SCOPE.search(clause) and not _NOT_EXTERNAL.search(clause):
+            external = clause.strip()
+        elif _SEPARATE_REQUIREMENT.search(clause):
+            required = clause.strip()
+        else:
+            covering = True
+    return covering or not (external or required), external, required
 
 
 # PDF item flags meaning "not a firm part of the order": Bedarfsposition ohne/mit GB, Wahlposition.
@@ -202,7 +224,8 @@ def _proposal(dep: DependencySpec, triggers: list[Entry], context: Context,
 
 def _evaluate(input: AnalysisInput, rule: RuleSpec, dep: DependencySpec, triggers: list[Entry],
               matches: list[Entry], context: Context, tolerance: Decimal,
-              blocked: set[str], unassigned_candidates: list[str]) -> Finding | None:
+              blocked: set[str], unassigned_candidates: list[str],
+              external_scope: dict[str, str], required_scope: dict[str, str]) -> Finding | None:
     target = context.target.model_copy(update={"field": "quantity" if dep.check_type == "QuantityMatch" else None})
     rule_id = f"{rule.rule_id}_NEEDS_{dep.key}"
     evidence = {
@@ -273,17 +296,31 @@ def _evaluate(input: AnalysisInput, rule: RuleSpec, dep: DependencySpec, trigger
         message += " Matching unassigned items may cover this area; confirm their allocation."
     evidence["reason"] = reason
     evidence["dependency_severity"] = dep.severity
-    proposal_eligible = severity == "warning" and not trigger_unreliable
-    if severity == "warning" and dep.severity == "info":
+    trigger_ids = {entry.line.id for entry in triggers}
+    explicit_requirement = trigger_ids <= required_scope.keys()
+    if external_scope:
+        evidence["external_scope"] = external_scope
+    if required_scope:
+        evidence["required_scope"] = required_scope
+    if reason.endswith("not_assessable"):
+        title = f"Coverage cannot be verified: {dep.name.lower()}"
+    elif external_scope or (dep.severity == "info" and not explicit_requirement and reason != "quantity_shortfall"):
         severity = "info"
-        message += (" This is often tendered in another package; ask whether it is included elsewhere "
-                    "or provided by others.")
-    elif severity == "warning":
+        title = f"Confirm scope: {dep.name.lower()}"
+        if external_scope:
+            message += f" The tender says {next(iter(external_scope.values()))!r}."
+        message += " Confirm which package provides this work or whether it is included in another position."
+        evidence["scope_question"] = True
+    elif severity == "info":
+        title = f"Verify coverage: {dep.name.lower()}"
+    else:
+        title = f"{'Missing' if reason == 'missing' else 'Insufficient'} {dep.name.lower()}"
+        if explicit_requirement:
+            message += f" The tender calls for a separate position: {next(iter(required_scope.values()))!r}."
         message += " Confirm this work is included in the reviewed package."
-    title = (f"Quantity cannot be verified: {dep.name}" if reason.endswith("not_assessable") else
-             f"{'Missing' if reason == 'missing' else 'Insufficient'} {dep.name.lower()}")
+    proposal_eligible = severity == "warning" and not trigger_unreliable
     related = list(dict.fromkeys([entry.line.id for entry in triggers + matches]))
-    if rule.rule_id.startswith("L2.PRECAST."):
+    if rule.rule_id.startswith("L2.PRECAST.") and reason in {"missing", "quantity_shortfall"}:
         codes = ", ".join(dict.fromkeys(entry.line.code or entry.line.id for entry in triggers))
         evidence["bieterfrage_de"] = (
             f"Zu Pos. {codes}: Bitte bestätigen Sie den Leistungsumfang für "
@@ -346,13 +383,27 @@ def run(input: AnalysisInput, prior_findings: list[Finding], *,
                                      and not (dep_exclude and dep_exclude.search(trigger_texts[entry.line.id]))]
                 if not relevant_triggers:
                     continue
-                matches = [entry for entry in context.entries if pattern.search(texts[entry.line.id])]
+                matches, external_scope, required_scope = [], {}, {}
+                for entry in context.entries:
+                    key = entry.line.id
+                    if not pattern.search(texts[key]):
+                        continue
+                    covers, external, required = _scope_clauses(
+                        "\n".join(filter(None, [entry.line.short_text, entry.line.long_text, *entry.line.tags])), pattern
+                    )
+                    if covers:
+                        matches.append(entry)
+                    if external:
+                        external_scope[key] = external
+                    if required:
+                        required_scope[key] = required
                 unassigned_candidates = (list(dict.fromkeys(entry.line.id for entry in unassigned
-                                         if pattern.search(texts[entry.line.id])))
+                                         if pattern.search(texts[entry.line.id]) and
+                                         _scope_clauses(texts[entry.line.id], pattern)[0]))
                                          if context.scope == "area" else [])
                 finding = _evaluate(input, rule, dep, relevant_triggers, matches, context,
                                     dep.tolerance if dep.tolerance is not None else tolerance,
-                                    blocked, unassigned_candidates)
+                                    blocked, unassigned_candidates, external_scope, required_scope)
                 if finding:
                     findings.append(finding)
     return findings

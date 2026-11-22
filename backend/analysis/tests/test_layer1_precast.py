@@ -66,7 +66,7 @@ def test_element_code_prefix_still_classifies():
 def test_trade_unit_finding_uses_readable_names_and_tender_units(text, unit, item_name, expected):
     [found] = selected(text, unit=unit)
     assert item_name in found.message and item_name in found.evidence["bieterfrage_de"]
-    assert f"expected {expected}" in found.message
+    assert f"Expected billing units for this item type: {expected}" in found.message
     assert f"(üblich: {expected})" in found.evidence["bieterfrage_de"]
     assert "opening_surcharge" not in found.message + found.evidence["bieterfrage_de"]
 

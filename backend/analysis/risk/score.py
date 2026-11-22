@@ -94,11 +94,13 @@ def assess(analysis_input: AnalysisInput, findings: list[Finding]) -> RiskReport
             item_exposure[id] = (id, expected[id])
 
     live = []
-    scored_finding_ids = set()
     for finding in sorted(findings, key=lambda item: (item.layer, item.id)):
         line_id = anchor(finding, lines)
         section_id = lines[line_id].section_id if line_id else finding.target.section_id
-        if finding.status != "open" or section_id in excluded or finding.id in points:
+        if (finding.status != "open" or finding.category == "optimization"
+                or section_id in excluded or finding.id in points):
+            continue
+        if finding.evidence.get("reviews_finding_id") in points:
             continue
         live.append(finding)
         amount = number(finding.evidence.get("amount_at_stake"))
@@ -107,16 +109,8 @@ def assess(analysis_input: AnalysisInput, findings: list[Finding]) -> RiskReport
         if finding.evidence.get("change_order") is True:
             base *= Decimal("1.5")
 
-        # An L3 corroboration finding confirms an existing L2 finding (reviews_finding_id)
-        # It does not double charge base points or exposure.
-        reviewed_id = finding.evidence.get("reviews_finding_id")
-        if reviewed_id and reviewed_id in scored_finding_ids:
-            base = Decimal(0)
-            amount = None
-
         add(finding.id, base, line_id, section_id, finding.category, finding.title, amount,
             LIKELIHOOD[finding.severity])
-        scored_finding_ids.add(finding.id)
         counts[finding.severity] += 1
     signals = collect(analysis_input, live)
     signals_by_id = {signal.id: signal for signal in signals}
@@ -137,21 +131,11 @@ def assess(analysis_input: AnalysisInput, findings: list[Finding]) -> RiskReport
     for signal in signals:
         line = lines[signal.line_id]
         wording = signal.kind in WORDING_KINDS
-        # If signal is derived from an already scored finding (signal.finding_ids overlap with scored findings),
-        # do NOT double-charge base points or exposure:
-        is_overlapping_finding = bool(signal.finding_ids and any(fid in scored_finding_ids for fid in signal.finding_ids))
-        if is_overlapping_finding:
-            base = Decimal(0)
-            amount = None
-        elif wording:
-            base = min(WORDING_SECTION_CAP, Decimal(str(signal.points))) if signal.id in winning_signals else Decimal(0)
-            amount = amounts[line.id]
-        else:
-            base = Decimal(str(signal.points))
-            amount = amounts[line.id]
-        add(signal.id, base, line.id, line.section_id,
-            "dependency" if signal.kind == "missing_dependency" else "change_order", signal.title,
-            amount, LIKELIHOOD["signal"], capped=wording or is_overlapping_finding)
+        base = Decimal(str(signal.points))
+        if wording:
+            base = min(WORDING_SECTION_CAP, base) if signal.id in winning_signals else Decimal(0)
+        add(signal.id, base, line.id, line.section_id, "change_order", signal.title,
+            amounts[line.id], LIKELIHOOD["signal"], capped=wording)
         signal.points = points[signal.id]
     ordered = sorted(line_points, key=lambda id: (-line_points[id], -(amounts[id] or Decimal(0)),
                                                   lines[id].sort_order, id))

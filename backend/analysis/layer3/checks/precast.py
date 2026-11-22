@@ -151,7 +151,7 @@ def missing_spec(ctx):
         yield ctx.finding(
             line=line, discriminator=",".join(missing), origin="llm", model=session.model_id,
             message=f"{line.code}: the precast element description does not state the {labels}; "
-                    f"it can't be priced or produced reliably without it.",
+                    f"check the drawings or ask for these values before pricing the element.",
             evidence={"missing_fields": missing, "spec_checks": _checks(missing), "extracted": data,
                       "bieterfrage_de": question, "prompt_version": prompts.PRECAST_VERSION},
         )

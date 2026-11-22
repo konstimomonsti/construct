@@ -2,7 +2,7 @@ import { clsx } from 'clsx'
 import { Icon, Menu, type MenuItem } from './ui'
 import { ToolButton } from './Kit'
 import { money } from '../lib/format'
-import { findingCategory, REASONS, SEVERITIES, type ChangeOrderSignal, type Decision, type Finding, type ReviewItem, type Severity } from '../lib/risk-assessment'
+import { dependencyReviewLines, findingCategory, REASONS, SEVERITIES, type ChangeOrderSignal, type Decision, type Finding, type ReviewItem, type Severity } from '../lib/risk-assessment'
 
 /**
  * severity colours for the risk UI, built on the themed status tokens so they hold in dark mode.
@@ -32,20 +32,24 @@ export function FindingBadge({ severity, children }: { severity: Severity; child
 
 /** what layer 3 or a DIN rule found, shown under the message in the drawer */
 function FindingEvidence({ finding }: { finding: Finding }) {
-  const din = finding.evidence?.din
-  const extracted = Object.entries(finding.evidence?.extracted ?? {})
-  if (!din && !extracted.length) return null
+  const evidence = finding.evidence
+  const din = evidence?.din
+  const standard = evidence?.standard ?? (din ? 'DIN 1045-2' : undefined)
+  const excerpt = evidence?.excerpt ?? evidence?.clause
+  const extracted = Object.entries(evidence?.extracted ?? {})
+  if (!standard && !excerpt && !extracted.length) return null
   const show = (v: unknown) => (v === null || v === undefined || v === '' ? '—' : Array.isArray(v) ? v.join(', ') || '—' : String(v))
   return (
     <div className="mt-2 space-y-2 text-[13px]">
-      {din && (
+      {standard && (
         <p className="flex flex-wrap gap-x-3 gap-y-1 text-slate-700">
-          <span className="font-semibold text-slate-900">DIN 1045-2</span>
-          {din.grade && <span>Grade <span className="num font-medium">{din.grade}</span></span>}
-          {!!din.exposure?.length && <span>Exposure <span className="num font-medium">{din.exposure.join(', ')}</span></span>}
-          {din.required_min && <span>Minimum <span className="num font-medium">{din.required_min}</span></span>}
+          <span className="font-semibold text-slate-900">{standard}</span>
+          {din?.grade && <span>Grade <span className="num font-medium">{din.grade}</span></span>}
+          {!!din?.exposure?.length && <span>Exposure <span className="num font-medium">{din.exposure.join(', ')}</span></span>}
+          {din?.required_min && <span>Minimum <span className="num font-medium">{din.required_min}</span></span>}
         </p>
       )}
+      {excerpt && <p className="text-slate-700"><strong>Source excerpt</strong> “{excerpt}”</p>}
       {extracted.length > 0 && (
         <table className="w-full max-w-sm text-left">
           <caption className="mb-1 text-left font-semibold text-slate-900">Read from the text</caption>
@@ -70,6 +74,7 @@ export function FindingText({ finding, reviewed, decision, changed, hideRational
   const decided = reviewed || !!decision
   const muted = decided || changed
   const isBlocking = finding.severity === 'error' && !decided
+  const [reviewTitle, ...reviewDetails] = dependencyReviewLines(finding)
   return (
     <div className={clsx('min-w-0 border-l-[3px] pl-3', muted ? 'border-slate-300' : RISK_UI[finding.severity].bar)}>
       <div className="flex flex-wrap items-center gap-2">
@@ -93,6 +98,10 @@ export function FindingText({ finding, reviewed, decision, changed, hideRational
       </div>
       {changed && !decided && <p className="mt-1 text-sm leading-relaxed text-pretty text-slate-700">You edited this value after the upload check. The note below describes the uploaded version.</p>}
       <p className={clsx('mt-1 text-sm leading-relaxed text-pretty', muted ? 'text-slate-600' : 'text-slate-700')}>{plainFindingText(finding.message)}</p>
+      {reviewTitle && <div className="mt-1 space-y-0.5 text-sm text-slate-700">
+        <p className="font-semibold">{reviewTitle}</p>
+        {reviewDetails.map((detail, index) => <p key={index}>{detail}</p>)}
+      </div>}
       {!hideRationale && finding.suggested_fix?.rationale && (
         <p className="mt-1 text-sm leading-relaxed text-pretty text-slate-600">{details && <span className="font-semibold text-slate-700">Suggested fix: </span>}{finding.suggested_fix.rationale}</p>
       )}

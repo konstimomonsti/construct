@@ -4,7 +4,7 @@ from decimal import Decimal
 import re
 
 from ..registry import rule
-from ..units import normalize
+from ..units import Dimension, dimension, normalize
 from .common import label, text_of
 from .textvalues import MEASURE, centimetres
 
@@ -88,13 +88,13 @@ def layer_sum(ctx):
 def trade_mismatch(ctx):
     for line in ctx.input.lines:
         classified = item_type(line.short_text or line.long_text or "")
-        if not classified or not line.unit:
+        if not classified or dimension(line.unit) is Dimension.UNKNOWN:
             continue
         name, allowed = classified
         if line.unit not in allowed:
             actual = tender_unit(line.unit, line.unit_raw)
             expected = ", ".join(tender_unit(unit, line.unit_raw) for unit in allowed)
             yield ctx.finding(line=line, field="unit",
-                message=f"{label(line)}: {actual} is unusual for {ITEM_NAMES[name]}; expected {expected}.",
+                message=f"{label(line)}: {actual} is unusual for {ITEM_NAMES[name]}. Expected billing units for this item type: {expected}. Confirm the specified unit.",
                 evidence={"item_type": name, "unit": line.unit, "allowed_units": list(allowed),
                           "bieterfrage_de": f"Zu Pos. {line.code}: Ist die Abrechnung der {ITEM_NAMES[name]} in {actual} beabsichtigt? Bitte bestätigen Sie die Abrechnungseinheit (üblich: {expected})."})

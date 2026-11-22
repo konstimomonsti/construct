@@ -19,7 +19,8 @@ def test_each_dependency_present_missing_and_bundled(suffix, text):
     findings = precast(item)
     assert len(findings) == 4
     finding = next(f for f in findings if f.rule_id.endswith(suffix))
-    assert finding.severity == "warning"
+    expected = "info" if suffix in {"SHOP_DRAWINGS", "ANCHORS_AND_EMBEDDED_PARTS"} else "warning"
+    assert finding.severity == expected
     assert finding.evidence["bieterfrage_de"].startswith("Zu Pos. 1:")
     assert not any(f.rule_id.endswith(suffix) for f in precast(item, line("2", text)))
     assert not any(f.rule_id.endswith(suffix) for f in precast({**item, "long_text": text}))

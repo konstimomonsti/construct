@@ -35,6 +35,12 @@ RULE_FOR_CHECK = {"REBAR_AMBIGUOUS": REBAR, "SHOP_DRAWINGS_OVERLAP": SHOP_DRAWIN
                   "EMBEDDED_UNALLOCATED": EMBEDDED}
 CHANGE_ORDER = {REBAR, EMBEDDED}  # scope gaps that typically end in a Nachtrag
 
+SCOPE_ACTIONS = {
+    REBAR: "Confirm which package prices factory reinforcement and which prices on-site connection steel.",
+    SHOP_DRAWINGS: "Confirm which package includes anchor design so the same work is priced once.",
+    EMBEDDED: "Assign the parts to specific elements and confirm who supplies and installs them.",
+}
+
 Group = list[tuple[Line, dict[str, Any]]]
 
 
@@ -105,7 +111,8 @@ def _emit(ctx, rule_id: str):
                     "confidence": clamp_confidence(item.confidence), "prompt_version": prompts.SCOPE_VERSION}
         if rule_id in CHANGE_ORDER:
             evidence["change_order"] = True
-        yield ctx.finding(line=line, related_line_ids=[r.id for r in related], message=item.message.strip(),
+        yield ctx.finding(line=line, related_line_ids=[r.id for r in related],
+                          message=f"{item.message.strip()} {SCOPE_ACTIONS[rule_id]}",
                           evidence=evidence, origin="llm", model=session.model_for(audit=True))
 
 

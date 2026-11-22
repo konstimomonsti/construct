@@ -29,11 +29,19 @@ DAYWORK_NEGATION = re.compile(
 TITLES = {
     "scope_gap": "Leistungsumfang und Randbedingungen klären", "provisional": "Bedarfsleistung klären",
     "hourly_work": "Umfang der Stundenlohnarbeiten klären", "by_client": "Bauseitige Leistungen abgrenzen",
-    "vague_quantity": "Unsichere Mengenbasis", "missing_dependency": "Ergänzende Leistung fehlt möglicherweise",
+    "vague_quantity": "Unsichere Mengenbasis",
     "zero_qty_priced": "Bepreiste Leistung ohne Menge",
 }
+ACTIONS = {
+    "scope_gap": "Leistungsgrenze, Abrechnung und Preisannahmen vor Angebotsabgabe klären.",
+    "provisional": "Erwartete Menge und Berücksichtigung in der Angebotswertung klären.",
+    "hourly_work": "Anzusetzende Stunden, Stundensatz und Abrechnung klären.",
+    "by_client": "Verantwortung, Liefertermin und Übergabepunkt klären.",
+    "vague_quantity": "Kalkulationsmenge und ihre Ermittlung bestätigen.",
+    "zero_qty_priced": "Anzubietende Menge oder Verwendung als Einheitspreisposition klären.",
+}
 BASE_POINTS = {"scope_gap": 4, "provisional": 4, "hourly_work": 4, "by_client": 2,
-               "vague_quantity": 2, "missing_dependency": 4, "zero_qty_priced": 4}
+               "vague_quantity": 2, "zero_qty_priced": 4}
 WORDING_KINDS = frozenset({"scope_gap", "provisional", "hourly_work", "by_client", "vague_quantity"})
 EXTRA_SIGNALS = {"thin_lump_sum": ("scope_gap", "Pauschale mit weniger als 200 Zeichen Leistungsbeschreibung"),
                  "placeholder_quantity": ("vague_quantity", "Menge 1 bei einer messbaren Leistung; mögliche Platzhaltermenge"),
@@ -59,7 +67,8 @@ def matching_families(line: Line) -> list[str]:
         families.append("thin_lump_sum")
     if line.quantity == 1 and line.unit in MEASURED_UNITS and line.pricing_basis != "lump_sum":
         families.append("placeholder_quantity")
-    if line.quantity == 0 and any(price and price.unit_price is not None for price in (line.price, line.source_amounts)):
+    if (line.quantity == 0 and line.total_rule == "include"
+            and any(price and price.unit_price is not None for price in (line.price, line.source_amounts))):
         families.append("zero_qty_priced")
     return families
 
@@ -96,34 +105,26 @@ def collect(analysis_input: AnalysisInput, findings: list[Finding]) -> list[Chan
     lines = analysis_input.line_by_id()
     excluded = excluded_sections(analysis_input)
     codes = Counter(line.code for line in lines.values() if line.code)
-    groups: dict[tuple[str, str], tuple[list[str], set[str]]] = {}
-
-    def add(line: Line, kind: str, message: str, finding_id: str | None = None) -> None:
-        if line.section_id in excluded:
-            return
-        reasons, ids = groups.setdefault((line.id, kind), ([], set()))
-        if message not in reasons:
-            reasons.append(message)
-        if finding_id:
-            ids.add(finding_id)
-
+    zero_findings = {finding.target.line_id for finding in findings
+                     if finding.status == "open" and finding.rule_id == "L1.QTY.ZERO"}
+    groups: dict[tuple[str, str], list[str]] = {}
     for line in sorted(lines.values(), key=lambda line: (line.sort_order, line.id)):
+        if line.section_id in excluded:
+            continue
         for family in matching_families(line):
             kind, message = REGEX_SIGNALS[family][:2] if family in REGEX_SIGNALS else EXTRA_SIGNALS[family]
-            add(line, kind, message)
-    for finding in sorted(findings, key=lambda item: item.id):
-        if (finding.status == "open" and finding.rule_id.startswith("L2.") and "_NEEDS_" in finding.rule_id
-                and finding.evidence.get("reason") == "missing"):
-            id = anchor(finding, lines)
-            if id is not None:
-                add(lines[id], "missing_dependency", finding.title, finding.id)
+            if kind == "zero_qty_priced" and line.id in zero_findings:
+                continue
+            reasons = groups.setdefault((line.id, kind), [])
+            if message not in reasons:
+                reasons.append(message)
     result = []
-    for (id, kind), (reasons, finding_ids) in groups.items():
+    for (id, kind), reasons in groups.items():
         line = lines[id]
         ref = line.code or line.id
         if line.code and codes[line.code] > 1:
             ref += "_" + sha256(line.id.encode()).hexdigest()[:8]
         result.append(ChangeOrderSignal(id=f"co_{ref}_{kind}", kind=kind, line_id=id, line_code=line.code,
-                                        title=TITLES[kind], message="; ".join(reasons) + ".",
-                                        points=BASE_POINTS[kind], finding_ids=sorted(finding_ids)))
+                                        title=TITLES[kind], message=". ".join([*reasons, ACTIONS[kind]]),
+                                        points=BASE_POINTS[kind]))
     return sorted(result, key=lambda item: (lines[item.line_id].sort_order, item.kind, item.id))

@@ -121,7 +121,7 @@ def test_xml_bid_index_markup_and_totals():
     assert by_rule["L1.ARITH.NET_TOTAL"] == 1  # 1200 stated, items add up to 1100
     assert by_rule["L1.QTY.MISSING"] == by_rule["L1.UNIT.MISSING"] == 1  # one bid-file note each, markup excluded
     unit_note = next(f for f in findings if f.rule_id == "L1.UNIT.MISSING")
-    assert len(unit_note.related_line_ids) == 2
+    assert unit_note.evidence["lines_without_unit"] == 2 and unit_note.related_line_ids == []
 
 
 def test_xml_currency_alias():

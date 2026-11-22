@@ -22,7 +22,7 @@ all their descendants, are excluded. The original findings stay in the result.
 | Error finding | 8 |
 | Warning finding | 4 |
 | Info finding | 1 |
-| Scope gap, provisional, hourly work, missing dependency or priced zero quantity | 4 |
+| Scope gap, provisional, hourly work or priced zero quantity | 4 |
 | By-client or vague-quantity signal | 2 |
 
 A finding with `evidence.change_order=true` multiplies its base by 1.5. When the
@@ -76,7 +76,8 @@ nor the score is added to the tender total.
 
 ## Change-order signal catalogue
 
-Signals live in `risk.change_order_signals`, never in `findings`.
+Signals live in `risk.change_order_signals`. Missing dependencies and priced zero quantities already
+covered by a finding are reviewed on that finding. Optimization suggestions contribute no risk points.
 
 | Family | Detection | Contract `kind` |
 |---|---|---|
@@ -93,7 +94,6 @@ Signals live in `risk.change_order_signals`, never in `findings`.
 | Thin lump sum | Nonempty combined text under 200 characters on a lump sum | `scope_gap` |
 | Placeholder quantity | Quantity 1 in m/m²/m³/t/h, excluding lump sums | `vague_quantity` |
 | Priced zero quantity | Quantity 0 with a known unit price | `zero_qty_priced` |
-| Missing dependency | Open `L2.*_NEEDS_*` finding with `reason="missing"` | `missing_dependency` |
 
 The seven kinds are fixed by §5.4. Families sharing a kind on one line are merged
 into one signal with all reasons in its message; the base is charged once.

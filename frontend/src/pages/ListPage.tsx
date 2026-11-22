@@ -420,9 +420,13 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
     return index
   }, [questions, decisions, isStale])
   const codes = useMemo(() => new Map(imported.positions.map((p) => [p.id, p.oz])), [imported.positions])
-  const { byRow: findingsByRow, listWide } = useMemo(
-    () => indexFindings(uploadReport?.findings ?? [], positions), [uploadReport, positions],
-  )
+  const { byRow: findingsByRow, listWide, optimizations } = useMemo(() => {
+    const findings = uploadReport?.findings ?? []
+    return {
+      ...indexFindings(findings.filter(finding => finding.category !== 'optimization'), positions),
+      optimizations: findings.filter(finding => finding.category === 'optimization'),
+    }
+  }, [uploadReport, positions])
   const { signalsByRow, listSignals } = useMemo(() => {
     const signalsByRow = new Map<string, ChangeOrderSignal[]>()
     const listSignals: ChangeOrderSignal[] = []
@@ -980,6 +984,15 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
         <WarningsPanel entries={warningEntries} decisions={decisions} settled={settled} positions={positions} allowFixes={fixesAvailable}
           title={title} questionsByFinding={questionsByFinding} onOpen={(id) => openDetail(id, 'findings')} onFilter={showWarnings}
           onDecide={decide} onApplyFixes={applyFixes} />
+      )}
+
+      {optimizations.length > 0 && (
+        <details className="mb-5 max-w-4xl rounded-lg bg-slate-50 p-4">
+          <summary className="cursor-pointer font-medium">Optimization suggestions ({optimizations.length})</summary>
+          <ul className="mt-2 space-y-2 text-sm text-slate-700">
+            {optimizations.map(finding => <li key={finding.id}><strong>{finding.title}</strong> · {finding.message}</li>)}
+          </ul>
+        </details>
       )}
 
       {catalogueEnabled && researchShow && (
