@@ -351,7 +351,7 @@ expected (info), while in a bid or award (84/86) they're a defect (warning).
 | `L1.STRUCT.ORPHAN_LINE` | warning | item outside every section (missing from subtotals) | - |
 | `L1.STRUCT.ORPHAN_ALTERNATIVE` | warning | Wahlposition without a Grundposition | - |
 | `L1.STRUCT.PROVISIONAL_ITEM` | info | Bedarfsposition (not in total; VOB/A §7 (1) 4 generally disallows them in public tenders) | - |
-| `L1.STRUCT.UNIT_PRICE_ONLY_IN_TOTAL` | error | "Nur Einheitspreis" item carries a line amount | - |
+| `L1.STRUCT.UNIT_PRICE_ONLY_IN_TOTAL` | error | "Nur Einheitspreis" item carries a line amount (optional items may show one for information; the total checks catch it if it is added) | - |
 | `L1.DUP.SUSPECTED` | warning | same section, text and unit twice; shows both positions for scope review | - |
 | `L1.DIST.SUM_MISMATCH` | warning | room quantities ≠ line quantity | - |
 | `L1.ARITH.LINE_AMOUNT` | error | qty × unit price ≠ stated amount (> 0.01). Unit price prevails (VOB/A §16c); corrected amount in evidence | - |

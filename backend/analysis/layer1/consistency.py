@@ -7,7 +7,7 @@ from .. import units
 from ..contracts import Fix, SetField
 from ..registry import rule
 from .common import (
-    BILLING_UNIT, BIDDER_INPUT, OR_EQUIVALENT, THRESHOLDS, excerpt, label, phase_has_prices, section_label,
+    BILLING_UNIT, BIDDER_INPUT, OR_EQUIVALENT, THRESHOLDS, excerpt, is_optional, label, phase_has_prices, section_label,
     text_of,
 )
 
@@ -133,7 +133,7 @@ def orphan_alternative(ctx):
       description="Optional items are not in the total. VOB/A §7 (1) 4 generally disallows them in public tenders.")
 def provisional_item(ctx):
     for line in ctx.input.lines:
-        if line.gaeb_flags.get("Provis") or line.gaeb_flags.get("provisional_flag") == "E":
+        if is_optional(line):
             yield ctx.finding(line=line, field="total_rule",
                               message=f"{label(line)} is an optional item and is not counted in the total. Confirm the quantity to price and whether it will be evaluated.",
                               evidence={"total_rule": line.total_rule, "flags": line.gaeb_flags})
@@ -144,7 +144,9 @@ def provisional_item(ctx):
 def unit_price_only_in_total(ctx):
     for line in ctx.input.lines:
         amount = line.source_amounts.line_amount if line.source_amounts else None
-        if line.total_rule == "unit_price_only" and amount:
+        # A Bedarfsposition ohne GB may show its amount for information; the section and net-total checks
+        # already catch a file that adds it to the total. Only real "Nur Einheitspreis" items are wrong here.
+        if line.total_rule == "unit_price_only" and amount and not is_optional(line):
             yield ctx.finding(line=line, field="line_amount",
                               message=f"{label(line)} is unit-price-only but has a line amount of {amount}. "
                                       f"It must not be added to the total.",
