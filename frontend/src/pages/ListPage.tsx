@@ -42,7 +42,7 @@ import { budgetMoney, budgetStatus, int, money, parseNumber, plural } from '../l
 import { positionTotal } from '../lib/money'
 import { groupByOz, hasSectionLabel } from '../lib/oz-groups'
 import { applyMoves, globalStep, indexTree, leafOz, nextChildOz, nextPositionOz, pathOf, resolveList, treeStats, type CatStat } from '../lib/resolve'
-import { selectModel, statsOf, useModel, useStore } from '../lib/store'
+import { normEdits, selectModel, statsOf, useModel, useStore } from '../lib/store'
 import { useUi } from '../lib/ui-store'
 import type { CategoryNode, ListDoc, Position } from '../lib/types'
 
@@ -802,7 +802,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   const printSections = useMemo(() => new Map(imported.positions.map((p) => [p.id, { oz: p.oz, section: p.path?.map((part) => `${part.oz} ${part.label}`).at(-1) ?? 'Without section' }])), [imported.positions])
 
   // the note is gone once a suggestion is settled: the cursor moves to the EP it filled (or left empty)
-  const focusDrawerPrice = () => requestAnimationFrame(() => document.querySelector<HTMLElement>('[role=dialog] [data-risk-field="unit_price"]')?.focus())
+  const focusDrawerPrice = () => requestAnimationFrame(() => document.querySelector<HTMLElement>('[role=dialog] [data-risk-field="unit_price"]')?.focus({ preventScroll: true }))
 
   const removeSelected = () => {
     const ids = [...selected]
@@ -860,8 +860,12 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
       return s ? [[id, s] as [string, PriceSuggestion]] : []
     })
     if (!picks.length) return
-    const before = useStore.getState().edits[doc.id]?.up ?? {}
-    for (const [id, s] of picks) useStore.getState().setUp(doc.id, id, s.price)
+    const store = useStore.getState()
+    const edits = normEdits(store.edits[doc.id])
+    const before = edits.up
+    const up = { ...before }
+    for (const [id, s] of picks) up[id] = s.price
+    store.setEdits(doc.id, { ...edits, up })
     const oz = positions.find((p) => p.id === picks[0][0])?.oz
     // undo puts back only these prices, so edits made after confirming survive
     const undo = () => {
@@ -1104,7 +1108,10 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
             </FilterPill>
           )}
           {pricingFilter === 'pending' && confirmable.length > 0 && (
-            <button type="button" onClick={() => confirmPrices(confirmable)} title={`Adds ${money(confirmableTotal)}: the list total becomes ${money(st.total + confirmableTotal)}`} aria-label={`Confirm ${plural(confirmable.length, 'shown price', 'shown prices')}, adds ${money(confirmableTotal)}; the list total becomes ${money(st.total + confirmableTotal)}`} className="inline-flex h-10 items-center gap-1.5 rounded-md px-3 text-sm font-semibold text-slate-800 hover:bg-slate-100">
+            <button type="button" onClick={() => {
+              confirmPrices(confirmable)
+              requestAnimationFrame(() => searchRef.current?.focus({ preventScroll: true }))
+            }} title={`Adds ${money(confirmableTotal)}: the list total becomes ${money(st.total + confirmableTotal)}`} aria-label={`Confirm ${plural(confirmable.length, 'shown price', 'shown prices')}, adds ${money(confirmableTotal)}; the list total becomes ${money(st.total + confirmableTotal)}`} className="inline-flex h-10 items-center gap-1.5 rounded-md px-3 text-sm font-semibold text-slate-800 hover:bg-slate-100">
               <Icon name="done_all" size={18} />Confirm {plural(confirmable.length, 'price', 'prices')}
               <span className="num font-medium text-slate-600">+{money(confirmableTotal)}</span>
             </button>
