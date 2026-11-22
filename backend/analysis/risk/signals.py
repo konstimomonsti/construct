@@ -11,6 +11,33 @@ from ..contracts import AnalysisInput, ChangeOrderSignal, Finding, Line
 # Families sharing a contract kind are combined into one signal per position.
 # The message retains each matching reason; points are charged once per kind.
 REGEX_SIGNALS = {
+    # Explicit scope and payment clauses precede generic context when assigning
+    # the section cap. All reasons still share a single scope-gap signal.
+    "separate_payment": (
+        "scope_gap", "Zusätzliche Vergütung oder Abrechnung",
+        r"\b(?:mehrmengen|mehrleistungen|zusatzaufwand|zusatzarbeiten|zusätzliche\s+"
+        r"(?:(?:entsorgungs|aushub)arbeiten|arbeiten|leistungen|mengen))\s+"
+        r"(?:(?:wird|werden)\s+)?(?:gesondert|zusätzlich|separat)\s+(?:vergütet|abgerechnet)\b",
+    ),
+    "unresolved_site_condition": (
+        "scope_gap", "Ungeklärte Bedingungen vor Ort",
+        r"\b(?:baugrund(?:verhältnisse)?|grundwasserstand|schadstoffbelastung|bestandszustand|zustand des bestands)\s+"
+        r"(?:(?:ist|sind|bleibt|bleiben)\s+)?(?:nicht bekannt|unbekannt|ungeklärt|noch offen)\b"
+        r"|\b(?:abhängig von|richtet sich nach)\s+(?:dem\s+)?(?:tatsächlichen|vorgefundenen)\s+"
+        r"(?:bestand|baugrund|grundwasserstand)\b"
+        r"|\bumfang\s+(?:von|der)\s+hindernissen?\s+(?:(?:kann|können)\s+)?"
+        r"vor baubeginn nicht (?:abschließend\s+)?(?:beurteilt|bestimmt)\s+werden\b",
+    ),
+    "late_scope_decision": (
+        "scope_gap", "Leistungsumfang wird erst später festgelegt",
+        r"\b(?:umfang|ausführungsumfang|ausführung|mengen?|leistungsumfang)\s+"
+        r"(?:(?:wird|werden|ist|sind)\s+)?erst\s+(?:nach\s+(?:freilegung|öffnung|aufmaß|erkundung|beauftragung)"
+        r"|vor ort|während der ausführung)\s+(?:vor ort\s+)?(?:festgelegt|bestimmt|ermittelt|abgestimmt)\b"
+        r"|\bob\s+[^.;!?]{1,80}\s+zusätzlich beauftragt werden (?:muss|müssen),?\s+"
+        r"entscheidet\s+[^.;!?]{1,40}\s+nach\s+(?:der\s+)?(?:bauteilöffnung|freilegung|öffnung|aufmaß)\b"
+        r"|\bausführung und abrechnung\s+(?:erfolgen\s+)?erst nach\s+(?:ausdrücklicher\s+)?"
+        r"(?:rücksprache|freigabe|schriftlicher beauftragung)\b",
+    ),
     "provisional": ("provisional", "Bedarfs- oder Eventualleistung", r"\b(?:bedarfs|eventual|wahl)(?:position(?:en)?|leistung(?:en)?)\b"),
     "daywork": ("hourly_work", "Stundenlohn- oder Regiearbeiten", r"\b(?:stundenlohn\w*|regie(?:arbeiten|stunden)?)\b"),
     "cost_plus": ("scope_gap", "Vergütung nach Aufwand", r"\bnach\s+(?:tats[aä]chlichem\s+)?aufwand\b"),
@@ -23,25 +50,19 @@ REGEX_SIGNALS = {
     "time_related": ("scope_gap", "Zeitabhängige Leistung", r"\b(?:vorhalten|vorhaltung|stillstand)\b|\bje\s+(?:woche|monat|tag)\b"),
 }
 PATTERNS = {name: re.compile(item[2], re.I) for name, item in REGEX_SIGNALS.items()}
+EXPLICIT_SCOPE_FAMILIES = frozenset({"separate_payment", "unresolved_site_condition", "late_scope_decision"})
+NEGATED_SUBJECT = re.compile(r"\b(?:kein(?:e[rmns]?)?|ohne)\s+$", re.I)
 DAYWORK_NEGATION = re.compile(
     r"\b(?:keine?\w*|ohne)\s+(?:stundenlohn\w*|regie\w*)\b|"
     r"\b(?:stundenlohn\w*|regie\w*)\s+(?:(?:sind|ist|werden|wird)\s+)?nicht\s+(?:vorgesehen|erforderlich|beauftragt)\b", re.I)
 TITLES = {
     "scope_gap": "Leistungsumfang und Randbedingungen klären", "provisional": "Bedarfsleistung klären",
     "hourly_work": "Umfang der Stundenlohnarbeiten klären", "by_client": "Bauseitige Leistungen abgrenzen",
-    "vague_quantity": "Unsichere Mengenbasis",
+    "vague_quantity": "Unsichere Mengenbasis", "missing_dependency": "Ergänzende Leistung fehlt möglicherweise",
     "zero_qty_priced": "Bepreiste Leistung ohne Menge",
 }
-ACTIONS = {
-    "scope_gap": "Leistungsgrenze, Abrechnung und Preisannahmen vor Angebotsabgabe klären.",
-    "provisional": "Erwartete Menge und Berücksichtigung in der Angebotswertung klären.",
-    "hourly_work": "Anzusetzende Stunden, Stundensatz und Abrechnung klären.",
-    "by_client": "Verantwortung, Liefertermin und Übergabepunkt klären.",
-    "vague_quantity": "Kalkulationsmenge und ihre Ermittlung bestätigen.",
-    "zero_qty_priced": "Anzubietende Menge oder Verwendung als Einheitspreisposition klären.",
-}
 BASE_POINTS = {"scope_gap": 4, "provisional": 4, "hourly_work": 4, "by_client": 2,
-               "vague_quantity": 2, "zero_qty_priced": 4}
+               "vague_quantity": 2, "missing_dependency": 4, "zero_qty_priced": 4}
 WORDING_KINDS = frozenset({"scope_gap", "provisional", "hourly_work", "by_client", "vague_quantity"})
 EXTRA_SIGNALS = {"thin_lump_sum": ("scope_gap", "Pauschale mit weniger als 200 Zeichen Leistungsbeschreibung"),
                  "placeholder_quantity": ("vague_quantity", "Menge 1 bei einer messbaren Leistung; mögliche Platzhaltermenge"),
@@ -53,9 +74,20 @@ def line_text(line: Line) -> str:
     return " ".join(" ".join((line.short_text or "", line.long_text or "")).split())
 
 
+def _scope_clause(family: str, text: str) -> str | None:
+    for match in PATTERNS[family].finditer(text):
+        before = text[max(0, match.start() - 15):match.start()]
+        if not NEGATED_SUBJECT.search(before):
+            return match[0]
+    return None
+
+
 def matching_families(line: Line) -> list[str]:
     text = line_text(line)
-    families = [name for name, pattern in PATTERNS.items() if pattern.search(text)]
+    families = [
+        name for name, pattern in PATTERNS.items()
+        if (_scope_clause(name, text) if name in EXPLICIT_SCOPE_FAMILIES else pattern.search(text))
+    ]
     no_daywork = bool(DAYWORK_NEGATION.search(text))
     if no_daywork and "daywork" in families:
         families.remove("daywork")
@@ -67,8 +99,7 @@ def matching_families(line: Line) -> list[str]:
         families.append("thin_lump_sum")
     if line.quantity == 1 and line.unit in MEASURED_UNITS and line.pricing_basis != "lump_sum":
         families.append("placeholder_quantity")
-    if (line.quantity == 0 and line.total_rule == "include"
-            and any(price and price.unit_price is not None for price in (line.price, line.source_amounts))):
+    if line.quantity == 0 and any(price and price.unit_price is not None for price in (line.price, line.source_amounts)):
         families.append("zero_qty_priced")
     return families
 
@@ -105,26 +136,38 @@ def collect(analysis_input: AnalysisInput, findings: list[Finding]) -> list[Chan
     lines = analysis_input.line_by_id()
     excluded = excluded_sections(analysis_input)
     codes = Counter(line.code for line in lines.values() if line.code)
-    zero_findings = {finding.target.line_id for finding in findings
-                     if finding.status == "open" and finding.rule_id == "L1.QTY.ZERO"}
-    groups: dict[tuple[str, str], list[str]] = {}
-    for line in sorted(lines.values(), key=lambda line: (line.sort_order, line.id)):
+    groups: dict[tuple[str, str], tuple[list[str], set[str]]] = {}
+
+    def add(line: Line, kind: str, message: str, finding_id: str | None = None) -> None:
         if line.section_id in excluded:
-            continue
+            return
+        reasons, ids = groups.setdefault((line.id, kind), ([], set()))
+        if message not in reasons:
+            reasons.append(message)
+        if finding_id:
+            ids.add(finding_id)
+
+    for line in sorted(lines.values(), key=lambda line: (line.sort_order, line.id)):
         for family in matching_families(line):
             kind, message = REGEX_SIGNALS[family][:2] if family in REGEX_SIGNALS else EXTRA_SIGNALS[family]
-            if kind == "zero_qty_priced" and line.id in zero_findings:
-                continue
-            reasons = groups.setdefault((line.id, kind), [])
-            if message not in reasons:
-                reasons.append(message)
+            if family in EXPLICIT_SCOPE_FAMILIES:
+                clause = _scope_clause(family, line_text(line))
+                if clause:
+                    message = f"{message} („{clause}“)"
+            add(line, kind, message)
+    for finding in sorted(findings, key=lambda item: item.id):
+        if (finding.status == "open" and finding.rule_id.startswith("L2.") and "_NEEDS_" in finding.rule_id
+                and finding.evidence.get("reason") == "missing"):
+            id = anchor(finding, lines)
+            if id is not None:
+                add(lines[id], "missing_dependency", finding.title, finding.id)
     result = []
-    for (id, kind), reasons in groups.items():
+    for (id, kind), (reasons, finding_ids) in groups.items():
         line = lines[id]
         ref = line.code or line.id
         if line.code and codes[line.code] > 1:
             ref += "_" + sha256(line.id.encode()).hexdigest()[:8]
         result.append(ChangeOrderSignal(id=f"co_{ref}_{kind}", kind=kind, line_id=id, line_code=line.code,
-                                        title=TITLES[kind], message=". ".join([*reasons, ACTIONS[kind]]),
-                                        points=BASE_POINTS[kind]))
+                                        title=TITLES[kind], message="; ".join(reasons) + ".",
+                                        points=BASE_POINTS[kind], finding_ids=sorted(finding_ids)))
     return sorted(result, key=lambda item: (lines[item.line_id].sort_order, item.kind, item.id))

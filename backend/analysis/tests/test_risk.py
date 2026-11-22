@@ -42,6 +42,52 @@ def test_regex_positive_and_negative(family, positive, negative):
     assert family not in matching_families(line(text=negative))
 
 
+@pytest.mark.parametrize(("family", "positive", "negative"), [
+    ("separate_payment", "Mehrmengen werden zusätzlich vergütet.",
+     "Mehrmengen werden nicht zusätzlich vergütet."),
+    ("separate_payment", "Zusatzaufwand wird separat abgerechnet.",
+     "Kein Zusatzaufwand wird separat abgerechnet."),
+    ("separate_payment", "Zusätzliche Aushubarbeiten werden gesondert vergütet.",
+     "Alle zusätzlichen Aushubarbeiten sind im Einheitspreis enthalten."),
+    ("unresolved_site_condition", "Die Schadstoffbelastung ist noch offen.",
+     "Die Schadstoffbelastung ist laut dem beigefügten Gutachten bekannt."),
+    ("unresolved_site_condition", "Die Leistung richtet sich nach dem vorgefundenen Bestand.",
+     "Die Leistung ist am vorhandenen Bestand gemäß Ausführungsplan vorzunehmen."),
+    ("unresolved_site_condition", "Umfang von Hindernissen kann vor Baubeginn nicht abschließend beurteilt werden.",
+     "Der Umfang von Hindernissen wurde vor Baubeginn in Anlage 4 bestimmt."),
+    ("late_scope_decision", "Der Leistungsumfang wird erst nach Öffnung vor Ort bestimmt.",
+     "Der Leistungsumfang ist in der freigegebenen Ausführungsplanung beschrieben."),
+    ("late_scope_decision", "Ob Verstärkungen zusätzlich beauftragt werden müssen, entscheidet die Bauleitung nach der Bauteilöffnung.",
+     "Die bereits beauftragten Verstärkungen sind nach Freigabe einzubauen."),
+    ("late_scope_decision", "Die Menge wird erst nach Aufmaß festgelegt.",
+     "Die Abrechnung erfolgt nach Aufmaß zu den ausgeschriebenen Einheitspreisen."),
+    ("late_scope_decision", "Ausführung und Abrechnung erfolgen erst nach ausdrücklicher Rücksprache.",
+     "Die Ausführung beginnt erst nach Freigabe des Sicherheitsplans."),
+])
+def test_explicit_scope_clauses_quote_the_source_and_reject_close_negatives(family, positive, negative):
+    item = line(text="Beschriebene Bauleistung", long_text=positive)
+    assert family in matching_families(item)
+    [signal] = collect(AnalysisInput(lines=[item]), [])
+    assert signal.kind == "scope_gap"
+    quoted = signal.message.split("„", 1)[1].split("“", 1)[0]
+    assert quoted and quoted in positive
+    assert family not in matching_families(line(text=negative))
+
+
+def test_explicit_clauses_share_the_stable_id_and_keep_their_own_section_cap():
+    section = Section(id="s", title="Gründung", sort_order=0)
+    ordinary = line("ordinary", "Homogenbereich A", code="1", section_id="s", price=PriceInfo(unit_price=500))
+    affected = line("affected", "Homogenbereich B", code="2", section_id="s", sort_order=1,
+                    long_text="Der Grundwasserstand ist noch offen. Mehrmengen werden zusätzlich vergütet.",
+                    price=PriceInfo(unit_price=100))
+    signals = assess(AnalysisInput(sections=[section], lines=[ordinary, affected]), []).change_order_signals
+    assert len(signals) == 2
+    assert (signals[1].id, signals[1].kind) == ("co_2_scope_gap", "scope_gap")
+    assert "Grundwasserstand ist noch offen" in signals[1].message
+    assert "Mehrmengen werden zusätzlich vergütet" in signals[1].message
+    assert [signal.points for signal in signals] == [2.5, 2.5]
+
+
 @pytest.mark.parametrize("text", ["Grundwasser", "Kampfmittelsondierung", "LAGA Z2", "Homogenbereiche", "Felsanteil"])
 def test_ground_catalogue(text):
     assert "ground" in matching_families(line(text=text))
@@ -159,6 +205,15 @@ def test_related_lines_anchor_once_and_input_is_unchanged():
     report = assess(inp, [f])
     assert len(report.top_risks) == 1 and report.top_risks[0].line_id == "l1"
     assert inp.model_dump() == before
+
+
+def test_real_excavation_requirements_quote_the_approval_condition():
+    path = Path(__file__).resolve().parents[3] / "data/tenders/501-24-01_GAEB-XML_sas.x83"
+    report = analyze(adapter.from_file(path), layers=(1, 2))
+    assert not report.errors
+    positions = {signal.line_code for signal in report.risk.change_order_signals
+                 if "Ausführung und Abrechnung erst nach ausdrücklicher Rücksprache" in signal.message}
+    assert {"02.03.0019", "02.03.0020", "02.03.0021"} <= positions
 
 
 def test_real_priced_stbalv_trench_and_unpriced_precast_fixture():
