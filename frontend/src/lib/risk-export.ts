@@ -1,4 +1,4 @@
-import { analysisCoverage, dependencyReviewLines, openExposure, openSections, REASONS, reportRisk, rescore, type Decision, type Decisions, type Finding, type Report, type Severity } from './risk-assessment'
+import { analysisCoverage, dependencyReviewLines, openExposure, openQuestions, openSections, REASONS, reportRisk, rescore, type Decision, type Decisions, type Finding, type Report, type Severity } from './risk-assessment'
 
 const LAYER = ['', 'Layer 1 (rules)', 'Layer 2 (dependencies)', 'Layer 3 (AI)']
 const SEVERITY_FILL: Record<Severity, string> = { error: 'FFFFC7CE', warning: 'FFFFEB9C', info: 'FFDDEBF7' }
@@ -33,7 +33,7 @@ export type RiskExportInput = {
   now?: Date
 }
 
-/** Excel risk matrix (Biel's spec §5A): Summary, Findings_Log and Change_Orders */
+/** Excel risk matrix (Biel's spec §5A): Summary, Findings_Log and optional supporting sheets */
 export async function riskXlsx({ title, report, decisions, codes, questionTexts = {}, now = new Date() }: RiskExportInput): Promise<Uint8Array> {
   const mod = await import('exceljs')
   const ExcelJS = (mod as unknown as { default?: typeof import('exceljs') }).default ?? mod
@@ -75,7 +75,6 @@ export async function riskXlsx({ title, report, decisions, codes, questionTexts 
     ['Open errors', open.filter((f) => f.severity === 'error').length],
     ['Open warnings', open.filter((f) => f.severity === 'warning').length],
     ['Open notes', open.filter((f) => f.severity === 'info').length],
-    ['Change-order signals', risk?.change_order_signals.filter((s) => !decisions[s.id]).length ?? 0],
     ['Layers run', (report.layers_run ?? []).join(', ')],
   ]
   rows.forEach(([k, v], i) => {
@@ -92,7 +91,7 @@ export async function riskXlsx({ title, report, decisions, codes, questionTexts 
 
   // one Bieterfrage per finding: the edited question text that covers it, else its own evidence
   const questionOf = new Map<string, string>()
-  for (const q of report.questions ?? []) for (const id of q.finding_ids) questionOf.set(id, questionTexts[q.id] ?? q.text_de)
+  for (const q of openQuestions(report.questions ?? [], {})) for (const id of q.finding_ids) questionOf.set(id, questionTexts[q.id] ?? q.text_de)
   const lineCode = (f: Finding) => f.target.line_code ?? (f.target.line_id ? codes.get(f.target.line_id) : undefined) ?? f.target.section_id ?? ''
 
   const log = wb.addWorksheet('Findings_Log', { views: [{ state: 'frozen', ySplit: 1 }] })
@@ -118,14 +117,6 @@ export async function riskXlsx({ title, report, decisions, codes, questionTexts 
     for (const finding of optimizations) sheet.addRow([finding.title, finding.message])
   }
 
-  const co = wb.addWorksheet('Change_Orders', { views: [{ state: 'frozen', ySplit: 1 }] })
-  co.columns = [14, 20, 36, 60, 10, 22].map((width) => ({ width }))
-  header(co, ['OZ', 'Kind', 'Title', 'Message', 'Points', 'Decision'])
-  risk?.change_order_signals.forEach((s, i) => {
-    const row = co.getRow(i + 2)
-    row.values = [s.line_code ?? '', s.kind, s.title, s.message, s.points, decisionText(decisions[s.id])]
-    row.alignment = { wrapText: true, vertical: 'top' }
-  })
   if (risk?.by_section.length) {
     const sections = wb.addWorksheet('Section_Risk')
     sections.columns = [15, 42, 15, 15].map(width => ({ width }))

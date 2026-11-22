@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { planFixAll } from '../src/lib/apply-fix'
-import type { ChangeOrderSignal, Finding } from '../src/lib/risk-assessment'
+import type { Finding } from '../src/lib/risk-assessment'
 import type { Position } from '../src/lib/types'
 
 const path = [{ oz: '01', label: 'Estrich' }]
@@ -17,7 +17,6 @@ const finding = (id: string, extra: Partial<Finding> = {}, withFix = true): Find
     : null,
   ...extra,
 })
-const signal: ChangeOrderSignal = { id: 'co_1', kind: 'scope_gap', line_id: 'a', line_code: '01.0010', title: 'Scope', message: '', points: 5, finding_ids: [] }
 
 test('planFixAll splits fixable findings from the rest', () => {
   const { plans, rest } = planFixAll([finding('f1'), finding('f2', {}, false)], positions, true)
@@ -25,14 +24,14 @@ test('planFixAll splits fixable findings from the rest', () => {
   assert.deepEqual(rest, ['f2'])
 })
 
-test('planFixAll puts llm findings and change-order signals in the rest', () => {
-  const { plans, rest } = planFixAll([finding('f1'), finding('f3', { origin: 'llm' }), signal], positions, true)
+test('planFixAll puts LLM findings in the rest', () => {
+  const { plans, rest } = planFixAll([finding('f1'), finding('f3', { origin: 'llm' })], positions, true)
   assert.deepEqual(plans.map((p) => p.finding.id), ['f1'])
-  assert.deepEqual(rest, ['f3', 'co_1'])
+  assert.deepEqual(rest, ['f3'])
 })
 
 test('planFixAll plans nothing when fixes are not allowed', () => {
-  const { plans, rest } = planFixAll([finding('f1'), finding('f2', {}, false), signal], positions, false)
+  const { plans, rest } = planFixAll([finding('f1'), finding('f2', {}, false)], positions, false)
   assert.deepEqual(plans, [])
-  assert.deepEqual(rest, ['f1', 'f2', 'co_1'])
+  assert.deepEqual(rest, ['f1', 'f2'])
 })

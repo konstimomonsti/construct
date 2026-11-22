@@ -9,7 +9,7 @@ one section are merged into one question that lists the OZ, so 73 positions with
 become one question per section instead of 73.
 
 Ported from origin/archive/risk-report-ui:analysis/questions.py. Contract v0.2 uses
-Pydantic output, evidence-provided wording, change-order signals and points ordering.
+Pydantic output, evidence-provided wording and points ordering.
 Client-scope questions remain useful on priced files; price findings never become questions.
 """
 
@@ -23,7 +23,7 @@ from typing import Any
 
 from .contracts import AnalysisInput, BidderQuestion, Finding, RiskReport
 from .risk import assess
-from .risk.signals import anchor, excluded_sections, matching_families
+from .risk.scope import anchor, excluded_sections
 
 MAX_LISTED = 12
 SHORT_TEXT_CHARS = 80
@@ -167,47 +167,6 @@ TEMPLATES: dict[str, tuple[str, str]] = {
         "Gleichwertigkeit beurteilt wird, und die geforderten technischen Eigenschaften.",
         "Bei den Positionen {ozs} ist „oder gleichwertig“ angegeben. Bitte nennen Sie die Kriterien, nach "
         "denen die Gleichwertigkeit beurteilt wird, und die geforderten technischen Eigenschaften."),
-    # Risk signals (layer 1 risk rules, plan section 3). They produce questions as soon as they exist.
-    "L1.RISK.GROUND": (
-        "{pos}: Bitte stellen Sie das Baugrundgutachten mit Homogenbereichen und dem erwarteten Fels- und "
-        "Grundwasseranteil zur Verfügung.",
-        "Zu den Positionen {ozs}: Bitte stellen Sie das Baugrundgutachten mit Homogenbereichen und dem "
-        "erwarteten Fels- und Grundwasseranteil zur Verfügung."),
-    "L1.RISK.BY_CLIENT": (
-        "{pos}: Es ist von bauseitigen bzw. beigestellten Leistungen die Rede. Bitte teilen Sie uns Umfang, "
-        "Termin und Ort der Bereitstellung mit.",
-        "Zu den Positionen {ozs}: Es ist von bauseitigen bzw. beigestellten Leistungen die Rede. Bitte "
-        "teilen Sie uns jeweils Umfang, Termin und Ort der Bereitstellung mit."),
-    "L1.RISK.CLIENT_DECIDES": (
-        "{pos}: Die Ausführung soll nach Angabe, Wahl oder Anordnung des Auftraggebers erfolgen. Bitte "
-        "teilen Sie uns die Auswahlmöglichkeiten und den Zeitpunkt der Entscheidung mit.",
-        "Zu den Positionen {ozs}: Die Ausführung soll nach Angabe, Wahl oder Anordnung des Auftraggebers "
-        "erfolgen. Bitte teilen Sie uns die Auswahlmöglichkeiten und den Zeitpunkt der Entscheidung mit."),
-    "L1.RISK.DAYWORK": (
-        "{pos}: Bitte teilen Sie uns den erwarteten Umfang der Stundenlohnarbeiten mit und ob er in die "
-        "Wertung eingeht.",
-        "Zu den Positionen {ozs}: Bitte teilen Sie uns den erwarteten Umfang der Stundenlohnarbeiten mit und "
-        "ob er in die Wertung eingeht."),
-    "L1.RISK.COST_PLUS": (
-        "{pos}: Die Leistung wird nach Aufwand vergütet. Bitte teilen Sie uns den erwarteten Umfang und die "
-        "Abrechnungsgrundlage mit.",
-        "Zu den Positionen {ozs}: Die Leistungen werden nach Aufwand vergütet. Bitte teilen Sie uns den "
-        "erwarteten Umfang und die Abrechnungsgrundlage mit."),
-    "L1.RISK.CONDITIONAL": (
-        "{pos}: Die Leistung ist an Bedingungen geknüpft („ggf.“, „soweit erforderlich“). Bitte teilen Sie "
-        "uns mit, wann sie auszuführen ist und wie sie vergütet wird.",
-        "Zu den Positionen {ozs}: Die Leistungen sind an Bedingungen geknüpft („ggf.“, „soweit "
-        "erforderlich“). Bitte teilen Sie uns mit, wann sie auszuführen sind und wie sie vergütet werden."),
-    "L1.RISK.EXTERNAL_REF": (
-        "{pos}: Der Text verweist auf Pläne, Gutachten oder Unterlagen. Bitte stellen Sie die "
-        "Unterlagen zur Verfügung.",
-        "Zu den Positionen {ozs}: Die Texte verweisen auf Pläne, Gutachten oder Unterlagen. Bitte stellen "
-        "Sie die Unterlagen zur Verfügung."),
-    "L1.RISK.THIN_LUMP_SUM": (
-        "{pos}: Die Pauschale ist nur knapp beschrieben. Bitte teilen Sie uns den genauen Leistungsumfang "
-        "und die Abgrenzung mit.",
-        "Zu den Positionen {ozs}: Die Pauschalen sind nur knapp beschrieben. Bitte teilen Sie uns den "
-        "genauen Leistungsumfang und die Abgrenzung mit."),
 }
 
 _L2_SINGLE = ("Es ist keine Position für {dependency} enthalten. Bitte teilen Sie mit, ob diese "
@@ -279,7 +238,6 @@ def build_questions(analysis_input: AnalysisInput, findings: list[Finding], risk
     lines, sections = analysis_input.line_by_id(), analysis_input.section_by_id()
     excluded = excluded_sections(analysis_input)
     groups: dict[tuple[str, str | None, str], dict] = {}
-    represented: set[str] = set()
 
     def add(rule_id, section_id, refs, text, finding_ids, item_ids, order, topic, template=None):
         body = _body(text, refs)
@@ -325,37 +283,6 @@ def build_questions(analysis_input: AnalysisInput, findings: list[Finding], risk
             continue
         add(finding.rule_id, section_id, refs, text, [finding.id], [finding.id],
             line.sort_order if line else section.sort_order if section else -1, _topic(finding.rule_id), template)
-        represented.add(finding.id)
-
-    family_templates = {"ground": "GROUND", "by_client": "BY_CLIENT", "client_decides": "CLIENT_DECIDES",
-                        "daywork": "DAYWORK", "cost_plus": "COST_PLUS", "conditional": "CONDITIONAL",
-                        "thin_lump_sum": "THIN_LUMP_SUM"}
-    signal_templates = {
-        "provisional": "Bitte teilen Sie mit, ob und in welchem Umfang mit einer Beauftragung zu rechnen ist und ob die Position in die Wertung eingeht.",
-        "vague_quantity": "Bitte bestätigen Sie die tatsächlich anzubietende Menge und die Grundlage ihrer Ermittlung.",
-        "zero_qty_priced": "Bitte bestätigen Sie, ob die bepreiste Position mit Menge 0 entfällt oder welche Menge anzubieten ist.",
-        "scope_gap": "Bitte konkretisieren Sie den Leistungsumfang, die Randbedingungen und die Abgrenzung zu anderen Leistungen.",
-        "hourly_work": "Bitte teilen Sie uns den erwarteten Umfang der Stundenlohnarbeiten mit und ob er in die Wertung eingeht.",
-        "by_client": "Bitte teilen Sie uns Umfang, Termin und Ort der bauseitigen Bereitstellung mit.",
-    }
-    for signal in risk.change_order_signals:
-        if signal.finding_ids and set(signal.finding_ids) <= represented:
-            continue
-        line = lines[signal.line_id]
-        families = matching_families(line)
-        # Prefer the most specific high-value question when a scope signal combines reasons.
-        family = next((name for name in ("ground", "by_client", "daywork", "cost_plus", "client_decides",
-                                         "conditional", "thin_lump_sum")
-                       if name in families and ((signal.kind == "scope_gap" and name not in {"by_client", "daywork"})
-                                                or signal.kind == "by_client" and name == "by_client"
-                                                or signal.kind == "hourly_work" and name == "daywork")), None)
-        if family:
-            text = TEMPLATES["L1.RISK." + family_templates[family]][0].format(pos="", oz="", short_text="").lstrip(": ")
-        else:
-            text = signal_templates.get(signal.kind)
-        if text:
-            add("CO." + signal.kind.upper(), line.section_id, [line.code or line.id], text,
-                signal.finding_ids, [signal.id], line.sort_order, "Nachtragspotenzial")
 
     ranked = []
     for (rule_id, section_id, _), group in groups.items():
