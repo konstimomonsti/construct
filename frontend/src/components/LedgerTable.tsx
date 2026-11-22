@@ -82,6 +82,7 @@ function PriceCell({ value, onSave, oz, edited, muted, className }: { value: num
   return (
     <button
       ref={btn}
+      data-price-control
       type="button"
       aria-label={value == null ? `Set price for ${oz}` : `${amount(value)} €, edit unit price of ${oz}${edited ? ' (edited)' : ''}`}
       onClick={() => {
@@ -107,6 +108,7 @@ function PendingPrice({ s, oz, onConfirm, onReview, className }: { s: PriceSugge
       {s.unitKnown ? (
         <button
           type="button"
+          data-price-control
           onClick={onConfirm}
           title="Confirm price"
           aria-label={`Confirm ${amount(s.price)} € for ${oz}`}
@@ -119,6 +121,7 @@ function PendingPrice({ s, oz, onConfirm, onReview, className }: { s: PriceSugge
       )}
       <button
         type="button"
+        data-price-control
         onClick={onReview}
         title={s.unitKnown ? `Suggested from the catalogue: ${s.product.name}` : 'The units differ: review before confirming'}
         aria-label={`Suggested unit price ${amount(s.price)} € for ${oz}, pending confirmation${s.unitKnown ? '' : ', unit needs checking'}. Review price`}
@@ -175,10 +178,11 @@ const Row = memo(function Row({ listId, p, showCategory, selected, flash, edited
         // the confirm button is gone now; keep focus on the same row's price, else the next row's
         requestAnimationFrame(() => {
           for (const id of [p.id, ...near]) {
-            const el = document.querySelector<HTMLElement>(`tr[data-pid="${CSS.escape(id)}"] td[data-a=hide] button`)
-            if (el) return el.focus()
+            const controls = document.querySelectorAll<HTMLButtonElement>(`tr[data-pid="${CSS.escape(id)}"] [data-price-control]`)
+            const visible = [...controls].find((control) => control.getClientRects().length > 0)
+            if (visible) return visible.focus({ preventScroll: true })
           }
-          document.querySelector<HTMLElement>('[data-results-heading]')?.focus()
+          document.querySelector<HTMLElement>('[data-results-heading]')?.focus({ preventScroll: true })
         })
       }} onReview={() => onOpen(p)} className={className} />
     : (
