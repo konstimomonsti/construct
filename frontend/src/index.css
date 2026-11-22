@@ -57,7 +57,10 @@
   --color-rose-600: #d9302a;
   --color-rose-700: #b8241d;
   --color-rose-800: #951c16;
+  --color-sky-50: #eaf2fb;
+  --color-sky-100: #d3e4f6;
   --color-sky-600: #2f6fb4; /* change orders: the one cool hue, kept apart from the warm severities */
+  --color-sky-900: #173f6c;
 
   /* signage, not pills: tight radii */
   --radius-md: 0.375rem;
@@ -126,7 +129,10 @@
   --color-rose-600: #ff4d3f;
   --color-rose-700: #ff7f73;
   --color-rose-800: #ff978c;
+  --color-sky-50: #07182b;
+  --color-sky-100: #0d2742;
   --color-sky-600: #6ea8e6;
+  --color-sky-900: #bcd8f6;
 }
 :root { color-scheme: light; --pop-shadow: rgba(13, 5, 2, 0.22); --scrim: rgba(13, 5, 2, 0.45); }
 

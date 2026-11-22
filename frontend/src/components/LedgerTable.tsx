@@ -2,7 +2,7 @@ import { clsx } from 'clsx'
 import { memo, useEffect, useMemo, useRef, useState } from 'react'
 import { Icon, Menu, toast } from './ui'
 import { QtyInput, editableCls } from './QtyStepper'
-import { FindingBadge, RISK_UI } from './RiskAssessment'
+import { FindingBadge, RISK_UI, rowUi, type RowTone } from './RiskAssessment'
 import { amount, int, nbHyphen, parseNumber, plural } from '../lib/format'
 import type { PriceSuggestion } from '../lib/price-suggestions'
 import type { CatalogueReport } from '../lib/workspace-catalogue'
@@ -150,7 +150,8 @@ interface RowProps {
 }
 
 const Row = memo(function Row({ listId, p, showCategory, selected, flash, edited, qtyEdited, upEdited, risk, pending, hasWebSuggestion, onConfirmPrice, onToggle, onOpen, onMove }: RowProps) {
-  const severity = risk ? risk.severity ?? 'info' : undefined
+  // a row with only change-order signals is money to claim, not a defect: it takes the cool change-order hue
+  const severity: RowTone | undefined = risk ? risk.severity ?? (risk.signalCount > 0 ? 'change' : 'info') : undefined
   const reviewLabel = risk && [
     risk.count > 0 && plural(risk.count, 'finding', 'findings'),
     risk.signalCount > 0 && plural(risk.signalCount, 'change-order signal', 'change-order signals'),
@@ -200,8 +201,8 @@ const Row = memo(function Row({ listId, p, showCategory, selected, flash, edited
       data-risk={risk?.severity}
       className={clsx(
         'group transition-colors lg:relative',
-        selected ? 'bg-brand-50/70' : severity ? RISK_UI[severity].tint : 'hover:bg-slate-100',
-        severity && [RISK_UI[severity].row, 'lg:[&>td]:align-top'],
+        selected ? 'bg-brand-50/70' : severity ? rowUi(severity).tint : 'hover:bg-slate-100',
+        severity && [rowUi(severity).row, 'lg:[&>td]:align-top'],
         flash && 'bg-brand-50 outline-2 -outline-offset-2 outline-brand-300',
       )}
     >
@@ -394,6 +395,7 @@ export function LedgerTable({
   const sectionRisk = (oz: string) => {
     if (!risks?.size) return null
     let worst: Severity | null = null
+    let change = false
     let count = 0
     let points = 0
     for (const pid of stats.get(oz)?.pids ?? []) {
@@ -401,10 +403,12 @@ export function LedgerTable({
       if (!risk) continue
       count++
       points += risk.points
+      if (!risk.severity) { change ||= risk.signalCount > 0; if (risk.signalCount > 0) continue }
       const severity = risk.severity ?? 'info'
       if (!worst || SEVERITY_RANK[severity] < SEVERITY_RANK[worst]) worst = severity
     }
-    return worst ? { severity: worst, count, points } : null
+    const tone: RowTone | null = worst ?? (change ? 'change' : null)
+    return tone ? { severity: tone, count, points } : null
   }
 
   const selectedVisible = visible.reduce((n, r) => n + (selected.has(r.id) ? 1 : 0), 0)
