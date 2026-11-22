@@ -63,7 +63,7 @@ export function ListPage() {
   )
   if (!syncReady) return <PageFrame><TableSkeleton /></PageFrame>
   return (
-    <PageFrame>
+    <PageFrame className="flex grow flex-col pb-0!">
       <ErrorBoundary key={listId}>
         <Suspense fallback={<TableSkeleton />}>
           <Loaded id={listId} />
@@ -967,8 +967,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
             )}
           </div>
         }
-      />
-
+      >
       {tab === 'x83' && <PhasePanel phase="x83">
       {risk && <RiskSummary risk={risk} decisions={decisions} coverage={coverage} outdated={isStale} />}
       {comparableCap && <p role="status" className="mb-4 text-sm font-medium text-slate-800">
@@ -1223,6 +1222,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
           <AwardTab listId={doc.id} award={award} onOpen={(d) => openDialog({ kind: 'doc', doc: d })} />
         </PhasePanel>
       )}
+      </PhaseHeader>
 
       <SubcontractOverlay open={sending} onClose={() => setSending(false)} listId={doc.id} doc={doc} resolved={resolved} selectedIds={[...selected]} />
 
