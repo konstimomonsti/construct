@@ -331,7 +331,7 @@ function Panel({ onClose, listId, doc, resolved, selectedIds }: Props) {
             <p className="mt-1 text-xs text-slate-600">{g.categories.map((c) => c.name).join(', ')}</p>
             <ul className="mt-2 space-y-0.5 text-xs text-slate-700">
               {g.positions.slice(0, 4).map((p) => (
-                <li key={p.id} className="flex gap-2"><span className="w-20 shrink-0 truncate font-mono text-slate-500">{p.oz}</span><span className="min-w-0 flex-1 truncate">{p.short}</span><span className="num shrink-0 text-slate-500">{qty(p.qty)} {p.unit}</span></li>
+                <li key={p.id} className="flex gap-2"><span className="min-w-[12ch] shrink-0 whitespace-nowrap font-mono text-slate-500">{p.oz}</span><span className="min-w-0 flex-1 truncate">{p.short}</span><span className="num shrink-0 text-slate-500">{qty(p.qty)} {p.unit}</span></li>
               ))}
               {g.positions.length > 4 && <li className="text-slate-500">and {plural(g.positions.length - 4, 'more position', 'more positions')}</li>}
             </ul>

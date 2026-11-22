@@ -9,12 +9,16 @@ import { dependencyReviewLines, findingCategory, REASONS, SEVERITIES, type Chang
  * Rows carry a filled flag chip (tint + icon + word, like every status chip); inside a finding the left bar is the only
  * colour block, so the severity is just an inline flag and word.
  * a flagged row carries a 3px severity bar on its leading edge and a light tint of the same colour across the row.
+ * `flag` matches the bar so a flag icon reads as the same signal; `ink` stays darker for text contrast.
  */
-export const RISK_UI: Record<Severity, { label: string; plural: string; icon: string; chip: string; ink: string; tint: string; row: string; bar: string }> = {
-  error: { label: 'Critical', plural: 'Critical warnings', icon: 'flag', chip: 'bg-rose-100 text-rose-800', ink: 'text-rose-800', tint: 'bg-rose-50 hover:bg-rose-100', row: '[&>td:first-child]:shadow-[inset_3px_0_0_var(--color-rose-600)]', bar: 'border-rose-600' },
-  warning: { label: 'Warning', plural: 'Warnings', icon: 'flag', chip: 'bg-amber-100 text-amber-900', ink: 'text-amber-900', tint: 'bg-amber-50 hover:bg-amber-100', row: '[&>td:first-child]:shadow-[inset_3px_0_0_var(--color-amber-500)]', bar: 'border-amber-500' },
-  info: { label: 'Note', plural: 'Notes', icon: 'flag', chip: 'bg-slate-200 text-slate-800', ink: 'text-slate-700', tint: 'bg-slate-50 hover:bg-slate-100', row: '[&>td:first-child]:shadow-[inset_3px_0_0_var(--color-slate-400)]', bar: 'border-slate-400' },
+export const RISK_UI: Record<Severity, { label: string; plural: string; icon: string; chip: string; ink: string; flag: string; tint: string; row: string; bar: string }> = {
+  error: { label: 'Critical', plural: 'Critical warnings', icon: 'flag', chip: 'bg-rose-100 text-rose-800', ink: 'text-rose-800', flag: 'text-rose-600', tint: 'bg-rose-50 hover:bg-rose-100', row: '[&>td:first-child]:shadow-[inset_3px_0_0_var(--color-rose-600)]', bar: 'border-rose-600' },
+  warning: { label: 'Warning', plural: 'Warnings', icon: 'flag', chip: 'bg-amber-100 text-amber-900', ink: 'text-amber-900', flag: 'text-amber-500', tint: 'bg-amber-50 hover:bg-amber-100', row: '[&>td:first-child]:shadow-[inset_3px_0_0_var(--color-amber-500)]', bar: 'border-amber-500' },
+  info: { label: 'Note', plural: 'Notes', icon: 'flag', chip: 'bg-slate-200 text-slate-800', ink: 'text-slate-700', flag: 'text-slate-400', tint: 'bg-slate-50 hover:bg-slate-100', row: '[&>td:first-child]:shadow-[inset_3px_0_0_var(--color-slate-400)]', bar: 'border-slate-400' },
 }
+
+/** change orders are money, not a defect, so they get the one cool hue and never read as another severity */
+export const CHANGE_ORDER_UI = { flag: 'text-sky-600', bar: 'border-sky-600' }
 
 /** the checker names its scopes in its own terms ("in Entire BoQ"); say them the way an estimator would */
 const plainFindingText = (text: string) => text.replace(/\bin (the )?Entire BoQ\b/gi, 'anywhere in this list').replace(/\bEntire BoQ\b/g, 'the whole list')
@@ -116,7 +120,7 @@ export function FindingText({ finding, reviewed, decision, changed, hideRational
 
 export function ChangeOrderText({ signal, decision }: { signal: ChangeOrderSignal; decision?: Decision }) {
   return (
-    <div className={clsx('min-w-0 border-l-[3px] pl-3', decision ? 'border-slate-300' : 'border-orange-500')}>
+    <div className={clsx('min-w-0 border-l-[3px] pl-3', decision ? 'border-slate-300' : CHANGE_ORDER_UI.bar)}>
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-[13px] font-semibold text-slate-600">
           {decision?.status === 'accepted' ? 'Accepted' : decision ? `Dismissed${decision.reason ? ` · ${REASONS[decision.reason]}` : ''}` : 'Change-order signal'}

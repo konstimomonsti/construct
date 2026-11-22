@@ -1,7 +1,7 @@
 import { clsx } from 'clsx'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Button, Dialog, Icon, kbdCls } from '../ui'
-import { ChangeOrderText, FindingText, RISK_UI } from '../RiskAssessment'
+import { CHANGE_ORDER_UI, ChangeOrderText, FindingText, RISK_UI } from '../RiskAssessment'
 import { FindingQuestions } from './BidderQuestions'
 import { DismissMenu, accepted } from './DecisionControls'
 import { planFix, planFixAll, type FixPlan } from '../../lib/apply-fix'
@@ -74,7 +74,7 @@ export function WarningsPanel({ entries, decisions, settled, positions, allowFix
               <button key={kind} type="button" onClick={() => onFilter(kind === 'change' ? 'change-orders' : kind)}
                 className="inline-flex items-center gap-1 rounded font-medium hover:text-slate-900 hover:underline"
                 title={`Show positions with ${KIND_PLURAL[kind].toLowerCase()}`}>
-                <Icon name="flag" size={14} fill className={kind === 'change' ? 'text-orange-600' : RISK_UI[kind].ink} />
+                <Icon name="flag" size={14} fill className={kind === 'change' ? CHANGE_ORDER_UI.flag : RISK_UI[kind].flag} />
                 <span className="num">{int(counts.get(kind) ?? 0)}</span> {(counts.get(kind) === 1 ? KIND_LABEL : KIND_PLURAL)[kind].toLowerCase()}
               </button>
             ))}
@@ -105,7 +105,7 @@ export function WarningsPanel({ entries, decisions, settled, positions, allowFix
                   <button type="button" aria-expanded={isOpen} onClick={() => setExpanded(isOpen ? null : key)}
                     className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-1 py-1.5 text-left text-sm hover:bg-slate-100">
                     <Icon name="expand_more" size={18} className={clsx('shrink-0 text-slate-500 transition-transform', isOpen && 'rotate-180')} />
-                    <Icon name="flag" size={15} fill className={clsx('shrink-0', group.kind === 'change' ? 'text-orange-600' : RISK_UI[group.kind].ink)} />
+                    <Icon name="flag" size={15} fill className={clsx('shrink-0', group.kind === 'change' ? CHANGE_ORDER_UI.flag : RISK_UI[group.kind].flag)} />
                     <span className="min-w-0 truncate font-medium text-slate-900">{group.title}</span>
                     <span className="num shrink-0 text-slate-600">{int(group.entries.length)}</span>
                   </button>
@@ -119,7 +119,7 @@ export function WarningsPanel({ entries, decisions, settled, positions, allowFix
                       <li key={item.id}>
                         <button type="button" disabled={!position} onClick={() => position && onOpen(position.id)}
                           className="flex min-h-9 w-full items-center gap-2 rounded-md px-2 text-left text-sm hover:bg-slate-100 disabled:hover:bg-transparent">
-                          <span className="num w-20 shrink-0 font-mono text-[13px] text-slate-600">{position?.oz ?? 'List'}</span>
+                          <span className="num min-w-[12ch] shrink-0 whitespace-nowrap font-mono text-[13px] text-slate-600">{position?.oz ?? 'List'}</span>
                           <span className="min-w-0 flex-1 truncate text-slate-800">{position?.short || item.message}</span>
                           {position && <span className="shrink-0 text-[13px] font-semibold text-brand-700">Go to</span>}
                         </button>

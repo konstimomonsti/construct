@@ -108,7 +108,7 @@ export function RequestDialog({ pkg, doc, resolved, nameOf, onClose }: {
           <ul className="mt-1.5 max-h-56 divide-y divide-slate-100 overflow-y-auto rounded-md ring-1 ring-slate-200">
             {positions.map((p) => (
               <li key={p.id} className="flex items-baseline gap-3 px-3 py-1.5 text-sm">
-                <span className="num w-20 shrink-0 font-mono text-[13px] text-slate-700">{p.oz}</span>
+                <span className="num min-w-[12ch] shrink-0 whitespace-nowrap font-mono text-[13px] text-slate-700">{p.oz}</span>
                 <span lang="de" className="min-w-0 flex-1 truncate text-slate-900" title={p.short}>{p.short}</span>
                 <span className="num shrink-0 text-slate-700">{qty(p.qty)} {p.unit}</span>
               </li>
