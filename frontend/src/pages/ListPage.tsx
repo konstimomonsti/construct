@@ -17,7 +17,7 @@ import { ErrorBoundary } from '../components/ErrorBoundary'
 import { LedgerTable } from '../components/LedgerTable'
 import { BidSimulator } from '../components/BidSimulator'
 import { ChangeOrderText, FindingFilter, FindingText } from '../components/RiskAssessment'
-import { analysisCoverage, assessmentMatchesEdits, canApplyAssessmentFix, currentDecisions, decisionsOf, indexFindings, matchesFindingFilter, openQuestions, reportRisk, SEVERITIES, useUploadAssessment, type Assessment, type ChangeOrderSignal, type Decision, type Finding, type Question, type Report, type ReviewItem } from '../lib/risk-assessment'
+import { assessmentMatchesEdits, canApplyAssessmentFix, currentDecisions, decisionsOf, indexFindings, matchesFindingFilter, openQuestions, reportRisk, SEVERITIES, useUploadAssessment, type Assessment, type ChangeOrderSignal, type Decision, type Finding, type Question, type Report, type ReviewItem } from '../lib/risk-assessment'
 import { riskXlsx, downloadBytes } from '../lib/risk-export'
 import type { RowRisk } from '../components/LedgerTable'
 import { DecisionControls, DismissMenu } from '../components/risk/DecisionControls'
@@ -411,10 +411,6 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   const phase = !isStale ? uploadReport?.phase_validation : undefined
   const workflow = useMemo(() => currentPhase(packages, phase?.state === 'verified' && /86$/i.test(imported.phase ?? ''), positions.length > 0 && positions.every(p => p.up != null)), [packages, phase, imported.phase, positions])
   const risk = useMemo(() => reportRisk(uploadReport), [uploadReport])
-  const coverage = uploadReport ? analysisCoverage(uploadReport) : null
-  const analysisErrors = uploadReport?.errors.filter((error) =>
-    !/^layer 3 coverage:/i.test(error) && !coverage?.details.includes(error),
-  ) ?? []
   const reviewedIds = useStore((s) => s.listPatch[doc.id]?.reviewedFindings)
   const decisionMap = useStore((s) => s.listPatch[doc.id]?.findingDecisions)
   const decisions = useMemo(() => currentDecisions(decisionsOf({ findingDecisions: decisionMap, reviewedFindings: reviewedIds }), uploadReport), [decisionMap, reviewedIds, uploadReport])
@@ -975,9 +971,9 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
           </div>
         )}
         meta={
-          <div role="group" aria-label="Pricing position filters" className="flex flex-wrap items-center gap-x-1 gap-y-1">
+          <div role="group" aria-label="Quoting position filters" className="flex flex-wrap items-center gap-x-1 gap-y-1">
             <span className="inline-flex w-[5.5rem] shrink-0 items-center gap-1.5 text-[13px] font-medium text-slate-500">
-              <Icon name="sell" size={16} />Pricing
+              <Icon name="sell" size={16} />Quoting
             </span>
             <MetaLink onClick={() => applyPositionFilter(null)} pressed={!filtered}>All <span className="num">{int(st.positionsCount)}</span> {st.positionsCount === 1 ? 'position' : 'positions'}</MetaLink>
             {PRICING_FILTER_KEYS.filter(filter => pricingCounts[filter] > 0 || pricingFilter === filter)
@@ -1182,36 +1178,6 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
           )}
         </div>
       </div>
-
-      {(assessment || listWide.length > 0 || listSignals.length > 0 || uploadReport?.source_notice || analysisErrors.length > 0) && (
-        <section aria-labelledby="list-findings-h" className="mt-8">
-          <h2 id="list-findings-h" className="font-heading text-base font-bold text-slate-900">Warnings for the whole list</h2>
-          {(assessment || uploadReport?.source_notice || analysisErrors.length > 0) && (
-            <div className="mt-1 space-y-1 text-sm text-amber-900" role="note">
-              {isStale && <p>Previous assessment. Waiting for results for the working revision.</p>}
-              {assessment?.state === 'waiting' && <p>Assessment queued.</p>}
-              {assessment?.state === 'failed' && <p>Assessment failed after retrying.</p>}
-              {assessment?.state === 'unavailable' && <p>Assessment is currently unavailable.</p>}
-              {uploadReport?.graph_valid === false && <p>Invalid references prevent some checks and disable assessment fixes.</p>}
-              {uploadReport?.source_notice && <p>{uploadReport.source_notice}</p>}
-              {analysisErrors.slice(0, 3).map((error, index) => <p key={index}>{error}</p>)}
-            </div>
-          )}
-          {(listWide.length > 0 || listSignals.length > 0) && (
-            <ul className="mt-3 space-y-4">
-              {[...listWide, ...listSignals].map((item) => (
-                <li key={item.id} className="space-y-3">
-                  {'severity' in item ? <FindingText finding={item} decision={decisions[item.id]} details />
-                    : <ChangeOrderText signal={item} decision={decisions[item.id]} />}
-                  <FindingQuestions title={title} questions={questionsByFinding.get(item.id)} />
-                  <DecisionControls className="ml-[15px]" title={item.title} decision={decisions[item.id]}
-                    onDecide={(decision) => decide([item.id], decision, item.title)} />
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-      )}
 
       {doc.notes && (
         <section className="mt-8 rounded-lg bg-slate-50">

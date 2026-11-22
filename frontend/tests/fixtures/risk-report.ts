@@ -40,11 +40,6 @@ const findings: Finding[] = [
     suggested_fix: { rationale: 'Clarify whether 3.2.70 is extra rebar for in-situ joints only.' }, origin: 'llm', model: 'claude-sonnet-5-5',
   },
   {
-    id: 'f_placeholder', layer: 1, rule_id: 'L1.TEXT.SPEC_PLACEHOLDER', category: 'text', severity: 'info', scope: 'line',
-    title: 'Placeholder in the text', message: 'The text contains "Fabrikat: ……", so the bidder has to name a product.',
-    target: { ...line('p7', '3.2.80'), field: 'long_text' }, related_line_ids: [], evidence: {}, suggested_fix: null, origin: 'rule', model: null,
-  },
-  {
     id: 'f_dimension', layer: 1, rule_id: 'L1.TEXT.UNCLEAR_DIMENSION', category: 'text', severity: 'warning', scope: 'line',
     title: 'Dimension without a reference', message: '"Länge=150 mm" does not say which part of the anchor it measures.',
     target: { ...line('p8', '3.2.90'), field: 'short_text' }, related_line_ids: [], evidence: {}, suggested_fix: null, origin: 'rule', model: null,
@@ -59,7 +54,7 @@ const findings: Finding[] = [
 
 const points: Record<string, number> = {
   f_din_grade: 8, f_spec_p1: 4, f_spec_p2: 4, f_spec_p3: 4, f_shop_drawings: 6, f_rebar_unit: 4, f_rebar_scope: 6,
-  f_placeholder: 1, f_dimension: 4, f_din_note_p4: 1, f_din_note_p5: 1, 'co_3.2.70_rebar': 5, 'co_3.2.80_zulage': 3,
+  f_dimension: 4, f_din_note_p4: 1, f_din_note_p5: 1, 'co_3.2.70_rebar': 5, 'co_3.2.80_zulage': 3,
 }
 
 export const riskReport: Report = {
@@ -70,29 +65,29 @@ export const riskReport: Report = {
   summary: { findings: findings.length },
   risk: {
     version: 'risk/1',
-    score: 56, // 51 open points, scale 40
+    score: 56, // 50 open points, scale 40
     level: 'high',
     scale: 40,
     priced: false,
     currency: 'EUR',
     money_at_stake: null,
     points,
-    open_counts: { error: 1, warning: 7, info: 3 },
+    open_counts: { error: 1, warning: 7, info: 2 },
     top_risks: [
       { line_id: 'p6', line_code: '3.2.70', short_text: 'Betonstahl 500 S und 500 M', points: 15, amount: null, reasons: ['Rebar scope overlaps the elements', 'Unit unusual for this trade', 'Vague quantity'], item_ids: ['f_rebar_scope', 'f_rebar_unit', 'co_3.2.70_rebar'] },
       { line_id: 'p1', line_code: '3.2.20', short_text: 'FS 01: FT-Sockel, Sandwichelement, l=6,35m', points: 12, amount: null, reasons: ['Concrete grade below DIN 1045-2 minimum', 'Element height and insulation thickness missing'], item_ids: ['f_din_grade', 'f_spec_p1'] },
       { line_id: 'p0', line_code: '3.2.10', short_text: 'Werkstattzeichnungen', points: 6, amount: null, reasons: ['Shop drawing scope unclear'], item_ids: ['f_shop_drawings'] },
       { line_id: 'p2', line_code: '3.2.30', short_text: 'FS 02: FT-Sockel, Sandwichelement, l=7,00m', points: 4, amount: null, reasons: ['Element height and insulation thickness missing'], item_ids: ['f_spec_p2'] },
       { line_id: 'p3', line_code: '3.2.40', short_text: 'FS 03: FT-Sockel, Sandwichelement, l=1,25m', points: 4, amount: null, reasons: ['Element height and insulation thickness missing'], item_ids: ['f_spec_p3'] },
-      { line_id: 'p7', line_code: '3.2.80', short_text: 'Zulage Aussparungen Öffnungen Tür und Tore', points: 4, amount: null, reasons: ['Placeholder in the text', 'Provisional item'], item_ids: ['f_placeholder', 'co_3.2.80_zulage'] },
       { line_id: 'p8', line_code: '3.2.90', short_text: 'Länge=150 mm', points: 4, amount: null, reasons: ['Dimension without a reference'], item_ids: ['f_dimension'] },
+      { line_id: 'p7', line_code: '3.2.80', short_text: 'Zulage Aussparungen Öffnungen Tür und Tore', points: 3, amount: null, reasons: ['Provisional item'], item_ids: ['co_3.2.80_zulage'] },
       { line_id: 'p4', line_code: '3.2.50', short_text: 'FS 04: FT-Sockel, Sandwichelement, l=3,90m', points: 1, amount: null, reasons: ['Exposure class not stated'], item_ids: ['f_din_note_p4'] },
       { line_id: 'p5', line_code: '3.2.60', short_text: 'FS 05: FT-Sockel, Sandwichelement, l=2,17m', points: 1, amount: null, reasons: ['Exposure class not stated'], item_ids: ['f_din_note_p5'] },
     ],
     by_section: [
-      { section_id: 's-3.2', code: '3.2', title: 'Stahlbetonfertigteile', points: 51, open: 13 },
+      { section_id: 's-3.2', code: '3.2', title: 'Stahlbetonfertigteile', points: 50, open: 12 },
     ],
-    by_category: { text: 17, din: 10, dependency: 6, scope: 6, unit: 4 },
+    by_category: { text: 16, din: 10, dependency: 6, scope: 6, unit: 4 },
     change_order_signals: [
       { id: 'co_3.2.70_rebar', kind: 'vague_quantity', line_id: 'p6', line_code: '3.2.70', title: 'Rebar quantity is an estimate', message: '0,7 t without a schedule; extra tonnage is usually claimed as a change order.', points: 5, finding_ids: ['f_rebar_scope'] },
       { id: 'co_3.2.80_zulage', kind: 'provisional', line_id: 'p7', line_code: '3.2.80', title: 'Surcharge item (Zulage)', message: 'Openings are priced as a surcharge per metre without a quantity basis.', points: 3, finding_ids: [] },
