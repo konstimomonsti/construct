@@ -116,8 +116,7 @@ does not change risk points or estimated exposure.
 
 Missing-dependency and priced-zero-quantity signals
 retain their individual points because they are not wording-only signals.
-Missing-dependency signals retain their source `finding_ids`. Findings and these
-derived signals are separate review items and each has its own points entry.
+Missing-dependency signals retain their source `finding_ids` and carry zero additional points or exposure when the finding is scored. The existing zero-quantity finding takes precedence over a duplicate priced-zero signal.
 
 IDs are `co_<line_code>_<kind>`. Missing codes use the stable line ID; duplicate
 codes append a short line-ID hash so invalid source numbering cannot overwrite

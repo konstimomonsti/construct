@@ -236,7 +236,7 @@ def test_review_order_promotes_only_dependencies_with_a_unique_trigger():
     unique = finding("single-dep", "single", layer=2, rule_id="L2.COVER_NEEDS_SEAL",
                       evidence={"reason": "missing", "trigger_line_ids": ["single"]})
     result = assess(inp, [shared, unique])
-    assert [signal.line_id for signal in result.change_order_signals] == ["single", "generic", "shared"]
+    assert [signal.line_id for signal in result.change_order_signals] == ["single", "generic"]
     assert result.points["co_3_missing_dependency"] == 0
 
 
@@ -274,7 +274,7 @@ def test_overlapping_findings_and_derived_signals_do_not_double_charge_points():
         layer=2,
         category="dependency",
         severity="warning",
-        evidence={"reason": "missing", "amount_at_stake": "100.00"},
+        evidence={"reason": "missing", "amount_at_stake": "100.00", "trigger_line_ids": ["l1"]},
     )
     # L3 corroboration finding referencing the L2 finding
     l3_corroboration = finding(
@@ -289,7 +289,8 @@ def test_overlapping_findings_and_derived_signals_do_not_double_charge_points():
     report = assess(inp, [l2_finding, l3_corroboration])
     # The L2 finding carries the points (4.0 base + uplift)
     assert report.points["l2_gap"] > 0
-    assert all(signal.kind != "missing_dependency" for signal in report.change_order_signals)
+    [signal] = report.change_order_signals
+    assert signal.kind == "missing_dependency" and report.points[signal.id] == 0
     assert "l3_confirm" not in report.points
 
 

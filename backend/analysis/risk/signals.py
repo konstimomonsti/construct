@@ -132,6 +132,16 @@ def excluded_sections(analysis_input: AnalysisInput) -> set[str]:
     return excluded
 
 
+def _dependency_trigger(finding: Finding) -> str | None:
+    triggers = finding.evidence.get("trigger_line_ids")
+    if (finding.layer == 2 and finding.status == "open" and finding.severity in {"error", "warning"}
+            and not finding.evidence.get("dependency_review")
+            and finding.evidence.get("reason") in {"missing", "quantity_shortfall"}
+            and isinstance(triggers, list) and len(triggers) == 1 and isinstance(triggers[0], str)):
+        return triggers[0]
+    return None
+
+
 def collect(analysis_input: AnalysisInput, findings: list[Finding]) -> list[ChangeOrderSignal]:
     lines = analysis_input.line_by_id()
     excluded = excluded_sections(analysis_input)
@@ -147,8 +157,12 @@ def collect(analysis_input: AnalysisInput, findings: list[Finding]) -> list[Chan
         if finding_id:
             ids.add(finding_id)
 
+    zero_findings = {finding.target.line_id for finding in findings
+                     if finding.rule_id == "L1.QTY.ZERO" and finding.status == "open"}
     for line in sorted(lines.values(), key=lambda line: (line.sort_order, line.id)):
         for family in matching_families(line):
+            if family == "zero_qty_priced" and line.id in zero_findings:
+                continue
             kind, message = REGEX_SIGNALS[family][:2] if family in REGEX_SIGNALS else EXTRA_SIGNALS[family]
             if family in EXPLICIT_SCOPE_FAMILIES:
                 clause = _scope_clause(family, line_text(line))
@@ -156,11 +170,9 @@ def collect(analysis_input: AnalysisInput, findings: list[Finding]) -> list[Chan
                     message = f"{message} („{clause}“)"
             add(line, kind, message)
     for finding in sorted(findings, key=lambda item: item.id):
-        if (finding.status == "open" and finding.rule_id.startswith("L2.") and "_NEEDS_" in finding.rule_id
-                and finding.evidence.get("reason") == "missing"):
-            id = anchor(finding, lines)
-            if id is not None:
-                add(lines[id], "missing_dependency", finding.title, finding.id)
+        line_id = _dependency_trigger(finding)
+        if line_id in lines:
+            add(lines[line_id], "missing_dependency", finding.title, finding.id)
     result = []
     for (id, kind), (reasons, finding_ids) in groups.items():
         line = lines[id]
@@ -183,15 +195,7 @@ def review_order(signals: list[ChangeOrderSignal], lines: dict[str, Line],
     def by_points(line_id):
         return -points[line_id], lines[line_id].sort_order, line_id
 
-    direct = {
-        finding.id: finding.evidence["trigger_line_ids"][0]
-        for finding in findings
-        if finding.layer == 2 and finding.severity in {"error", "warning"}
-        and finding.evidence.get("reason") in {"missing", "quantity_shortfall"}
-        and isinstance(finding.evidence.get("trigger_line_ids"), list)
-        and len(finding.evidence["trigger_line_ids"]) == 1
-        and isinstance(finding.evidence["trigger_line_ids"][0], str)
-    }
+    direct = {finding.id: _dependency_trigger(finding) for finding in findings}
     priority = {signal.line_id: 1 for signal in signals
                 if any(direct.get(finding_id) == signal.line_id for finding_id in signal.finding_ids)}
     scope_lines = {signal.line_id for signal in signals if signal.kind == "scope_gap"}
