@@ -62,8 +62,10 @@ export function ListPage() {
     </PageFrame>
   )
   if (!syncReady) return <PageFrame><TableSkeleton /></PageFrame>
+  // from sm up the left padding grows by 24px to make room for the crane tower, and so does the frame,
+  // so the content keeps its width wherever the page is wide enough
   return (
-    <PageFrame className="flex grow flex-col pb-0!">
+    <PageFrame className="flex grow flex-col pb-0! sm:max-w-[1144px] sm:pl-14">
       <ErrorBoundary key={listId}>
         <Suspense fallback={<TableSkeleton />}>
           <Loaded id={listId} />
