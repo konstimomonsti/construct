@@ -1,6 +1,4 @@
 import { clsx } from 'clsx'
-import { LineTypeBadge } from './LineType'
-import type { LineType } from '../lib/line-type'
 import { memo, useEffect, useMemo, useRef, useState } from 'react'
 import { Icon, Menu, toast } from './ui'
 import { QtyInput, editableCls } from './QtyStepper'
@@ -143,7 +141,6 @@ interface RowProps {
   qtyEdited: boolean
   upEdited: boolean
   risk?: RowRisk
-  lineTypeSuggestion?: LineType
   /** catalogue price waiting for confirmation (only on positions without a price) */
   pending?: PriceSuggestion
   hasWebSuggestion: boolean
@@ -152,7 +149,7 @@ interface RowProps {
   onMove: (pid: string) => void
 }
 
-const Row = memo(function Row({ listId, p, showCategory, selected, flash, edited, qtyEdited, upEdited, risk, lineTypeSuggestion, pending, hasWebSuggestion, onConfirmPrice, onToggle, onOpen, onMove }: RowProps) {
+const Row = memo(function Row({ listId, p, showCategory, selected, flash, edited, qtyEdited, upEdited, risk, pending, hasWebSuggestion, onConfirmPrice, onToggle, onOpen, onMove }: RowProps) {
   const severity = risk ? risk.severity ?? 'info' : undefined
   const reviewLabel = risk && [
     risk.count > 0 && plural(risk.count, 'finding', 'findings'),
@@ -229,7 +226,6 @@ const Row = memo(function Row({ listId, p, showCategory, selected, flash, edited
           {hasShort ? nbHyphen(p.short) : <span className="text-slate-600 italic">(ohne Kurztext)</span>}
           <span lang="en" className="sr-only">, open details</span>
         </button>
-        <div className="mt-0.5"><LineTypeBadge position={p} suggestion={lineTypeSuggestion} /></div>
         {showCategory && <div className="mt-0.5 truncate text-[13px] text-slate-600">{p.category}</div>}
         {risk && severity && (
           <button
@@ -296,7 +292,7 @@ const EMPTY = new Set<string>()
 const SEVERITY_RANK: Record<Severity, number> = { error: 0, warning: 1, info: 2 }
 
 export function LedgerTable({
-  listId, rows, tree, byOz, showEmpty, selected, setSelected, focusId, onOpen, onMove, editedIds, qtyEdited, upEdited, risks, lineTypes, pending, catalogue, onConfirmPrice, sortActive, selectMode, sectionsOpen = false,
+  listId, rows, tree, byOz, showEmpty, selected, setSelected, focusId, onOpen, onMove, editedIds, qtyEdited, upEdited, risks, pending, catalogue, onConfirmPrice, sortActive, selectMode, sectionsOpen = false,
 }: {
   /** catalogue prices waiting for confirmation, by position id */
   pending?: ReadonlyMap<string, PriceSuggestion>
@@ -321,7 +317,6 @@ export function LedgerTable({
   onMove: (pid: string) => void
   /** positions with open risk findings, by id */
   risks?: Map<string, RowRisk>
-  lineTypes: ReadonlyMap<string, LineType>
   editedIds: Set<string>
   qtyEdited: Set<string>
   upEdited: Set<string>
@@ -560,7 +555,6 @@ Einheitspreis (€)
                   qtyEdited={qtyEdited.has(p.id)}
                   upEdited={upEdited.has(p.id)}
                   risk={risks?.get(p.id)}
-                  lineTypeSuggestion={lineTypes.get(p.id)}
                   pending={pending?.get(p.id)}
                   hasWebSuggestion={Boolean(catalogue?.[p.id]?.suggestion)}
                   onConfirmPrice={onConfirmPrice}

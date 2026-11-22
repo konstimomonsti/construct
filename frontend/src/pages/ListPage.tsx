@@ -1150,7 +1150,6 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
           qtyEdited={qtyEdited}
           upEdited={upEdited}
           risks={risks}
-          lineTypes={lineTypes}
           pending={pending}
           catalogue={report?.positions}
           onConfirmPrice={(pid) => confirmPrices([pid])}
