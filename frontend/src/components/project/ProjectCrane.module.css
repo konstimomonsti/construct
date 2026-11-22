@@ -30,10 +30,6 @@
   bottom: 4px;
   left: var(--mast-offset);
   width: var(--mast-width);
-}
-
-.mast,
-.workflowMast {
   border-inline: 2px solid;
   background:
     linear-gradient(to top right, transparent 47%, var(--bracing) 49% 51%, transparent 53%),
@@ -41,8 +37,7 @@
   background-size: 100% 27px;
 }
 
-.mast::after,
-.workflowMast::after {
+.mast::after {
   content: '';
   position: absolute;
   inset: auto -7px -1px;
@@ -51,30 +46,6 @@
   background: currentColor;
 }
 
-.workflowMast {
-  --bracing: color-mix(in srgb, currentColor 65%, transparent);
-
-  position: absolute;
-  inset-block: 0;
-  inset-inline-end: 100%;
-  width: 24px;
-  border-block-start: 2px solid;
-  color: var(--color-jib);
-  pointer-events: none;
-}
-
-.workflowMast::after {
-  bottom: 0;
-  inset-inline: -3px;
-}
-
-@media (width < 640px) {
-  .workflowMast {
-    width: 10px;
-    border-inline-width: 1px;
-    background-size: 100% 14px;
-  }
-}
 
 .peak {
   top: 3px;

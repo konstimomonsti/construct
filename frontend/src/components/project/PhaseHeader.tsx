@@ -2,7 +2,7 @@ import { clsx } from 'clsx'
 import { useRef, type KeyboardEvent, type ReactNode } from 'react'
 import { Icon } from '../ui'
 import { CraneProgress } from './CraneProgress'
-import crane from './ProjectCrane.module.css'
+import { CraneMast } from './CraneMast'
 import { money } from '../../lib/format'
 import type { WorkflowPhase, WorkflowState } from '../../lib/workflow'
 
@@ -69,7 +69,7 @@ export function PhaseHeader({
       {sub && <div className="mt-1.5 text-right text-sm text-slate-600">{sub}</div>}
 
       <div className="relative mt-3 grow pb-32 sm:mt-4">
-        <div aria-hidden="true" className={crane.workflowMast} />
+        <CraneMast />
         <section aria-label="List workflow" className="mb-6">
           <div className="relative">
             <CraneProgress state={workflow} valueText={workflow.complete ? `Phase ${PHASES.length} of ${PHASES.length}: ${PHASES[PHASES.length - 1].label}, done` : `Phase ${workflow.index + 1} of ${PHASES.length}: ${PHASES[workflow.index].label}`} />
