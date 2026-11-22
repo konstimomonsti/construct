@@ -72,6 +72,7 @@ def walk_gaeb_boq(node, code_parts, section_paths, boq, result):
         section_paths = (*section_paths, locator["xml_path"])
         result.add(
             "section", locator, **boq, code_parts=list(code_parts), source_id=node.get("ID"),
+            flags={key: text(child(node, key)) for key in ("ALNBGroupNo", "ALNBSerNo", "NotAppl", "Accepted")},
             label=text(child(node, "LblTx")), parent_section=section_paths[-2] if len(section_paths) > 1 else None,
         )
         subtotal = stated_total(node)
@@ -87,7 +88,8 @@ def walk_gaeb_boq(node, code_parts, section_paths, boq, result):
         quantity = decimal_text(quantity_raw)
         if quantity_raw is not None and quantity is None:
             result.warn("invalid_quantity", locator, f"Cannot decode quantity {quantity_raw!r}")
-        flags = {key: text(child(node, key)) for key in ("LumpSumItem", "Provis", "UPBkdn", "AltItem", "RefDescr")}
+        flags = {key: text(child(node, key)) for key in ("LumpSumItem", "Provis", "UPBkdn", "AltItem", "RefDescr",
+                                                         "ALNGroupNo", "ALNSerNo", "NotAppl", "Accepted")}
         if tag == "MarkupItem":
             # A surcharge on other items: a percentage (Markup) of a base amount (ITMarkup), with no quantity or unit.
             flags.update(MarkupItem="Yes", MarkupType=text(child(node, "MarkupType")),

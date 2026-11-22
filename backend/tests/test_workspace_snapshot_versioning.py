@@ -183,3 +183,20 @@ def test_confirmed_cap_and_explicit_phase_link_in_report(database):
     report = workspace_analysis.status(db, name, "award")["report"]
     assert report["phase_validation"]["state"] == "invalid"
     assert report["cap_comparison"]["state"] == "unverified"
+
+
+def test_verified_phase_link_reports_positions_missing_from_either_revision():
+    offer = {**_list(), "phase": "X84", "currency": "EUR",
+             "phaseIdentity": {"packageId": "north", "revision": "offer-1"}}
+    offer["positions"] = [{**p, "positionKey": p["id"], "lumpSum": True} for p in offer["positions"]]
+    award = {**offer, "phase": "X86", "phaseIdentity": {"packageId": "north", "revision": "award-1"},
+             "positions": [{**offer["positions"][0], "lumpSum": False}, {"positionKey": "p3", "oz": "01.0030"}]}
+    patch = {"phaseLink": {"predecessorId": "offer", "predecessorRevision": "offer-1", "revision": "award-1"}}
+
+    comparison = workspace_analysis._phase_validation("award", award, patch, offer, 1)
+
+    assert comparison["state"] == "verified"
+    assert comparison["matched_positions"] == 1
+    assert comparison["missing_positions"] == ["01.0020"]
+    assert comparison["added_positions"] == ["01.0030"]
+    assert award["positions"][0]["lumpSum"] is False

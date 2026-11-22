@@ -154,6 +154,13 @@ def _attach_source(snapshot, source, original_codes):
                 unchanged[line.id] = match.id
         elif line.source_amounts:
             line.source_amounts.line_amount = None
+    source_sections = defaultdict(list)
+    for section in source.sections:
+        source_sections[_code(section.code)].append(section)
+    for section in snapshot.sections:
+        matches = source_sections.get(_code(section.code), [])
+        if section.code and len(matches) == 1:
+            section.gaeb_flags = matches[0].gaeb_flags
     if not source.project.currency or source.project.currency == snapshot.project.currency:
         _attach_original_totals(snapshot, source, unchanged)
     return bool(pairs)
@@ -295,6 +302,7 @@ def _uploaded_input(document):
         node, parent_id = pending.pop()
         code = node["oz"]
         add_section(code, node.get("label"), parent_id)
+        sections[code]["gaeb_flags"] = adapter.clean_flags(node.get("gaebSectionScope"))
         pending.extend((child, code) for child in reversed(node.get("children") or []))
     lines = []
     original_codes = {}
@@ -315,6 +323,7 @@ def _uploaded_input(document):
             "unit": unit,
             "pricing_basis": "lump_sum" if position.get("lumpSum") or (unit or "").lower().rstrip(".") == "psch" else "unit_rate",
             "total_rule": position.get("totalRule") or "include",
+            "gaeb_flags": adapter.clean_flags(position.get("gaebItemScope")),
         }
         if bid:
             line["source_amounts"] = {"unit_price": position.get("up")}
@@ -365,7 +374,10 @@ def _apply_edits(document: dict, edits: dict | None) -> dict:
         node, parent_path = pending.pop()
         code = node["oz"]
         node["label"] = renamed.get(code, node.get("label"))
-        path = [*parent_path, {"oz": code, "label": node["label"]}]
+        ref = {"oz": code, "label": node["label"]}
+        if node.get("gaebSectionScope"):
+            ref["gaebSectionScope"] = node["gaebSectionScope"]
+        path = [*parent_path, ref]
         nodes[code] = (node, path)
         pending.extend((child, path) for child in reversed(node.get("children") or []))
 
@@ -451,12 +463,21 @@ def _phase_validation(list_id, document, patch, predecessor, awards):
         return {"state": "invalid", "reason": "Link a tender to its offer or an offer to its award."}
     if phases[-1] == "86" and awards > 1:
         return {"state": "invalid", "reason": "More than one award claims this package."}
-    keys = [[p.get("positionKey") for p in doc.get("positions", []) if isinstance(p, dict)] for doc in (predecessor, document)]
+    rows = [[p for p in doc.get("positions", []) if isinstance(p, dict)] for doc in (predecessor, document)]
+    keys = [[p.get("positionKey") for p in group] for group in rows]
     if any(not all(isinstance(k, str) and k for k in group) or len(set(group)) != len(group) for group in keys):
         return {"state": "unverified", "reason": "The positions need unique, explicit cross-file identities."}
-    if not set(keys[0]).intersection(keys[1]):
+    prior_keys, current_keys = map(set, keys)
+    if not prior_keys & current_keys:
         return {"state": "invalid", "reason": "The linked revisions have no known positions in common."}
-    return {"state": "verified", "predecessor_id": link["predecessorId"], "matched_positions": len(set(keys[0]) & set(keys[1]))}
+    return {
+        "state": "verified", "predecessor_id": link["predecessorId"],
+        "matched_positions": len(prior_keys & current_keys),
+        "missing_positions": [p.get("oz") or p["positionKey"] for p in rows[0]
+                              if p["positionKey"] not in current_keys],
+        "added_positions": [p.get("oz") or p["positionKey"] for p in rows[1]
+                            if p["positionKey"] not in prior_keys],
+    }
 
 
 def _cap_comparison(report, patch):

@@ -10,6 +10,7 @@ from ..contracts import (
     AddLine, AnalysisInput, Distribution, Finding, Fix, Line, NewLine, Target, finding_key,
 )
 from ..graph import validate_graph
+from ..layer1.common import excluded_scope_sections
 from ..units import Dimension, dimension as shared_dimension
 from .quantities import convert
 from .schema import DependencySpec, RuleSpec, compile_regex, load_rules
@@ -94,7 +95,9 @@ def _active(line: Line) -> bool:
 
 def _contexts(input: AnalysisInput, mode: ScopeMode) -> list[Context]:
     invalid_lines = validate_graph(input).invalid_line_ids
-    lines = [line for line in input.lines if line.id not in invalid_lines and _active(line)]
+    excluded = excluded_scope_sections(input)
+    lines = [line for line in input.lines
+             if line.id not in invalid_lines and line.section_id not in excluded and _active(line)]
     if mode == "auto":
         mode = "area" if any(line.distributions for line in lines) else "document"
     if mode == "document":

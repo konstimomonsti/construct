@@ -330,7 +330,8 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   const documentVersion = useStore((state) => attached.map(({ id }) =>
     [id, state.sync?.hashes.userDocuments?.[id], state.sync?.hashes.documentLinks?.[id]].join(':'),
   ).join(','))
-  const { report, error, retryFailed } = useWorkspaceCatalogue(catalogueEnabled ? imported.id : null, documentVersion)
+  const syncedEdits = useStore((state) => state.sync?.hashes.edits?.[imported.id])
+  const { report, error, retryFailed } = useWorkspaceCatalogue(catalogueEnabled ? imported.id : null, JSON.stringify([documentVersion, syncedEdits]))
   const doc = useMemo(() => {
     if (!report) return imported
     const positions = imported.positions.map((position) => {
@@ -1228,7 +1229,11 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
       )}
       {tab === 'x86' && (
         <PhasePanel phase="x86">
-            {phase?.state === 'verified' && <p role="status">Phase link verified for {phase.matched_positions} positions.</p>}
+            {phase?.state === 'verified' && <p role="status">
+              Phase link verified for {phase.matched_positions} positions.
+              {!!phase.missing_positions?.length && <> Missing from this revision ({phase.missing_positions.length}): {phase.missing_positions.join(', ')}.</>}
+              {!!phase.added_positions?.length && <> Added in this revision ({phase.added_positions.length}): {phase.added_positions.join(', ')}.</>}
+            </p>}
             {phase?.reason && <p role="note">{phase.reason}</p>}
           <AwardTab listId={doc.id} award={award} onOpen={(d) => openDialog({ kind: 'doc', doc: d })} />
         </PhasePanel>

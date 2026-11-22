@@ -7,9 +7,10 @@ so the corrected amount is quantity x unit price.
 from decimal import Decimal
 
 from .. import units
+from ..adapter import is_unselected_scope
 from ..graph import validate_graph
 from ..registry import rule
-from .common import THRESHOLDS, is_counted, is_optional, label, money, section_label
+from .common import THRESHOLDS, excluded_scope_sections, is_counted, is_optional, label, money, section_label
 
 
 @rule("L1.ARITH.LINE_AMOUNT", layer=1, category="arithmetic", severity="error", title="Line amount is wrong",
@@ -64,8 +65,9 @@ def working_totals(analysis_input, graph) -> dict:
     total = Decimal(0)
     missing = 0
     counted = 0
+    excluded = excluded_scope_sections(analysis_input)
     for line in analysis_input.lines:
-        if not is_counted(line):
+        if not is_counted(line) or line.section_id in excluded:
             continue
         counted += 1
         amount = None if line.id in graph.invalid_line_ids else working_line_amount(line, analysis_input.project.currency)
@@ -93,7 +95,9 @@ def line_effective_amount(line) -> Decimal | None:
 def _counted_amount(lines) -> Decimal | None:
     total = Decimal(0)
     for line in lines:
-        if is_counted(line):
+        if not is_unselected_scope(line.gaeb_flags) and (
+            is_counted(line) or line.gaeb_flags.get("Provis") == "WithTotal"
+        ):
             amount = line_effective_amount(line)
             if amount is None:
                 return None
@@ -137,7 +141,8 @@ class _SectionSums:
 
         self.children: dict[str | None, list] = {}
         for parent_id, child_ids in graph.safe_section_children.items():
-            self.children[parent_id] = [sections_by_id[cid] for cid in child_ids if cid in sections_by_id]
+            self.children[parent_id] = [sections_by_id[cid] for cid in child_ids
+                                        if cid in sections_by_id and not is_unselected_scope(sections_by_id[cid].gaeb_flags)]
 
         self._computed: dict[str | None, Decimal | None] = {}
 

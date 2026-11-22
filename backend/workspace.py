@@ -146,7 +146,11 @@ def apply(connection, payload):
                         [(WORKSPACE, collection, key, Jsonb(value, dumps=_dumps), revision)
                          for collection, key, value in writes],
                     )
-            workspace_catalogue.workspace_changed(connection, WORKSPACE, writes, old_folders)
+            edit_ids = {key for collection, key in deletes if collection == "edits"}
+            edit_ids.update(key for collection, key, _ in writes if collection == "edits")
+            workspace_catalogue.workspace_changed(
+                connection, WORKSPACE, writes, old_folders, edits_changed=assessment_lists & edit_ids,
+            )
             assessment_lists.update(workspace_analysis.original_lists(connection, WORKSPACE, assessment_documents))
             assessment_lists.update(_related_phase_lists(connection, assessment_lists, packages))
             workspace_analysis.enqueue(connection, WORKSPACE, assessment_lists, revision=revision)

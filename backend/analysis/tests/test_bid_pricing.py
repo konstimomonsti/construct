@@ -4,8 +4,8 @@ from pathlib import Path
 
 import pytest
 
-from analysis.adapter import from_file
-from analysis.bid_pricing import Change, Position, PriceBand, PricingAssumptions, Scenario, evaluate, optimize, prepare
+from analysis.adapter import from_bytes, from_file
+from analysis.bid_pricing import Change, Position, PriceBand, PricingAssumptions, Scenario, evaluate, included_positions, optimize, prepare
 from analysis.bid_pricing_benchmark import benchmark
 from analysis.contracts import Finding
 from analysis.runner import analyze
@@ -89,3 +89,17 @@ def test_no_bid_when_every_possible_award_loses_money():
     bid = optimize(positions, scenarios)
     assert bid.bid_total is None
     assert bid.expected_profit == bid.optimality_gap_bound == 0
+
+
+def test_simulator_excludes_every_position_below_an_unselected_alternative_section():
+    snapshot = from_bytes("alternative.X83", b"""<GAEB><Award><DP>83</DP><BoQ><BoQBody>
+      <BoQCtgy RNoPart="01"><ALNBGroupNo>1</ALNBGroupNo><ALNBSerNo>0</ALNBSerNo>
+        <BoQBody><Itemlist><Item RNoPart="0010"><Qty>1</Qty><QU>m</QU></Item></Itemlist></BoQBody>
+      </BoQCtgy>
+      <BoQCtgy RNoPart="02"><ALNBGroupNo>1</ALNBGroupNo><ALNBSerNo>1</ALNBSerNo><BoQBody>
+        <BoQCtgy RNoPart="10"><BoQBody>
+          <Itemlist><Item RNoPart="0010"><Qty>10</Qty><QU>m</QU></Item></Itemlist>
+        </BoQBody></BoQCtgy>
+      </BoQBody></BoQCtgy>
+    </BoQBody></BoQ></Award></GAEB>""")
+    assert set(included_positions(snapshot)) == {"01.0010"}

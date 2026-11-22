@@ -1,4 +1,4 @@
-import type { CategoryNode, ListDoc, Position, SourceInfo } from '../types'
+import type { CategoryNode, CategoryRef, ListDoc, Position, SourceInfo } from '../types'
 import { includedPositionTotal, round2, sumPositionTotals } from '../money'
 
 /* ------------------------------------------------------------------ */
@@ -120,9 +120,7 @@ export function rnoPart(part: string, len: number): string {
 /* category tree                                                       */
 /* ------------------------------------------------------------------ */
 
-export interface Cat {
-  oz: string
-  label: string
+export interface Cat extends CategoryRef {
   depth: number
   cats: Cat[]
   items: Position[]
@@ -133,8 +131,8 @@ export interface CatTree {
   rootItems: Position[]
 }
 
-function chainOf(p: Position): { oz: string; label: string }[] {
-  if (p.path && p.path.length) return p.path.map((c) => ({ oz: c.oz, label: c.label }))
+function chainOf(p: Position): CategoryRef[] {
+  if (p.path?.length) return p.path
   const parts = p.oz.split('.')
   const chain: { oz: string; label: string }[] = []
   for (let i = 1; i < parts.length; i++) {
@@ -148,14 +146,15 @@ function chainOf(p: Position): { oz: string; label: string }[] {
 export function buildCats(positions: Position[], tree?: CategoryNode[]): CatTree {
   const roots: Cat[] = []
   const map = new Map<string, Cat>()
-  const ensure = (oz: string, label: string): Cat => {
+  const ensure = (oz: string, label: string, gaebSectionScope?: CategoryRef['gaebSectionScope']): Cat => {
     let c = map.get(oz)
     if (c) {
       if (!c.label && label) c.label = label
+      c.gaebSectionScope ??= gaebSectionScope
       return c
     }
     const parts = oz.split('.')
-    c = { oz, label, depth: parts.length, cats: [], items: [] }
+    c = { oz, label, gaebSectionScope, depth: parts.length, cats: [], items: [] }
     map.set(oz, c)
     if (parts.length === 1) roots.push(c)
     else ensure(parts.slice(0, -1).join('.'), '').cats.push(c)
@@ -163,7 +162,7 @@ export function buildCats(positions: Position[], tree?: CategoryNode[]): CatTree
   }
   const seed = (nodes: CategoryNode[]) => {
     for (const n of nodes) {
-      ensure(n.oz, n.label)
+      ensure(n.oz, n.label, n.gaebSectionScope)
       if (n.children?.length) seed(n.children)
     }
   }
@@ -176,7 +175,7 @@ export function buildCats(positions: Position[], tree?: CategoryNode[]): CatTree
       continue
     }
     let leaf: Cat | undefined
-    for (const c of chain) leaf = ensure(c.oz, c.label)
+    for (const c of chain) leaf = ensure(c.oz, c.label, c.gaebSectionScope)
     leaf!.items.push(p)
   }
   return { roots, rootItems }
