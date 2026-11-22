@@ -5,7 +5,7 @@ import { bidAssumptions, selectedOpportunity, selectQuantityChange, type Pricing
 const tender: PricingTender = {
   input_hash: 'assessment-hash', currency: 'EUR', assessment_layers: [1, 2, 3],
   positions: [{ key: '01.0020', id: 'chairs', text: 'Chairs', quantity: '20', unit: 'St', can_change_quantity: true }],
-  opportunities: [{ position: '01.0020', position_id: 'chairs', quantity: '20', title: 'Verified quantity shortfall',
+  opportunities: [{ position: '01.0020', position_id: 'chairs', quantity: '20', title: 'Potential quantity shortfall',
     rule_id: 'L3.QTY.RELATIONSHIP', finding_id: 'f_chairs', ai_reviewed: false }],
 }
 

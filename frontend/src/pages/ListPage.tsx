@@ -17,7 +17,7 @@ import { ErrorBoundary } from '../components/ErrorBoundary'
 import { LedgerTable } from '../components/LedgerTable'
 import { BidSimulator, type BidSimulatorHandle } from '../components/BidSimulator'
 import { ChangeOrderText, FindingFilter, FindingText } from '../components/RiskAssessment'
-import { assessmentMatchesEdits, canApplyAssessmentFix, currentDecisions, decisionsOf, indexFindings, matchesFindingFilter, openQuestions, reportRisk, SEVERITIES, useUploadAssessment, type Assessment, type ChangeOrderSignal, type Decision, type Finding, type Question, type Report, type ReviewItem } from '../lib/risk-assessment'
+import { assessmentMatchesEdits, canApplyAssessmentFix, currentDecisions, decisionsOf, indexFindings, matchesFindingFilter, openQuestions, QUANTITY_RELATIONSHIP, reportRisk, useUploadAssessment, warningGroup, warningTitle, warningType, type Assessment, type ChangeOrderSignal, type Decision, type Finding, type Question, type Report, type ReviewItem } from '../lib/risk-assessment'
 import { riskXlsx, downloadBytes } from '../lib/risk-export'
 import type { RowRisk } from '../components/LedgerTable'
 import { DecisionControls, DismissMenu } from '../components/risk/DecisionControls'
@@ -520,11 +520,11 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
     return new Map([...reviewByRow].flatMap(([id, items]) => {
       const open = items.filter((item) => !settled.has(item.id))
       if (!open.length) return []
-      const severity = SEVERITIES.find((level) => open.some((item) => 'severity' in item && item.severity === level))
-      const signalCount = open.filter((item) => !('severity' in item)).length
-      const rowRisk: RowRisk = { severity, count: open.length - signalCount, signalCount, points: rowPoints.get(id) ?? 0, label: open.map((item) => item.title).join(', ') }
+      const type = warningType(open[0])
+      const rowRisk: RowRisk = { type: open.every((item) => warningType(item) === type) ? type : undefined,
+        count: open.length, points: rowPoints.get(id) ?? 0, label: open.map(warningTitle).join(', ') }
       const old = prev.get(id)
-      return [[id, old && old.severity === rowRisk.severity && old.count === rowRisk.count && old.signalCount === rowRisk.signalCount && old.points === rowRisk.points && old.label === rowRisk.label ? old : rowRisk] as const]
+      return [[id, old && old.type === rowRisk.type && old.count === rowRisk.count && old.points === rowRisk.points && old.label === rowRisk.label ? old : rowRisk] as const]
     }))
   }, [reviewByRow, rowPoints, settled])
   useEffect(() => {
@@ -535,11 +535,14 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   const warningEntries = useMemo(() => {
     const seen = new Set<string>()
     const out: WarningEntry[] = []
+    const byId = new Map(positions.map((position) => [position.id, position]))
     for (const position of positions) {
       for (const item of reviewByRow.get(position.id) ?? []) {
         if (seen.has(item.id)) continue
         seen.add(item.id)
-        out.push({ item, position })
+        const target = 'severity' in item && item.rule_id === QUANTITY_RELATIONSHIP && item.target.line_id
+          ? byId.get(item.target.line_id) : undefined
+        out.push({ item, position: target ?? position })
       }
     }
     for (const item of [...listWide, ...listSignals]) if (!seen.has(item.id)) out.push({ item, position: null })
@@ -641,7 +644,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
     const ids = new Set<string>()
     for (const row of rows) {
       for (const finding of findingsByRow.get(row.id) ?? []) {
-        if (findingFilter === `rule:${finding.rule_id}` && !settled.has(finding.id)) ids.add(finding.id)
+        if (findingFilter === warningGroup(finding) && !settled.has(finding.id)) ids.add(finding.id)
       }
     }
     return [...ids]
@@ -1289,7 +1292,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
         findings={detailItems?.length ? (
           <section aria-labelledby="drawer-findings-h">
             <h3 id="drawer-findings-h" tabIndex={-1} data-risk-field="findings" className="rounded text-[15px] font-semibold text-slate-900">
-              Upload check
+              Warnings
               <span className="num ml-2 text-sm font-medium text-slate-600">{detailOpen ? `${int(detailOpen)} to review` : 'All reviewed'}</span>
             </h3>
             {detailExposure != null && Number.isFinite(Number(detailExposure)) && (
@@ -1310,7 +1313,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
                   {'severity' in item
                     ? <FindingText finding={item} decision={decisions[item.id]} changed={changedFindings.has(item.id)} hideRationale={!!sharedRationale} details />
                     : <ChangeOrderText signal={item} decision={decisions[item.id]} />}
-                  {'severity' in item && item.rule_id === 'L3.QTY.RELATIONSHIP' && (
+                  {'severity' in item && item.rule_id === QUANTITY_RELATIONSHIP && (
                     <div className="ml-[15px] flex flex-wrap gap-2">
                       {[item.target.line_id, ...item.related_line_ids].filter((id): id is string =>
                         !!id && id !== detail?.id && codes.has(id)).map((id) =>
@@ -1328,8 +1331,8 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
                     </div>
                   )}
                   <FindingQuestions title={title} questions={questionsByFinding.get(item.id)} />
-                  <DecisionControls className="ml-[15px]" title={item.title} decision={decisions[item.id]}
-                    onDecide={(decision) => decideInDrawer(item.id, item.title, decision)} />
+                  <DecisionControls className="ml-[15px]" title={warningTitle(item)} decision={decisions[item.id]}
+                    onDecide={(decision) => decideInDrawer(item.id, warningTitle(item), decision)} />
                 </li>
               ))}
             </ul>

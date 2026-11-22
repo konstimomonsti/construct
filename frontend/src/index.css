@@ -59,7 +59,7 @@
   --color-rose-800: #951c16;
   --color-sky-50: #eaf2fb;
   --color-sky-100: #d3e4f6;
-  --color-sky-600: #2f6fb4; /* change orders: the one cool hue, kept apart from the warm severities */
+  --color-sky-600: #2f6fb4;
   --color-sky-900: #173f6c;
 
   /* signage, not pills: tight radii */
@@ -81,8 +81,22 @@
   }
 }
 
+:root {
+  --warning-information: #7953a4;
+  --warning-unit: #007580;
+  --warning-arithmetic: #a3386f;
+}
+
+.warning-row > td:first-child { box-shadow: inset 3px 0 0 var(--warning-color); }
+.warning-row-tint { background-color: color-mix(in srgb, var(--warning-color) 7%, var(--color-slate-50)); }
+.warning-row-tint:hover { background-color: color-mix(in srgb, var(--warning-color) 13%, var(--color-slate-50)); }
+.warning-badge { background-color: color-mix(in srgb, var(--warning-color) 12%, var(--color-slate-50)); }
+
 /* Dark mode: the poster palette. Pit black, hoarding brown, bronze, signal yellow. */
 :root[data-theme='dark'] {
+  --warning-information: #c6a6ed;
+  --warning-unit: #70ccd2;
+  --warning-arithmetic: #e997c2;
   color-scheme: dark;
   --pop-shadow: rgba(0, 0, 0, 0.7);
   --scrim: rgba(0, 0, 0, 0.6);

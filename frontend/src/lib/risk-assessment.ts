@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import type { CSSProperties } from 'react'
 import { partialAnalysis } from './risk-labels'
 import { round2 } from './money'
 import type { Position } from './types'
@@ -50,8 +51,48 @@ export type ChangeOrderSignal = {
 }
 export type ReviewItem = Finding | ChangeOrderSignal
 
-export const findingCategory = (category: string) => category === 'din'
-  ? 'DIN 1045-2' : category.charAt(0).toUpperCase() + category.slice(1).replaceAll('_', ' ')
+export const WARNING_TYPES = {
+  quantity: { label: 'Quantities', color: 'var(--color-amber-800)' },
+  information: { label: 'Information', color: 'var(--warning-information)' },
+  din: { label: 'DIN standards', color: 'var(--color-rose-700)' },
+  unit: { label: 'Units', color: 'var(--warning-unit)' },
+  scope: { label: 'Scope', color: 'var(--color-emerald-700)' },
+  change: { label: 'Change orders', color: 'var(--color-sky-600)' },
+  price: { label: 'Pricing', color: 'var(--color-orange-800)' },
+  arithmetic: { label: 'Calculations', color: 'var(--warning-arithmetic)' },
+  structure: { label: 'Structure', color: 'var(--color-slate-500)' },
+} as const
+export type WarningType = keyof typeof WARNING_TYPES
+export const WARNING_TYPE_ORDER = Object.keys(WARNING_TYPES) as WarningType[]
+export const warningColor = (type?: WarningType) => type ? WARNING_TYPES[type].color : 'var(--color-slate-600)'
+export const warningStyle = (type?: WarningType) => ({ '--warning-color': warningColor(type) } as CSSProperties)
+
+export function warningType(item: ReviewItem): WarningType {
+  if (!('severity' in item)) return 'change'
+  if (item.rule_id === 'L1.STRUCT.PROVISIONAL_ITEM') return 'scope'
+  if (item.category === 'completeness' && (item.target.field === 'quantity' || /^L\d+\.QTY\./.test(item.rule_id))) return 'quantity'
+  switch (item.category) {
+    case 'quantity': case 'unit': case 'din': case 'price': case 'arithmetic': case 'structure': return item.category
+    case 'scope': case 'dependency': return 'scope'
+    case 'duplicate': return 'structure'
+    default: return 'information'
+  }
+}
+
+export const QUANTITY_RELATIONSHIP = 'L3.QTY.RELATIONSHIP'
+
+export function warningTitle(item: ReviewItem): string {
+  return 'severity' in item && item.rule_id === QUANTITY_RELATIONSHIP && item.evidence?.reason === 'shortfall'
+    ? 'Potential quantity shortfall' : item.title
+}
+
+export function warningGroup(item: ReviewItem): string {
+  if (!('severity' in item)) return `change:${item.kind}`
+  if (item.rule_id === QUANTITY_RELATIONSHIP) {
+    return `rule:${item.rule_id}:${item.evidence?.reason === 'shortfall' ? 'shortfall' : 'scope'}`
+  }
+  return `rule:${item.rule_id}`
+}
 
 export type TopRisk = {
   line_id: string; line_code: string; short_text: string; points: number
@@ -305,6 +346,7 @@ export function matchesFindingFilter(filter: string, findings: ReviewItem[], rev
   return findings.some((item) => {
     if (reviewed.has(item.id)) return false
     if (filter === 'flagged') return true
+    if (filter === `type:${warningType(item)}` || filter === warningGroup(item)) return true
     if (!('severity' in item)) return filter === 'change-orders'
     return filter === item.severity || filter === `rule:${item.rule_id}` || filter === `category:${item.category}`
   })

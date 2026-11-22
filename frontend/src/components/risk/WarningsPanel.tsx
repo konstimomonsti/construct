@@ -1,12 +1,12 @@
 import { clsx } from 'clsx'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Button, Dialog, Icon, kbdCls } from '../ui'
-import { CHANGE_ORDER_UI, ChangeOrderText, FindingText, RISK_UI } from '../RiskAssessment'
+import { ChangeOrderText, FindingText, WarningFlag } from '../RiskAssessment'
 import { FindingQuestions } from './BidderQuestions'
 import { DismissMenu, accepted } from './DecisionControls'
 import { planFix, planFixAll, type FixPlan } from '../../lib/apply-fix'
 import { int, plural } from '../../lib/format'
-import { SEVERITIES, type Decision, type Decisions, type Finding, type Question, type ReviewItem, type Severity } from '../../lib/risk-assessment'
+import { WARNING_TYPES, WARNING_TYPE_ORDER, warningGroup, warningTitle, warningType, type Decision, type Decisions, type Finding, type Question, type ReviewItem, type WarningType } from '../../lib/risk-assessment'
 import type { Position } from '../../lib/types'
 
 export type WarningEntry = { item: ReviewItem; position: Position | null }
@@ -14,9 +14,6 @@ export type WarningEntry = { item: ReviewItem; position: Position | null }
 type ApplyFixes = (plans: { finding: Finding; plan: FixPlan }[]) => Promise<boolean> | boolean | void
 
 const isFinding = (item: ReviewItem): item is Finding => 'severity' in item
-const kindOf = (item: ReviewItem): Severity | 'change' => (isFinding(item) ? item.severity : 'change')
-const KIND_LABEL: Record<Severity | 'change', string> = { error: 'Critical', warning: 'Warning', info: 'Note', change: 'Change order' }
-const KIND_PLURAL: Record<Severity | 'change', string> = { error: 'Critical', warning: 'Warnings', info: 'Notes', change: 'Change orders' }
 
 /**
  * The warnings of the uploaded tender at a glance: counts per kind, one line per type that jumps to the positions,
@@ -39,20 +36,23 @@ export function WarningsPanel({ entries, decisions, settled, positions, allowFix
   const open = useMemo(() => entries.filter(({ item }) => !settled.has(item.id)), [entries, settled])
   const { plans, rest } = useMemo(() => planFixAll(open.map(({ item }) => item), positions, allowFixes), [open, positions, allowFixes])
   const counts = useMemo(() => {
-    const out = new Map<Severity | 'change', number>()
-    for (const { item } of open) out.set(kindOf(item), (out.get(kindOf(item)) ?? 0) + 1)
+    const out = new Map<WarningType, number>()
+    for (const { item } of open) {
+      const type = warningType(item)
+      out.set(type, (out.get(type) ?? 0) + 1)
+    }
     return out
   }, [open])
   const types = useMemo(() => {
-    const out = new Map<string, { title: string; kind: Severity | 'change'; entries: WarningEntry[] }>()
+    const out = new Map<string, { title: string; type: WarningType; entries: WarningEntry[] }>()
     for (const entry of open) {
-      const key = isFinding(entry.item) ? `rule:${entry.item.rule_id}` : `change:${entry.item.kind}`
-      const group = out.get(key) ?? { title: entry.item.title, kind: kindOf(entry.item), entries: [] }
+      const key = warningGroup(entry.item)
+      const group = out.get(key) ?? { title: warningTitle(entry.item), type: warningType(entry.item), entries: [] }
       group.entries.push(entry)
       out.set(key, group)
     }
-    const rank = (kind: Severity | 'change') => (kind === 'change' ? 3 : SEVERITIES.indexOf(kind))
-    return [...out].sort(([, a], [, b]) => rank(a.kind) - rank(b.kind) || b.entries.length - a.entries.length)
+    return [...out].sort(([, a], [, b]) =>
+      WARNING_TYPE_ORDER.indexOf(a.type) - WARNING_TYPE_ORDER.indexOf(b.type) || b.entries.length - a.entries.length)
   }, [open])
 
   const [confirming, setConfirming] = useState(false)
@@ -67,15 +67,15 @@ export function WarningsPanel({ entries, decisions, settled, positions, allowFix
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
           <h2 id="warnings-h" className="font-heading text-base font-bold text-slate-900">
-            {open.length ? plural(open.length, 'finding to review', 'findings to review') : 'Review complete'}
+            {open.length ? plural(open.length, 'warning to review', 'warnings to review') : 'Review complete'}
           </h2>
           <p className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-slate-600">
-            {([...SEVERITIES, 'change'] as const).filter((kind) => counts.get(kind)).map((kind) => (
-              <button key={kind} type="button" onClick={() => onFilter(kind === 'change' ? 'change-orders' : kind)}
+            {WARNING_TYPE_ORDER.filter((type) => counts.has(type)).map((type) => (
+              <button key={type} type="button" onClick={() => onFilter(`type:${type}`)}
                 className="inline-flex items-center gap-1 rounded font-medium hover:text-slate-900 hover:underline"
-                title={`Show positions with ${KIND_PLURAL[kind].toLowerCase()}`}>
-                <Icon name="flag" size={14} fill className={kind === 'change' ? CHANGE_ORDER_UI.flag : RISK_UI[kind].flag} />
-                <span className="num">{int(counts.get(kind) ?? 0)}</span> {(counts.get(kind) === 1 ? KIND_LABEL : KIND_PLURAL)[kind].toLowerCase()}
+                title={`Filter by ${WARNING_TYPES[type].label.toLowerCase()}`}>
+                <WarningFlag type={type} size={14} />
+                {WARNING_TYPES[type].label} <span className="num">{int(counts.get(type) ?? 0)}</span>
               </button>
             ))}
             {decidedCount > 0 && <span><span className="num">{int(decidedCount)}</span> reviewed</span>}
@@ -105,11 +105,12 @@ export function WarningsPanel({ entries, decisions, settled, positions, allowFix
                   <button type="button" aria-expanded={isOpen} onClick={() => setExpanded(isOpen ? null : key)}
                     className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-1 py-1.5 text-left text-sm hover:bg-slate-100">
                     <Icon name="expand_more" size={18} className={clsx('shrink-0 text-slate-500 transition-transform', isOpen && 'rotate-180')} />
-                    <Icon name="flag" size={15} fill className={clsx('shrink-0', group.kind === 'change' ? CHANGE_ORDER_UI.flag : RISK_UI[group.kind].flag)} />
+                    <WarningFlag type={group.type} />
+                    <span className="sr-only">{WARNING_TYPES[group.type].label}</span>
                     <span className="min-w-0 truncate font-medium text-slate-900">{group.title}</span>
                     <span className="num shrink-0 text-slate-600">{int(group.entries.length)}</span>
                   </button>
-                  {key.startsWith('rule:') && group.entries.some((entry) => entry.position) && (
+                  {group.entries.some((entry) => entry.position) && (
                     <Button size="sm" variant="ghost" icon="filter_list" onClick={() => onFilter(key)}>Show in list</Button>
                   )}
                 </div>
@@ -201,7 +202,7 @@ function ReviewStepper({ open, positions, decisions, allowFixes, title, question
   }
   const card = useRef<HTMLDivElement>(null)
 
-  const accept = () => item && onDecide([item.id], accepted(), item.title)
+  const accept = () => item && onDecide([item.id], accepted(), warningTitle(item))
   const fix = () => item && plan?.steps.length && isFinding(item) && onApplyFixes([{ finding: item, plan }])
 
   useEffect(() => {
@@ -249,7 +250,7 @@ function ReviewStepper({ open, positions, decisions, allowFixes, title, question
       <div className="mt-3 ml-[15px] flex flex-wrap items-center gap-2">
         {!!plan?.steps.length && <Button size="sm" variant="primary" icon="auto_fix_high" onClick={fix}>Apply fix <kbd className={clsx(kbdCls, 'ml-1.5')}>F</kbd></Button>}
         <Button size="sm" icon="check" onClick={accept}>Accept <kbd className={clsx(kbdCls, 'ml-1.5')}>A</kbd></Button>
-        <DismissMenu label={`Dismiss: ${item.title}`} onDismiss={(decision) => onDecide([item.id], decision, item.title)} />
+        <DismissMenu label={`Dismiss: ${warningTitle(item)}`} onDismiss={(decision) => onDecide([item.id], decision, warningTitle(item))} />
         <Button size="sm" variant="ghost" onClick={() => move(1)}>Skip</Button>
         <span className="ml-auto text-[13px] text-slate-600 max-sm:hidden"><kbd className={kbdCls}>←</kbd> <kbd className={kbdCls}>→</kbd> to move</span>
       </div>

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { planFix } from '../src/lib/apply-fix'
-import { applyDecision, decisionsOf, levelOf, matchesFindingFilter, rescore, type Finding, type FixOperation, type Risk } from '../src/lib/risk-assessment'
+import { applyDecision, decisionsOf, matchesFindingFilter, rescore, WARNING_TYPES, warningGroup, warningTitle, warningType, type ChangeOrderSignal, type Finding, type Risk } from '../src/lib/risk-assessment'
 import { riskReport } from './fixtures/risk-report'
 
 test('route change aborts in-flight polling without state corruption', () => {
@@ -70,6 +70,47 @@ test('filter matches severity, rules, categories and respects open vs reviewed i
   assert.ok(matchesFindingFilter('reviewed', [finding], reviewed))
   assert.ok(!matchesFindingFilter('flagged', [finding], reviewed))
   assert.ok(!matchesFindingFilter('error', [finding], reviewed))
+})
+
+test('warning colors and filters follow the type across severities', () => {
+  const base = riskReport.findings[0]
+  const samples = [
+    [{ ...base, category: 'quantity', severity: 'warning' }, 'quantity'],
+    [{ ...base, category: 'quantity', severity: 'info' }, 'quantity'],
+    [{ ...base, category: 'din', severity: 'error' }, 'din'],
+    [{ ...base, category: 'text', severity: 'warning' }, 'information'],
+    [{ ...base, category: 'unit', severity: 'warning' }, 'unit'],
+    [{ ...base, category: 'structure', rule_id: 'L1.STRUCT.PROVISIONAL_ITEM' }, 'scope'],
+  ] satisfies [Finding, string][]
+  for (const [finding, type] of samples) {
+    assert.equal(warningType(finding), type)
+    assert.ok(matchesFindingFilter(`type:${type}`, [finding], new Set()))
+    assert.ok(!matchesFindingFilter(`type:${type}`, [finding], new Set([finding.id])))
+  }
+  const signal: ChangeOrderSignal = {
+    id: 'change', kind: 'hourly_work', line_id: 'row', line_code: '1.10', title: 'Hourly work',
+    message: 'Confirm the hourly work.', points: 5, finding_ids: [],
+  }
+  assert.equal(warningType(signal), 'change')
+  assert.ok(matchesFindingFilter('type:change', [signal], new Set()))
+  assert.ok(matchesFindingFilter(warningGroup(signal), [signal], new Set()))
+  assert.equal(new Set(Object.values(WARNING_TYPES).map(({ color }) => color)).size, Object.keys(WARNING_TYPES).length)
+})
+
+test('saved quantity shortfalls and scope questions get separate warning groups', () => {
+  const shortfall: Finding = {
+    ...riskReport.findings[0], id: 'shortfall', rule_id: 'L3.QTY.RELATIONSHIP', category: 'quantity',
+    title: 'Verified quantity shortfall', evidence: { reason: 'shortfall' }, severity: 'warning',
+  }
+  const scope: Finding = {
+    ...shortfall, id: 'scope', title: 'Verify quantity scope', evidence: { reason: 'ambiguous_scope' }, severity: 'info',
+  }
+  assert.equal(warningTitle(shortfall), 'Potential quantity shortfall')
+  assert.equal(warningTitle(scope), 'Verify quantity scope')
+  assert.equal(warningType(shortfall), warningType(scope))
+  assert.ok(matchesFindingFilter(warningGroup(shortfall), [shortfall], new Set()))
+  assert.ok(!matchesFindingFilter(warningGroup(shortfall), [scope], new Set()))
+  assert.ok(matchesFindingFilter('type:quantity', [scope], new Set()))
 })
 
 test('critical priority and blocking status consistency across bands', () => {

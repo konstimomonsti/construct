@@ -2,17 +2,17 @@ import { clsx } from 'clsx'
 import { memo, useEffect, useMemo, useRef, useState } from 'react'
 import { Icon, Menu, toast } from './ui'
 import { QtyInput, editableCls } from './QtyStepper'
-import { FindingBadge, RISK_UI, rowUi, type RowTone } from './RiskAssessment'
+import { WarningBadge } from './RiskAssessment'
 import { amount, int, nbHyphen, parseNumber, plural } from '../lib/format'
 import type { PriceSuggestion } from '../lib/price-suggestions'
 import type { CatalogueReport } from '../lib/workspace-catalogue'
 import { positionTotal } from '../lib/money'
 import { useStore } from '../lib/store'
 import { leafOz, treeStats, type CatStat } from '../lib/resolve'
-import type { Severity } from '../lib/risk-assessment'
+import { WARNING_TYPES, warningStyle, type WarningType } from '../lib/risk-assessment'
 import type { CategoryNode, Position } from '../lib/types'
 
-export type RowRisk = { severity?: Severity; count: number; signalCount: number; points: number; label: string }
+export type RowRisk = { type?: WarningType; count: number; points: number; label: string }
 
 /** why a section adds up to nothing, in the words the rows use */
 function zeroWhy(s: CatStat, waiting: number) {
@@ -153,12 +153,7 @@ interface RowProps {
 }
 
 const Row = memo(function Row({ listId, p, showCategory, selected, flash, edited, qtyEdited, upEdited, risk, pending, hasWebSuggestion, onConfirmPrice, onToggle, onOpen, onMove }: RowProps) {
-  // a row with only change-order signals is money to claim, not a defect: it takes the cool change-order hue
-  const severity: RowTone | undefined = risk ? risk.severity ?? (risk.signalCount > 0 ? 'change' : 'info') : undefined
-  const reviewLabel = risk && [
-    risk.count > 0 && plural(risk.count, 'finding', 'findings'),
-    risk.signalCount > 0 && plural(risk.signalCount, 'change-order signal', 'change-order signals'),
-  ].filter(Boolean).join(' · ')
+  const reviewLabel = risk && plural(risk.count, 'warning', 'warnings')
   const total = positionTotal(p)
   const remove = () => {
     useStore.getState().removePositions(listId, [p.id])
@@ -202,11 +197,12 @@ const Row = memo(function Row({ listId, p, showCategory, selected, flash, edited
     <tr
       data-pid={p.id}
       data-row="position"
-      data-risk={risk?.severity}
+      data-risk={risk ? risk.type ?? 'mixed' : undefined}
+      style={risk && warningStyle(risk.type)}
       className={clsx(
         'group transition-colors lg:relative',
-        selected ? 'bg-brand-50/70' : severity ? rowUi(severity).tint : 'hover:bg-slate-100',
-        severity && [rowUi(severity).row, 'lg:[&>td]:align-top'],
+        selected ? 'bg-brand-50/70' : risk && !flash ? 'warning-row-tint' : 'hover:bg-slate-100',
+        risk && 'warning-row lg:[&>td]:align-top',
         flash && 'bg-brand-50 outline-2 -outline-offset-2 outline-brand-300',
       )}
     >
@@ -232,7 +228,7 @@ const Row = memo(function Row({ listId, p, showCategory, selected, flash, edited
           <span lang="en" className="sr-only">, open details</span>
         </button>
         {showCategory && <div className="mt-0.5 truncate text-[13px] text-slate-600">{p.category}</div>}
-        {risk && severity && (
+        {risk && (
           <button
             type="button"
             onClick={() => onOpen(p, 'findings')}
@@ -241,10 +237,10 @@ const Row = memo(function Row({ listId, p, showCategory, selected, flash, edited
             className="mb-1.5 block rounded-md max-lg:mt-1"
           >
             {/* the row says how much; the titles live in the drawer, so nothing here gets clipped */}
-            <FindingBadge severity={severity}>
-              {risk.severity && <>{RISK_UI[risk.severity].label}<span aria-hidden>·</span></>}
+            <WarningBadge type={risk.type}>
+              {risk.type && <>{WARNING_TYPES[risk.type].label}<span aria-hidden>·</span></>}
               <span className="font-normal">{reviewLabel}</span>
-            </FindingBadge>
+            </WarningBadge>
             {risk.points > 0 && <span className="num ml-2 text-[13px] text-slate-600">{plural(risk.points, 'risk point', 'risk points')}</span>}
           </button>
         )}
@@ -294,7 +290,6 @@ const Row = memo(function Row({ listId, p, showCategory, selected, flash, edited
 })
 
 const EMPTY = new Set<string>()
-const SEVERITY_RANK: Record<Severity, number> = { error: 0, warning: 1, info: 2 }
 
 export function LedgerTable({
   listId, rows, tree, byOz, showEmpty, selected, setSelected, focusId, onOpen, onMove, editedIds, qtyEdited, upEdited, risks, pending, catalogue, onConfirmPrice, sortActive, selectMode, sectionsOpen = false,
@@ -395,11 +390,10 @@ export function LedgerTable({
     else set.add(oz)
     return { mode, set }
   })
-  /** worst open finding inside a collapsed section, so flagged rows stay visible as a hint */
+  /** warning summary for a collapsed section, so flagged rows stay visible as a hint */
   const sectionRisk = (oz: string) => {
     if (!risks?.size) return null
-    let worst: Severity | null = null
-    let change = false
+    const types = new Set<WarningType | undefined>()
     let count = 0
     let points = 0
     for (const pid of stats.get(oz)?.pids ?? []) {
@@ -407,12 +401,9 @@ export function LedgerTable({
       if (!risk) continue
       count++
       points += risk.points
-      if (!risk.severity) { change ||= risk.signalCount > 0; if (risk.signalCount > 0) continue }
-      const severity = risk.severity ?? 'info'
-      if (!worst || SEVERITY_RANK[severity] < SEVERITY_RANK[worst]) worst = severity
+      types.add(risk.type)
     }
-    const tone: RowTone | null = worst ?? (change ? 'change' : null)
-    return tone ? { severity: tone, count, points } : null
+    return count ? { type: types.size === 1 ? types.values().next().value : undefined, count, points } : null
   }
 
   const selectedVisible = visible.reduce((n, r) => n + (selected.has(r.id) ? 1 : 0), 0)
@@ -532,7 +523,7 @@ Einheitspreis (€)
                           </button>
                           {flagged && (!open || flagged.points > 0) && (
                             <span className="-mt-1 mb-2 flex flex-wrap items-center gap-2 pl-[calc(136px+var(--ind,0)*28px)] text-sm max-lg:pl-[calc(1.75rem+var(--ind,0)*16px)]">
-                              {!open && <FindingBadge severity={flagged.severity}>{plural(flagged.count, 'flagged position', 'flagged positions')}</FindingBadge>}
+                              {!open && <WarningBadge type={flagged.type}>{plural(flagged.count, 'flagged position', 'flagged positions')}</WarningBadge>}
                               {flagged.points > 0 && <span className="num text-[13px] text-slate-600">{plural(flagged.points, 'risk point', 'risk points')}</span>}
                             </span>
                           )}

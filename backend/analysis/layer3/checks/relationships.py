@@ -175,7 +175,7 @@ def quantity_relationships(ctx):
         yield ctx.finding(
             line=target, field="quantity", related_line_ids=related, origin="llm", model=session.model_id,
             severity="warning" if calculation else "info",
-            title="Verified quantity shortfall" if calculation else "Verify quantity scope",
+            title="Potential quantity shortfall" if calculation else "Verify quantity scope",
             message=f'{line_codes} · “{item.quote}” · {calculation or REASONS[reason]}',
             discriminator=f"{source.id}:{base.id}:{item.dependent_ref}:{item.ratio}:{reason}",
             evidence={"reason": reason, "relationship": item.model_dump(mode="json"),

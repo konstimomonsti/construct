@@ -2,37 +2,23 @@ import { clsx } from 'clsx'
 import { Icon, Menu, type MenuItem } from './ui'
 import { ToolButton } from './Kit'
 import { money } from '../lib/format'
-import { dependencyReviewLines, findingCategory, REASONS, SEVERITIES, type ChangeOrderSignal, type Decision, type Finding, type ReviewItem, type Severity } from '../lib/risk-assessment'
-
-/**
- * severity colours for the risk UI, built on the themed status tokens so they hold in dark mode.
- * Rows carry a filled flag chip (tint + icon + word, like every status chip); inside a finding the left bar is the only
- * colour block, so the severity is just an inline flag and word.
- * a flagged row carries a 3px severity bar on its leading edge and a light tint of the same colour across the row.
- * `flag` matches the bar so a flag icon reads as the same signal; `ink` stays darker for text contrast.
- */
-export const RISK_UI: Record<Severity, { label: string; plural: string; icon: string; chip: string; ink: string; flag: string; tint: string; row: string; bar: string }> = {
-  error: { label: 'Critical', plural: 'Critical warnings', icon: 'flag', chip: 'bg-rose-100 text-rose-800', ink: 'text-rose-800', flag: 'text-rose-600', tint: 'bg-rose-50 hover:bg-rose-100', row: '[&>td:first-child]:shadow-[inset_3px_0_0_var(--color-rose-600)]', bar: 'border-rose-600' },
-  warning: { label: 'Warning', plural: 'Warnings', icon: 'flag', chip: 'bg-amber-100 text-amber-900', ink: 'text-amber-900', flag: 'text-amber-500', tint: 'bg-amber-50 hover:bg-amber-100', row: '[&>td:first-child]:shadow-[inset_3px_0_0_var(--color-amber-500)]', bar: 'border-amber-500' },
-  info: { label: 'Note', plural: 'Notes', icon: 'flag', chip: 'bg-slate-200 text-slate-800', ink: 'text-slate-700', flag: 'text-slate-400', tint: 'bg-slate-50 hover:bg-slate-100', row: '[&>td:first-child]:shadow-[inset_3px_0_0_var(--color-slate-400)]', bar: 'border-slate-400' },
-}
-
-/** change orders are money, not a defect, so they get the one cool hue and never read as another severity */
-export const CHANGE_ORDER_UI = { label: 'Change order', icon: 'flag', chip: 'bg-sky-100 text-sky-900', flag: 'text-sky-600', tint: 'bg-sky-50 hover:bg-sky-100', row: '[&>td:first-child]:shadow-[inset_3px_0_0_var(--color-sky-600)]', bar: 'border-sky-600' }
-
-/** a row's tone: its worst finding, or the change-order hue when it only carries change-order signals */
-export type RowTone = Severity | 'change'
-export const rowUi = (tone: RowTone) => (tone === 'change' ? CHANGE_ORDER_UI : RISK_UI[tone])
+import { dependencyReviewLines, REASONS, WARNING_TYPES, WARNING_TYPE_ORDER, warningColor, warningGroup, warningStyle, warningTitle, warningType, type ChangeOrderSignal, type Decision, type Finding, type ReviewItem, type WarningType } from '../lib/risk-assessment'
 
 /** the checker names its scopes in its own terms ("in Entire BoQ"); say them the way an estimator would */
 const plainFindingText = (text: string) => text.replace(/\bin (the )?Entire BoQ\b/gi, 'anywhere in this list').replace(/\bEntire BoQ\b/g, 'the whole list')
 
-export function FindingBadge({ severity, children }: { severity: RowTone; children?: React.ReactNode }) {
-  const style = rowUi(severity)
+export function WarningFlag({ type, size = 15 }: { type?: WarningType; size?: number }) {
+  return <span aria-hidden="true" className="inline-flex shrink-0" style={{ color: warningColor(type) }}>
+    <Icon name="flag" size={size} fill />
+  </span>
+}
+
+export function WarningBadge({ type, children }: { type?: WarningType; children: React.ReactNode }) {
   return (
-    <span className={clsx('inline-flex h-6 max-w-full items-center gap-1 rounded-md px-1.5 text-[13px] font-semibold', style.chip)}>
-      <Icon name={style.icon} size={15} fill className="shrink-0" />
-      {children ?? (severity === 'error' ? 'Blocking Error' : style.label)}
+    <span className="warning-badge inline-flex h-6 max-w-full items-center gap-1 rounded-md px-1.5 text-[13px] font-semibold text-slate-800"
+      style={warningStyle(type)}>
+      <WarningFlag type={type} />
+      {children}
     </span>
   )
 }
@@ -75,16 +61,16 @@ function FindingEvidence({ finding }: { finding: Finding }) {
   )
 }
 
-/** one finding: a severity bar on the leading edge, the badge and title, then the explanation */
+/** One warning with its type, evidence and review status. */
 export function FindingText({ finding, reviewed, decision, changed, hideRationale, details }: {
   finding: Finding; reviewed?: boolean; decision?: Decision; changed?: boolean; hideRationale?: boolean; details?: boolean
 }) {
   const decided = reviewed || !!decision
   const muted = decided || changed
-  const isBlocking = finding.severity === 'error' && !decided
+  const type = warningType(finding)
   const [reviewTitle, ...reviewDetails] = dependencyReviewLines(finding)
   return (
-    <div className={clsx('min-w-0 border-l-[3px] pl-3', muted ? 'border-slate-300' : RISK_UI[finding.severity].bar)}>
+    <div className="min-w-0 border-l-[3px] pl-3" style={{ borderColor: muted ? 'var(--color-slate-300)' : warningColor(type) }}>
       <div className="flex flex-wrap items-center gap-2">
         {decision ? (
           <span className={clsx('inline-flex items-center gap-1 text-[13px] font-semibold text-slate-600')}>
@@ -92,9 +78,9 @@ export function FindingText({ finding, reviewed, decision, changed, hideRational
             {decision.status === 'accepted' ? 'Accepted' : `Dismissed${decision.reason ? ` · ${REASONS[decision.reason]}` : ''}`}
           </span>
         ) : (
-          <span className={clsx('inline-flex items-center gap-1 text-[13px] font-semibold', muted ? 'text-slate-600' : RISK_UI[finding.severity].ink)}>
-            <Icon name={reviewed ? 'check' : changed ? 'edit' : RISK_UI[finding.severity].icon} size={15} fill={!muted} className="shrink-0" />
-            {reviewed ? 'Reviewed' : changed ? 'Changed since upload' : isBlocking ? 'Blocking Error' : RISK_UI[finding.severity].label}
+          <span className="inline-flex items-center gap-1 text-[13px] font-semibold text-slate-700">
+            {muted ? <Icon name={reviewed ? 'check' : 'edit'} size={15} /> : <WarningFlag type={type} />}
+            {reviewed ? 'Reviewed' : changed ? 'Changed since upload' : WARNING_TYPES[type].label}
           </span>
         )}
         {finding.origin === 'llm' && (
@@ -102,9 +88,9 @@ export function FindingText({ finding, reviewed, decision, changed, hideRational
             <Icon name="auto_awesome" size={15} className="shrink-0" />AI check{details && finding.model ? ` · ${finding.model}` : ''}
           </span>
         )}
-        <h4 className={clsx('text-[15px] font-semibold', muted ? 'text-slate-700' : 'text-slate-900')}>{finding.title}</h4>
+        <h4 className={clsx('text-[15px] font-semibold', muted ? 'text-slate-700' : 'text-slate-900')}>{warningTitle(finding)}</h4>
       </div>
-      {changed && !decided && <p className="mt-1 text-sm leading-relaxed text-pretty text-slate-700">You edited this value after the upload check. The note below describes the uploaded version.</p>}
+      {changed && !decided && <p className="mt-1 text-sm leading-relaxed text-pretty text-slate-700">You edited this value after the upload check. This warning describes the uploaded version.</p>}
       <p className={clsx('mt-1 text-sm leading-relaxed text-pretty', muted ? 'text-slate-600' : 'text-slate-700')}>{plainFindingText(finding.message)}</p>
       {reviewTitle && <div className="mt-1 space-y-0.5 text-sm text-slate-700">
         <p className="font-semibold">{reviewTitle}</p>
@@ -124,10 +110,11 @@ export function FindingText({ finding, reviewed, decision, changed, hideRational
 
 export function ChangeOrderText({ signal, decision }: { signal: ChangeOrderSignal; decision?: Decision }) {
   return (
-    <div className={clsx('min-w-0 border-l-[3px] pl-3', decision ? 'border-slate-300' : CHANGE_ORDER_UI.bar)}>
+    <div className="min-w-0 border-l-[3px] pl-3" style={{ borderColor: decision ? 'var(--color-slate-300)' : warningColor('change') }}>
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-[13px] font-semibold text-slate-600">
-          {decision?.status === 'accepted' ? 'Accepted' : decision ? `Dismissed${decision.reason ? ` · ${REASONS[decision.reason]}` : ''}` : 'Change-order signal'}
+        <span className="inline-flex items-center gap-1 text-[13px] font-semibold text-slate-700">
+          {!decision && <WarningFlag type="change" />}
+          {decision?.status === 'accepted' ? 'Accepted' : decision ? `Dismissed${decision.reason ? ` · ${REASONS[decision.reason]}` : ''}` : WARNING_TYPES.change.label}
         </span>
         <h4 className="text-[15px] font-semibold text-slate-900">{signal.title}</h4>
       </div>
@@ -143,28 +130,20 @@ export function FindingFilter({ rows, reviewed, value, onChange }: {
   value: string
   onChange: (value: string) => void
 }) {
-  const severities = new Map<Severity, number>()
-  const types = new Map<string, { title: string; count: number }>()
-  const categories = new Map<string, number>()
+  const types = new Map<WarningType, number>()
+  const groups = new Map<string, { title: string; count: number }>()
   let flagged = 0
   let reviewedRows = 0
-  let changeOrders = 0
   for (const items of rows) {
     const open = items.filter((item) => !reviewed.has(item.id))
-    const findings = items.filter((item) => 'severity' in item)
-    const openFindings = open.filter((item) => 'severity' in item)
     if (open.length) flagged++
     if (open.length < items.length) reviewedRows++
-    if (open.some((item) => !('severity' in item))) changeOrders++
-    for (const severity of new Set(openFindings.map((finding) => finding.severity))) {
-      severities.set(severity, (severities.get(severity) ?? 0) + 1)
+    for (const type of new Set(open.map(warningType))) {
+      types.set(type, (types.get(type) ?? 0) + 1)
     }
-    for (const category of new Set(openFindings.flatMap((finding) => finding.category ? [finding.category] : []))) {
-      categories.set(category, (categories.get(category) ?? 0) + 1)
-    }
-    const openTypes = new Set(openFindings.map((finding) => finding.rule_id))
-    for (const [id, title] of new Map(findings.map((finding) => [finding.rule_id, finding.title]))) {
-      types.set(id, { title, count: (types.get(id)?.count ?? 0) + Number(openTypes.has(id)) })
+    const openGroups = new Set(open.map(warningGroup))
+    for (const [key, title] of new Map(items.map((item) => [warningGroup(item), warningTitle(item)]))) {
+      groups.set(key, { title, count: (groups.get(key)?.count ?? 0) + Number(openGroups.has(key)) })
     }
   }
   if (!rows.length && value === 'all') return null
@@ -172,25 +151,20 @@ export function FindingFilter({ rows, reviewed, value, onChange }: {
   const option = (key: string, label: string, count?: number, icon?: string): MenuItem => ({
     label, icon, checked: value === key, hint: count === undefined ? undefined : String(count), onSelect: () => onChange(key),
   })
-  const sortedTypes = [...types].sort(([, a], [, b]) => a.title.localeCompare(b.title))
+  const sortedGroups = [...groups].sort(([, a], [, b]) => a.title.localeCompare(b.title))
   const items: (MenuItem | 'sep')[] = [
     option('all', 'All positions'),
     option('flagged', 'Flagged positions', flagged),
     option('reviewed', 'Reviewed positions', reviewedRows),
-    'sep',
-    ...SEVERITIES.filter((severity) => severities.get(severity)).map((severity) => option(severity, RISK_UI[severity].plural, severities.get(severity), RISK_UI[severity].icon)),
-    ...(changeOrders > 0 || value === 'change-orders' ? [option('change-orders', 'Change-order signals', changeOrders)] : []),
-    ...(categories.size ? ['sep' as const, ...[...categories].sort(([a], [b]) => a.localeCompare(b)).map(([id, count]) =>
-      option(`category:${id}`, findingCategory(id), count))] : []),
-    ...(sortedTypes.length ? ['sep' as const, ...sortedTypes.map(([id, type]) => option(`rule:${id}`, type.title, type.count))] : []),
+    ...(types.size ? ['sep' as const, ...WARNING_TYPE_ORDER.filter((type) => types.has(type)).map((type) =>
+      option(`type:${type}`, WARNING_TYPES[type].label, types.get(type), 'flag'))] : []),
+    ...(sortedGroups.length ? ['sep' as const, ...sortedGroups.map(([key, group]) => option(key, group.title, group.count))] : []),
   ]
   const current = value === 'all' ? null
     : value === 'flagged' ? 'Flagged'
     : value === 'reviewed' ? 'Reviewed'
-    : value === 'change-orders' ? 'Change-order signals'
-    : value.startsWith('category:') ? findingCategory(value.slice(9))
-    : value.startsWith('rule:') ? types.get(value.slice(5))?.title ?? 'Finding'
-    : RISK_UI[value as Severity]?.plural ?? null
+    : value.startsWith('type:') ? WARNING_TYPES[value.slice(5) as WarningType]?.label ?? 'Warnings'
+    : groups.get(value)?.title ?? 'Warnings'
 
   return (
     <Menu
