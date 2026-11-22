@@ -19,7 +19,6 @@ from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 
 from analysis.layer3.provider import ProviderError, ProviderUnavailable
-from workspace_analysis import _apply_edits
 from workspace_product_ai import adjudicate, catalogue_check, companion_check, configured_model, catalogue_provider
 from workspace_product_companions import catalogue_matches, position_number
 from workspace_product_match import ProductMatcher, clean_description, clipped_description, tender_unit
@@ -89,20 +88,20 @@ def requeue_project(connection, workspace, folders):
         )
 
 
-def workspace_changed(connection, workspace, writes, old_folders=(), edits_changed=()):
-    lists = {key for collection, key, value in writes if collection == "userLists" and catalogue_list(value)}
+def workspace_changed(connection, workspace, writes, catalogue_lists, old_folders=()):
+    lists = {key for collection, key, value in writes
+             if collection == "userLists" and key in catalogue_lists and catalogue_list(value)}
     pdfs = {key for collection, key, value in writes if
             (collection == "userDocuments" and isinstance(value, dict) and str(value.get("name", "")).lower().endswith(".pdf")) or
             collection == "documentLinks"}
     enqueue(connection, workspace, lists)
-    if lists or edits_changed:
+    if lists:
         connection.execute(
             "UPDATE workspace_catalogue_run SET state='queued' WHERE workspace=%s AND list_id=ANY(%s)",
-            (workspace, list(lists | set(edits_changed))),
+            (workspace, list(lists)),
         )
     if configured_model():
-        changed = lists | {key for collection, key, _ in writes if collection == "listPatch"}
-        requeue_project(connection, workspace, set(old_folders) | project_folders(connection, workspace, changed))
+        requeue_project(connection, workspace, set(old_folders) | project_folders(connection, workspace, catalogue_lists))
     if pdfs:
         # A companion can be uploaded after the offer, so reconsider the affected list.
         connection.execute(
@@ -359,14 +358,11 @@ def sibling_positions(connection, workspace, list_id):
 
 
 def classify(connection, workspace, list_id):
-    records = {row["collection"]: row["value"] for row in connection.execute(
-        """SELECT collection, value FROM workspace_record
-           WHERE workspace=%s AND record_id=%s AND collection IN ('userLists', 'edits')""",
+    value = connection.execute(
+        """SELECT value FROM workspace_record
+           WHERE workspace=%s AND record_id=%s AND collection='userLists'""",
         (workspace, list_id),
-    )}
-    original_value = records["userLists"]
-    value = _apply_edits(original_value, records.get("edits"))
-    originals = {p["id"]: p for p in original_value["positions"] if isinstance(p, dict) and "id" in p}
+    ).fetchone()["value"]
     documents = workspace_documents(connection, workspace, list_id)
     filename = str(value.get("fileName") or "")
     original = next((d for d in documents if d["value"].get("original") and d["value"].get("name") == filename), None)
@@ -402,18 +398,15 @@ def classify(connection, workspace, list_id):
             continue
         key = code(position.get("oz"))
         short, long_text = (clean_description(position.get(field)) for field in ("short", "long"))
-        original_position = originals.get(position["id"], {})
-        source_matches = all(position.get(field) == original_position.get(field)
-                             for field in ("oz", "short", "long", "unit"))
-        source_text = legacy_texts.get(key) if source_matches else None
+        source_text = legacy_texts.get(key)
         if source_text:
             source_short = clean_description(source_text.get("short_description"))
             source_long = clean_description(source_text.get("long_description"))
             if is_offer or source_short or source_long:
                 short, long_text = source_short, source_long
-        if source_matches and xml_texts and isinstance(source_id := position.get("srcRef"), str):
+        if xml_texts and isinstance(source_id := position.get("srcRef"), str):
             long_text = restored_xml_description(position, long_text, xml_texts.get(source_id))
-        companion = descriptions.get(key) if source_matches else None
+        companion = descriptions.get(key)
         # Some priced GAEB offers carry a blank bidder field instead of a description.
         has_short = bool(re.search(r"\w", short))
         has_long = bool(re.search(r"\w", long_text))
@@ -428,7 +421,7 @@ def classify(connection, workspace, list_id):
             recovered = {"short": short[:4000], "long": long_text[:12000], "source": "Companion offer PDF" if used_pdf else None}
         candidate = {**position, "short": short, "long": long_text}
         resolved = references.resolve(candidate)
-        state, product = position_match(resolved, links.get(key, []) if source_matches else [], matcher)
+        state, product = position_match(resolved, links.get(key, []), matcher)
         job = {"name": short[:400], "unit": str(position.get("unit") or "")[:30], "recovered": recovered}
         prepared.append((candidate, resolved, state, product, job))
     companions = {}

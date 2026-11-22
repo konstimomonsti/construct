@@ -115,18 +115,18 @@ def test_workspace_worker_matches_an_upload_without_source_links(monkeypatch):
             assert report["positions"]["match"]["product"]["id"] == str(product)
             assert report["positions"]["variant"]["product"] is None
 
-            workspace.apply(connection, {"changes": {"edits": {"set": {
-                list_id: {"patch": {"match": {"unit": "St"}}, "removed": ["variant"]},
-            }}}})
-            assert catalogue.status(connection, "default", list_id)["positions"] == {}
-            assert catalogue.classify_next(connection)
-            report = catalogue.status(connection, "default", list_id)
-            assert report["positions"]["match"]["product"] is None
-            assert "variant" not in report["positions"]
+            workspace.apply(connection, {"changes": {
+                "edits": {"set": {list_id: {
+                    "up": {"match": 25}, "patch": {"match": {"unit": "St"}}, "removed": ["variant"],
+                }}},
+                "listPatch": {"set": {list_id: {"dismissedPrices": ["variant"]}}},
+            }})
+            assert not catalogue.classify_next(connection)
+            assert catalogue.status(connection, "default", list_id) == report
 
             workspace.apply(connection, {"changes": {"edits": {"delete": [list_id]}}})
-            assert catalogue.classify_next(connection)
-            assert catalogue.status(connection, "default", list_id)["positions"]["match"]["product"]["id"] == str(product)
+            assert not catalogue.classify_next(connection)
+            assert catalogue.status(connection, "default", list_id) == report
             write_catalogue(connection, "products", {"id": str(product), "action": "archive"})
             assert catalogue.status(connection, "default", list_id)["positions"] == {}
             assert catalogue.classify_next(connection)
@@ -335,6 +335,8 @@ def test_model_review_uses_independently_uploaded_copies_and_rechecks_removal(mo
             assert queued["state"] == "queued" and queued["model_review"]
             assert catalogue.research_next(conn)
             assert catalogue.status(conn, "default", first)["positions"]["1"]["product"]["id"] == str(product["id"])
+            workspace.apply(conn, {"changes": {"listPatch": {"set": {first: {"dismissedPrices": ["1"]}}}}})
+            assert not catalogue.classify_next(conn)
             workspace.apply(conn, {"changes": {"userLists": {"delete": [second]}}})
             assert catalogue.classify_next(conn)
             assert catalogue.status(conn, "default", first)["positions"]["1"]["state"] == "needs_description"

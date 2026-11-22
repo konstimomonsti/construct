@@ -42,7 +42,7 @@ import { budgetMoney, budgetStatus, int, money, parseNumber, plural } from '../l
 import { positionTotal, sumPositionTotals } from '../lib/money'
 import { groupByOz, hasSectionLabel } from '../lib/oz-groups'
 import { applyMoves, globalStep, indexTree, leafOz, nextChildOz, nextPositionOz, pathOf, resolveList, treeStats, type CatStat } from '../lib/resolve'
-import { normEdits, selectModel, statsOf, useModel, useStore } from '../lib/store'
+import { normEdits, selectModel, statsOf, useModel, useStore, type ListEdits } from '../lib/store'
 import { useUi } from '../lib/ui-store'
 import type { CategoryNode, ListDoc, Position } from '../lib/types'
 
@@ -341,16 +341,15 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   const documentVersion = useStore((state) => attached.map(({ id }) =>
     [id, state.sync?.hashes.userDocuments?.[id], state.sync?.hashes.documentLinks?.[id]].join(':'),
   ).join(','))
-  const syncedEdits = useStore((state) => state.sync?.hashes.edits?.[imported.id])
-  const { report, error, retryFailed } = useWorkspaceCatalogue(catalogueEnabled ? imported.id : null, JSON.stringify([documentVersion, syncedEdits]))
+  const { report: uploadCatalogue, error, retryFailed } = useWorkspaceCatalogue(catalogueEnabled ? imported.id : null, documentVersion)
   const doc = useMemo(() => {
-    if (!report) return imported
+    if (!uploadCatalogue) return imported
     const positions = imported.positions.map((position) => {
-      const recovered = report.positions[position.id]?.recovered
+      const recovered = uploadCatalogue.positions[position.id]?.recovered
       return recovered ? { ...position, short: recovered.short, long: recovered.long || undefined } : position
     })
     return { ...imported, positions }
-  }, [imported, report])
+  }, [imported, uploadCatalogue])
   const openDialog = useUi((s) => s.openDialog)
   const { listMenu } = useActions()
   const view = lists.find((l) => l.id === doc.id)
@@ -358,7 +357,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   const edits = useStore((s) => s.edits[doc.id])
   const resolved = useMemo(() => resolveList(doc, edits), [doc, edits])
   const positions = resolved.positions
-  const lineTypes = useLineTypes(positions)
+  const lineTypes = useLineTypes(doc.positions)
   const bidStandardRates = useMemo(() => {
     if (!original || imported.phase !== 'X83') return new Map<string, number>()
     const units = new Map(imported.positions.map((p) => [p.id, p.unit]))
@@ -377,6 +376,18 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   const ledgerStats = useMemo(() => grouped ? treeStats(grouped.positions) : catStats, [grouped, catStats])
   // prices proposed from matched catalogue products: pending until confirmed, never counted in totals
   const dismissedPrices = useStore((s) => s.listPatch[doc.id]?.dismissedPrices)
+  // A match from the upload is usable while the position still describes the same item.
+  const report = useMemo(() => {
+    if (!uploadCatalogue || !edits) return uploadCatalogue
+    const originals = new Map(doc.positions.map((p) => [p.id, p]))
+    const matches = Object.fromEntries(positions.flatMap((p) => {
+      const original = originals.get(p.id)
+      const match = uploadCatalogue.positions[p.id]
+      return match && original && p.oz === original.oz && p.unit === original.unit
+        && p.short === original.short && p.long === original.long ? [[p.id, match]] : []
+    }))
+    return { ...uploadCatalogue, positions: matches }
+  }, [uploadCatalogue, edits, doc.positions, positions])
   const pending = usePriceSuggestions(report, positions, dismissedPrices)
   // workflow tabs: subcontractor packages (plus read-only demo ones) and the award document
   const storedPackages = useStore((s) => s.listPatch[doc.id]?.subcontractPackages) ?? NO_PACKAGES
@@ -415,13 +426,14 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
       return { ...finding, target: { ...finding.target, line_id: finding.target.line_id ? map(finding.target.line_id) : null }, related_line_ids: finding.related_line_ids.map(map), suggested_fix: finding.suggested_fix ? { ...finding.suggested_fix, operations } : null }
     }) }
   }, [rawUploadReport, fixtureReport, positions])
-  const isStale = !fixtureReport && !!uploadReport && !assessmentMatchesEdits(uploadReport, edits)
+  const isStale = !fixtureReport && uploadReport?.outdated === true
+  const snapshotChanged = !fixtureReport && !!uploadReport && !assessmentMatchesEdits(uploadReport, edits)
   const fixesAvailable = !fixtureReport && canApplyAssessmentFix(assessment, edits)
   const confirmedCap = useStore(s => s.listPatch[doc.id]?.capApproval)
-  const cap = isStale ? undefined : uploadReport?.cap_comparison
+  const cap = snapshotChanged ? undefined : uploadReport?.cap_comparison
   const comparableCap = cap && 'cap' in cap && cap.confirmation_reference === confirmedCap?.confirmationReference
     && Number(cap.cap) === Number(confirmedCap.amount) && cap.currency === confirmedCap.currency ? cap : undefined
-  const phase = !isStale ? uploadReport?.phase_validation : undefined
+  const phase = !snapshotChanged ? uploadReport?.phase_validation : undefined
   const workflow = useMemo(() => currentPhase(packages, phase?.state === 'verified' && /86$/i.test(imported.phase ?? ''), positions.length > 0 && positions.every(p => p.up != null)), [packages, phase, imported.phase, positions])
   const risk = useMemo(() => reportRisk(uploadReport), [uploadReport])
   const reviewedIds = useStore((s) => s.listPatch[doc.id]?.reviewedFindings)
@@ -431,19 +443,6 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   const reviewed = useMemo(() => new Set(Object.keys(decisions)), [decisions])
   const questionTexts: Record<string, string> = {}
   const questions = useMemo(() => openQuestions(uploadReport?.questions ?? [], decisions), [uploadReport, decisions])
-  const questionsByFinding = useMemo(() => {
-    const index = new Map<string, Question[]>()
-    if (isStale) return index
-    for (const question of questions) {
-      for (const id of question.finding_ids) {
-        if (decisions[id]?.status === 'dismissed') continue
-        const linked = index.get(id) ?? []
-        linked.push(question)
-        index.set(id, linked)
-      }
-    }
-    return index
-  }, [questions, decisions, isStale])
   const codes = useMemo(() => new Map(imported.positions.map((p) => [p.id, p.oz])), [imported.positions])
   const { byRow: findingsByRow, listWide, optimizations } = useMemo(() => {
     const findings = uploadReport?.findings ?? []
@@ -475,28 +474,51 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   // a finding about a field the user has since edited no longer describes the position: show it as
   // "changed since upload" instead of flagging the row with an error the edit may already have fixed
   const changedFindings = useMemo(() => {
-    if (uploadReport?.assessed_revision != null) {
-      return new Set(isStale ? uploadReport.findings.map(finding => finding.id) : [])
-    }
-    const out = new Set<string>()
-    for (const finding of uploadReport?.findings ?? []) {
+    const findings = uploadReport?.findings ?? []
+    if (isStale) return new Set(findings.map((finding) => finding.id))
+    const assessedEdits = uploadReport?.assessed_edits as Partial<ListEdits> | null | undefined
+    if (!edits && !assessedEdits) return new Set<string>()
+    const before = new Map((assessedEdits ? resolveList(doc, normEdits(assessedEdits)).positions : doc.positions)
+      .map((p) => [p.id, p]))
+    const current = new Map(positions.map((p) => [p.id, p]))
+    const changed = new Set<string>()
+    for (const finding of findings) {
       const id = finding.target.line_id
-      if (!id || !edits) continue
-      const patch = edits.patch[id] ?? {}
+      if (!id) continue
+      const original = before.get(id)
+      const position = current.get(id)
+      if (!position || !original) {
+        changed.add(finding.id)
+        continue
+      }
+      const quantityChanged = position.qty !== original.qty || position.quantityMissing !== original.quantityMissing
       const field = finding.target.field
       const touched =
-        field === 'quantity' ? id in edits.qty
-        : field === 'unit_price' ? id in edits.up
-        : field === 'line_amount' ? id in edits.qty || id in edits.up
-        : field === 'long_text' ? 'long' in patch
-        : field === 'short_text' ? 'short' in patch
-        : field === 'unit' ? 'unit' in patch
-        : field === 'code' ? 'oz' in patch
+        field === 'quantity' ? quantityChanged
+        : field === 'unit_price' ? position.up !== original.up
+        : field === 'line_amount' ? quantityChanged || position.up !== original.up
+        : field === 'long_text' ? position.long !== original.long
+        : field === 'short_text' ? position.short !== original.short
+        : field === 'unit' ? position.unit !== original.unit
+        : field === 'code' ? position.oz !== original.oz
         : false
-      if (touched) out.add(finding.id)
+      if (touched) changed.add(finding.id)
     }
-    return out
-  }, [uploadReport, edits, isStale])
+    return changed
+  }, [uploadReport, doc, edits, positions, isStale])
+  const questionsByFinding = useMemo(() => {
+    const index = new Map<string, Question[]>()
+    if (isStale) return index
+    for (const question of questions) {
+      for (const id of question.finding_ids) {
+        if (changedFindings.has(id) || decisions[id]?.status === 'dismissed') continue
+        const linked = index.get(id) ?? []
+        linked.push(question)
+        index.set(id, linked)
+      }
+    }
+    return index
+  }, [questions, decisions, isStale, changedFindings])
   const settled = useMemo(() => new Set([...reviewed, ...changedFindings]), [reviewed, changedFindings])
   const rowPoints = useMemo(() => {
     const points = new Map<string, number>()
@@ -799,7 +821,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   }
   const exportExcel = async () => {
     if (!uploadReport) return
-    const data = await riskXlsx({ title, report: { ...uploadReport, outdated: isStale }, decisions, codes, questionTexts })
+    const data = await riskXlsx({ title, report: { ...uploadReport, outdated: snapshotChanged }, decisions, codes, questionTexts })
     downloadBytes(`Risikomatrix-${doc.fileName.replace(/\.[^.]+$/, '')}.xlsx`, data, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
   }
   const printSections = useMemo(() => new Map(imported.positions.map((p) => [p.id, { oz: p.oz, section: p.path?.map((part) => `${part.oz} ${part.label}`).at(-1) ?? 'Without section' }])), [imported.positions])
@@ -865,22 +887,29 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
     })
     if (!picks.length) return
     const store = useStore.getState()
-    const edits = normEdits(store.edits[doc.id])
+    const previous = store.edits[doc.id]
+    const edits = normEdits(previous)
     const before = edits.up
     const up = { ...before }
     for (const position of picks) up[position.id] = position.up
-    store.setEdits(doc.id, { ...edits, up })
+    const confirmed = { ...edits, up }
+    store.setEdits(doc.id, confirmed)
     // undo puts back only these prices, so edits made after confirming survive
     const undo = () => {
-      const e = useStore.getState().edits[doc.id]
+      const store = useStore.getState()
+      const e = store.edits[doc.id]
       if (!e) return
+      if (e === confirmed) {
+        store.setEdits(doc.id, previous)
+        return
+      }
       const up = { ...e.up }
       for (const { id, up: price } of picks) {
         if (up[id] !== price) continue
         if (id in before) up[id] = before[id]
         else delete up[id]
       }
-      useStore.getState().setEdits(doc.id, { ...e, up })
+      store.setEdits(doc.id, { ...e, up })
     }
     const message = picks.length === 1
       ? `Confirmed ${money(picks[0].up)} for position ${picks[0].oz}`
@@ -912,7 +941,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
   }, [positions, pending, modifiedIds])
   const { pending: pendingCount, edited: editedCount } = pricingCounts
   // what the pending suggestions would add; shown beside the total, never inside it
-  const pendingTotal = positions.reduce((sum, p) => sum + (pending.get(p.id)?.price ?? 0) * p.qty, 0)
+  const pendingTotal = sumPositionTotals(positions.map((p) => ({ ...p, up: pending.get(p.id)?.price ?? null })))
   // Suggestions with missing units still need individual review in the drawer.
   const confirmable = new Map<string, Position>()
   for (const position of positions) {
@@ -994,7 +1023,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
         sub={pendingCount > 0 && (
           <span className="inline-flex items-center gap-1.5">
             <Icon name="schedule" size={16} className="text-slate-500" />
-            <span><span className="num font-medium text-slate-800">+ {money(pendingTotal)}</span> pending confirmation, not in the total</span>
+            <span><span className="num font-medium text-slate-800">{pendingTotal >= 0 ? '+ ' : ''}{money(pendingTotal)}</span> pending confirmation, not in the total</span>
           </span>
         )}
         // research sits in the status row under the meter, so every list hero has the same height
@@ -1252,7 +1281,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
 
       {/* print output must work from every tab */}
       {uploadReport && risk && (
-        <RiskPrint title={title} report={{ ...uploadReport, outdated: isStale }} risk={risk} decisions={decisions} sections={printSections} questions={questions} texts={questionTexts} />
+        <RiskPrint title={title} report={{ ...uploadReport, outdated: snapshotChanged }} risk={risk} decisions={decisions} sections={printSections} questions={questions} texts={questionTexts} />
       )}
 
       {tab === 'subcontractors' && (
@@ -1336,7 +1365,7 @@ function ListDetail({ doc: imported }: { doc: ListDoc }) {
                       {[item.target.line_id, ...item.related_line_ids].filter((id): id is string =>
                         !!id && id !== detail?.id && codes.has(id)).map((id) =>
                         <Button key={id} size="sm" onClick={() => openDetail(id, 'findings')}>Position {codes.get(id)}</Button>)}
-                      {canSimulateBid && !fixtureReport && !isStale && !changedFindings.has(item.id) &&
+                      {canSimulateBid && !fixtureReport && !snapshotChanged && !changedFindings.has(item.id) &&
                         decisions[item.id]?.status !== 'dismissed' && item.evidence?.reason === 'shortfall' &&
                         uploadReport?.graph_valid !== false && uploadReport?.input_hash && item.target.line_id && (
                           <Button size="sm" icon="calculate" onClick={() => {

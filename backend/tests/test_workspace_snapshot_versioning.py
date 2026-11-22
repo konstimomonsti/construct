@@ -92,13 +92,38 @@ def test_import_delayed_original_edits_caps_links_and_duplicate_delivery(databas
     while workspace_analysis.assess_next(db):
         pass
     report = workspace_analysis.status(db, name, "list")["report"]
-    assert report["assessed_edits"] == edits
+    assert report["assessed_edits"] is None
     assert report["target_revision"] == report["assessed_revision"]
 
     _write(db, edits={"list": edits}, listPatch={"list": {"cap": 10, "findingDecisions": {}}})
     assert workspace_analysis.status(db, name, "list")["report"]["run_id"] == report["run_id"]
     workspace.apply(db, {"changes": {"edits": {"delete": ["list"]}}})
-    assert workspace_analysis.status(db, name, "list")["state"] == "stale"
+    assert workspace_analysis.status(db, name, "list")["report"]["run_id"] == report["run_id"]
+    assert not workspace_analysis.assess_next(db)
+
+
+def test_initial_assessment_uses_uploaded_positions_and_ignores_working_edits(database, monkeypatch):
+    db, _, name = database
+    document = _list()
+    _write(db, userLists={"list": document}, edits={"list": {"up": {"p1": 100}}})
+    real_run = workspace_analysis.run
+    checked = []
+
+    def record_upload(payload, **kwargs):
+        checked.append(payload)
+        return real_run(payload, **kwargs)
+
+    monkeypatch.setattr(workspace_analysis, "run", record_upload)
+    assert workspace_analysis.assess_next(db)
+    original = workspace_analysis.status(db, name, "list")
+    assert original["report"]["assessed_edits"] is None
+    assert original["report"]["totals"]["working_net"] == "250.00"
+    edited = {"up": {"p1": 150}, "qty": {"p1": 2}, "removed": ["p2"]}
+    _write(db, edits={"list": edited})
+    assert workspace.state(db)["collections"]["edits"]["list"] == edited
+    assert not workspace_analysis.assess_next(db)
+    assert len(checked) == 1
+    assert workspace_analysis.status(db, name, "list") == original
 
 
 def test_rollback_superseded_claim_and_bounded_retries(database, monkeypatch):
@@ -113,23 +138,27 @@ def test_rollback_superseded_claim_and_bounded_retries(database, monkeypatch):
     _write(db, userLists={"list": _list()})
     real_run = workspace_analysis.run
 
-    def concurrent_edit(*args, **kwargs):
+    replacement = _list()
+    replacement["positions"][0]["qty"] = 17
+
+    def concurrent_import(*args, **kwargs):
         with psycopg.connect(dsn, row_factory=dict_row, autocommit=True) as writer:
-            _write(writer, edits={"list": {"qty": {"p1": 17}}})
+            _write(writer, userLists={"list": replacement})
         return real_run(*args, **kwargs)
 
-    monkeypatch.setattr(workspace_analysis, "run", concurrent_edit)
+    monkeypatch.setattr(workspace_analysis, "run", concurrent_import)
     assert workspace_analysis.assess_next(db)
     assert workspace_analysis.status(db, name, "list")["state"] == "queued"
     monkeypatch.setattr(workspace_analysis, "run", real_run)
     assert workspace_analysis.assess_next(db)
-    assert workspace_analysis.status(db, name, "list")["report"]["assessed_edits"] == {"qty": {"p1": 17}}
+    assert workspace_analysis.status(db, name, "list")["report"]["totals"]["working_net"] == "285.00"
 
     def fail(*args, **kwargs):
         raise ValueError("synthetic failure")
 
     monkeypatch.setattr(workspace_analysis, "run", fail)
-    _write(db, edits={"list": {"qty": {"p1": 18}}})
+    replacement["positions"][0]["qty"] = 18
+    _write(db, userLists={"list": replacement})
     for _ in range(workspace_analysis.MAX_RETRIES):
         assert workspace_analysis.assess_next(db)
     assert not workspace_analysis.assess_next(db)
