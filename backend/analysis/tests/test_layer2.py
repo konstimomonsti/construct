@@ -299,7 +299,9 @@ class PipelineIntegrationTests(unittest.TestCase):
         result = pipeline_analyze(input, layers=[1, 2])
         self.assertEqual(result.layers_run, [1, 2])
         self.assertEqual(result.errors, [])
-        self.assertEqual(len(rules_for(2)), 50)
+        registered = {info.rule_id for info in rules_for(2)}
+        self.assertEqual(len(registered), 51)
+        self.assertIn("L2.DRAINAGE.EXPLICIT_LEAK_TEST", registered)
         dependency_findings = [finding for finding in result.findings if finding.layer == 2]
         self.assertEqual(len(dependency_findings), 1)
         self.assertEqual(dependency_findings[0].target.area_id, "office-b")
