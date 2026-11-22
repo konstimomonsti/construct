@@ -18,13 +18,17 @@ export const RISK_UI: Record<Severity, { label: string; plural: string; icon: st
 }
 
 /** change orders are money, not a defect, so they get the one cool hue and never read as another severity */
-export const CHANGE_ORDER_UI = { flag: 'text-sky-600', bar: 'border-sky-600' }
+export const CHANGE_ORDER_UI = { label: 'Change order', icon: 'flag', chip: 'bg-sky-100 text-sky-900', flag: 'text-sky-600', tint: 'bg-sky-50 hover:bg-sky-100', row: '[&>td:first-child]:shadow-[inset_3px_0_0_var(--color-sky-600)]', bar: 'border-sky-600' }
+
+/** a row's tone: its worst finding, or the change-order hue when it only carries change-order signals */
+export type RowTone = Severity | 'change'
+export const rowUi = (tone: RowTone) => (tone === 'change' ? CHANGE_ORDER_UI : RISK_UI[tone])
 
 /** the checker names its scopes in its own terms ("in Entire BoQ"); say them the way an estimator would */
 const plainFindingText = (text: string) => text.replace(/\bin (the )?Entire BoQ\b/gi, 'anywhere in this list').replace(/\bEntire BoQ\b/g, 'the whole list')
 
-export function FindingBadge({ severity, children }: { severity: Severity; children?: React.ReactNode }) {
-  const style = RISK_UI[severity]
+export function FindingBadge({ severity, children }: { severity: RowTone; children?: React.ReactNode }) {
+  const style = rowUi(severity)
   return (
     <span className={clsx('inline-flex h-6 max-w-full items-center gap-1 rounded-md px-1.5 text-[13px] font-semibold', style.chip)}>
       <Icon name={style.icon} size={15} fill className="shrink-0" />
