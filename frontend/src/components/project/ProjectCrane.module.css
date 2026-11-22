@@ -46,6 +46,7 @@
   background: currentColor;
 }
 
+
 .peak {
   top: 3px;
   bottom: calc(100% - var(--jib-top));
