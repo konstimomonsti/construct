@@ -106,6 +106,37 @@ def test_only_unchanged_scopes_keep_stated_totals(edit):
         assert snapshot.line_by_id()[line["id"]].source_amounts is None
 
 
+@pytest.mark.parametrize("filename", [
+    "Pruefdatei_GAEB_DA_XML_3.2_Bauausfuehrung_83.X83",
+    "Pruefdatei_GAEB_DA_XML_3.3_Bauausfuehrung_2024-04-04.X83",
+])
+def test_workspace_duplicate_oz_includes_gaeb_index(filename):
+    file = DATA / "fixtures" / "bvbs" / filename
+    source_row = {"content": file.read_bytes(), "name": filename}
+    source = workspace_analysis._parse_source(source_row)
+    _, payload = upload_payload(file)
+    payload["original_refs"] = {}
+    source_pairs = list(zip(payload["snapshot"]["lines"], source.lines, strict=True))
+    for line, original in source_pairs:
+        # Previously imported lists store the item ID but omit the OZ index.
+        if item_id := original.source_locator.get("indexed_item_id"):
+            line["code"] = ".".join(original.code_parts[:-1])
+            payload["original_codes"][line["id"]] = line["code"]
+            payload["original_refs"][line["id"]] = item_id
+
+    report = workspace_analysis.run(payload, source_row=source_row)
+    assert report["used_source"]
+    assert "L1.CODE.DUPLICATE" not in report["summary"]["by_rule"]
+
+    # A real duplicate created by renumbering a row still needs review.
+    renamed = next(line for line, original in source_pairs if original.code == "999.999.9999.z")
+    renamed["code"] = "999.999.9999.y"
+    report = workspace_analysis.run(payload, source_row=source_row)
+    duplicates = [finding for finding in report["findings"] if finding["rule_id"] == "L1.CODE.DUPLICATE"]
+    assert len(duplicates) == 1
+    assert duplicates[0]["target"]["line_code"] == "999.999.9999.y"
+
+
 def test_d86_upload_does_not_introduce_arithmetic_findings(monkeypatch):
     source, payload = upload_payload(AWARD)
     assert all("price" not in line for line in payload["snapshot"]["lines"])

@@ -97,26 +97,45 @@ def _parse_source(row):
     if kind not in {"gaeb_xml", "gaeb_1990"}:
         return None
     parsed = gaeb_xml(content) if kind == "gaeb_xml" else gaeb_1990(content)
-    return adapter.from_import(parsed, document=SourceDocument(id=sha256(content).hexdigest(), filename=name, format=kind))
+    source = adapter.from_import(parsed, document=SourceDocument(id=sha256(content).hexdigest(), filename=name, format=kind))
+    if kind == "gaeb_xml":
+        items = [parsed.records[line.source_locator["ordinal"]].payload for line in source.lines]
+        counts = Counter(item.get("source_id") for item in items)
+        for line, item in zip(source.lines, items, strict=True):
+            item_id = item.get("source_id")
+            if item.get("rno_index") and item_id and counts[item_id] == 1:
+                line.source_locator["indexed_item_id"] = item_id
+        source = source.with_hash()
+    return source
 
 
-def _attach_source(snapshot, source, original_codes):
+def _attach_source(snapshot, source, original_codes, original_refs=None):
     kind = source.project.source_document.format
     is_gaeb = kind in {"gaeb_xml", "gaeb_1990"}
     by_code = defaultdict(list)
+    indexed_by_ref = {}
     for line in source.lines:
+        if item_id := line.source_locator.get("indexed_item_id"):
+            indexed_by_ref[item_id] = line
         if line.code:
             by_code[_code(line.code)].append(line)
     # Use only unambiguous matches. Keep the file's stated amount only while its inputs agree
     # with the draft. Changing quantity or price replaces the draft amount with a calculation.
     pairs = []
     source_lines = source.line_by_id()
+    original_refs = original_refs or {}
     for line in snapshot.lines:
+        original_code = _code(original_codes.get(line.id))
         match_by_id = source_lines.get(line.id)
-        if match_by_id is not None and (not is_gaeb or _code(match_by_id.code) == _code(original_codes.get(line.id))):
+        indexed_match = indexed_by_ref.get(original_refs.get(line.id))
+        # The workspace import omits RNoIndex. Require a unique XML item ID and
+        # the matching base code before using the complete source OZ.
+        if indexed_match is not None and _code(indexed_match.code)[:-1] == original_code:
+            matches = [indexed_match]
+        elif match_by_id is not None and (not is_gaeb or _code(match_by_id.code) == original_code):
             matches = [match_by_id]
         elif is_gaeb and line.id in original_codes:
-            matches = by_code.get(_code(original_codes[line.id]), [])
+            matches = by_code.get(original_code, [])
         else:
             continue
         if len(matches) != 1:
@@ -128,6 +147,10 @@ def _attach_source(snapshot, source, original_codes):
     current_ids = {match.id: line.id for line, match in pairs}
     unchanged = {}
     for line, match in pairs:
+        if (match.source_locator.get("indexed_item_id")
+                and _code(line.code) == _code(original_codes.get(line.id)) == _code(match.code)[:-1]):
+            line.code = match.code
+            line.code_parts = match.code_parts
         line.gaeb_flags = match.gaeb_flags
         line.source_locator = {**match.source_locator, "source_document_id": source.project.source_document.id}
         if match.source_locator and kind in {"xls", "pdf"}:
@@ -256,7 +279,10 @@ def run(payload, connection=None, workspace=None, list_id=None, file_id=None, fi
         if source:
             original_codes = payload.get("original_codes")
             if isinstance(original_codes, dict):
-                used_source = _attach_source(snapshot, source, original_codes)
+                original_refs = payload.get("original_refs")
+                refs = {key: value for key, value in original_refs.items()
+                        if isinstance(value, str)} if isinstance(original_refs, dict) else None
+                used_source = _attach_source(snapshot, source, original_codes, refs)
             if used_source and source.project.source_document.format in {"xls", "pdf"}:
                 snapshot.import_warnings = [*snapshot.import_warnings, *source.import_warnings]
             snapshot = snapshot.with_hash()
@@ -284,6 +310,11 @@ def run(payload, connection=None, workspace=None, list_id=None, file_id=None, fi
         }
     return {**result.model_dump(mode="json"), "used_source": used_source, "source_notice": source_notice,
             "review_metrics": review_metrics}
+
+
+def _original_item_refs(document):
+    return {position["id"]: position["srcRef"] for position in document["positions"]
+            if isinstance(position.get("srcRef"), str) and position["srcRef"]}
 
 
 def _uploaded_input(document):
@@ -648,6 +679,7 @@ def assess_next(connection):
         payload["original_codes"] = {
             pos["id"]: pos["oz"] for pos in document["positions"] if pos.get("oz")
         }
+        payload["original_refs"] = _original_item_refs(document)
         if job["rules_only"]:
             payload["layers"] = list(DEFAULT_LAYERS)
         report = run(payload, filename=filename, source_row=original, allow_empty=True)
