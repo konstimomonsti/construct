@@ -82,7 +82,8 @@ def walk_gaeb_boq(node, code_parts, section_paths, boq, result):
                        lump_sum_amount=stated_total(node, "TotalLSUM"))
     elif tag in {"Item", "MarkupItem"}:
         # RNoIndex is the index letter or digit after the item number (0010 A); like GAEB 90, it is its own part.
-        item_parts = (*code_parts, *(part for part in (node.get("RNoPart"), node.get("RNoIndex")) if part is not None))
+        index = node.get("RNoIndex")
+        item_parts = (*code_parts, *(part for part in (node.get("RNoPart"), index) if part is not None))
         description = child(node, "Description")
         quantity_raw = text(child(node, "Qty"))
         quantity = decimal_text(quantity_raw)
@@ -96,7 +97,7 @@ def walk_gaeb_boq(node, code_parts, section_paths, boq, result):
                          Markup=text(child(node, "Markup")), ITMarkup=text(child(node, "ITMarkup")))
         result.add(
             "item", locator, **boq, source_id=node.get("ID"), code=".".join(item_parts),
-            code_parts=list(item_parts), section_path=section_paths[-1] if section_paths else None,
+            code_parts=list(item_parts), rno_index=index, section_path=section_paths[-1] if section_paths else None,
             quantity=quantity, quantity_raw=quantity_raw, unit=text(child(node, "QU")),
             short_description=text(next(descendants(description, "TextOutlTxt"), None)) if description is not None else None,
             long_description=text(next(descendants(description, "DetailTxt"), None)) if description is not None else None,

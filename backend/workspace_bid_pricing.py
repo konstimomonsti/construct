@@ -62,10 +62,12 @@ def run(connection, workspace, list_id, payload=None):
     included_positions(source)  # Check original section totals before rebuilding the upload assessment snapshot.
     original_codes = {pos["id"]: pos["oz"] for pos in document["positions"] if pos.get("oz")}
 
+    original_refs = workspace_analysis._original_item_refs(document)
+
     def assessed_snapshot(current_document):
         upload = workspace_analysis._uploaded_input(current_document)
         snapshot, _ = workspace_analysis.prepare(upload, allow_empty=True)
-        workspace_analysis._attach_source(snapshot, source, original_codes)
+        workspace_analysis._attach_source(snapshot, source, original_codes, original_refs)
         return snapshot.with_hash()
 
     original_snapshot = assessed_snapshot(document)
