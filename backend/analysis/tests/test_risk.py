@@ -3,10 +3,13 @@
 from decimal import Decimal
 from pathlib import Path
 
+import pytest
+
 from analysis import adapter
 from analysis.contracts import AnalysisInput, Finding, Line, PriceInfo, Project, Section, SourceAmounts, Target
 from analysis.risk import assess
 from analysis.risk.score import score_for_points
+from analysis.risk.signals import collect, matching_families
 from analysis.runner import analyze
 
 
@@ -19,6 +22,65 @@ def finding(id="f1", line_id="l1", **fields):
     return Finding(id=id, rule_id=fields.pop("rule_id", "L1.TEST.RISK"), layer=fields.pop("layer", 1),
                    category=fields.pop("category", "text"), severity=fields.pop("severity", "warning"),
                    scope="line", target=fields.pop("target", Target(line_id=line_id)), title="Bitte prüfen", message="m", **fields)
+
+
+# Every regular-expression family has both a positive and a close negative.
+@pytest.mark.parametrize("family,positive,negative", [
+    ("provisional", "Bedarfsposition für eine zusätzliche Tür", "Die Position ist eine Grundleistung"),
+    ("daywork", "Stundenlohnarbeiten für Anpassungen", "Stundenlohnarbeiten sind nicht vorgesehen"),
+    ("cost_plus", "Abrechnung nach tatsächlichem Aufwand", "Der Aufwand ist im Einheitspreis enthalten"),
+    ("by_client", "Die Geräte werden bauseits beigestellt", "Der Auftragnehmer liefert die Geräte"),
+    ("client_decides", "Ausführung nach Wahl des AG", "Ausführung nach Wahl des AN"),
+    ("conditional", "Ggf. ist ein weiterer Anstrich erforderlich", "Drei Anstriche sind auszuführen"),
+    ("approximate", "ca. 25 m Leitung", "Calciumsulfatestrich liefern"),
+    ("ground", "Homogenbereich X1 mit Fels", "Felsenbirne pflanzen"),
+    ("existing_fabric", "Rückbau im Bestand", "Bestandsdokumentation erstellen"),
+    ("time_related", "Gerüst vorhalten, Abrechnung je Woche", "Gerüst herstellen und abbauen"),
+])
+def test_regex_positive_and_negative(family, positive, negative):
+    assert family in matching_families(line(text=positive))
+    assert family not in matching_families(line(text=negative))
+
+
+@pytest.mark.parametrize("text", ["Grundwasser", "Kampfmittelsondierung", "LAGA Z2", "Homogenbereiche", "Felsanteil"])
+def test_ground_catalogue(text):
+    assert "ground" in matching_families(line(text=text))
+
+
+def test_hour_unit_and_negated_daywork():
+    assert "daywork" in matching_families(line(unit="h"))
+    for text in ("Keine Stundenlohnarbeiten", "Ohne Regiearbeiten", "Stundenlohnarbeiten sind nicht vorgesehen"):
+        assert "daywork" not in matching_families(line(text=text, unit="h"))
+
+
+def test_non_regex_signals_have_positive_and_negative_cases():
+    assert "provisional" in matching_families(line(total_rule="conditional"))
+    assert "provisional" not in matching_families(line())
+    assert "thin_lump_sum" in matching_families(line(pricing_basis="lump_sum", quantity=1, unit="lump_sum"))
+    assert "thin_lump_sum" not in matching_families(line(text="Ausführliche Beschreibung " * 20, pricing_basis="lump_sum"))
+    assert "thin_lump_sum" not in matching_families(line(text="", pricing_basis="lump_sum"))
+    assert "placeholder_quantity" in matching_families(line(quantity=1, unit="m²"))
+    assert "placeholder_quantity" not in matching_families(line(quantity=1, unit="ea"))
+    assert "placeholder_quantity" not in matching_families(line(quantity=1, unit="m²", pricing_basis="lump_sum"))
+    assert "zero_qty_priced" in matching_families(line(quantity=0, source_amounts=SourceAmounts(unit_price=0)))
+    assert "zero_qty_priced" not in matching_families(line(quantity=0))
+
+
+def test_stable_signal_ids_group_scope_reasons_and_distinguish_bad_duplicate_codes():
+    inp = AnalysisInput(lines=[line(text="Fels im Bestand vorhalten"), line("l2", "Fels", sort_order=1)])
+    signals = collect(inp, [])
+    assert len(signals) == 2 and len({s.id for s in signals}) == 2
+    assert all(s.kind == "scope_gap" for s in signals)
+    assert signals == collect(inp, [])
+    unique = collect(AnalysisInput(lines=[line(text="Grundwasser")]), [])
+    assert unique[0].id == "co_01.0010_scope_gap"
+    assert "Zeitabhängige" in signals[0].message and "Bausubstanz" in signals[0].message
+
+
+def test_missing_dependency_stays_on_the_original_finding():
+    inp = AnalysisInput(lines=[line()])
+    gap = finding(rule_id="L2.FLOOR.SCREED_NEEDS_SKIRTING", layer=2, evidence={"reason": "missing"})
+    assert collect(inp, [gap]) == []
 
 
 def test_no_prices_means_no_invented_money_and_all_section_points_reconcile():
@@ -44,21 +106,20 @@ def test_money_uses_decimal_current_price_and_counts_each_affected_line_once():
     assert override.points["f1"] == 14 and override.money_at_stake == 2700
 
 
-def test_change_order_signals_do_not_contribute_to_reports():
+def test_wording_signals_keep_only_strongest_kind_per_section():
     inp = AnalysisInput(sections=[Section(id="s", title="Bauarbeiten", sort_order=0)], lines=[
-        line("l1", "Baustelleneinrichtung", section_id="s", code="1", quantity=1,
-             pricing_basis="lump_sum", price=PriceInfo(unit_price=100)),
+        line("l1", "Grundwasser", section_id="s", code="1", quantity=1,
+             price=PriceInfo(unit_price=100)),
         line("l2", "Fels", section_id="s", code="2", sort_order=1, quantity=1,
              price=PriceInfo(unit_price=1000)),
         line("l3", "Mehrmengen werden gesondert vergütet", section_id="s", code="3", sort_order=2, quantity=1,
              price=PriceInfo(unit_price=50)),
     ])
-    report = assess(inp, [finding("f1", "l3")])
-    assert report.change_order_signals == []
-    assert report.points == {"f1": 4.05}
-    assert report.money_at_stake == Decimal("9")
-    assert [row.line_id for row in report.top_risks] == ["l3"]
-    assert report.by_section[0].open == 1
+    report = assess(inp, [])
+    assert [report.points[signal.id] for signal in report.change_order_signals] == [0, 2.5, 2.5]
+    assert report.money_at_stake == 147
+    assert report.top_risks[0].amount == 1000
+    assert sum(report.points.values()) == report.by_section[0].points == 5
 
 
 def test_rejected_resolved_stale_and_duplicate_findings_do_not_inflate_score():
@@ -147,5 +208,5 @@ def test_overlapping_findings_and_derived_signals_do_not_double_charge_points():
 def test_zero_quantity_finding_replaces_the_duplicate_change_order_signal():
     inp = AnalysisInput(lines=[line(quantity=0, source_amounts=SourceAmounts(unit_price=10))])
     zero = finding(rule_id="L1.QTY.ZERO", severity="error")
-    assert assess(inp, []).change_order_signals == []
+    assert any(signal.kind == "zero_qty_priced" for signal in assess(inp, []).change_order_signals)
     assert all(signal.kind != "zero_qty_priced" for signal in assess(inp, [zero]).change_order_signals)

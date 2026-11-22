@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { int, money } from '../../lib/format'
-import { analysisCoverage, dependencyReviewLines, openExposure, rescore, type Decisions, type Question, type Report, type Finding, type Risk } from '../../lib/risk-assessment'
+import { analysisCoverage, dependencyReviewLines, openExposure, rescore, type Decisions, type Question, type Report, type ReviewItem, type Risk } from '../../lib/risk-assessment'
 import { decisionText } from '../../lib/risk-export'
 
 /** print-only copy of the risk review (see `.risk-print` in index.css); the app UI is hidden while printing */
@@ -18,11 +18,11 @@ export function RiskPrint({ title, report, risk, decisions, sections, questions,
   const live = rescore(risk, decisions)
   const coverage = analysisCoverage(report)
   const printedAt = useMemo(() => new Date().toLocaleDateString('de-DE'), [])
-  const groups = new Map<string, Finding[]>()
+  const groups = new Map<string, ReviewItem[]>()
   const optimizations = report.findings.filter(finding => finding.category === 'optimization')
   const findings = report.findings.filter(finding => finding.category !== 'optimization')
-  for (const item of findings) {
-    const lineId = item.target.line_id ?? item.related_line_ids[0]
+  for (const item of [...findings, ...risk.change_order_signals]) {
+    const lineId = 'severity' in item ? item.target.line_id ?? item.related_line_ids[0] : item.line_id
     const key = (lineId && sections.get(lineId)?.section) || 'Whole list'
     const group = groups.get(key) ?? []
     group.push(item)
@@ -48,13 +48,14 @@ export function RiskPrint({ title, report, risk, decisions, sections, questions,
             <thead><tr><th>OZ</th><th>Severity</th><th>Finding</th><th>Decision</th></tr></thead>
             <tbody>
               {findings.map((item) => {
-                const lineId = item.target.line_id ?? item.related_line_ids[0]
-                const lineCode = item.target.line_code
+                const finding = 'severity' in item
+                const lineId = finding ? item.target.line_id ?? item.related_line_ids[0] : item.line_id
+                const lineCode = finding ? item.target.line_code : item.line_code
                 return (
                   <tr key={item.id}>
                     <td>{lineCode ?? (lineId && sections.get(lineId)?.oz) ?? ''}</td>
-                    <td>{item.severity}</td>
-                    <td><b>{item.title}</b>. {item.message}{dependencyReviewLines(item).map((detail, index) => <div key={index}>{detail}</div>)}</td>
+                    <td>{finding ? item.severity : 'Change-order signal'}</td>
+                    <td><b>{item.title}</b>. {item.message}{finding && dependencyReviewLines(item).map((detail, index) => <div key={index}>{detail}</div>)}</td>
                     <td>{decisionText(decisions[item.id])}</td>
                   </tr>
                 )

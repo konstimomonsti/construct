@@ -12,7 +12,7 @@ import { leafOz, treeStats, type CatStat } from '../lib/resolve'
 import type { Severity } from '../lib/risk-assessment'
 import type { CategoryNode, Position } from '../lib/types'
 
-export type RowRisk = { severity?: Severity; count: number; points: number; label: string }
+export type RowRisk = { severity?: Severity; count: number; signalCount: number; points: number; label: string }
 
 /** why a section adds up to nothing, in the words the rows use */
 function zeroWhy(s: CatStat, waiting: number) {
@@ -151,7 +151,10 @@ interface RowProps {
 
 const Row = memo(function Row({ listId, p, showCategory, selected, flash, edited, qtyEdited, upEdited, risk, pending, hasWebSuggestion, onConfirmPrice, onToggle, onOpen, onMove }: RowProps) {
   const severity = risk ? risk.severity ?? 'info' : undefined
-  const reviewLabel = risk && plural(risk.count, 'finding', 'findings')
+  const reviewLabel = risk && [
+    risk.count > 0 && plural(risk.count, 'finding', 'findings'),
+    risk.signalCount > 0 && plural(risk.signalCount, 'change-order signal', 'change-order signals'),
+  ].filter(Boolean).join(' · ')
   const total = positionTotal(p)
   const remove = () => {
     useStore.getState().removePositions(listId, [p.id])

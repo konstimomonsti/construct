@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { applyDecision, decisionsOf, indexFindings, matchesFindingFilter, openQuestions, reportRisk, rescore } from '../src/lib/risk-assessment'
+import { applyDecision, decisionsOf, indexFindings, matchesFindingFilter, rescore } from '../src/lib/risk-assessment'
 import { riskReport } from './fixtures/risk-report'
 
 test('rescore drops points of decided items and keeps the §5.4 formula', () => {
@@ -68,39 +68,17 @@ test('the fixture report has a risk object usable with rescore and well-formed q
 })
 
 
-test('saved reports lose change-order signals and their points, exposure and questions', () => {
-  const previous = riskReport.risk!
-  const [signal] = previous.change_order_signals
-  const [finding] = riskReport.findings
-  const report: Report = {
-    ...riskReport,
-    findings: [finding],
-    risk: {
-      ...previous,
-      priced: true,
-      scale: 40,
-      points: { [signal.id]: 2.5, [finding.id]: 8 },
-      by_section: [{ section_id: 's', code: '01', title: 'Trade', open: 2, points: 10.5 }],
-      top_risks: [{ line_id: 'p1', line_code: '01.0010', short_text: 'Precast', points: 10.5,
-        reasons: [finding.title, signal.title], item_ids: [finding.id, signal.id], amount: '100' }],
-      change_order_signals: [signal],
-    },
-    review_metrics: {
-      item_sections: { [signal.id]: 's', [finding.id]: 's' },
-      item_exposure: { [signal.id]: ['p1', '15.00'], [finding.id]: ['p1', '10.00'] },
-    },
-  }
-  const cleaned = reportRisk(report)!
-  assert.deepEqual(cleaned.change_order_signals, [])
-  assert.deepEqual(cleaned.points, { [finding.id]: 8 })
-  assert.equal(cleaned.score, 17)
-  assert.equal(cleaned.by_section[0].open, 1)
-  assert.deepEqual(cleaned.top_risks[0].reasons, [finding.title])
-  assert.equal(cleaned.money_at_stake, '10.00')
-  assert.deepEqual(openQuestions([
-    { id: 'signal', topic: '', text_de: '', line_codes: [], finding_ids: [], rule_id: 'CO.SCOPE_GAP' },
-    { id: 'finding', topic: '', text_de: '', line_codes: [], finding_ids: [finding.id], rule_id: finding.rule_id },
-  ], {}).map(q => q.id), ['finding'])
+test('the list filters change-order signals and reviewed items independently of finding severity', () => {
+  const signal = riskReport.risk!.change_order_signals[0]
+  const finding = riskReport.findings[0]
+  const unreviewed = new Set<string>()
+  assert.ok(matchesFindingFilter('change-orders', [signal], unreviewed))
+  assert.ok(matchesFindingFilter('flagged', [signal], unreviewed))
+  assert.ok(!matchesFindingFilter(finding.severity, [signal], unreviewed))
+  assert.ok(matchesFindingFilter(`category:${finding.category}`, [finding], unreviewed))
+  const reviewed = new Set([signal.id])
+  assert.ok(matchesFindingFilter('reviewed', [signal], reviewed))
+  assert.ok(!matchesFindingFilter('change-orders', [signal], reviewed))
 })
 
 test('findings on removed positions remain reviewable with the whole list', () => {
