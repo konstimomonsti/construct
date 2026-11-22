@@ -642,7 +642,7 @@ def assess_next(connection):
             row["collection"]: row["value"] for row in connection.execute(
                 """
                 SELECT collection, value FROM workspace_record
-                WHERE workspace=%s AND collection IN ('userLists', 'edits', 'listPatch') AND record_id=%s
+                WHERE workspace=%s AND collection IN ('userLists', 'listPatch') AND record_id=%s
                 """, (workspace, list_id),
             )
         }
@@ -675,7 +675,7 @@ def assess_next(connection):
 
     report = None
     try:
-        payload = _uploaded_input(_apply_edits(document, records.get("edits")))
+        payload = _uploaded_input(document)
         payload["original_codes"] = {
             pos["id"]: pos["oz"] for pos in document["positions"] if pos.get("oz")
         }
@@ -683,7 +683,7 @@ def assess_next(connection):
         if job["rules_only"]:
             payload["layers"] = list(DEFAULT_LAYERS)
         report = run(payload, filename=filename, source_row=original, allow_empty=True)
-        report["assessed_edits"] = records.get("edits")
+        report["assessed_edits"] = None
         report["phase_validation"] = _phase_validation(list_id, document, patch, predecessor, awards)
         report["cap_comparison"] = _cap_comparison(report, patch)
         _bind_review_evidence(report, job["report"])

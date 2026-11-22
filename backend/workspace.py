@@ -60,12 +60,13 @@ def _advance_revision(connection):
     return row["revision"]
 
 
-def _assessment_changes(connection, writes, deletes):
-    collections = {"userLists", "edits", "listPatch", "userDocuments", "documentLinks"}
+def _check_changes(connection, writes, deletes):
+    # Checks use source records. Saving working prices or other position edits never queues them.
+    collections = {"userLists", "listPatch", "userDocuments", "documentLinks"}
     changes = {key: None for key in deletes if key[0] in collections}
     changes.update({(collection, key): value for collection, key, value in writes if collection in collections})
     if not changes:
-        return set(), set(), set()
+        return set(), set(), set(), set()
     previous = {
         (row["collection"], row["record_id"]): row["value"] for row in connection.execute(
             """
@@ -74,20 +75,25 @@ def _assessment_changes(connection, writes, deletes):
             """, (WORKSPACE, list(collections), sorted({key for _, key in changes})),
         )
     }
-    lists, documents, packages = set(), set(), set()
+    lists, documents, packages, catalogue_lists = set(), set(), set(), set()
     for (collection, key), value in changes.items():
         old = previous.get((collection, key))
         if collection == "listPatch":
+            before = old if isinstance(old, dict) else {}
+            after = value if isinstance(value, dict) else {}
+            if any(before.get(field) != after.get(field) for field in ("folderId", "trashedAt")):
+                catalogue_lists.add(key)
             old = {field: old[field] for field in ASSESSMENT_PATCH_KEYS if isinstance(old, dict) and field in old}
             value = {field: value[field] for field in ASSESSMENT_PATCH_KEYS if isinstance(value, dict) and field in value}
         if old != value:
             (documents if collection in {"userDocuments", "documentLinks"} else lists).add(key)
             if collection == "userLists":
+                catalogue_lists.add(key)
                 for document in (old, value):
                     identity = document.get("phaseIdentity") if isinstance(document, dict) else None
                     if isinstance(identity, dict) and isinstance(identity.get("packageId"), str):
                         packages.add(identity["packageId"])
-    return lists, documents, packages
+    return lists, documents, packages, catalogue_lists
 
 
 def _related_phase_lists(connection, lists, packages):
@@ -122,13 +128,11 @@ def apply(connection, payload):
     with connection.transaction():
         if writes or deletes:
             revision = _advance_revision(connection)
-            assessment_lists, assessment_documents, packages = _assessment_changes(connection, writes, deletes)
+            assessment_lists, assessment_documents, packages, catalogue_lists = _check_changes(connection, writes, deletes)
             assessment_lists.update(workspace_analysis.original_lists(connection, WORKSPACE, assessment_documents))
             old_folders = ()
             if workspace_catalogue.configured_model():
-                edited_lists = {key for collection, key, _ in writes if collection in {"userLists", "listPatch"}}
-                edited_lists.update(key for collection, key in deletes if collection in {"userLists", "listPatch"})
-                old_folders = workspace_catalogue.project_folders(connection, WORKSPACE, edited_lists)
+                old_folders = workspace_catalogue.project_folders(connection, WORKSPACE, catalogue_lists)
             with connection.cursor() as cursor:
                 if deletes:
                     cursor.executemany(
@@ -146,11 +150,7 @@ def apply(connection, payload):
                         [(WORKSPACE, collection, key, Jsonb(value, dumps=_dumps), revision)
                          for collection, key, value in writes],
                     )
-            edit_ids = {key for collection, key in deletes if collection == "edits"}
-            edit_ids.update(key for collection, key, _ in writes if collection == "edits")
-            workspace_catalogue.workspace_changed(
-                connection, WORKSPACE, writes, old_folders, edits_changed=assessment_lists & edit_ids,
-            )
+            workspace_catalogue.workspace_changed(connection, WORKSPACE, writes, catalogue_lists, old_folders)
             assessment_lists.update(workspace_analysis.original_lists(connection, WORKSPACE, assessment_documents))
             assessment_lists.update(_related_phase_lists(connection, assessment_lists, packages))
             workspace_analysis.enqueue(connection, WORKSPACE, assessment_lists, revision=revision)
